@@ -1,0 +1,24 @@
+# Robots.txt for Torrent Vibe - QB WebUI
+User-agent: *
+Allow: /
+
+# Disallow admin or sensitive areas
+Disallow: /admin
+Disallow: /api
+Disallow: /*.json$
+
+# Sitemap location
+Sitemap: https://torrent-vibe.app/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1
+
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /

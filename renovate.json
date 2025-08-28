@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "extends": [
+    "config:base"
+  ]
+}
