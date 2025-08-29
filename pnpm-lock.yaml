@@ -12,8 +12,8 @@ importers:
         specifier: 2.2.7
         version: 2.2.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@pastel-palette/tailwindcss':
-        specifier: 1.0.0-canary.0
-        version: 1.0.0-canary.0
+        specifier: 1.0.0-canary.1
+        version: 1.0.0-canary.1
       '@radix-ui/react-accordion':
         specifier: 1.2.11
         version: 1.2.11(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -75,7 +75,7 @@ importers:
         specifier: 12.23.12
         version: 12.23.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       next:
-        specifier: ^15.5.0
+        specifier: ^15.5.2
         version: 15.5.2(@babel/core@7.28.3)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       next-themes:
         specifier: ^0.3.0
@@ -139,7 +139,7 @@ importers:
         specifier: 4.0.9
         version: 4.0.9(@types/estree@1.0.8)(@typescript-eslint/eslint-plugin@8.41.0(@typescript-eslint/parser@8.41.0(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2))(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2))(@typescript-eslint/utils@8.41.0(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint@9.33.0(jiti@2.5.1))(tailwindcss@4.1.11)(ts-api-utils@2.1.0(typescript@5.9.2))(typescript@5.9.2)
       eslint-config-next:
-        specifier: ^15.2.7
+        specifier: ^15.5.2
         version: 15.5.2(eslint-plugin-import-x@4.16.1(@typescript-eslint/utils@8.41.0(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint@9.33.0(jiti@2.5.1)))(eslint@9.33.0(jiti@2.5.1))(typescript@5.9.2)
       lint-staged:
         specifier: 16.1.5
@@ -858,11 +858,11 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@pastel-palette/colors@1.0.0-beta.2':
-    resolution: {integrity: sha512-5mzaJaSlG2YdEh++XxHL49Q5NYDpXU/++1Dj72c/draZVNQf8PeTfkaszASLljtRboDcAkGMrm644NgKFsn09g==}
+  '@pastel-palette/colors@1.0.0-canary.1':
+    resolution: {integrity: sha512-5ESZR3w+NsHDglUjATPCfMgApG2Ca/ABsEzq3x6D5PrERfHlZ+datQeAqFmRoeX3BK/yy3R4K/S7pO+iXuG6hw==}
 
-  '@pastel-palette/tailwindcss@1.0.0-canary.0':
-    resolution: {integrity: sha512-wU7/hix95ufkFSTPadDycgnn1Wwy51NCK73Y+pGiordOoU41dY1cj6i3b7wNyroYiqJUZyYMsVircPW3aA+ydw==}
+  '@pastel-palette/tailwindcss@1.0.0-canary.1':
+    resolution: {integrity: sha512-puzNskz/++ptF7kN6jQTTltcsRhbPO/gMJVk9KiisFEKXSLVVWAxLtTAdudQDkMDuMv05Zhz76ohJun7Yws+iA==}
 
   '@pivanov/utils@0.0.2':
     resolution: {integrity: sha512-q9CN0bFWxWgMY5hVVYyBgez1jGiLBa6I+LkG37ycylPhFvEGOOeaADGtUSu46CaZasPnlY8fCdVJZmrgKb1EPA==}
@@ -4897,13 +4897,13 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@pastel-palette/colors@1.0.0-beta.2':
+  '@pastel-palette/colors@1.0.0-canary.1':
     dependencies:
       culori: 4.0.2
 
-  '@pastel-palette/tailwindcss@1.0.0-canary.0':
+  '@pastel-palette/tailwindcss@1.0.0-canary.1':
     dependencies:
-      '@pastel-palette/colors': 1.0.0-beta.2
+      '@pastel-palette/colors': 1.0.0-canary.1
 
   '@pivanov/utils@0.0.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:

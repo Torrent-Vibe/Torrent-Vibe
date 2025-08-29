@@ -84,7 +84,7 @@ const FeatureCard: FC<FeatureCardProps> = ({
         delay,
       }}
       viewport={{ once: true }}
-      className="bg-fill backdrop-blur-sm border border-border rounded-2xl p-8 hover:bg-fill-secondary"
+      className="bg-material-medium backdrop-blur-sm border border-border rounded-2xl p-8 hover:bg-material-thick"
     >
       <div className={getIconBgClass()}>
         <i className={getIconClass()} />

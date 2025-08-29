@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   authors: [{ name: 'Innei' }],
   creator: 'Innei',
   publisher: 'Innei',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/logo-192.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',

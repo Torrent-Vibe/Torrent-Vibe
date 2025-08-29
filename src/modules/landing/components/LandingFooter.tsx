@@ -1,6 +1,7 @@
 'use client'
 
 import { m } from 'motion/react'
+import Image from 'next/image'
 import type { FC } from 'react'
 
 import { Spring } from '~/lib/spring'
@@ -26,9 +27,12 @@ export const LandingFooter: FC = () => {
             viewport={{ once: true }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center shadow-lg">
-                <i className="i-lucide-download text-white text-xl" />
-              </div>
+              <Image
+                src="/logo-192.png"
+                alt="Torrent Vibe Logo"
+                width={48}
+                height={48}
+              />
               <span className="text-2xl font-bold text-text">Torrent Vibe</span>
             </div>
             <p className="text-text-secondary text-sm leading-relaxed max-w-md text-center md:text-left">

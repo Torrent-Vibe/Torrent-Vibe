@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { FC } from 'react'
 
 interface LandingHeaderProps {
@@ -12,9 +13,13 @@ export const LandingHeader: FC<LandingHeaderProps> = ({ className }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
-              <i className="i-lucide-download text-white text-lg" />
-            </div>
+            <Image
+              src="/logo-192.png"
+              alt="Torrent Vibe Logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-xl font-bold text-text">Torrent Vibe</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">

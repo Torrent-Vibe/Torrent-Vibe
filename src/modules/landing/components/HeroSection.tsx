@@ -294,7 +294,7 @@ export const HeroSection: FC = () => {
             alt="qBittorrent WebUI Screenshot"
             width={3024}
             height={2024}
-            className="rounded-2xl w-full h-auto shadow-2xl"
+            className="rounded-2xl w-full h-auto"
           />
         </m.div>
       </div>
