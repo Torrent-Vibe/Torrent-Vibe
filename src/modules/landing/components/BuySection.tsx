@@ -17,57 +17,39 @@ interface PricingPlan {
 }
 
 export const BuySection: FC = () => {
-  return null
   const plans: PricingPlan[] = [
     {
-      name: 'Free',
+      name: 'Trial',
       price: '$0',
       period: 'forever',
-      description: 'Perfect for personal use and small downloads',
+      description: 'Try all features without restrictions before buying',
       features: [
-        'Basic torrent management',
-        'Web interface access',
-        'Up to 50 active torrents',
-        'Standard download speeds',
-        'Community support',
+        'Basic features included',
+        'Unlimited trial period',
+        'No feature limitations',
+        'Test before you buy',
       ],
-      buttonText: 'Get Started Free',
+      buttonText: 'Start Free Trial',
       buttonVariant: 'secondary',
     },
     {
-      name: 'Pro',
-      price: '$9',
-      period: 'month',
-      description: 'Advanced features for power users',
+      name: 'Lifetime',
+      price: '$9.99',
+      period: 'one-time',
+      description:
+        'Buy once, own forever. Includes all current major version updates',
       features: [
-        'Unlimited active torrents',
-        'Priority download speeds',
-        'Advanced filtering & search',
-        'Custom themes & layouts',
-        'Email support',
-        'Automated organization',
-        'Bandwidth scheduling',
+        'One-time purchase, no subscriptions',
+        'All features unlocked permanently',
+        'Lifetime updates within major version',
+        'Private GitHub repository access',
+        'Complete source code included',
+        'Alternative Web UI for qBittorrent',
+        'No recurring fees ever',
       ],
       popular: true,
-      buttonText: 'Start Pro Trial',
+      buttonText: 'Buy Lifetime Access',
       buttonVariant: 'primary',
-    },
-    {
-      name: 'Enterprise',
-      price: '$29',
-      period: 'month',
-      description: 'For teams and organizations',
-      features: [
-        'Everything in Pro',
-        'Multi-user management',
-        'Advanced analytics',
-        'API access',
-        'Priority support',
-        'Custom integrations',
-        'SLA guarantee',
-      ],
-      buttonText: 'Contact Sales',
-      buttonVariant: 'secondary',
     },
   ]
 
@@ -86,12 +68,13 @@ export const BuySection: FC = () => {
         >
           <h2 className="text-3xl sm:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              Simple, Transparent Pricing
+              Buy Once, Own Forever
             </span>
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-            Choose the perfect plan for your torrent management needs. Start
-            free and upgrade when you're ready.
+            Try the trial version first, then purchase once for lifetime access.
+            Get all current major version updates included, with separate
+            purchases for major version upgrades.
           </p>
         </m.div>
 

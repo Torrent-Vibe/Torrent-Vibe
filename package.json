@@ -60,6 +60,7 @@
     "@types/react-dom": "19.1.7",
     "autoprefixer": "10.4.21",
     "eslint": "9.33.0",
+    "eslint-config-hyoban": "4.0.9",
     "eslint-config-next": "^15.2.7",
     "lint-staged": "16.1.5",
     "postcss": "8.5.6",

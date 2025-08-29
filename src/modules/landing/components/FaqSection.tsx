@@ -18,51 +18,45 @@ export const FaqSection: FC = () => {
 
   const faqs: FaqItem[] = [
     {
-      question: 'What is Torrent Vibe and how does it work?',
+      question: 'What is Torrent Vibe?',
       answer:
-        'Torrent Vibe is a modern web interface for qBittorrent that provides enhanced functionality, better performance, and an intuitive user experience. It connects to your existing qBittorrent client and provides a beautiful, modern interface for managing your torrents.',
+        'Torrent Vibe is a modern, enhanced web interface for qBittorrent with improved design, performance, and features. It connects to your existing qBittorrent client and provides a beautiful, intuitive torrent management experience.',
       category: 'general',
     },
     {
-      question: 'Is Torrent Vibe completely free to use?',
+      question: 'Is Torrent Vibe free?',
       answer:
-        'Torrent Vibe is available as a one-time purchase. You buy the app once and get access to all features, plus ongoing updates within the major version. No subscriptions or recurring fees required.',
+        'We offer an unlimited trial version so you can try the basic features without restrictions. After the trial, purchase once for lifetime access to all current features and updates within the major version. No subscriptions or recurring fees.',
       category: 'general',
     },
     {
-      question: 'How do I install and set up Torrent Vibe?',
+      question: 'How do I get started?',
       answer:
-        'Installation is simple! Download the appropriate version for your operating system, or use our web interface directly. The setup wizard will guide you through connecting to your qBittorrent client in just a few clicks.',
+        'Download and install Torrent Vibe for your platform (Windows, macOS, Linux), or use the web version. The setup wizard will guide you through connecting to your existing qBittorrent client in minutes.',
       category: 'technical',
     },
     {
-      question: 'Does Torrent Vibe work with my existing qBittorrent setup?',
+      question: 'How does the lifetime purchase work?',
       answer:
-        'Absolutely! Torrent Vibe is designed to work seamlessly with existing qBittorrent installations. It connects via the qBittorrent Web API, so your existing torrents, settings, and data remain untouched.',
-      category: 'technical',
-    },
-    {
-      question: 'What platforms and devices are supported?',
-      answer:
-        'Torrent Vibe works on Windows, macOS, Linux, and through any modern web browser. We also provide mobile-optimized interfaces for managing your torrents on the go.',
-      category: 'technical',
-    },
-    {
-      question: 'How does the one-time purchase work?',
-      answer:
-        'Torrent Vibe is available as a one-time purchase with no recurring fees. After purchase, you receive lifetime access to all features and ongoing updates within the current major version.',
+        'Buy once, own forever. Your purchase includes lifetime access to all features and free updates within the current major version (e.g., 1.x). Major version upgrades (1.x → 2.x) are separate purchases.',
       category: 'billing',
     },
     {
-      question: 'What happens when a new major version is released?',
+      question: 'Do you offer refunds?',
       answer:
-        'When a new major version is released, existing users can continue using their current version with all purchased features. The new major version would be available as a separate purchase with new features and improvements.',
+        "We don't offer refunds due to the digital nature of our software and unlimited trial. Please try the trial version thoroughly before purchasing to ensure it meets your needs.",
       category: 'billing',
     },
     {
-      question: 'Is my data secure and private?',
+      question: 'What do I get after purchasing?',
       answer:
-        'Absolutely. Torrent Vibe runs locally on your machine and connects directly to your qBittorrent client. We never store or have access to your torrent data, download history, or personal files.',
+        "After purchase, you'll receive lifetime access to all features, free updates within the major version, and an invitation to our private GitHub repository. This gives you access to the complete source code and web UI components for custom integration with qBittorrent.",
+      category: 'billing',
+    },
+    {
+      question: 'Is my data safe?',
+      answer:
+        'Yes, completely. Torrent Vibe runs locally and never stores or accesses your torrent data, download history, or personal files. It only connects to your qBittorrent client.',
       category: 'general',
     },
   ]
