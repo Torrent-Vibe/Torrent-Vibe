@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: 'QB WebUI Vibe',
     images: [
       {
-        url: 'https://torrent-vibe.app/og.jpg',
+        url: 'https://torrent-vibe.app/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'Modern QB WebUI Vibe - A modern WebUI experience for qBittorrent',
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: 'Modern QB WebUI Vibe - For qBittorrent',
     description:
       'A modern WebUI experience for qBittorrent with enhanced performance and intuitive design.',
-    images: ['https://torrent-vibe.app/og.jpg'],
+    images: ['https://torrent-vibe.app/og-image.jpg'],
     creator: '@_oQuery',
   },
   robots: {

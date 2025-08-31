@@ -25,7 +25,7 @@ export const seoConfig = {
     description:
       'Torrent Vibe is a modern qBittorrent WebUI with enhanced performance and user experience. Manage your torrents with our intuitive web interface featuring real-time monitoring and advanced controls.',
     url: 'https://torrent-vibe.app',
-    image: 'https://torrent-vibe.app/og.jpg',
+    image: 'https://torrent-vibe.app/og-image.jpg',
     author: 'Torrent Vibe Team',
   },
 
