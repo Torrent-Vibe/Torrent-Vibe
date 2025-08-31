@@ -8,6 +8,23 @@ A modern, elegant web interface for qBittorrent that transforms your torrent man
 
 Torrent Vibe is an enhanced web interface designed to replace or complement the default qBittorrent WebUI. It provides a fresh, modern approach to torrent management while maintaining all the powerful features you expect from qBittorrent.
 
+## Download Trial Version
+
+Try the latest trial version of Torrent Vibe to experience the modern features:
+
+[🚀 Go to Releases to Download Trial Version](https://github.com/Torrent-Vibe/Torrent-Vibe/releases)
+
+## Purchase License
+
+If you enjoy the trial version and want to unlock all features with lifetime updates:
+
+[💰 Purchase Torrent Vibe License](https://torrent-vibe.app/)
+
+- **One-time purchase** - No subscriptions or recurring fees
+- **Lifetime updates** within the major version
+- **All features unlocked** including advanced controls and premium support
+- **Cross-platform access** on all your devices include web interface
+
 ## Key Features
 
 ### 🎨 Modern Interface

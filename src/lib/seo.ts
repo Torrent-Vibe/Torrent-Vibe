@@ -59,7 +59,7 @@ export const seoConfig = {
       operatingSystem: 'Web Browser, Windows, macOS, Linux',
       offers: {
         '@type': 'Offer',
-        price: '0',
+        price: 'varies',
         priceCurrency: 'USD',
       },
     },
@@ -93,13 +93,14 @@ export const pageTemplates = {
   },
 
   download: {
-    title: 'Download Torrent Vibe - Free QB WebUI for qBittorrent',
+    title: 'Download Torrent Vibe Trial - Modern QB WebUI for qBittorrent',
     description:
-      'Download Torrent Vibe for free - the modern qBittorrent WebUI that enhances your torrent management experience with cutting-edge design and performance.',
+      'Download the latest trial version of Torrent Vibe - experience the modern qBittorrent WebUI with enhanced performance, cutting-edge design and powerful torrent management capabilities.',
     keywords: [
       'download qb webui',
+      'torrent vibe trial',
       'torrent vibe download',
-      'free torrent client',
+      'trial version',
       'qbittorrent interface',
     ],
   },
@@ -127,7 +128,6 @@ export function generateMetaTags(template: keyof typeof pageTemplates) {
       title: page.title,
       description: page.description,
       image: site.image,
-      creator: site.twitterHandle,
     },
   }
 }
