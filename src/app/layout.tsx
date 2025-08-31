@@ -16,9 +16,9 @@ export const metadata: Metadata = {
     'real-time monitoring',
     'cross-platform',
   ],
-  authors: [{ name: 'Innei' }],
-  creator: 'Innei',
-  publisher: 'Innei',
+  authors: [{ name: 'Torrent Vibe Team' }],
+  creator: 'Torrent Vibe Team',
+  publisher: 'Torrent Vibe Team',
   icons: {
     icon: '/favicon.png',
     apple: '/logo-192.png',

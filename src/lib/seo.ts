@@ -25,9 +25,8 @@ export const seoConfig = {
     description:
       'Torrent Vibe is a modern qBittorrent WebUI with enhanced performance and user experience. Manage your torrents with our intuitive web interface featuring real-time monitoring and advanced controls.',
     url: 'https://torrent-vibe.app',
-    image: 'https://torrent-vibe.app/og-image.png',
-    author: 'Innei',
-    twitterHandle: '@innei',
+    image: 'https://torrent-vibe.app/og.jpg',
+    author: 'Torrent Vibe Team',
   },
 
   // Open Graph default values
@@ -48,7 +47,7 @@ export const seoConfig = {
         'Modern QB WebUI for qBittorrent with enhanced performance and intuitive design',
       founder: {
         '@type': 'Person',
-        name: 'Innei',
+        name: 'Torrent Vibe Team',
       },
     },
 
@@ -109,7 +108,7 @@ export const pageTemplates = {
 // Generate meta tags for specific pages
 export function generateMetaTags(template: keyof typeof pageTemplates) {
   const page = pageTemplates[template]
-  const {site} = seoConfig
+  const { site } = seoConfig
 
   return {
     title: page.title,

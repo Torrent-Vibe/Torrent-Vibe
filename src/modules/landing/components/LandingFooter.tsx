@@ -53,10 +53,10 @@ export const LandingFooter: FC = () => {
             <p className="text-text-secondary text-sm mt-1">
               Created by{' '}
               <a
-                href="https://innei.in"
+                href="https://github.com/torrent-vibe"
                 className="text-accent hover:text-primary transition-colors"
               >
-                Innei
+                Torrent Vibe Team
               </a>
             </p>
           </m.div>

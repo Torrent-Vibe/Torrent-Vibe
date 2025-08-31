@@ -6,7 +6,7 @@ import type { FC } from 'react'
 
 import { CanvasBackground } from '~/components/common/CanvasBackground'
 
-const Screenshot = 'https://object.innei.in/bed/2025/08/22/1755878366885.png'
+const Screenshot = 'https://object.innei.in/bed/2025/09/01/1756656617018.png'
 
 export const HeroSection: FC = () => {
   return (
