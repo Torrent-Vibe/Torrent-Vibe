@@ -24,21 +24,39 @@ export const FaqSection: FC = () => {
       category: 'general',
     },
     {
-      question: 'Is Torrent Vibe free?',
-      answer:
-        'We offer an unlimited trial version so you can try the basic features without restrictions. After the trial, purchase once for lifetime access to all current features and updates within the major version. No subscriptions or recurring fees.',
-      category: 'general',
-    },
-    {
       question: 'How do I get started?',
       answer:
         'Download and install Torrent Vibe for your platform (Windows, macOS, Linux), or use the web version. The setup wizard will guide you through connecting to your existing qBittorrent client in minutes.',
       category: 'technical',
     },
     {
+      question: 'Is Torrent Vibe free?',
+      answer:
+        'We offer an unlimited trial version so you can try the basic features without restrictions. After the trial, purchase once for lifetime access to all current features and updates within the major version. No subscriptions or recurring fees.',
+      category: 'general',
+    },
+    {
+      question: 'Is my data safe?',
+      answer:
+        'Yes, completely. Torrent Vibe runs locally and never stores or accesses your torrent data, download history, or personal files. It only connects to your qBittorrent client.',
+      category: 'general',
+    },
+    {
+      question: 'What versions of qBittorrent does Torrent Vibe support?',
+      answer:
+        'Torrent Vibe supports qBittorrent API version 2, which is compatible with qBittorrent 4.1.0 and later versions. This ensures full compatibility with the latest qBittorrent features and improvements.',
+      category: 'technical',
+    },
+    {
       question: 'How does the lifetime purchase work?',
       answer:
-        'Buy once, own forever. Your purchase includes lifetime access to all features and free updates within the current major version (e.g., 1.x). Major version upgrades (1.x → 2.x) are separate purchases.',
+        'Buy once, use forever. Your purchased app will continue working indefinitely without any subscription fees or expiration dates. However, due to limited resources, we may not be able to provide continuous updates or new versions for the current major version. Major version upgrades (if any) would be separate purchases.',
+      category: 'billing',
+    },
+    {
+      question: 'What do I get after purchasing?',
+      answer:
+        "After purchasing, you'll receive a license key via email. Once you download and install the app, enter your license key, email, and GitHub username within the app. You'll then receive an invitation email to join our private GitHub repository, giving you access to future updates and the complete source code for custom integrations with qBittorrent.",
       category: 'billing',
     },
     {
@@ -46,18 +64,6 @@ export const FaqSection: FC = () => {
       answer:
         "We don't offer refunds due to the digital nature of our software and unlimited trial. Please try the trial version thoroughly before purchasing to ensure it meets your needs.",
       category: 'billing',
-    },
-    {
-      question: 'What do I get after purchasing?',
-      answer:
-        "After purchase, you'll receive lifetime access to all features, free updates within the major version, and an invitation to our private GitHub repository. This gives you access to the complete source code and web UI components for custom integration with qBittorrent.",
-      category: 'billing',
-    },
-    {
-      question: 'Is my data safe?',
-      answer:
-        'Yes, completely. Torrent Vibe runs locally and never stores or accesses your torrent data, download history, or personal files. It only connects to your qBittorrent client.',
-      category: 'general',
     },
   ]
 
@@ -129,7 +135,7 @@ export const FaqSection: FC = () => {
         <div className="space-y-4">
           {filteredFaqs.map((faq, index) => (
             <m.div
-              key={`${activeCategory}-${index}`}
+              key={faq.question}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={Spring.smooth(0.4, 0.1 + index * 0.05)}
