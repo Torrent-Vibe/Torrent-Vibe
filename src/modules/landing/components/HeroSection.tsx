@@ -5,7 +5,6 @@ import Image from 'next/image'
 import type { FC } from 'react'
 
 import { CanvasBackground } from '~/components/common/CanvasBackground'
-import { WaitlistForm } from '~/modules/waitlist'
 
 const Screenshot = 'https://object.innei.in/bed/2025/08/22/1755878366885.png'
 
@@ -158,114 +157,6 @@ export const HeroSection: FC = () => {
               Get Early Access
             </m.button>
           </m.div> */}
-
-          {/* Waitlist Section with natural animation flow */}
-          <m.div
-            className="max-w-lg mx-auto mb-16"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.5,
-              ease: [0.25, 0.46, 0.45, 0.94],
-              delay: 0.8,
-            }}
-          >
-            {/* Call-to-action badge with pulse effect */}
-            <m.div
-              className="flex justify-center mb-8"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                ease: [0.34, 1.56, 0.64, 1],
-                delay: 0.9,
-              }}
-            >
-              <m.span
-                className="flex items-center gap-2 bg-gradient-to-r from-accent/10 to-primary/10 text-accent px-4 py-2 rounded-full border border-accent/20 font-medium text-sm"
-                whileHover={{
-                  scale: 1.05,
-                  backgroundColor: 'rgba(var(--accent-rgb), 0.15)',
-                  transition: { duration: 0.2 },
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <m.i
-                  className="i-lucide-zap text-accent"
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                />
-                Early Access Available
-              </m.span>
-            </m.div>
-
-            {/* Waitlist form with refined animation */}
-            <m.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                ease: 'easeOut',
-                delay: 1,
-              }}
-              className="relative"
-            >
-              {/* Subtle background glow */}
-              <m.div
-                className="absolute inset-0 bg-gradient-to-r from-accent/5 via-primary/5 to-accent/5 rounded-2xl blur-xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  duration: 0.8,
-                  delay: 1.1,
-                }}
-              />
-
-              {/* Main form container */}
-              <div className="relative bg-material-medium backdrop-blur-xl border border-border/30 rounded-2xl p-8 shadow-2xl">
-                <m.div
-                  className="text-center mb-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.4,
-                    ease: 'easeOut',
-                    delay: 1.05,
-                  }}
-                >
-                  <h3 className="text-xl font-bold text-text mb-2">
-                    Join the Future of qBittorrent
-                  </h3>
-                  <p className="text-text-secondary text-sm">
-                    Get notified when early access becomes available
-                  </p>
-                </m.div>
-
-                <m.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.4,
-                    ease: 'easeOut',
-                    delay: 1.15,
-                  }}
-                >
-                  <WaitlistForm
-                    placeholder="your@email.com"
-                    buttonText="Get Early Access"
-                    successMessage="🎉 You're in! We'll notify you as soon as early access is ready."
-                  />
-                </m.div>
-              </div>
-            </m.div>
-          </m.div>
         </m.div>
 
         {/* App Screenshot with elegant reveal */}

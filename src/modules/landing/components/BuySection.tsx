@@ -14,6 +14,7 @@ interface PricingPlan {
   popular?: boolean
   buttonText: string
   buttonVariant: 'primary' | 'secondary'
+  onClick: () => void
 }
 
 export const BuySection: FC = () => {
@@ -31,6 +32,9 @@ export const BuySection: FC = () => {
       ],
       buttonText: 'Start Free Trial',
       buttonVariant: 'secondary',
+      onClick: () => {
+        window.open('https://github.com/torrent-vibe/torrent-vibe', '_blank')
+      },
     },
     {
       name: 'Lifetime',
@@ -50,6 +54,12 @@ export const BuySection: FC = () => {
       popular: true,
       buttonText: 'Buy Lifetime Access',
       buttonVariant: 'primary',
+      onClick: () => {
+        window.open(
+          'https://www.creem.io/payment/prod_3MvxEew9LAj3kofPW6vqia',
+          '_blank',
+        )
+      },
     },
   ]
 
@@ -91,7 +101,7 @@ export const BuySection: FC = () => {
                 transition: Spring.presets.smooth,
               }}
               viewport={{ once: true }}
-              className={`relative bg-background border rounded-2xl p-8 hover:shadow-2xl hover:-translate-y-1 ${
+              className={`relative flex flex-col bg-background border rounded-2xl p-8 hover:shadow-2xl hover:-translate-y-1 ${
                 plan.popular
                   ? 'border-accent shadow-xl ring-2 ring-accent/20'
                   : 'border-border hover:border-accent/50'
@@ -141,7 +151,9 @@ export const BuySection: FC = () => {
                 ))}
               </ul>
 
+              <div className="flex-1" />
               <m.button
+                onClick={plan.onClick}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 transition={Spring.snappy()}
