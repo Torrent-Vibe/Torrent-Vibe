@@ -81,7 +81,7 @@ export const pageTemplates = {
   },
 
   features: {
-    title: 'Features - QB WebUI Vibe for Enhanced Torrent Management',
+    title: 'Features - Torrent Vibe for Enhanced Torrent Management',
     description:
       'Discover powerful features of Torrent Vibe QB WebUI including real-time monitoring, advanced controls, modern interface, and cross-platform compatibility.',
     keywords: [

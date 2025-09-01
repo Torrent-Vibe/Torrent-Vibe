@@ -153,7 +153,7 @@ export const FeaturesSection: FC = () => {
         >
           <h2 className="text-3xl sm:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              QB WebUI Vibe Features
+              Torrent Vibe Features
             </span>
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">

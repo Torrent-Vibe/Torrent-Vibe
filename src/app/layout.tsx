@@ -4,8 +4,9 @@ import type { Metadata } from 'next'
 
 import { RootProviders } from '~/providers/root-providers'
 
+const title = 'Torrent Vibe - Modern qBittorrent WebUI For qBittorrent'
 export const metadata: Metadata = {
-  title: 'Modern QB WebUI Vibe - For qBittorrent',
+  title,
   description:
     'A modern WebUI experience for qBittorrent with enhanced performance and intuitive design. Get real-time monitoring, advanced controls, and cross-platform support.',
   keywords: [
@@ -27,22 +28,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://torrent-vibe.app',
-    title: 'Modern QB WebUI Vibe - For qBittorrent',
+    title,
     description:
       'A modern WebUI experience for qBittorrent with enhanced performance and intuitive design.',
-    siteName: 'QB WebUI Vibe',
+    siteName: 'Torrent Vibe',
     images: [
       {
         url: 'https://torrent-vibe.app/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Modern QB WebUI Vibe - A modern WebUI experience for qBittorrent',
+        alt: 'Modern qBittorrent WebUI - A modern WebUI experience for qBittorrent',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Modern QB WebUI Vibe - For qBittorrent',
+    title,
     description:
       'A modern WebUI experience for qBittorrent with enhanced performance and intuitive design.',
     images: ['https://torrent-vibe.app/og-image.jpg'],

@@ -54,7 +54,7 @@ export const HeroSection: FC = () => {
                 delay: 0.3,
               }}
             >
-              QB WebUI Vibe
+              Torrent Vibe
             </m.span>
             <br />
             <m.span

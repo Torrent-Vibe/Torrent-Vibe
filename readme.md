@@ -62,7 +62,7 @@ Available on all major platforms:
 
 ## Who Should Use This?
 
-QB WebUI Vibe is perfect for:
+Torrent Vibe is perfect for:
 
 - **Casual Users** who want a more modern, user-friendly interface for their torrents
 - **Power Users** who need advanced filtering, organization, and control features
@@ -71,8 +71,8 @@ QB WebUI Vibe is perfect for:
 
 ## Community & Support
 
-QB WebUI Vibe is designed to enhance your qBittorrent experience while maintaining compatibility with all existing qBittorrent functionality. Whether you're downloading large files, managing media collections, or organizing software distributions, QB WebUI Vibe provides the modern interface you deserve.
+Torrent Vibe is designed to enhance your qBittorrent experience while maintaining compatibility with all existing qBittorrent functionality. Whether you're downloading large files, managing media collections, or organizing software distributions, Torrent Vibe provides the modern interface you deserve.
 
 ---
 
-_Transform your torrent management with QB WebUI Vibe - where functionality meets modern design._
+_Transform your torrent management with Torrent Vibe - where functionality meets modern design._
