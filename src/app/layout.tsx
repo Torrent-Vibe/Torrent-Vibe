@@ -21,8 +21,7 @@ export const metadata: Metadata = {
   creator: 'Torrent Vibe Team',
   publisher: 'Torrent Vibe Team',
   icons: {
-    icon: '/favicon.png',
-    apple: '/logo-192.png',
+    icon: '/favicon.ico',
   },
   openGraph: {
     type: 'website',

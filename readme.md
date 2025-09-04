@@ -51,6 +51,22 @@ If you enjoy the trial version and want to unlock all features with lifetime upd
 - Complete qBittorrent preferences management
 - Enhanced torrent manipulation options
 
+### 🗂️ Multi-Server Management (Electron)
+
+Run multiple qBittorrent servers as one seamless workspace. Instantly switch contexts, keep a pulse on availability, and move faster—without juggling tabs or re-entering details.
+
+**What you'll love:**
+
+- **Effortless switching:** Jump between servers with a single click
+- **Unified awareness:** Status badges surface health at a glance so you stay ahead of issues
+- **Confident by design:** Per-server credentials are stored securely; exports exclude passwords
+- **Organized your way:** Name and arrange servers to match your workflow
+- **Zero-friction migration:** Your existing setup appears automatically on first launch
+- **Team-ready:** Import and export server lists for consistent environments
+
+**Availability:**
+- Desktop (Electron) only. The Web experience focuses on a single server with a streamlined connection form.
+
 ### 🌐 Cross-Platform Compatibility
 
 Available on all major platforms:

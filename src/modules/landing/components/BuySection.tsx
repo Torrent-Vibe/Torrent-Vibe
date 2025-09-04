@@ -1,9 +1,6 @@
 'use client'
 
-import { m } from 'motion/react'
 import type { FC } from 'react'
-
-import { Spring } from '~/lib/spring'
 
 interface PricingPlan {
   name: string
@@ -69,42 +66,25 @@ export const BuySection: FC = () => {
       className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-background to-fill/30"
     >
       <div className="max-w-7xl mx-auto">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={Spring.smooth(0.8)}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              Buy Once, Own Forever
-            </span>
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-5xl font-bold mb-6 text-text">
+            Buy Once, <span className="text-accent">Own Forever</span>
           </h2>
           <p className="text-lg text-text-secondary max-w-2xl mx-auto">
             Try the trial version first, then purchase once for lifetime access.
             Get all current major version updates included, with separate
             purchases for major version upgrades.
           </p>
-        </m.div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
-            <m.div
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {plans.map((plan) => (
+            <div
               key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={Spring.smooth(0.6, 0.2 + index * 0.1)}
-              whileHover={{
-                scale: 1.02,
-                y: -10,
-                transition: Spring.presets.smooth,
-              }}
-              viewport={{ once: true }}
-              className={`relative flex flex-col bg-background border rounded-2xl p-8 hover:shadow-2xl hover:-translate-y-1 ${
+              className={`relative flex flex-col bg-background border rounded-xl p-8 transition-all hover:shadow-lg ${
                 plan.popular
-                  ? 'border-accent shadow-xl ring-2 ring-accent/20'
-                  : 'border-border hover:border-accent/50'
+                  ? 'border-accent shadow-md ring-1 ring-accent/10'
+                  : 'border-border hover:border-accent/30'
               }`}
             >
               {plan.popular && (
@@ -129,43 +109,31 @@ export const BuySection: FC = () => {
               </div>
 
               <ul className="space-y-4 mb-8">
-                {plan.features.map((feature, featureIndex) => (
-                  <m.li
-                    key={feature}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={Spring.smooth(
-                      0.4,
-                      0.4 + index * 0.1 + featureIndex * 0.05,
-                    )}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-3"
-                  >
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
                     <div className="w-5 h-5 bg-accent/20 rounded-full flex items-center justify-center">
                       <i className="i-lucide-check text-accent text-sm" />
                     </div>
                     <span className="text-text-secondary text-sm">
                       {feature}
                     </span>
-                  </m.li>
+                  </li>
                 ))}
               </ul>
 
               <div className="flex-1" />
-              <m.button
+              <button
+                type="button"
                 onClick={plan.onClick}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                transition={Spring.snappy()}
-                className={`w-full py-3 px-6 rounded-full font-semibold ${
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-all ${
                   plan.buttonVariant === 'primary'
-                    ? 'bg-gradient-to-r from-accent to-primary text-white shadow-lg hover:shadow-xl'
+                    ? 'bg-accent text-white hover:bg-accent/90 shadow-md hover:shadow-lg'
                     : 'border border-border text-text hover:bg-accent/10 hover:border-accent/50'
                 }`}
               >
                 {plan.buttonText}
-              </m.button>
-            </m.div>
+              </button>
+            </div>
           ))}
         </div>
       </div>
