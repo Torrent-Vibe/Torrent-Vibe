@@ -1,0 +1,284 @@
+name: 🖥️ Build Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_trial:
+        type: boolean
+        description: 'Build Trial version'
+        default: false
+      build_macos:
+        type: boolean
+        description: 'Build for macOS'
+        default: true
+      build_ubuntu:
+        type: boolean
+        description: 'Build for Ubuntu Linux'
+        default: true
+      build_windows:
+        type: boolean
+        description: 'Build for Windows'
+        default: true
+      build_web:
+        type: boolean
+        description: 'Build Web version'
+        default: true
+
+# https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-build
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
+env:
+  NODE_OPTIONS: --max-old-space-size=8192
+  PRIVATE_REPO_GH_TOKEN: ${{ secrets.PRIVATE_REPO_GH_TOKEN }}
+  PRIVATE_REPO: Innei/Torrent-Vibe-Private
+  PUBLIC_REPO: Torrent-Vibe/Torrent-Vibe
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      platforms: ${{ steps.parse-platforms.outputs.platforms }}
+      tag_name: ${{ steps.compute-tag.outputs.tag_name }}
+    steps:
+      - name: Parse platforms input
+        id: parse-platforms
+        run: |
+          # Collect selected platforms based on boolean inputs
+          platforms=""
+
+          if [ "${{ github.event.inputs.build_macos }}" = "true" ]; then
+            platforms="$platforms\"macos-latest\","
+          fi
+
+          if [ "${{ github.event.inputs.build_ubuntu }}" = "true" ]; then
+            platforms="$platforms\"ubuntu-latest\","
+          fi
+
+          if [ "${{ github.event.inputs.build_windows }}" = "true" ]; then
+            platforms="$platforms\"windows-latest\","
+          fi
+
+          # Remove trailing comma and wrap in brackets
+          platforms_json="[${platforms%,}]"
+
+          echo "platforms=$platforms_json" >> $GITHUB_OUTPUT
+          echo "Parsed platforms: $platforms_json"
+
+      - name: Compute tag name
+        id: compute-tag
+        run: |
+          UTC_TAG=$(date -u +%Y%m%d%H%M%S)
+          TAG_NAME="v$UTC_TAG"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Computed tag: $TAG_NAME"
+
+  release:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    env:
+      TRIAL: ${{ github.event.inputs.build_trial }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.setup.outputs.platforms) }}
+        exclude:
+          - os: ${{ github.event.inputs.store == 'true' && 'ubuntu-latest' }}
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Check out Git repository Fully
+        uses: actions/checkout@v5
+
+        with:
+          fetch-depth: 1
+          lfs: true
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Python setuptools
+        if: runner.os == 'macOS'
+        run: brew install python-setuptools
+
+      - name: Install appdmg
+        if: runner.os == 'macOS'
+        run: pnpm add -g appdmg
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Build - Secure (Windows/Linux)
+        if: runner.os == 'Linux' || runner.os == 'Windows'
+        run: pnpm electron:build:secure
+        env:
+          TRIAL: ${{ env.TRIAL }}
+          APP_VERSION: ${{ needs.setup.outputs.tag_name }}
+
+      - name: Build - macOS (secure, dual-arch)
+        if: runner.os == 'macOS'
+        run: |
+          pnpm run preelectron:build:secure || true
+          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
+          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
+          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
+          node scripts/verify-build-integrity.js
+
+      - name: Notarize & staple macOS app (dual-arch)
+        if: runner.os == 'macOS'
+        timeout-minutes: 10
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          ARM64_ZIP=$(find out/make -type f -name "*-macos-arm64.zip" -print -quit)
+          X64_ZIP=$(find out/make -type f -name "*-macos-x64.zip" -print -quit)
+          echo "[i] macOS artifacts: arm64=$ARM64_ZIP x64=$X64_ZIP"
+          if [ -z "$ARM64_ZIP" ] || [ -z "$X64_ZIP" ]; then
+            echo "[-] Could not locate macOS zip artifacts in out/make" >&2
+            find out/make -maxdepth 5 -type f -name "*.zip" -print || true
+            exit 1
+          fi
+          ARM64_ZIP_ABS="$PWD/$ARM64_ZIP"
+          X64_ZIP_ABS="$PWD/$X64_ZIP"
+          RELEASE_DIR="$PWD/release"
+          mkdir -p "$RELEASE_DIR"
+          cd scripts/apple
+          ./action.sh --import-arm64 "$ARM64_ZIP_ABS" --import-amd64 "$X64_ZIP_ABS" --export-dir "$RELEASE_DIR"
+          rm -rf "$ARM64_ZIP_ABS"
+          rm -rf "$X64_ZIP_ABS"
+          rm -rf **/*.dmg
+
+      - name: Prepare release files (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          if (Test-Path "out/make") {
+            Get-ChildItem -Path "out/make" -Recurse -Include "*.dmg","*.AppImage","*.exe","*.zip","*.yml" | Copy-Item -Destination "release/"
+          }
+        shell: pwsh
+
+      - name: Prepare release files (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p release
+          if [ -d "out/make" ]; then
+            find out/make -type f \( -name "*.dmg" -o -name "*.AppImage" -o -name "*.exe" -o -name "*.zip" -o -name "*.yml" \) -exec cp {} release/ \;
+          fi
+        shell: bash
+
+      - name: Generate app manifest (mainHash)
+        shell: bash
+        run: |
+          node scripts/generate-app-build-manifest.js \
+            --output release/manifest.yaml \
+            --tag ${{ needs.setup.outputs.tag_name }}
+
+      - name: Upload desktop artifacts to release (Regular)
+        if: github.event.inputs.build_trial != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+          tag_name: ${{ needs.setup.outputs.tag_name }}
+          name: Release ${{ needs.setup.outputs.tag_name }}
+          generate_release_notes: ${{ matrix.os == 'macos-latest' }}
+          fail_on_unmatched_files: false
+          append_body: true
+          make_latest: ${{ matrix.os == 'macos-latest' }}
+          files: |
+            release/**/*
+        env:
+          GITHUB_TOKEN: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+
+      - name: Upload desktop artifacts to release (Trial)
+        if: github.event.inputs.build_trial == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ env.PUBLIC_REPO }}
+          tag_name: ${{ needs.setup.outputs.tag_name }}
+          name: Trial Release ${{ needs.setup.outputs.tag_name }}
+          generate_release_notes: false
+          prerelease: true
+          fail_on_unmatched_files: false
+          append_body: true
+          make_latest: true
+          files: |
+            release/**/*
+
+  build-web:
+    needs: setup
+    runs-on: ubuntu-latest
+    if: github.event.inputs.build_web != 'false'
+    env:
+      TRIAL: ${{ github.event.inputs.build_trial }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        if: github.event.inputs.build_trial != 'true'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+
+      - name: Setup pnpm
+        if: github.event.inputs.build_trial != 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        if: github.event.inputs.build_trial != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: github.event.inputs.build_trial != 'true'
+        run: pnpm i
+
+      - name: Build Web Production
+        if: github.event.inputs.build_trial != 'true'
+        run: pnpm run build:production
+
+      - name: Create web artifact archive
+        if: github.event.inputs.build_trial != 'true'
+        run: |
+          cd layer/renderer/dist
+          mkdir -p public
+          find . -maxdepth 1 -mindepth 1 ! -name public -exec mv {} public/ \;
+          tar -czf ../../../qb-client-webui-web.tar.gz public/
+
+      - name: Upload web artifacts to release
+        if: github.event.inputs.build_trial != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+          tag_name: ${{ needs.setup.outputs.tag_name }}
+          name: Release ${{ needs.setup.outputs.tag_name }}
+          generate_release_notes: false
+          fail_on_unmatched_files: false
+          append_body: true
+          make_latest: false
+          files: |
+            qb-client-webui-web.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ env.PRIVATE_REPO_GH_TOKEN }}
