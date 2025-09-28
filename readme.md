@@ -8,17 +8,36 @@ A modern, elegant web interface for qBittorrent that transforms your torrent man
 
 Torrent Vibe is an enhanced web interface designed to replace or complement the default qBittorrent WebUI. It provides a fresh, modern approach to torrent management while maintaining all the powerful features you expect from qBittorrent.
 
-## Download Trial Version
+## Download Application
 
-Try the latest trial version of Torrent Vibe to experience the modern features:
+Try the latest application of Torrent Vibe to experience the modern features:
 
-[🚀 Go to Releases to Download Trial Version](https://github.com/Torrent-Vibe/Torrent-Vibe/releases)
+[🚀 Go to Releases to Download Application](https://github.com/Torrent-Vibe/Torrent-Vibe/releases)
+
+### Alternative Web UI Setup
+
+To use Torrent Vibe as an alternative web interface for your existing qBittorrent installation:
+
+1. **Download the Web Package**
+   - Go to the [Releases](https://github.com/Torrent-Vibe/Torrent-Vibe/releases) page
+   - Download the `qb-client-webui-web.tar.gz` file
+
+2. **Extract the Package**
+   - Extract the downloaded file to a location accessible by qBittorrent
+   - After extraction, you'll find a `public` directory containing the web interface files
+
+3. **Configure qBittorrent**
+   - Open qBittorrent and go to **Tools** → **Preferences**
+   - Navigate to the **Web UI** tab
+   - Check **"Use alternative Web UI"**
+   - Set the **Files location** to the path where you extracted the `public` directory
+   - Apply the settings and refresh the page
 
 ## Purchase License
 
 If you enjoy the trial version and want to unlock all features with lifetime updates:
 
-[💰 Purchase Torrent Vibe License](https://torrent-vibe.app/)
+[💰 Purchase Torrent Vibe License](https://torrent-vibe.app#pricing)
 
 - **One-time purchase** - No subscriptions or recurring fees
 - **Lifetime updates** within the major version
@@ -65,16 +84,23 @@ Run multiple qBittorrent servers as one seamless workspace. Instantly switch con
 - **Team-ready:** Import and export server lists for consistent environments
 
 **Availability:**
+
 - Desktop (Electron) only. The Web experience focuses on a single server with a streamlined connection form.
 
-### 🌐 Cross-Platform Compatibility
+### 🔗 Path Mapping (Electron)
 
-Available on all major platforms:
+- Bridge remote download paths to your local or network storage
+- Trigger "open file", "reveal in Finder/Explorer", or "open folder" actions directly from the desktop app
+- Reorder mappings with drag-and-drop to set priority; the first match wins
 
-- **Windows** - Native desktop application
-- **macOS** - Native desktop application
-- **Linux** - Native desktop application
-- **Web** - Browser-based interface
+### 🤖 AI-Powered Metadata Enrichment (Electron)
+
+- Intelligent torrent name parsing and content recognition
+- Automatic metadata extraction including title, year, media type, and technical specifications
+- TMDB integration for movie and TV show information with ratings, release dates, and synopses
+- Smart confidence scoring to help you identify the quality of AI analysis
+- Supports multiple languages with localized title suggestions
+- Only displays when OpenAI API key is configured in settings
 
 ## Who Should Use This?
 

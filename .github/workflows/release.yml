@@ -6,10 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      build_trial:
-        type: boolean
-        description: 'Build Trial version'
-        default: false
       build_macos:
         type: boolean
         description: 'Build for macOS'
@@ -79,8 +75,6 @@ jobs:
   release:
     needs: setup
     runs-on: ${{ matrix.os }}
-    env:
-      TRIAL: ${{ github.event.inputs.build_trial }}
 
     strategy:
       fail-fast: false
@@ -127,16 +121,15 @@ jobs:
         if: runner.os == 'Linux' || runner.os == 'Windows'
         run: pnpm electron:build:secure
         env:
-          TRIAL: ${{ env.TRIAL }}
           APP_VERSION: ${{ needs.setup.outputs.tag_name }}
 
       - name: Build - macOS (secure, dual-arch)
         if: runner.os == 'macOS'
         run: |
           pnpm run preelectron:build:secure || true
-          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
-          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
-          SECURITY_OBFUSCATION=1 TRIAL=${{ env.TRIAL }} APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
+          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
+          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
+          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
           node scripts/verify-build-integrity.js
 
       - name: Notarize & staple macOS app (dual-arch)
@@ -188,12 +181,9 @@ jobs:
             --output release/manifest.yaml \
             --tag ${{ needs.setup.outputs.tag_name }}
 
-      - name: Upload desktop artifacts to release (Regular)
-        if: github.event.inputs.build_trial != 'true'
+      - name: Upload desktop artifacts to release
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ env.PRIVATE_REPO }}
-          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
           tag_name: ${{ needs.setup.outputs.tag_name }}
           name: Release ${{ needs.setup.outputs.tag_name }}
           generate_release_notes: ${{ matrix.os == 'macos-latest' }}
@@ -202,37 +192,17 @@ jobs:
           make_latest: ${{ matrix.os == 'macos-latest' }}
           files: |
             release/**/*
-        env:
-          GITHUB_TOKEN: ${{ env.PRIVATE_REPO_GH_TOKEN }}
-
-      - name: Upload desktop artifacts to release (Trial)
-        if: github.event.inputs.build_trial == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: ${{ env.PUBLIC_REPO }}
-          tag_name: ${{ needs.setup.outputs.tag_name }}
-          name: Trial Release ${{ needs.setup.outputs.tag_name }}
-          generate_release_notes: false
-          prerelease: true
-          fail_on_unmatched_files: false
-          append_body: true
-          make_latest: true
-          files: |
-            release/**/*
 
   build-web:
     needs: setup
     runs-on: ubuntu-latest
     if: github.event.inputs.build_web != 'false'
-    env:
-      TRIAL: ${{ github.event.inputs.build_trial }}
 
     permissions:
       contents: write
 
     steps:
       - name: Check out Git repository
-        if: github.event.inputs.build_trial != 'true'
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
@@ -240,26 +210,21 @@ jobs:
           token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
 
       - name: Setup pnpm
-        if: github.event.inputs.build_trial != 'true'
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js
-        if: github.event.inputs.build_trial != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
-        if: github.event.inputs.build_trial != 'true'
         run: pnpm i
 
       - name: Build Web Production
-        if: github.event.inputs.build_trial != 'true'
         run: pnpm run build:production
 
       - name: Create web artifact archive
-        if: github.event.inputs.build_trial != 'true'
         run: |
           cd layer/renderer/dist
           mkdir -p public
@@ -267,11 +232,10 @@ jobs:
           tar -czf ../../../qb-client-webui-web.tar.gz public/
 
       - name: Upload web artifacts to release
-        if: github.event.inputs.build_trial != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ env.PRIVATE_REPO }}
-          token: ${{ env.PRIVATE_REPO_GH_TOKEN }}
+          repository: ${{ env.PUBLIC_REPO }}
+
           tag_name: ${{ needs.setup.outputs.tag_name }}
           name: Release ${{ needs.setup.outputs.tag_name }}
           generate_release_notes: false
@@ -280,5 +244,3 @@ jobs:
           make_latest: false
           files: |
             qb-client-webui-web.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ env.PRIVATE_REPO_GH_TOKEN }}
