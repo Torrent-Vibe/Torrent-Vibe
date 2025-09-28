@@ -20,7 +20,7 @@ To use Torrent Vibe as an alternative web interface for your existing qBittorren
 
 1. **Download the Web Package**
    - Go to the [Releases](https://github.com/Torrent-Vibe/Torrent-Vibe/releases) page
-   - Download the `qb-client-webui-web.tar.gz` file
+   - Download the `Torrent.Vibe-X.X.X.X-web.tar.gz` file (where X.X.X.X is the version number)
 
 2. **Extract the Package**
    - Extract the downloaded file to a location accessible by qBittorrent

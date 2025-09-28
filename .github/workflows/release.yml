@@ -131,6 +131,8 @@ jobs:
           SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
           SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
           node scripts/verify-build-integrity.js
+        env:
+          APP_VERSION: ${{ needs.setup.outputs.tag_name }}
 
       - name: Notarize & staple macOS app (dual-arch)
         if: runner.os == 'macOS'
@@ -283,10 +285,47 @@ jobs:
 
       - name: Create web artifact archive
         run: |
+          # Function to convert version strings to A.B.C.D format
+          convert_version() {
+            local version="$1"
+            # Remove leading 'v' if present
+            version="${version#v}"
+
+            # Check if it's already a dotted version (like 1.2.3)
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              # Split by dots and ensure 4 components
+              IFS='.' read -ra VERSION_PARTS <<< "$version"
+              printf "%d.%d.%d.%d" "${VERSION_PARTS[0]}" "${VERSION_PARTS[1]}" "${VERSION_PARTS[2]}" "${VERSION_PARTS[3]:-0}"
+              return
+            fi
+
+            # Handle timestamp-style versions like 20250908155358
+            if [[ "$version" =~ ^[0-9]{14}$ ]]; then
+              local year="${version:0:4}"
+              local month="${version:4:2}"
+              local day="${version:6:2}"
+              local hour="${version:8:2}"
+              local minute="${version:10:2}"
+              # Remove leading zeros from month and day
+              month=$((10#$month))
+              day=$((10#$day))
+              # Combine hour and minute for the 4th component
+              local time_component=$((10#$hour * 100 + 10#$minute))
+              printf "%d.%d.%d.%d" "$year" "$month" "$day" "$time_component"
+              return
+            fi
+
+            # Fallback: treat as single number
+            printf "%d.0.0.0" "$version"
+          }
+
+          TAG_NAME="${{ needs.setup.outputs.tag_name }}"
+          FILE_VERSION=$(convert_version "$TAG_NAME")
+
           cd layer/renderer/dist
           mkdir -p public
           find . -maxdepth 1 -mindepth 1 ! -name public -exec mv {} public/ \;
-          tar -czf ../../../qb-client-webui-web.tar.gz public/
+          tar -czf "../../../Torrent.Vibe-${FILE_VERSION}-web.tar.gz" public/
 
       - name: Upload web artifacts to release
         uses: softprops/action-gh-release@v2
@@ -300,4 +339,4 @@ jobs:
           append_body: true
           make_latest: false
           files: |
-            qb-client-webui-web.tar.gz
+            Torrent.Vibe-*-web.tar.gz
