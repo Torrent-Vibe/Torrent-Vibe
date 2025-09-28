@@ -156,6 +156,63 @@ jobs:
           rm -rf "$X64_ZIP_ABS"
           rm -rf **/*.dmg
 
+      - name: Rename macOS artifacts to versioned format
+        if: runner.os == 'macOS'
+        run: |
+          # Function to convert version strings to A.B.C.D format
+          convert_version() {
+            local version="$1"
+            # Remove leading 'v' if present
+            version="${version#v}"
+
+            # Check if it's already a dotted version (like 1.2.3)
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              # Split by dots and ensure 4 components
+              IFS='.' read -ra VERSION_PARTS <<< "$version"
+              printf "%d.%d.%d.%d" "${VERSION_PARTS[0]}" "${VERSION_PARTS[1]}" "${VERSION_PARTS[2]}" "${VERSION_PARTS[3]:-0}"
+              return
+            fi
+
+            # Handle timestamp-style versions like 20250908155358
+            if [[ "$version" =~ ^[0-9]{14}$ ]]; then
+              local year="${version:0:4}"
+              local month="${version:4:2}"
+              local day="${version:6:2}"
+              local hour="${version:8:2}"
+              local minute="${version:10:2}"
+              # Remove leading zeros from month and day
+              month=$((10#$month))
+              day=$((10#$day))
+              # Combine hour and minute for the 4th component
+              local time_component=$((10#$hour * 100 + 10#$minute))
+              printf "%d.%d.%d.%d" "$year" "$month" "$day" "$time_component"
+              return
+            fi
+
+            # Fallback: treat as single number
+            printf "%d.0.0.0" "$version"
+          }
+
+          TAG_NAME="${{ needs.setup.outputs.tag_name }}"
+          FILE_VERSION=$(convert_version "$TAG_NAME")
+
+          echo "Tag name: $TAG_NAME"
+          echo "File version: $FILE_VERSION"
+
+          cd release
+
+          # Rename arm64 artifact
+          if [ -f "Torrent.Vibe-darwin-arm64.zip" ]; then
+            mv "Torrent.Vibe-darwin-arm64.zip" "Torrent.Vibe-${FILE_VERSION}-darwin-arm64.zip"
+            echo "Renamed Torrent.Vibe-darwin-arm64.zip -> Torrent.Vibe-${FILE_VERSION}-darwin-arm64.zip"
+          fi
+
+          # Rename x64 artifact
+          if [ -f "Torrent.Vibe-darwin-x64.zip" ]; then
+            mv "Torrent.Vibe-darwin-x64.zip" "Torrent.Vibe-${FILE_VERSION}-darwin-x64.zip"
+            echo "Renamed Torrent.Vibe-darwin-x64.zip -> Torrent.Vibe-${FILE_VERSION}-darwin-x64.zip"
+          fi
+
       - name: Prepare release files (Windows)
         if: runner.os == 'Windows'
         run: |
