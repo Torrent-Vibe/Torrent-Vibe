@@ -15,7 +15,7 @@ export const HeroSection: FC = () => {
       <div className="absolute top-40 right-20 w-24 h-24 bg-primary/5 rounded-full blur-lg" />
       <div className="absolute bottom-40 left-1/4 w-16 h-16 bg-accent/10 rounded-full blur-md" />
 
-      <div className="max-w-7xl mx-auto text-center relative z-10">
+      <div className="max-w-7xl mx-auto text-left sm:text-center relative z-10">
         {/* Main content container */}
         <m.div
           initial={{ opacity: 0, y: 20 }}
@@ -25,7 +25,7 @@ export const HeroSection: FC = () => {
           {/* Hero Title */}
           <div className="relative mb-8">
             {/* Decorative elements */}
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-accent/20 rounded-full" />
+            <div className="absolute -top-4 left-0 sm:left-1/2 sm:transform sm:-translate-x-1/2 w-12 h-1 bg-accent/20 rounded-full" />
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight">
               <span className="text-accent relative">
                 Torrent Vibe
@@ -40,7 +40,7 @@ export const HeroSection: FC = () => {
 
           {/* Description section */}
           <div className="max-w-4xl mx-auto mb-12">
-            <div className="bg-material-medium/50 backdrop-blur-sm border border-border/30 rounded-2xl p-6 mb-8">
+            <div className="bg-material-medium/50 backdrop-blur-sm border border-border/30 rounded-2xl lg:p-6 mb-8">
               <p className="text-lg sm:text-xl text-text-secondary mb-0 leading-relaxed">
                 Experience qBittorrent like never before with our modern client
                 featuring enhanced performance, intuitive design, and powerful
@@ -49,25 +49,25 @@ export const HeroSection: FC = () => {
             </div>
 
             {/* Feature badges */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm sm:text-base">
+            <div className="flex flex-wrap items-center justify-start sm:justify-center gap-4 text-sm sm:text-base">
               {[
                 {
-                  icon: 'i-lucide-clock',
-                  text: 'Real-time monitoring',
+                  icon: 'i-lucide-folder',
+                  text: 'Path Mapping',
                   bgColor: 'bg-accent/10',
                   iconColor: 'text-accent',
                   borderColor: 'border-accent/20',
                 },
                 {
-                  icon: 'i-lucide-settings',
-                  text: 'Advanced controls',
+                  icon: 'i-lucide-sparkles',
+                  text: 'AI Metadata',
                   bgColor: 'bg-primary/10',
                   iconColor: 'text-primary',
                   borderColor: 'border-primary/20',
                 },
                 {
-                  icon: 'i-lucide-monitor',
-                  text: 'Cross-platform',
+                  icon: 'i-lucide-server',
+                  text: 'Multi-Server',
                   bgColor: 'bg-accent/10',
                   iconColor: 'text-accent',
                   borderColor: 'border-accent/20',
@@ -84,7 +84,7 @@ export const HeroSection: FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start sm:justify-center gap-4 mt-8">
               <a
                 href="https://github.com/Torrent-Vibe/Torrent-Vibe/releases"
                 target="_blank"

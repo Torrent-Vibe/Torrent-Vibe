@@ -96,13 +96,7 @@ export const FeaturesSection: FC = () => {
       description:
         'Beautiful, intuitive qBittorrent client with clean design optimized for desktop and mobile with full dark mode support',
     },
-    {
-      icon: 'i-lucide-clock',
-      iconColor: 'primary',
-      title: 'Real-time Monitoring',
-      description:
-        'Live tracking of download/upload speeds, progress, and detailed torrent statistics',
-    },
+
     {
       icon: 'i-lucide-folder-open',
       iconColor: 'purple-500',
@@ -110,13 +104,7 @@ export const FeaturesSection: FC = () => {
       description:
         'Advanced filtering, categories, tags, and search to organize your torrents efficiently',
     },
-    {
-      icon: 'i-lucide-settings',
-      iconColor: 'orange-500',
-      title: 'Advanced Controls',
-      description:
-        'Fine-grained control over bandwidth, scheduling, and qBittorrent preferences with our enhanced client interface',
-    },
+
     {
       icon: 'i-lucide-monitor',
       iconColor: 'cyan-500',
@@ -125,11 +113,25 @@ export const FeaturesSection: FC = () => {
         'Native desktop apps and web interface that work seamlessly across all platforms',
     },
     {
+      icon: 'i-lucide-folder',
+      iconColor: 'primary',
+      title: 'Path Mapping (App)',
+      description:
+        'Bridge remote download paths to your local or network storage with seamless file/folder access directly from the desktop app',
+    },
+    {
       icon: 'i-lucide-server',
       iconColor: 'green-500',
-      title: 'Multi-Server Management (Electron)',
+      title: 'Multi-Server Management (App)',
       description:
         'Run multiple qBittorrent servers as one seamless workspace. Effortless switching, unified status monitoring, and secure credential management',
+    },
+    {
+      icon: 'i-lucide-sparkles',
+      iconColor: 'orange-500',
+      title: 'AI-Powered Metadata Enrichment (App)',
+      description:
+        'Intelligent torrent name parsing with automatic metadata extraction, TMDB integration, and smart confidence scoring for content recognition',
     },
   ]
 
