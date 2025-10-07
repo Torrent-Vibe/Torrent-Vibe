@@ -233,6 +233,22 @@ jobs:
           fi
         shell: bash
 
+      - name: Refresh macOS updater metadata
+        if: runner.os == 'macOS'
+        run: |
+          RELEASE_DIR="$PWD/release"
+          ARM64_FINAL=$(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*darwin-arm64*.zip" -print -quit)
+          X64_FINAL=$(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*darwin-x64*.zip" -print -quit)
+          if [ -z "$ARM64_FINAL" ] || [ -z "$X64_FINAL" ]; then
+            echo "[-] Failed to locate notarized macOS zips in $RELEASE_DIR" >&2
+            find "$RELEASE_DIR" -maxdepth 1 -type f -name "*.zip" -print || true
+            exit 1
+          fi
+          node scripts/generate-electron-metadata.js \
+            --version "${{ needs.setup.outputs.tag_name }}" \
+            --artifact "path=$ARM64_FINAL,platform=darwin,arch=arm64" \
+            --artifact "path=$X64_FINAL,platform=darwin,arch=x64"
+
       - name: Generate app manifest (mainHash)
         shell: bash
         run: |
@@ -245,7 +261,8 @@ jobs:
         with:
           tag_name: ${{ needs.setup.outputs.tag_name }}
           name: Release ${{ needs.setup.outputs.tag_name }}
-          generate_release_notes: ${{ matrix.os == 'macos-latest' }}
+          # generate_release_notes: ${{ matrix.os == 'macos-latest' }}
+          generate_release_notes: false
           fail_on_unmatched_files: false
           append_body: true
           make_latest: ${{ matrix.os == 'macos-latest' }}
