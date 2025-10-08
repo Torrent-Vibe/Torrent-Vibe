@@ -56,7 +56,7 @@ export const seoConfig = {
       '@type': 'SoftwareApplication',
       name: 'Torrent Vibe',
       applicationCategory: 'UtilityApplication',
-      operatingSystem: 'Web Browser, Windows, macOS, Linux',
+      operatingSystem: 'Web Browser, macOS, Linux',
       offers: {
         '@type': 'Offer',
         price: 'varies',

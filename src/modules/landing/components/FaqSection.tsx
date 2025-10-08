@@ -26,7 +26,7 @@ export const FaqSection: FC = () => {
     {
       question: 'How do I get started?',
       answer:
-        'Download and install Torrent Vibe for your platform (Windows, macOS, Linux), or use the web version. The setup wizard will guide you through connecting to your existing qBittorrent client in minutes.',
+        'Download and install Torrent Vibe for your platform (macOS, Linux), or use the web version. The setup wizard will guide you through connecting to your existing qBittorrent client in minutes.',
       category: 'technical',
     },
     {

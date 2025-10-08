@@ -9,10 +9,6 @@ export const PlatformSupport: FC = () => {
         </p>
         <div className="flex items-center justify-center gap-8 text-text-secondary">
           <div className="flex items-center gap-2">
-            <i className="i-lucide-monitor text-2xl" />
-            <span>Windows</span>
-          </div>
-          <div className="flex items-center gap-2">
             <i className="i-lucide-apple text-2xl" />
             <span>macOS</span>
           </div>

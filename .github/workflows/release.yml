@@ -17,7 +17,7 @@ on:
       build_windows:
         type: boolean
         description: 'Build for Windows'
-        default: true
+        default: false
       build_web:
         type: boolean
         description: 'Build Web version'
