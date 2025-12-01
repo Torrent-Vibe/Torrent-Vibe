@@ -1,0 +1,3 @@
+#fixed-data-table [role='row'] > div:not(:last-child) {
+  @apply border-border border-r;
+}

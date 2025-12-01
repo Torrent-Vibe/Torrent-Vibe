@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>ApplicationProperties</key>
+		<dict>
+			<key>ApplicationPath</key>
+			<string>Applications/${PRODUCT_NAME}.app</string>
+			<key>Architectures</key>
+			<array>
+			</array>
+			<key>CFBundleIdentifier</key>
+			<string>${BUNDLE_IDENTIFIER}</string>
+			<key>CFBundleShortVersionString</key>
+			<string>1.0</string>
+			<key>CFBundleVersion</key>
+			<string>1</string>
+			<key>SigningIdentity</key>
+			<string>${SIGNING_IDENTITY}</string>
+			<key>Team</key>
+			<string>${SIGNING_TEAM}</string>
+		</dict>
+		<key>ArchiveVersion</key>
+		<integer>2</integer>
+		<key>CreationDate</key>
+		<date>${ARCHIVES_DATE}</date>
+		<key>Name</key>
+		<string>${PRODUCT_NAME}</string>
+		<key>SchemeName</key>
+		<string>${PRODUCT_NAME}</string>
+	</dict>
+</plist>

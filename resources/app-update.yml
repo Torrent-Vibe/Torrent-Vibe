@@ -1,0 +1,4 @@
+provider: github
+owner: Torrent-Vibe
+repo: Torrent-Vibe
+updaterCacheDirName: torrent-vibe-updater

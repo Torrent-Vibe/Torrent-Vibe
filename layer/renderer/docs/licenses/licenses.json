@@ -1,0 +1,534 @@
+{
+  "project": {
+    "name": "@torrent-vibe/renderer",
+    "version": "0.0.0"
+  },
+  "generated": "2025-09-08T15:13:27.434Z",
+  "summary": {
+    "totalDependencies": 58,
+    "riskDistribution": {
+      "HIGH": 2,
+      "LOW": 56
+    },
+    "licenseCategories": {
+      "UNKNOWN": 1,
+      "COPYLEFT_STRONG": 1,
+      "PERMISSIVE": 56
+    }
+  },
+  "dependencies": [
+    {
+      "name": "@innei/qbittorrent-browser",
+      "version": "npm:",
+      "license": "UNKNOWN",
+      "repository": "",
+      "category": "UNKNOWN",
+      "riskLevel": "HIGH",
+      "licenseText": ""
+    },
+    {
+      "name": "@torrent-vibe/main",
+      "version": "workspace:*",
+      "license": "GPL-3.0",
+      "repository": "",
+      "category": "COPYLEFT_STRONG",
+      "riskLevel": "HIGH",
+      "licenseText": ""
+    },
+    {
+      "name": "@dnd-kit/core",
+      "version": "6.3.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/clauderic/dnd-kit.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@dnd-kit/sortable",
+      "version": "10.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/clauderic/dnd-kit.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@dnd-kit/utilities",
+      "version": "3.2.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/clauderic/dnd-kit.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@headlessui/react",
+      "version": "2.2.7",
+      "license": "MIT",
+      "repository": "git+https://github.com/tailwindlabs/headlessui.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@pastel-palette/tailwindcss",
+      "version": "1.0.0-canary.1",
+      "license": "MIT",
+      "repository": "",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-accordion",
+      "version": "1.2.11",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-checkbox",
+      "version": "1.3.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-context-menu",
+      "version": "2.2.15",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-dialog",
+      "version": "1.1.14",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-dropdown-menu",
+      "version": "2.1.16",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-label",
+      "version": "2.1.7",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-scroll-area",
+      "version": "1.2.9",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-select",
+      "version": "2.2.5",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-slider",
+      "version": "1.3.5",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-switch",
+      "version": "1.2.5",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@radix-ui/react-tooltip",
+      "version": "1.2.7",
+      "license": "MIT",
+      "repository": "git+https://github.com/radix-ui/primitives.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@react-email/components",
+      "version": "0.5.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/resend/react-email.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@t3-oss/env-core",
+      "version": "0.13.8",
+      "license": "MIT",
+      "repository": "git+https://github.com/t3-oss/t3-env.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@tanstack/react-query",
+      "version": "5.85.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/TanStack/query.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@tanstack/react-query-devtools",
+      "version": "5.85.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/TanStack/query.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@tanstack/react-table",
+      "version": "8.21.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/TanStack/table.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "@tanstack/react-virtual",
+      "version": "3.13.12",
+      "license": "MIT",
+      "repository": "git+https://github.com/TanStack/virtual.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "axios",
+      "version": "1.11.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/axios/axios.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "clsx",
+      "version": "2.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/lukeed/clsx.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "es-toolkit",
+      "version": "1.39.9",
+      "license": "MIT",
+      "repository": "git+https://github.com/toss/es-toolkit.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "foxact",
+      "version": "0.2.49",
+      "license": "MIT",
+      "repository": "git+https://github.com/SukkaW/foxact.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "fuse.js",
+      "version": "7.1.0",
+      "license": "Apache-2.0",
+      "repository": "git+https://github.com/krisk/Fuse.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "i18next",
+      "version": "25.4.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/i18next/i18next.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "i18next-browser-languagedetector",
+      "version": "8.2.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/i18next/i18next-browser-languageDetector.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "immer",
+      "version": "10.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/immerjs/immer.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "jotai",
+      "version": "2.13.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/pmndrs/jotai.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/nodeca/js-yaml.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "motion",
+      "version": "12.23.12",
+      "license": "MIT",
+      "repository": "git+https://github.com/motiondivision/motion.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "nanoevents",
+      "version": "9.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/ai/nanoevents.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "ofetch",
+      "version": "1.4.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/unjs/ofetch.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "pathe",
+      "version": "2.0.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/unjs/pathe.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "re-resizable",
+      "version": "6.11.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/bokuweb/react-resizable-box.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react",
+      "version": "19.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/facebook/react.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-dom",
+      "version": "19.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/facebook/react.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-email",
+      "version": "4.2.8",
+      "license": "MIT",
+      "repository": "git+https://github.com/resend/react-email.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-hook-form",
+      "version": "7.53.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/react-hook-form/react-hook-form.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-i18next",
+      "version": "15.7.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/i18next/react-i18next.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-resizable-layout",
+      "version": "0.7.2",
+      "license": "MIT",
+      "repository": "git+ssh://git@github.com/RyoSogawa/react-resizable-layout.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-router",
+      "version": "7.8.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/remix-run/react-router.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-scan",
+      "version": "0.4.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/aidenybai/react-scan.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "react-virtuoso",
+      "version": "4.14.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/petyosi/react-virtuoso.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "sonner",
+      "version": "2.0.7",
+      "license": "MIT",
+      "repository": "git+https://github.com/emilkowalski/sonner.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "tailwind-merge",
+      "version": "3.3.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/dcastil/tailwind-merge.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "tinykeys",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/jamiebuilds/tinykeys.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "title-case",
+      "version": "4.3.2",
+      "license": "MIT",
+      "repository": "git://github.com/blakeembrey/change-case.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "usehooks-ts",
+      "version": "3.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/juliencrn/usehooks-ts.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "vaul",
+      "version": "1.1.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/emilkowalski/vaul.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "zod",
+      "version": "4.0.17",
+      "license": "MIT",
+      "repository": "git+https://github.com/colinhacks/zod.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "zustand",
+      "version": "5.0.7",
+      "license": "MIT",
+      "repository": "git+https://github.com/pmndrs/zustand.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    }
+  ]
+}

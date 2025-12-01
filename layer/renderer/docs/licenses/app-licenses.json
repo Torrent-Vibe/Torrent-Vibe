@@ -1,0 +1,718 @@
+{
+  "appName": "@torrent-vibe/renderer",
+  "appVersion": "0.0.0",
+  "generated": "2025-09-08T15:13:27.434Z",
+  "totalLibraries": 58,
+  "licenses": [
+    {
+      "name": "@innei/qbittorrent-browser",
+      "version": "npm:",
+      "license": "UNKNOWN",
+      "repository": null,
+      "licenseText": null
+    },
+    {
+      "name": "@dnd-kit/core",
+      "version": "6.3.1",
+      "license": "MIT",
+      "repository": "https://github.com/clauderic/dnd-kit",
+      "licenseText": null
+    },
+    {
+      "name": "@dnd-kit/sortable",
+      "version": "10.0.0",
+      "license": "MIT",
+      "repository": "https://github.com/clauderic/dnd-kit",
+      "licenseText": null
+    },
+    {
+      "name": "@dnd-kit/utilities",
+      "version": "3.2.2",
+      "license": "MIT",
+      "repository": "https://github.com/clauderic/dnd-kit",
+      "licenseText": null
+    },
+    {
+      "name": "@headlessui/react",
+      "version": "2.2.7",
+      "license": "MIT",
+      "repository": "https://github.com/tailwindlabs/headlessui",
+      "licenseText": null
+    },
+    {
+      "name": "@pastel-palette/tailwindcss",
+      "version": "1.0.0-canary.1",
+      "license": "MIT",
+      "repository": null,
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-accordion",
+      "version": "1.2.11",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-checkbox",
+      "version": "1.3.2",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-context-menu",
+      "version": "2.2.15",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-dialog",
+      "version": "1.1.14",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-dropdown-menu",
+      "version": "2.1.16",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-label",
+      "version": "2.1.7",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-scroll-area",
+      "version": "1.2.9",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-select",
+      "version": "2.2.5",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-slider",
+      "version": "1.3.5",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-switch",
+      "version": "1.2.5",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@radix-ui/react-tooltip",
+      "version": "1.2.7",
+      "license": "MIT",
+      "repository": "https://github.com/radix-ui/primitives",
+      "licenseText": null
+    },
+    {
+      "name": "@react-email/components",
+      "version": "0.5.1",
+      "license": "MIT",
+      "repository": "https://github.com/resend/react-email",
+      "licenseText": null
+    },
+    {
+      "name": "@t3-oss/env-core",
+      "version": "0.13.8",
+      "license": "MIT",
+      "repository": "https://github.com/t3-oss/t3-env",
+      "licenseText": null
+    },
+    {
+      "name": "@tanstack/react-query",
+      "version": "5.85.0",
+      "license": "MIT",
+      "repository": "https://github.com/TanStack/query",
+      "licenseText": null
+    },
+    {
+      "name": "@tanstack/react-query-devtools",
+      "version": "5.85.0",
+      "license": "MIT",
+      "repository": "https://github.com/TanStack/query",
+      "licenseText": null
+    },
+    {
+      "name": "@tanstack/react-table",
+      "version": "8.21.3",
+      "license": "MIT",
+      "repository": "https://github.com/TanStack/table",
+      "licenseText": null
+    },
+    {
+      "name": "@tanstack/react-virtual",
+      "version": "3.13.12",
+      "license": "MIT",
+      "repository": "https://github.com/TanStack/virtual",
+      "licenseText": null
+    },
+    {
+      "name": "@torrent-vibe/main",
+      "version": "workspace:*",
+      "license": "GPL-3.0",
+      "repository": null,
+      "licenseText": null
+    },
+    {
+      "name": "axios",
+      "version": "1.11.0",
+      "license": "MIT",
+      "repository": "https://github.com/axios/axios",
+      "licenseText": null
+    },
+    {
+      "name": "clsx",
+      "version": "2.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/lukeed/clsx",
+      "licenseText": null
+    },
+    {
+      "name": "es-toolkit",
+      "version": "1.39.9",
+      "license": "MIT",
+      "repository": "https://github.com/toss/es-toolkit",
+      "licenseText": null
+    },
+    {
+      "name": "foxact",
+      "version": "0.2.49",
+      "license": "MIT",
+      "repository": "https://github.com/SukkaW/foxact",
+      "licenseText": null
+    },
+    {
+      "name": "fuse.js",
+      "version": "7.1.0",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/krisk/Fuse",
+      "licenseText": null
+    },
+    {
+      "name": "i18next",
+      "version": "25.4.2",
+      "license": "MIT",
+      "repository": "https://github.com/i18next/i18next",
+      "licenseText": null
+    },
+    {
+      "name": "i18next-browser-languagedetector",
+      "version": "8.2.0",
+      "license": "MIT",
+      "repository": "https://github.com/i18next/i18next-browser-languageDetector",
+      "licenseText": null
+    },
+    {
+      "name": "immer",
+      "version": "10.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/immerjs/immer",
+      "licenseText": null
+    },
+    {
+      "name": "jotai",
+      "version": "2.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/pmndrs/jotai",
+      "licenseText": null
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.1.0",
+      "license": "MIT",
+      "repository": "https://github.com/nodeca/js-yaml",
+      "licenseText": null
+    },
+    {
+      "name": "motion",
+      "version": "12.23.12",
+      "license": "MIT",
+      "repository": "https://github.com/motiondivision/motion",
+      "licenseText": null
+    },
+    {
+      "name": "nanoevents",
+      "version": "9.1.0",
+      "license": "MIT",
+      "repository": "https://github.com/ai/nanoevents",
+      "licenseText": null
+    },
+    {
+      "name": "ofetch",
+      "version": "1.4.1",
+      "license": "MIT",
+      "repository": "https://github.com/unjs/ofetch",
+      "licenseText": null
+    },
+    {
+      "name": "pathe",
+      "version": "2.0.3",
+      "license": "MIT",
+      "repository": "https://github.com/unjs/pathe",
+      "licenseText": null
+    },
+    {
+      "name": "re-resizable",
+      "version": "6.11.2",
+      "license": "MIT",
+      "repository": "https://github.com/bokuweb/react-resizable-box",
+      "licenseText": null
+    },
+    {
+      "name": "react",
+      "version": "19.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react",
+      "licenseText": null
+    },
+    {
+      "name": "react-dom",
+      "version": "19.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react",
+      "licenseText": null
+    },
+    {
+      "name": "react-email",
+      "version": "4.2.8",
+      "license": "MIT",
+      "repository": "https://github.com/resend/react-email",
+      "licenseText": null
+    },
+    {
+      "name": "react-hook-form",
+      "version": "7.53.0",
+      "license": "MIT",
+      "repository": "https://github.com/react-hook-form/react-hook-form",
+      "licenseText": null
+    },
+    {
+      "name": "react-i18next",
+      "version": "15.7.3",
+      "license": "MIT",
+      "repository": "https://github.com/i18next/react-i18next",
+      "licenseText": null
+    },
+    {
+      "name": "react-resizable-layout",
+      "version": "0.7.2",
+      "license": "MIT",
+      "repository": "ssh://git@github.com/RyoSogawa/react-resizable-layout",
+      "licenseText": null
+    },
+    {
+      "name": "react-router",
+      "version": "7.8.0",
+      "license": "MIT",
+      "repository": "https://github.com/remix-run/react-router",
+      "licenseText": null
+    },
+    {
+      "name": "react-scan",
+      "version": "0.4.3",
+      "license": "MIT",
+      "repository": "https://github.com/aidenybai/react-scan",
+      "licenseText": null
+    },
+    {
+      "name": "react-virtuoso",
+      "version": "4.14.0",
+      "license": "MIT",
+      "repository": "https://github.com/petyosi/react-virtuoso",
+      "licenseText": null
+    },
+    {
+      "name": "sonner",
+      "version": "2.0.7",
+      "license": "MIT",
+      "repository": "https://github.com/emilkowalski/sonner",
+      "licenseText": null
+    },
+    {
+      "name": "tailwind-merge",
+      "version": "3.3.1",
+      "license": "MIT",
+      "repository": "https://github.com/dcastil/tailwind-merge",
+      "licenseText": null
+    },
+    {
+      "name": "tinykeys",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "https://github.com/jamiebuilds/tinykeys",
+      "licenseText": null
+    },
+    {
+      "name": "title-case",
+      "version": "4.3.2",
+      "license": "MIT",
+      "repository": "git://github.com/blakeembrey/change-case",
+      "licenseText": null
+    },
+    {
+      "name": "usehooks-ts",
+      "version": "3.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/juliencrn/usehooks-ts",
+      "licenseText": null
+    },
+    {
+      "name": "vaul",
+      "version": "1.1.2",
+      "license": "MIT",
+      "repository": "https://github.com/emilkowalski/vaul",
+      "licenseText": null
+    },
+    {
+      "name": "zod",
+      "version": "4.0.17",
+      "license": "MIT",
+      "repository": "https://github.com/colinhacks/zod",
+      "licenseText": null
+    },
+    {
+      "name": "zustand",
+      "version": "5.0.7",
+      "license": "MIT",
+      "repository": "https://github.com/pmndrs/zustand",
+      "licenseText": null
+    }
+  ],
+  "licenseGroups": [
+    {
+      "license": "UNKNOWN",
+      "count": 1,
+      "packages": [
+        {
+          "name": "@innei/qbittorrent-browser",
+          "version": "npm:",
+          "repository": null
+        }
+      ]
+    },
+    {
+      "license": "MIT",
+      "count": 54,
+      "packages": [
+        {
+          "name": "@dnd-kit/core",
+          "version": "6.3.1",
+          "repository": "https://github.com/clauderic/dnd-kit"
+        },
+        {
+          "name": "@dnd-kit/sortable",
+          "version": "10.0.0",
+          "repository": "https://github.com/clauderic/dnd-kit"
+        },
+        {
+          "name": "@dnd-kit/utilities",
+          "version": "3.2.2",
+          "repository": "https://github.com/clauderic/dnd-kit"
+        },
+        {
+          "name": "@headlessui/react",
+          "version": "2.2.7",
+          "repository": "https://github.com/tailwindlabs/headlessui"
+        },
+        {
+          "name": "@pastel-palette/tailwindcss",
+          "version": "1.0.0-canary.1",
+          "repository": null
+        },
+        {
+          "name": "@radix-ui/react-accordion",
+          "version": "1.2.11",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-checkbox",
+          "version": "1.3.2",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-context-menu",
+          "version": "2.2.15",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-dialog",
+          "version": "1.1.14",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-dropdown-menu",
+          "version": "2.1.16",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-label",
+          "version": "2.1.7",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-scroll-area",
+          "version": "1.2.9",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-select",
+          "version": "2.2.5",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-slider",
+          "version": "1.3.5",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-slot",
+          "version": "1.2.3",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-switch",
+          "version": "1.2.5",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@radix-ui/react-tooltip",
+          "version": "1.2.7",
+          "repository": "https://github.com/radix-ui/primitives"
+        },
+        {
+          "name": "@react-email/components",
+          "version": "0.5.1",
+          "repository": "https://github.com/resend/react-email"
+        },
+        {
+          "name": "@t3-oss/env-core",
+          "version": "0.13.8",
+          "repository": "https://github.com/t3-oss/t3-env"
+        },
+        {
+          "name": "@tanstack/react-query",
+          "version": "5.85.0",
+          "repository": "https://github.com/TanStack/query"
+        },
+        {
+          "name": "@tanstack/react-query-devtools",
+          "version": "5.85.0",
+          "repository": "https://github.com/TanStack/query"
+        },
+        {
+          "name": "@tanstack/react-table",
+          "version": "8.21.3",
+          "repository": "https://github.com/TanStack/table"
+        },
+        {
+          "name": "@tanstack/react-virtual",
+          "version": "3.13.12",
+          "repository": "https://github.com/TanStack/virtual"
+        },
+        {
+          "name": "axios",
+          "version": "1.11.0",
+          "repository": "https://github.com/axios/axios"
+        },
+        {
+          "name": "clsx",
+          "version": "2.1.1",
+          "repository": "https://github.com/lukeed/clsx"
+        },
+        {
+          "name": "es-toolkit",
+          "version": "1.39.9",
+          "repository": "https://github.com/toss/es-toolkit"
+        },
+        {
+          "name": "foxact",
+          "version": "0.2.49",
+          "repository": "https://github.com/SukkaW/foxact"
+        },
+        {
+          "name": "i18next",
+          "version": "25.4.2",
+          "repository": "https://github.com/i18next/i18next"
+        },
+        {
+          "name": "i18next-browser-languagedetector",
+          "version": "8.2.0",
+          "repository": "https://github.com/i18next/i18next-browser-languageDetector"
+        },
+        {
+          "name": "immer",
+          "version": "10.1.1",
+          "repository": "https://github.com/immerjs/immer"
+        },
+        {
+          "name": "jotai",
+          "version": "2.13.1",
+          "repository": "https://github.com/pmndrs/jotai"
+        },
+        {
+          "name": "js-yaml",
+          "version": "4.1.0",
+          "repository": "https://github.com/nodeca/js-yaml"
+        },
+        {
+          "name": "motion",
+          "version": "12.23.12",
+          "repository": "https://github.com/motiondivision/motion"
+        },
+        {
+          "name": "nanoevents",
+          "version": "9.1.0",
+          "repository": "https://github.com/ai/nanoevents"
+        },
+        {
+          "name": "ofetch",
+          "version": "1.4.1",
+          "repository": "https://github.com/unjs/ofetch"
+        },
+        {
+          "name": "pathe",
+          "version": "2.0.3",
+          "repository": "https://github.com/unjs/pathe"
+        },
+        {
+          "name": "re-resizable",
+          "version": "6.11.2",
+          "repository": "https://github.com/bokuweb/react-resizable-box"
+        },
+        {
+          "name": "react",
+          "version": "19.1.1",
+          "repository": "https://github.com/facebook/react"
+        },
+        {
+          "name": "react-dom",
+          "version": "19.1.1",
+          "repository": "https://github.com/facebook/react"
+        },
+        {
+          "name": "react-email",
+          "version": "4.2.8",
+          "repository": "https://github.com/resend/react-email"
+        },
+        {
+          "name": "react-hook-form",
+          "version": "7.53.0",
+          "repository": "https://github.com/react-hook-form/react-hook-form"
+        },
+        {
+          "name": "react-i18next",
+          "version": "15.7.3",
+          "repository": "https://github.com/i18next/react-i18next"
+        },
+        {
+          "name": "react-resizable-layout",
+          "version": "0.7.2",
+          "repository": "ssh://git@github.com/RyoSogawa/react-resizable-layout"
+        },
+        {
+          "name": "react-router",
+          "version": "7.8.0",
+          "repository": "https://github.com/remix-run/react-router"
+        },
+        {
+          "name": "react-scan",
+          "version": "0.4.3",
+          "repository": "https://github.com/aidenybai/react-scan"
+        },
+        {
+          "name": "react-virtuoso",
+          "version": "4.14.0",
+          "repository": "https://github.com/petyosi/react-virtuoso"
+        },
+        {
+          "name": "sonner",
+          "version": "2.0.7",
+          "repository": "https://github.com/emilkowalski/sonner"
+        },
+        {
+          "name": "tailwind-merge",
+          "version": "3.3.1",
+          "repository": "https://github.com/dcastil/tailwind-merge"
+        },
+        {
+          "name": "tinykeys",
+          "version": "3.0.0",
+          "repository": "https://github.com/jamiebuilds/tinykeys"
+        },
+        {
+          "name": "title-case",
+          "version": "4.3.2",
+          "repository": "git://github.com/blakeembrey/change-case"
+        },
+        {
+          "name": "usehooks-ts",
+          "version": "3.1.1",
+          "repository": "https://github.com/juliencrn/usehooks-ts"
+        },
+        {
+          "name": "vaul",
+          "version": "1.1.2",
+          "repository": "https://github.com/emilkowalski/vaul"
+        },
+        {
+          "name": "zod",
+          "version": "4.0.17",
+          "repository": "https://github.com/colinhacks/zod"
+        },
+        {
+          "name": "zustand",
+          "version": "5.0.7",
+          "repository": "https://github.com/pmndrs/zustand"
+        }
+      ]
+    },
+    {
+      "license": "Apache-2.0",
+      "count": 2,
+      "packages": [
+        {
+          "name": "fuse.js",
+          "version": "7.1.0",
+          "repository": "https://github.com/krisk/Fuse"
+        }
+      ]
+    },
+    {
+      "license": "GPL-3.0",
+      "count": 1,
+      "packages": [
+        {
+          "name": "@torrent-vibe/main",
+          "version": "workspace:*",
+          "repository": null
+        }
+      ]
+    }
+  ]
+}

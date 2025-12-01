@@ -1,0 +1,18 @@
+packages:
+  - layer/*
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - electron
+  - electron-window-corner-addon
+  - electron-winstaller
+  - esbuild
+  - fs-xattr
+  - macos-alias
+  - simple-git-hooks
+  - sqlite3
+  - unrs-resolver
+
+patchedDependencies:
+  linkedom: patches/linkedom.patch

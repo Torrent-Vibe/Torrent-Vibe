@@ -1,0 +1,83 @@
+{
+  "project": {
+    "name": "@torrent-vibe/main",
+    "version": "0.0.0"
+  },
+  "generated": "2025-09-18T16:29:08.169Z",
+  "summary": {
+    "totalDependencies": 7,
+    "riskDistribution": {
+      "HIGH": 1,
+      "LOW": 6
+    },
+    "licenseCategories": {
+      "UNKNOWN": 1,
+      "PERMISSIVE": 6
+    }
+  },
+  "dependencies": [
+    {
+      "name": "@torrent-vibe/shared",
+      "version": "workspace:*",
+      "license": "UNKNOWN",
+      "repository": "",
+      "category": "UNKNOWN",
+      "riskLevel": "HIGH",
+      "licenseText": ""
+    },
+    {
+      "name": "@torrent-vibe/qb-client",
+      "version": "workspace:*",
+      "license": "UNLICENSED",
+      "repository": "",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "electron-context-menu",
+      "version": "4.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/sindresorhus/electron-context-menu.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "electron-ipc-decorator",
+      "version": "0.2.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/innei/electron-ipc-decorator.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "electron-log",
+      "version": "5.4.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/megahertz/electron-log.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "semver",
+      "version": "7.7.2",
+      "license": "ISC",
+      "repository": "git+https://github.com/npm/node-semver.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": ""
+    },
+    {
+      "name": "tar",
+      "version": "7.4.3",
+      "license": "ISC",
+      "repository": "git+https://github.com/isaacs/node-tar.git",
+      "category": "PERMISSIVE",
+      "riskLevel": "LOW",
+      "licenseText": "The ISC License\n\nCopyright (c) Isaac Z. Schlueter and Contributors\n\nPermission to use, copy, modify, and/or distribute this software for any\npurpose with or without fee is hereby granted, provided that the above\ncopyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES\nWITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF\nMERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR\nANY SPECIAL..."
+    }
+  ]
+}

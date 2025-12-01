@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Torrent Vibe</title>
+
+    <script>
+      const COLOR_MODE_KEY = 'color-mode'
+      const ACCENT_KEY = 'app:accent-color'
+      const CONTRAST_KEY = 'app:color-style'
+      const ACCENT_COLOR_MAP = {
+        blue: { light: '#0A84FF', dark: '#409CFF' },
+        purple: { light: '#BF5AF2', dark: '#D6A2FF' },
+        pink: { light: '#FF2D55', dark: '#FF6585' },
+        red: { light: '#FF453A', dark: '#FF6F66' },
+        orange: { light: '#FF9F0A', dark: '#FFB441' },
+        yellow: { light: '#FFD60A', dark: '#FFE066' },
+        green: { light: '#30D158', dark: '#63E87A' },
+        graphite: { light: '#8E8E93', dark: '#A0A0A6' },
+      }
+
+      const getSystemMode = () => {
+        if (!window.matchMedia) return undefined
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+          return 'dark'
+        if (window.matchMedia('(prefers-color-scheme: light)').matches)
+          return 'light'
+        return undefined
+      }
+
+      const applyColorMode = () => {
+        const root = document.documentElement
+        const stored = localStorage.getItem(COLOR_MODE_KEY)
+
+        if (!stored) {
+          root.dataset.colorMode = getSystemMode() || 'light'
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(stored)
+          if (parsed === 'dark' || parsed === 'light') {
+            root.dataset.colorMode = parsed
+            return
+          }
+          if (parsed === 'system') {
+            root.dataset.colorMode = getSystemMode() || 'light'
+            return
+          }
+        } catch (error) {
+          console.warn('Failed to parse theme from storage', error)
+        }
+
+        root.dataset.colorMode = getSystemMode() || 'light'
+      }
+
+      const applyContrast = () => {
+        const root = document.documentElement
+        const stored = localStorage.getItem(CONTRAST_KEY)
+        let contrast = 'default'
+
+        if (stored === 'high' || stored === 'high-contrast') {
+          contrast = 'high'
+        } else if (stored === 'low' || stored === 'kawaii') {
+          contrast = 'low'
+        }
+
+        root.dataset.contrast = contrast
+      }
+
+      const applyAccent = () => {
+        const root = document.documentElement
+        const stored = localStorage.getItem(ACCENT_KEY)
+        const accent = stored || 'blue'
+        const colors = ACCENT_COLOR_MAP[accent] || ACCENT_COLOR_MAP.blue
+        const modeIsDark = root.dataset.colorMode === 'dark'
+
+        root.dataset.accent = accent
+        root.style.setProperty(
+          '--color-accent',
+          modeIsDark ? colors.dark : colors.light,
+        )
+        root.style.setProperty('--color-accent-light', colors.light)
+        root.style.setProperty('--color-accent-dark', colors.dark)
+      }
+
+      applyColorMode()
+      applyContrast()
+      applyAccent()
+    </script>
+    <script>
+      if (window.electronAPI) {
+        document.documentElement.dataset.electron = 'true'
+      }
+    </script>
+  </head>
+  <body id="main-app">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

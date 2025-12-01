@@ -1,0 +1,19 @@
+diff --git a/package.json b/package.json
+index a598b4c3ddf5b23368b2bb14cf82ef15f89feba8..51ebab618478ae1535bd31fa6343e7e0ee3c53c2 100644
+--- a/package.json
++++ b/package.json
+@@ -76,14 +76,6 @@
+     "htmlparser2": "^10.0.0",
+     "uhyphen": "^0.2.0"
+   },
+-  "peerDependencies": {
+-    "canvas": ">= 2"
+-  },
+-  "peerDependenciesMeta": {
+-    "canvas": {
+-      "optional": true
+-    }
+-  },
+   "engines": {
+     "node": ">=16"
+   },

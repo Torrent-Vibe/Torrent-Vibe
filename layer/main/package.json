@@ -1,0 +1,41 @@
+{
+  "name": "@torrent-vibe/main",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "sideEffects": false,
+  "exports": {
+    ".": "./exports.ts"
+  },
+  "types": "./dist/exports.d.ts",
+  "scripts": {
+    "build": "node -e \"console.log('skip: @torrent-vibe/main build is handled by root electron build')\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.52",
+    "@mozilla/readability": "0.6.0",
+    "@openrouter/ai-sdk-provider": "1.2.0",
+    "@torrent-vibe/qb-client": "workspace:*",
+    "@torrent-vibe/shared": "workspace:*",
+    "ai": "^5.0.76",
+    "axios": "1.12.2",
+    "bufferutil": "4.0.9",
+    "drizzle-orm": "^0.44.6",
+    "electron-context-menu": "^4.1.1",
+    "electron-ipc-decorator": "0.2.0",
+    "electron-log": "5.4.3",
+    "electron-updater": "6.6.2",
+    "linkedom": "0.18.12",
+    "puppeteer-core": "24.25.0",
+    "semver": "7.7.3",
+    "sqlite3": "^5.1.7",
+    "tar": "7.5.1",
+    "utf-8-validate": "6.0.5",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/sqlite3": "^5.1.0"
+  }
+}

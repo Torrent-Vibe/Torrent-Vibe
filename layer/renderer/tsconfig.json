@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipDefaultLibCheck": true,
+    "noImplicitAny": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "jsx": "preserve",
+    "paths": {
+      "~/*": [
+        "./src/*"
+      ],
+      "@pkg": [
+        "../../package.json"
+      ],
+      "@locales/*": [
+        "../../locales/*"
+      ],
+      "@torrent-vibe/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@torrent-vibe/shared/*": [
+        "../../packages/shared/src/*"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "../main"
+    },
+    {
+      "path": "../../packages/shared"
+    }
+  ],
+  "include": [
+    "src/**/*",
+    "src/apps/main/generated-routes.ts"
+  ]
+}

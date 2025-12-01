@@ -1,0 +1,101 @@
+name: 🚀 Renderer Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.2.0)'
+        required: true
+        type: string
+
+      changelog:
+        description: 'Changelog to build (e.g., 1.2.0)'
+        required: false
+        type: string
+
+      required_main_hash:
+        description: 'Required main layer hash (package.json mainHash: sha256 of dist/main + dist/preload)'
+        required: false
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build renderer
+        run: pnpm run build:render-release
+
+      - name: Archive renderer dist
+        run: tar -czf renderer-dist.tar.gz -C layer/renderer dist
+
+      - name: Prepare signing private key
+        env:
+          UPDATE_SIGNING_PRIV_PEM: ${{ secrets.UPDATE_SIGNING_PRIV_PEM }}
+        run: |
+          if [ -n "${UPDATE_SIGNING_PRIV_PEM}" ]; then
+            echo "Using signing private key from secret"
+            echo "$UPDATE_SIGNING_PRIV_PEM" > signing_private.pem
+          else
+            echo "WARNING: UPDATE_SIGNING_PRIV_PEM secret not set; falling back to legacy private key file"
+            cp resources/security/update_privkey.pem signing_private.pem
+          fi
+          # Basic sanity check
+          head -n 5 signing_private.pem || true
+
+      - name: Encrypt package (soft-encrypted + strong-signed)
+        run: |
+          node scripts/encrypt-update-package.js \
+          --input renderer-dist.tar.gz \
+          --public-key resources/security/update_pubkey.pem \
+          --private-key signing_private.pem \
+          --version ${{ inputs.version }} \
+          ${{ inputs.required_main_hash && format('--required-main-hash {0}', inputs.required_main_hash) || '' }} \
+          --output renderer-dist-encrypted.bin
+      - name: Generate SHA256
+        run: |
+          if command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 renderer-dist-encrypted.bin | awk '{print $1}' > renderer-dist-encrypted.sha256
+          else
+            sha256sum renderer-dist-encrypted.bin | awk '{print $1}' > renderer-dist-encrypted.sha256
+          fi
+          echo "sha256=$(cat renderer-dist-encrypted.sha256)" >> $GITHUB_OUTPUT
+        id: sha
+      - name: Generate manifest.yaml
+        run: |
+          node scripts/generate-release-manifest.js \
+            --version ${{ inputs.version }} \
+            --asset-name renderer-dist-encrypted.bin \
+            --asset-path renderer-dist-encrypted.bin \
+            --asset-sha256 ${{ steps.sha.outputs.sha256 || '' }} \
+            ${{ inputs.required_main_hash && format('--required-main-hash {0}', inputs.required_main_hash) || '' }} \
+            --output manifest.yaml
+
+      - name: Upload renderer artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: Release v${{ inputs.version }}
+          generate_release_notes: false
+          repository: 'Torrent-Vibe/Renderer-Update-Center'
+          fail_on_unmatched_files: false
+          append_body: true
+          body: ${{ inputs.changelog }}
+          make_latest: true
+          files: |
+            renderer-dist-encrypted.bin
+            renderer-dist-encrypted.sha256
+            manifest.yaml

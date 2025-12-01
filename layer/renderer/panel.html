@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Torrent Vibe Panel</title>
+    <script>
+      if (window.electronAPI) {
+        document.documentElement.dataset.electron = 'true'
+      }
+    </script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden !important;
+        background-color: transparent !important;
+      }
+    </style>
+  </head>
+  <body id="panel-app">
+    <div id="root"></div>
+    <script type="module" src="/src/panel-main.tsx"></script>
+  </body>
+</html>
