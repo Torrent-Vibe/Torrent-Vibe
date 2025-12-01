@@ -101,14 +101,6 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Install Python setuptools
-        if: runner.os == 'macOS'
-        run: brew install python-setuptools
-
-      - name: Install appdmg
-        if: runner.os == 'macOS'
-        run: pnpm add -g appdmg
-
       - name: Install dependencies
         run: pnpm i
 
@@ -124,30 +116,6 @@ jobs:
           APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
           APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
           APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
-
-      - name: Notarize & staple macOS app (dual-arch)
-        if: runner.os == 'macOS'
-        timeout-minutes: 10
-        env:
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          ARM64_ZIP=$(find out/make -type f -name "*-macos-arm64.zip" -print -quit)
-          X64_ZIP=$(find out/make -type f -name "*-macos-x64.zip" -print -quit)
-          echo "[i] macOS artifacts: arm64=$ARM64_ZIP x64=$X64_ZIP"
-          if [ -z "$ARM64_ZIP" ] || [ -z "$X64_ZIP" ]; then
-            echo "[-] Could not locate macOS zip artifacts in out/make" >&2
-            find out/make -maxdepth 5 -type f -name "*.zip" -print || true
-            exit 1
-          fi
-          ARM64_ZIP_ABS="$PWD/$ARM64_ZIP"
-          X64_ZIP_ABS="$PWD/$X64_ZIP"
-          RELEASE_DIR="$PWD/release"
-          mkdir -p "$RELEASE_DIR"
-          cd scripts/apple
-          ./action.sh --import-arm64 "$ARM64_ZIP_ABS" --import-amd64 "$X64_ZIP_ABS" --export-dir "$RELEASE_DIR"
-          rm -rf "$ARM64_ZIP_ABS"
-          rm -rf "$X64_ZIP_ABS"
-          rm -rf **/*.dmg
 
       - name: Prepare release files (Windows)
         if: runner.os == 'Windows'
@@ -170,11 +138,11 @@ jobs:
       - name: Refresh macOS updater metadata
         if: runner.os == 'macOS'
         run: |
-          RELEASE_DIR="$PWD/release"
+          RELEASE_DIR="$PWD/out/make"
           ARM64_FINAL=$(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*darwin-arm64*.zip" -print -quit)
           X64_FINAL=$(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*darwin-x64*.zip" -print -quit)
           if [ -z "$ARM64_FINAL" ] || [ -z "$X64_FINAL" ]; then
-            echo "[-] Failed to locate notarized macOS zips in $RELEASE_DIR" >&2
+            echo "[-] Failed to locate macOS zips in $RELEASE_DIR" >&2
             find "$RELEASE_DIR" -maxdepth 1 -type f -name "*.zip" -print || true
             exit 1
           fi

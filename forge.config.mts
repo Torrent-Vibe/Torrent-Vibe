@@ -3,7 +3,6 @@ import fs, { readdirSync, renameSync, statSync } from 'node:fs'
 import { cp, readdir } from 'node:fs/promises'
 
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import { MakerPKG } from '@electron-forge/maker-pkg'
 import { MakerSquirrel } from '@electron-forge/maker-squirrel'
 import { MakerZIP } from '@electron-forge/maker-zip'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
@@ -348,13 +347,6 @@ const config: ForgeConfig = {
     } as any),
 
     // new MakerAppImage({}, ['linux']), // Temporarily commented out due to import issues
-    new MakerPKG(
-      {
-        name: 'Torrent Vibe',
-        keychain: process.env.KEYCHAIN_PATH,
-      },
-      ['mas'],
-    ),
     new MakerSquirrel(
       {
         name: 'TorrentVibe',
