@@ -264,8 +264,6 @@ const config: ForgeConfig = {
     icon: 'resources/icon',
     extraResource: [
       './resources/app-update.yml',
-      './resources/native',
-      './resources/security',
     ],
     protocols: [
       {
