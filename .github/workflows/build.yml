@@ -118,13 +118,12 @@ jobs:
         env:
           APP_VERSION: ${{ needs.setup.outputs.tag_name }}
 
-      - name: Build - macOS (secure, dual-arch)
+      - name: Build - macOS (dual-arch)
         if: runner.os == 'macOS'
         run: |
-          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
-          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
-          SECURITY_OBFUSCATION=1 APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
-          node scripts/verify-build-integrity.js
+          APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-vite build
+          APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=x64 --platform=darwin
+          APP_VERSION=${{ needs.setup.outputs.tag_name }} npx electron-forge make --arch=arm64 --platform=darwin
 
       - name: Notarize & staple macOS app (dual-arch)
         if: runner.os == 'macOS'
