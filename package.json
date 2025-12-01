@@ -10,18 +10,15 @@
   },
   "main": "./dist/main/index.js",
   "scripts": {
-    "asar:sign": "node scripts/sign-asar.js",
     "build": "vite build",
     "build:electron": "electron-vite build && electron-forge make",
     "build:production": "vite build --mode production",
-    "build:production:secure": "cross-env NODE_ENV=production SECURITY_OBFUSCATION=1 vite build --mode production",
-    "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 SECURITY_OBFUSCATION=1 vite build --mode production",
+    "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 vite build --mode production",
     "build:turbo": "turbo run build --filter=@torrent-vibe/*",
     "dev": "vite",
     "predev:electron": "node scripts/write-main-hash-dev.js",
     "dev:electron": "electron-vite dev",
     "electron:build": "electron-vite build",
-    "electron:build:secure": "cross-env SECURITY_OBFUSCATION=1 electron-vite build && electron-forge make && node scripts/verify-build-integrity.js",
     "electron:make": "electron-forge make",
     "electron:make:darwin": "electron-forge make --platform=darwin",
     "electron:preview": "electron-vite preview",
@@ -38,8 +35,7 @@
     "typecheck:main": "pnpm -F @torrent-vibe/main typecheck",
     "typecheck:renderer": "pnpm -F @torrent-vibe/renderer typecheck",
     "typecheck:turbo": "turbo run typecheck --filter=@torrent-vibe/*",
-    "update:generate-signing": "node scripts/generate-update-signing-keypair.js",
-    "verify:asar": "node scripts/verify-build-integrity.js"
+    "update:generate-signing": "node scripts/generate-update-signing-keypair.js"
   },
   "devDependencies": {
     "@egoist/tailwindcss-icons": "1.9.0",
@@ -79,7 +75,6 @@
     "electron-vite": "4.0.1",
     "eslint": "9.39.1",
     "eslint-config-hyoban": "4.0.10",
-    "javascript-obfuscator": "4.2.0",
     "lint-staged": "16.2.7",
     "postcss": "8.5.6",
     "postcss-import": "16.1.1",

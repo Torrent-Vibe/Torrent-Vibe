@@ -112,9 +112,9 @@ jobs:
       - name: Install dependencies
         run: pnpm i
 
-      - name: Build - Secure (Windows/Linux)
+      - name: Build (Windows/Linux)
         if: runner.os == 'Linux' || runner.os == 'Windows'
-        run: pnpm electron:build:secure
+        run: pnpm electron:build && pnpm electron:make
         env:
           APP_VERSION: ${{ needs.setup.outputs.tag_name }}
 

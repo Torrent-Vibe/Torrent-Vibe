@@ -14,7 +14,6 @@ import PKG from './package.json'
 import { cleanupUnnecessaryFilesPlugin } from './plugins/vite/cleanup'
 import { createDependencyChunksPlugin } from './plugins/vite/deps'
 import { customI18nHmrPlugin } from './plugins/vite/i18n-hmr'
-import { securityObfuscationPlugin } from './plugins/vite/security-obfuscation-plugin'
 import { createPlatformSpecificImportPlugin } from './plugins/vite/specific-import'
 
 const ROOT = join(
@@ -48,19 +47,6 @@ export default defineConfig({
     }),
     createDependencyChunksPlugin([[/node_modules\/.*?\//]]),
     process.env.ANALYZE === '1' ? analyzer() : [],
-    // Opt-in renderer obfuscation for production builds:
-    // set SECURITY_OBFUSCATION=1
-    securityObfuscationPlugin({
-      include: (file) => {
-        const ignoreFileNameTests = [/^framer-lazy/, /^index\.sync/]
-
-        return (
-          file.endsWith('.js') &&
-          !file.includes('vendor') &&
-          !ignoreFileNameTests.some((test) => test.test(file))
-        )
-      },
-    }),
 
     IS_ELECTRON_RENDER_BUILD
       ? [

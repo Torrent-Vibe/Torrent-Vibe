@@ -315,27 +315,6 @@ const config: ForgeConfig = {
         },
       ],
     },
-    osxSign: {
-      // Enable Hardened Runtime for non-MAS builds; MAS uses different requirements
-      optionsForFile:
-        platform === 'mas'
-          ? (filePath) => {
-              const entitlements = filePath.includes('.app/')
-                ? 'build/entitlements.mas.child.plist'
-                : 'build/entitlements.mas.plist'
-              return {
-                hardenedRuntime: false,
-                entitlements,
-              }
-            }
-          : () => ({
-              entitlements: 'build/entitlements.mac.plist',
-              entitlementsInherit: 'build/entitlements.mac.plist',
-            }),
-      keychain: process.env.OSX_SIGN_KEYCHAIN_PATH,
-      identity: process.env.OSX_SIGN_IDENTITY,
-      provisioningProfile: process.env.OSX_SIGN_PROVISIONING_PROFILE_PATH,
-    },
     // Notarization moved later to avoid modifying bundle after notarize
     // (we add app.asar.sig post-package, then re-sign bundle here).
   },
@@ -417,13 +396,6 @@ const config: ForgeConfig = {
     },
   ],
   hooks: {
-    postPackage: async () => {
-      try {
-        execSync('node scripts/sign-asar.js', { stdio: 'inherit' })
-      } catch (e) {
-        console.warn('[forge] postPackage asar signing failed:', e)
-      }
-    },
     postMake: async (_config, makeResults) => {
       if (!fileVersion) return makeResults
 

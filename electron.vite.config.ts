@@ -5,7 +5,6 @@ import { join, resolve } from 'pathe'
 
 import { cleanupUnnecessaryFilesPlugin } from './plugins/vite/cleanup'
 import { createDependencyChunksPlugin } from './plugins/vite/deps'
-import { securityObfuscationPlugin } from './plugins/vite/security-obfuscation-plugin'
 import { createPlatformSpecificImportPlugin } from './plugins/vite/specific-import'
 import viteConfig from './vite.config'
 
@@ -14,12 +13,7 @@ const ROOT = join(PWD, 'layer/renderer')
 
 export default defineConfig({
   main: {
-    plugins: [
-      createDependencyChunksPlugin([[/node_modules\/.*?\//]]),
-      securityObfuscationPlugin({
-        include: (file) => file.endsWith('.js') && !file.includes('vendor/'),
-      }),
-    ],
+    plugins: [createDependencyChunksPlugin([[/node_modules\/.*?\//]])],
     build: {
       outDir: 'dist/main',
       lib: {
@@ -73,10 +67,6 @@ export default defineConfig({
         'base.png',
       ]),
       ...viteConfig.plugins!,
-      // Enable only when SECURITY_OBFUSCATION=1 in production
-      securityObfuscationPlugin({
-        include: (file) => file.endsWith('.js') && !file.includes('vendor'),
-      }),
     ],
     define: {
       ...viteConfig.define,
