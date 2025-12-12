@@ -228,6 +228,7 @@
   "discover.modal.detailVotes": "IMDb 评分人数",
   "discover.modal.emptyDescription": "尝试调整筛选条件或更换关键字。",
   "discover.modal.emptyTitle": "未找到匹配项",
+  "discover.modal.importAll": "导入全部({{count}}个)",
   "discover.modal.importSelected": "批量导入 ({{count}})",
   "discover.modal.importThis": "导入此种子",
   "discover.modal.keywordLabel": "搜索关键词",

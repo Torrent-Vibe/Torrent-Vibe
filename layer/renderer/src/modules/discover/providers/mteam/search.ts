@@ -91,6 +91,4 @@ export const search = async (
   }
 }
 
-
-
-export {type MTeamSearchPayload} from './types'
+export { type MTeamSearchPayload } from './types'

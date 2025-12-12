@@ -17,6 +17,7 @@ import { restoreWindowState, trackWindowState } from '../utils/window-state'
 import { DefaultWindowContentLoader } from './content-loader'
 // import { FloatWindowManager } from './float-window-manager'
 import { HotUpdateContentLoader } from './hot-content-loader'
+import { SessionManager } from './session-manager'
 
 export class WindowManager implements IWindowManager {
   private static instance: WindowManager | null = null
@@ -82,8 +83,6 @@ export class WindowManager implements IWindowManager {
           nodeIntegration: false,
           contextIsolation: true,
           preload: this.contentLoader.getPreloadPath(),
-          // webSecurity: false, // 完全禁用 web 安全限制以解决 CORS 问题
-          // allowRunningInsecureContent: true, // 允许不安全内容
         },
       },
     }
@@ -147,6 +146,8 @@ export class WindowManager implements IWindowManager {
 
     this.mainWindow = new BrowserWindow(windowOptions)
     BridgeService.shared.registerWindow(this.mainWindow)
+    // Bind session interceptors to the actual window session (important if we ever use partitioned sessions).
+    SessionManager.instance.bindSession(this.mainWindow.webContents.session)
 
     // Handle window ready-to-show
     this.mainWindow.once('ready-to-show', () => {

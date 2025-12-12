@@ -35,6 +35,11 @@ class ElectronBootstrap {
   private windowIconPath: string | null = null
 
   constructor(options: BootstrapOptions = {}) {
+    // Enforce disabling CORS / web security at the Chromium level (main-process only).
+    // This keeps renderer code untouched and avoids IPC/proxy complexity.
+    app.commandLine.appendSwitch('disable-web-security')
+    app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
+
     this.isDevelopment =
       process.env.NODE_ENV === 'development' || !app.isPackaged
 

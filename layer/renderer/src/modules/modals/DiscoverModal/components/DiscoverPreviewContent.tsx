@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/cn'
@@ -31,6 +32,7 @@ export const DiscoverPreviewContent = ({
 
   const previewId = useDiscoverModalStore((state) => state.previewId)
   const previewDetail = useDiscoverModalStore((state) => state.previewDetail)
+  const selectedIds = useDiscoverModalStore((state) => state.selectedIds)
   const isPreviewLoading = useDiscoverModalStore(
     (state) => state.isPreviewLoading,
   )
@@ -42,6 +44,10 @@ export const DiscoverPreviewContent = ({
 
   const loadingLabel = t('discover.modal.loading')
   const importLabel = t('discover.modal.importThis')
+  const selectedCount = selectedIds.size
+  const importAllLabel = t('discover.modal.importAll', {
+    count: selectedCount,
+  })
 
   const buildPreviewModel = useBuildPreviewModel()
   const previewModel = useMemo(
@@ -55,9 +61,21 @@ export const DiscoverPreviewContent = ({
   )
 
   const disableImport = importing || !previewId
+  const showImportAll = selectedCount > 1
+  const disableImportAll = importing || selectedCount === 0
 
   const handleImport = () => {
-    void importingSlice.importPreview()
+    importingSlice.importPreview()
+  }
+
+  const handleImportAll = () => {
+    importingSlice.importSelected().then((result) => {
+      if (result.error === 'providerNotReady') {
+        toast.error(t('discover.messages.providerNotReady'))
+      } else if (result.error === 'selectionEmpty') {
+        toast.error(t('discover.messages.importFailed'))
+      }
+    })
   }
 
   return (
@@ -145,17 +163,33 @@ export const DiscoverPreviewContent = ({
             )}
           </div>
 
-          <Button
-            variant="primary"
-            className="w-full @[640px]:w-auto @[640px]:self-end @[640px]:px-6 @[640px]:min-w-[200px]"
-            onClick={handleImport}
-            disabled={disableImport}
-          >
-            {importing && (
-              <i className="i-mingcute-loading-3-line mr-2 animate-spin" />
+          <div className="flex flex-col gap-2 w-full @[640px]:w-auto @[640px]:self-end @[640px]:flex-row @[640px]:justify-end">
+            {showImportAll && (
+              <Button
+                variant="secondary"
+                className="w-full @[640px]:w-auto @[640px]:px-6 @[640px]:min-w-[200px]"
+                onClick={handleImportAll}
+                disabled={disableImportAll}
+              >
+                {importing && (
+                  <i className="i-mingcute-loading-3-line mr-2 animate-spin" />
+                )}
+                <span>{importAllLabel}</span>
+              </Button>
             )}
-            <span>{importLabel}</span>
-          </Button>
+
+            <Button
+              variant="primary"
+              className="w-full @[640px]:w-auto @[640px]:px-6 @[640px]:min-w-[200px]"
+              onClick={handleImport}
+              disabled={disableImport}
+            >
+              {importing && (
+                <i className="i-mingcute-loading-3-line mr-2 animate-spin" />
+              )}
+              <span>{importLabel}</span>
+            </Button>
+          </div>
         </>
       )}
     </div>

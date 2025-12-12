@@ -228,6 +228,7 @@
   "discover.modal.detailVotes": "IMDb votes",
   "discover.modal.emptyDescription": "Try adjusting your filters or use different keywords.",
   "discover.modal.emptyTitle": "No matches found",
+  "discover.modal.importAll": "Import All ({{count}})",
   "discover.modal.importSelected": "Import Selected ({{count}})",
   "discover.modal.importThis": "Import This Torrent",
   "discover.modal.keywordLabel": "Search keywords",

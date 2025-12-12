@@ -10,6 +10,7 @@ export class SessionManager {
   public static instance: SessionManager = new SessionManager()
   private initialized = false
   private options: SessionInitOptions | null = null
+  private boundSessions = new WeakSet<Electron.Session>()
 
   private constructor() {}
 
@@ -18,8 +19,6 @@ export class SessionManager {
     this.initialized = true
     this.options = options
 
-    const { defaultSession } = session
-
     const getAppOrigin = (): string => {
       if (options.isDevelopment) {
         return `http://${options.devServerHost}:${options.devServerPort}`
@@ -27,12 +26,40 @@ export class SessionManager {
       return 'app://'
     }
 
-    defaultSession.webRequest.onBeforeSendHeaders(async (details, callback) => {
-      await this.attachSIDCookie(details)
+    // Keep current behavior: bind to defaultSession once at bootstrap.
+    this.bindSession(session.defaultSession)
+
+    console.info(
+      'Session configured to disable CORS restrictions with app origin:',
+      getAppOrigin(),
+    )
+  }
+
+  /**
+   * Bind request / response interceptors to a specific Electron session.
+   * This is important when windows use non-default sessions (e.g. partition).
+   */
+  bindSession(targetSession: Electron.Session): void {
+    if (!this.options) {
+      throw new Error('SessionManager must be initialized before binding.')
+    }
+    if (this.boundSessions.has(targetSession)) return
+    this.boundSessions.add(targetSession)
+
+    const { isDevelopment, devServerHost, devServerPort } = this.options
+    const getAppOrigin = (): string => {
+      if (isDevelopment) {
+        return `http://${devServerHost}:${devServerPort}`
+      }
+      return 'app://'
+    }
+
+    targetSession.webRequest.onBeforeSendHeaders(async (details, callback) => {
+      await this.attachSIDCookie(targetSession, details)
       callback({ requestHeaders: details.requestHeaders })
     })
 
-    defaultSession.webRequest.onHeadersReceived(async (details, callback) => {
+    targetSession.webRequest.onHeadersReceived(async (details, callback) => {
       const appOrigin = getAppOrigin()
 
       const responseHeaders: Record<string, string[]> = {
@@ -61,37 +88,26 @@ export class SessionManager {
       )
       if (setCookieKey) {
         for (const cookieHeader of responseHeaders[setCookieKey]) {
-          await this.setCookieFromHeader(details.url, cookieHeader)
+          await this.setCookieFromHeader(
+            targetSession,
+            details.url,
+            cookieHeader,
+          )
         }
       }
 
       callback({ responseHeaders })
     })
-
-    // Allow requests to flow normally; CORS headers are handled in onHeadersReceived
-    defaultSession.webRequest.onBeforeRequest((_details, callback) => {
-      callback({})
-    })
-
-    console.info(
-      'Session configured to disable CORS restrictions with app origin:',
-      getAppOrigin(),
-    )
-    console.info(
-      'Set-Cookie headers will be intercepted and manually set with appropriate SameSite policy for cross-site compatibility',
-    )
-    console.info(
-      'SID cookie will be automatically attached to all qBittorrent API requests',
-    )
   }
 
   private async attachSIDCookie(
+    targetSession: Electron.Session,
     details: Electron.OnBeforeSendHeadersListenerDetails,
   ): Promise<void> {
     try {
       if (!this.isQBittorrentRequest(details.url)) return
 
-      const cookies = await session.defaultSession.cookies.get({
+      const cookies = await targetSession.cookies.get({
         url: details.url,
         name: 'SID',
       })
@@ -123,6 +139,7 @@ export class SessionManager {
   }
 
   private async setCookieFromHeader(
+    targetSession: Electron.Session,
     url: string,
     cookieHeader: string,
   ): Promise<void> {
@@ -172,11 +189,11 @@ export class SessionManager {
         }
       }
 
-      await session.defaultSession.cookies
+      await targetSession.cookies
         .set(cookieDetails)
         .then(() => {
           if (name === 'SID') {
-            session.defaultSession.cookies
+            targetSession.cookies
               .get({ url, name: 'SID' })
               .then((cookies) => {
                 console.info(
