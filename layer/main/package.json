@@ -14,15 +14,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.75",
+    "@ai-sdk/openai": "^3.0.1",
     "@mozilla/readability": "0.6.0",
     "@openrouter/ai-sdk-provider": "1.2.8",
     "@torrent-vibe/qb-client": "workspace:*",
     "@torrent-vibe/shared": "workspace:*",
-    "ai": "^5.0.104",
+    "ai": "^6.0.3",
     "axios": "1.13.2",
     "bufferutil": "4.0.9",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.1",
     "electron-context-menu": "^4.1.1",
     "electron-ipc-decorator": "0.2.0",
     "electron-log": "5.4.3",
@@ -33,7 +33,7 @@
     "sqlite3": "^5.1.7",
     "tar": "7.5.2",
     "utf-8-validate": "6.0.5",
-    "zod": "^4.1.13"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/sqlite3": "^5.1.0"
