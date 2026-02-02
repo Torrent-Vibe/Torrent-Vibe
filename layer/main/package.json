@@ -14,12 +14,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.1",
+    "@ai-sdk/openai": "^3.0.25",
     "@mozilla/readability": "0.6.0",
     "@openrouter/ai-sdk-provider": "1.2.8",
     "@torrent-vibe/qb-client": "workspace:*",
     "@torrent-vibe/shared": "workspace:*",
-    "ai": "^6.0.3",
+    "ai": "^6.0.67",
     "axios": "1.13.2",
     "bufferutil": "4.0.9",
     "drizzle-orm": "^0.45.1",
@@ -33,7 +33,7 @@
     "sqlite3": "^5.1.7",
     "tar": "7.5.2",
     "utf-8-validate": "6.0.5",
-    "zod": "^4.2.1"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/sqlite3": "^5.1.0"
