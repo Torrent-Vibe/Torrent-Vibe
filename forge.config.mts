@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process'
 import fs, { readdirSync, renameSync, statSync } from 'node:fs'
 import { cp, readdir } from 'node:fs/promises'
 
@@ -263,6 +262,10 @@ const config: ForgeConfig = {
     icon: 'resources/icon',
     extraResource: [
       './resources/app-update.yml',
+      // macOS menubar speed Swift dylib
+      ...(process.platform === 'darwin'
+        ? ['./native/menubar-speed/libmenubar_speed.dylib']
+        : []),
     ],
     protocols: [
       {

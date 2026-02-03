@@ -62,6 +62,7 @@
     "react-error-boundary": "6.0.0",
     "react-hook-form": "7.67.0",
     "react-i18next": "16.3.5",
+    "react-is": "^19.2.4",
     "react-markdown": "^10.1.0",
     "react-resizable-layout": "0.7.3",
     "react-router": "7.9.6",

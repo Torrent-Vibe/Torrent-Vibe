@@ -12,15 +12,16 @@
   "scripts": {
     "build": "vite build",
     "build:electron": "electron-vite build && electron-forge make",
+    "build:native": "bash native/build-all.sh",
     "build:production": "vite build --mode production",
     "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 vite build --mode production",
     "build:turbo": "turbo run build --filter=@torrent-vibe/*",
     "dev": "vite",
-    "predev:electron": "node scripts/write-main-hash-dev.js",
+    "predev:electron": "pnpm build:native && node scripts/write-main-hash-dev.js",
     "dev:electron": "electron-vite dev",
     "electron:build": "electron-vite build",
     "electron:make": "electron-forge make",
-    "electron:make:darwin": "electron-forge make --platform=darwin",
+    "electron:make:darwin": "pnpm build:native && electron-forge make --platform=darwin",
     "electron:preview": "electron-vite preview",
     "electron:publish": "electron-forge publish",
     "format": "prettier --write \"src/**/*.ts\" ",
@@ -36,6 +37,9 @@
     "typecheck:renderer": "pnpm -F @torrent-vibe/renderer typecheck",
     "typecheck:turbo": "turbo run typecheck --filter=@torrent-vibe/*",
     "update:generate-signing": "node scripts/generate-update-signing-keypair.js"
+  },
+  "dependencies": {
+    "koffi": "^2.15.1"
   },
   "devDependencies": {
     "@egoist/tailwindcss-icons": "1.9.0",
@@ -108,5 +112,5 @@
     ]
   },
   "productName": "Torrent Vibe",
-  "mainHash": "acadb12ad9f60712c094d1bd8761f3c04d92bac6878f7d4a7104841950b255c7"
+  "mainHash": "2196c5e4623dbb8c918a2237afc10c04b9051a959efcc24a21215ac8e2e8c1bc"
 }

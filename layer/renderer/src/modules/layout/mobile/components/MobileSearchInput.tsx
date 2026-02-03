@@ -58,7 +58,7 @@ export const MobileSearchInput: React.FC = () => {
         onBlur={(e) => {
           // Only blur if not clicking on clear button
           const relatedTarget = e.relatedTarget as HTMLElement
-          if (relatedTarget?.getAttribute('data-clear-button') !== 'true') {
+          if (relatedTarget?.dataset.clearButton !== 'true') {
             // Allow blur
           }
         }}
