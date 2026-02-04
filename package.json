@@ -11,7 +11,7 @@
   "main": "./dist/main/index.js",
   "scripts": {
     "build": "vite build",
-    "build:electron": "electron-vite build && electron-forge make",
+    "build:electron": "pnpm build:native && electron-vite build && electron-forge make",
     "build:native": "bash native/build-all.sh",
     "build:production": "vite build --mode production",
     "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 vite build --mode production",

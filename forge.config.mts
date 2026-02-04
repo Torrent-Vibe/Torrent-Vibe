@@ -321,9 +321,8 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['darwin']),
-    // @ts-expect-error
     // eslint-disable-next-line new-cap
-    new MakerAppImage.default({
+    new MakerAppImage({
       config: {
         // 自定义输出文件名使用 fileVersion
         outputFilename: fileVersion
