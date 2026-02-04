@@ -14,13 +14,16 @@ private var menuSpeedView: MenuSpeedView?
 private var downloadHistory: [Int64] = Array(repeating: 0, count: 60)
 private var uploadHistory: [Int64] = Array(repeating: 0, count: 60)
 
+// Current progress (0-100)
+private var currentProgress: Double = -1
+
 // Colors for arrows
 private let uploadColor = NSColor(red: 0.34, green: 0.76, blue: 0.49, alpha: 1.0)
 private let downloadColor = NSColor(red: 0.32, green: 0.64, blue: 0.95, alpha: 1.0)
 
 // MARK: - Status bar speed display helpers
 
-private func updateStatusBarSpeed(download: Int64, upload: Int64) {
+private func updateStatusBarSpeed(download: Int64, upload: Int64, progress: Double) {
     guard let button = statusItem?.button else { return }
 
     let uploadStr = formatSpeed(upload)
@@ -37,32 +40,7 @@ private func updateStatusBarSpeed(download: Int64, upload: Int64) {
 
     let result = NSMutableAttributedString()
 
-    // Download line
-    let downArrow = NSAttributedString(
-        string: "↓ ",
-        attributes: [
-            .foregroundColor: downloadColor,
-            .font: NSFont.systemFont(ofSize: 9, weight: .medium),
-            .paragraphStyle: paragraphStyle,
-            .baselineOffset: -2
-        ]
-    )
-    result.append(downArrow)
-
-    let downSpeed = NSAttributedString(
-        string: downloadStr,
-        attributes: [
-            .foregroundColor: NSColor.labelColor,
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),
-            .paragraphStyle: paragraphStyle,
-            .baselineOffset: -2
-        ]
-    )
-    result.append(downSpeed)
-
-    result.append(NSAttributedString(string: "\n"))
-
-    // Upload line
+    // Upload line (first line)
     let upArrow = NSAttributedString(
         string: "↑ ",
         attributes: [
@@ -84,6 +62,45 @@ private func updateStatusBarSpeed(download: Int64, upload: Int64) {
         ]
     )
     result.append(upSpeed)
+
+    // Add progress on the right side, vertically centered
+    if progress >= 0 {
+        let progressStr = NSAttributedString(
+            string: String(format: "  %.1f%%", progress),
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium),
+                .paragraphStyle: paragraphStyle,
+                .baselineOffset: -7  // Move down to vertically center between two lines
+            ]
+        )
+        result.append(progressStr)
+    }
+
+    result.append(NSAttributedString(string: "\n"))
+
+    // Download line (second line)
+    let downArrow = NSAttributedString(
+        string: "↓ ",
+        attributes: [
+            .foregroundColor: downloadColor,
+            .font: NSFont.systemFont(ofSize: 9, weight: .medium),
+            .paragraphStyle: paragraphStyle,
+            .baselineOffset: -2
+        ]
+    )
+    result.append(downArrow)
+
+    let downSpeed = NSAttributedString(
+        string: downloadStr,
+        attributes: [
+            .foregroundColor: NSColor.labelColor,
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),
+            .paragraphStyle: paragraphStyle,
+            .baselineOffset: -2
+        ]
+    )
+    result.append(downSpeed)
 
     button.attributedTitle = result
 
@@ -199,10 +216,12 @@ private class MenuSpeedView: NSView {
     private let uploadLabel = NSTextField(labelWithString: "")
     private let downloadValueLabel = NSTextField(labelWithString: "")
     private let uploadValueLabel = NSTextField(labelWithString: "")
+    private let progressLabel = NSTextField(labelWithString: "")
+    private let progressValueLabel = NSTextField(labelWithString: "")
     private let chartView = SpeedChartView()
 
     private let viewWidth: CGFloat = 200
-    private let viewHeight: CGFloat = 100
+    private let viewHeight: CGFloat = 120
 
     override init(frame frameRect: NSRect) {
         super.init(frame: NSRect(x: 0, y: 0, width: viewWidth, height: viewHeight))
@@ -259,6 +278,29 @@ private class MenuSpeedView: NSView {
         uploadValueLabel.alignment = .left
         uploadValueLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // Progress row - compact font
+        progressLabel.stringValue = "◉"
+        progressLabel.font = NSFont.systemFont(ofSize: 10, weight: .medium)
+        progressLabel.textColor = NSColor.systemOrange
+        progressLabel.backgroundColor = .clear
+        progressLabel.isBezeled = false
+        progressLabel.isEditable = false
+        progressLabel.isSelectable = false
+        progressLabel.alignment = .left
+        progressLabel.translatesAutoresizingMaskIntoConstraints = false
+        progressLabel.isHidden = true
+
+        progressValueLabel.stringValue = "-"
+        progressValueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        progressValueLabel.textColor = .labelColor
+        progressValueLabel.backgroundColor = .clear
+        progressValueLabel.isBezeled = false
+        progressValueLabel.isEditable = false
+        progressValueLabel.isSelectable = false
+        progressValueLabel.alignment = .left
+        progressValueLabel.translatesAutoresizingMaskIntoConstraints = false
+        progressValueLabel.isHidden = true
+
         // Chart view
         chartView.translatesAutoresizingMaskIntoConstraints = false
         chartView.wantsLayer = true
@@ -267,6 +309,8 @@ private class MenuSpeedView: NSView {
         addSubview(downloadValueLabel)
         addSubview(uploadLabel)
         addSubview(uploadValueLabel)
+        addSubview(progressLabel)
+        addSubview(progressValueLabel)
         addSubview(chartView)
 
         let hPadding: CGFloat = 12
@@ -293,18 +337,35 @@ private class MenuSpeedView: NSView {
             uploadValueLabel.centerYAnchor.constraint(equalTo: uploadLabel.centerYAnchor),
             uploadValueLabel.leadingAnchor.constraint(equalTo: uploadLabel.trailingAnchor, constant: 2),
 
+            // Progress row
+            progressLabel.topAnchor.constraint(equalTo: uploadLabel.bottomAnchor, constant: 0),
+            progressLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: hPadding),
+            progressLabel.widthAnchor.constraint(equalToConstant: 14),
+            progressLabel.heightAnchor.constraint(equalToConstant: rowHeight),
+
+            progressValueLabel.centerYAnchor.constraint(equalTo: progressLabel.centerYAnchor),
+            progressValueLabel.leadingAnchor.constraint(equalTo: progressLabel.trailingAnchor, constant: 2),
+
             // Chart
-            chartView.topAnchor.constraint(equalTo: uploadLabel.bottomAnchor, constant: 6),
+            chartView.topAnchor.constraint(equalTo: progressLabel.bottomAnchor, constant: 6),
             chartView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: hPadding),
             chartView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -hPadding),
             chartView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding),
         ])
     }
 
-    func updateSpeed(download: Int64, upload: Int64, downloadHistory: [Int64], uploadHistory: [Int64]) {
+    func updateSpeed(download: Int64, upload: Int64, progress: Double, downloadHistory: [Int64], uploadHistory: [Int64]) {
         downloadValueLabel.stringValue = formatSpeed(download)
         uploadValueLabel.stringValue = formatSpeed(upload)
         chartView.updateData(download: downloadHistory, upload: uploadHistory)
+
+        // Show/hide progress row based on whether there are active downloads
+        let hasActiveDownloads = progress >= 0
+        progressLabel.isHidden = !hasActiveDownloads
+        progressValueLabel.isHidden = !hasActiveDownloads
+        if hasActiveDownloads {
+            progressValueLabel.stringValue = String(format: "%.1f%%", progress)
+        }
     }
 }
 
@@ -326,16 +387,17 @@ public func menubarSpeedInit() -> Bool {
 }
 
 @_cdecl("menubar_speed_update")
-public func menubarSpeedUpdate(downloadSpeed: Int64, uploadSpeed: Int64) {
+public func menubarSpeedUpdate(downloadSpeed: Int64, uploadSpeed: Int64, progress: Double) {
     let updateBlock: () -> Void = {
         // Update history
         downloadHistory.removeFirst()
         downloadHistory.append(downloadSpeed)
         uploadHistory.removeFirst()
         uploadHistory.append(uploadSpeed)
+        currentProgress = progress
 
-        updateStatusBarSpeed(download: downloadSpeed, upload: uploadSpeed)
-        menuSpeedView?.updateSpeed(download: downloadSpeed, upload: uploadSpeed, downloadHistory: downloadHistory, uploadHistory: uploadHistory)
+        updateStatusBarSpeed(download: downloadSpeed, upload: uploadSpeed, progress: progress)
+        menuSpeedView?.updateSpeed(download: downloadSpeed, upload: uploadSpeed, progress: progress, downloadHistory: downloadHistory, uploadHistory: uploadHistory)
     }
 
     if Thread.isMainThread {
@@ -389,7 +451,7 @@ private func initializeStatusItem() -> Bool {
     item.length = 80
 
     // Initial speed display
-    updateStatusBarSpeed(download: 0, upload: 0)
+    updateStatusBarSpeed(download: 0, upload: 0, progress: -1)
 
     // Setup menu with custom view
     let menu = NSMenu()

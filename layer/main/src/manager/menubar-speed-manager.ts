@@ -1,5 +1,5 @@
-import { createRequire } from 'node:module'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 
 import { app } from 'electron'
 import { join } from 'pathe'
@@ -9,7 +9,7 @@ import { WindowManager } from './window-manager'
 
 // Use createRequire to load koffi (CommonJS module) in ESM context
 const require = createRequire(import.meta.url)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const koffi = require('koffi')
 
 const logger = getLogger('MenubarSpeedManager')
@@ -26,11 +26,16 @@ const getCallbackType = () => {
 export interface SpeedData {
   download: number
   upload: number
+  progress: number // Overall progress percentage (0-100), -1 if no active downloads
 }
 
 // FFI function types
 type MenubarSpeedInit = () => boolean
-type MenubarSpeedUpdate = (download: bigint, upload: bigint) => void
+type MenubarSpeedUpdate = (
+  download: bigint,
+  upload: bigint,
+  progress: number,
+) => void
 type MenubarSpeedDestroy = () => void
 type MenubarSpeedSetCallback = (callback: unknown) => void
 
@@ -103,11 +108,13 @@ export class MenubarSpeedManager {
 
     if (!libPath) {
       logger.warn('Menubar speed library not found')
-      logger.info(`Searched paths: ${[
-        join(app.getAppPath(), 'native/menubar-speed/libmenubar_speed.dylib'),
-        join(process.resourcesPath ?? '', 'libmenubar_speed.dylib'),
-        join(app.getAppPath(), '..', 'libmenubar_speed.dylib'),
-      ].join(', ')}`)
+      logger.info(
+        `Searched paths: ${[
+          join(app.getAppPath(), 'native/menubar-speed/libmenubar_speed.dylib'),
+          join(process.resourcesPath ?? '', 'libmenubar_speed.dylib'),
+          join(app.getAppPath(), '..', 'libmenubar_speed.dylib'),
+        ].join(', ')}`,
+      )
       return
     }
 
@@ -120,10 +127,16 @@ export class MenubarSpeedManager {
 
       // Bind FFI functions
       this.ffiInit = this.lib.func('bool menubar_speed_init()')
-      this.ffiUpdate = this.lib.func('void menubar_speed_update(int64_t downloadSpeed, int64_t uploadSpeed)')
+      this.ffiUpdate = this.lib.func(
+        'void menubar_speed_update(int64_t downloadSpeed, int64_t uploadSpeed, double progress)',
+      )
       this.ffiDestroy = this.lib.func('void menubar_speed_destroy()')
-      this.ffiSetShowCallback = this.lib.func('void menubar_speed_set_show_callback(MenuCallback* callback)')
-      this.ffiSetQuitCallback = this.lib.func('void menubar_speed_set_quit_callback(MenuCallback* callback)')
+      this.ffiSetShowCallback = this.lib.func(
+        'void menubar_speed_set_show_callback(MenuCallback* callback)',
+      )
+      this.ffiSetQuitCallback = this.lib.func(
+        'void menubar_speed_set_quit_callback(MenuCallback* callback)',
+      )
 
       // Register callbacks
       this.showCallbackRef = koffi.register(() => {
@@ -159,7 +172,7 @@ export class MenubarSpeedManager {
     }
 
     try {
-      this.ffiUpdate(BigInt(data.download), BigInt(data.upload))
+      this.ffiUpdate(BigInt(data.download), BigInt(data.upload), data.progress)
     } catch (error) {
       logger.error('Failed to update speed:', error)
     }
