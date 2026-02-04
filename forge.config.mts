@@ -20,7 +20,7 @@ const platform = process.argv
   .find((arg) => arg.startsWith('--platform'))
   ?.split('=')[1]
 
-const keepModules = new Set<string>(['sqlite3'])
+const keepModules = new Set<string>(['sqlite3', 'koffi'])
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US'])
 
 /**

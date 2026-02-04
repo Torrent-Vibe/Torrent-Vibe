@@ -19,6 +19,9 @@ export default defineConfig({
       lib: {
         entry: './layer/main/src/index.ts',
       },
+      rollupOptions: {
+        external: ['koffi'],
+      },
     },
     resolve: {
       alias: {
