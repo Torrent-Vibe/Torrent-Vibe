@@ -20,7 +20,7 @@ export default defineConfig({
         entry: './layer/main/src/index.ts',
       },
       rollupOptions: {
-        external: ['koffi'],
+        external: ['electron-liquid-glass'],
       },
     },
     resolve: {

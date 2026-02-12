@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useDocumentTitleSpeed } from './hooks/use-document-title-speed'
-import { useMenubarSpeedSync } from './hooks/use-menubar-speed-sync'
 import { ipcServices } from './lib/ipc-client'
 import { RootProviders } from './providers/RootProviders'
 
@@ -23,10 +22,8 @@ const AppLayer = () => {
   // Update document title with transfer speeds (web only)
   useDocumentTitleSpeed()
 
-  // Sync speeds to macOS menubar (Electron only)
-  useMenubarSpeedSync()
-
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAppIsReady(true)
   }, [appIsReady, location.pathname, navigate])
 

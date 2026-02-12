@@ -7,7 +7,6 @@ import { AppSettingsIPCService } from './app-settings.service'
 import { FileAssociationService } from './file-association.service'
 import { FileSystemService } from './file-system.service'
 import { FloatWindowService } from './float-window.service'
-import { MenubarSpeedService } from './menubar-speed.service'
 import { QBittorrentIPCService } from './qbittorrent.service'
 import { SecurityIPCService } from './security.service'
 import { SystemService } from './system.service'
@@ -27,7 +26,6 @@ export const services = createServices([
   QBittorrentIPCService,
   FileSystemService,
   TorrentAiIPCService,
-  MenubarSpeedService,
 ])
 
 export const initializeServices = () => {

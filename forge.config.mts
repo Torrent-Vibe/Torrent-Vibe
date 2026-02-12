@@ -16,11 +16,11 @@ import generateMetadata, {
 } from './scripts/generate-electron-metadata.js'
 import { computeMainHashFromRoots } from './scripts/lib/main-hash.js'
 
-const platform = process.argv
-  .find((arg) => arg.startsWith('--platform'))
-  ?.split('=')[1]
-
-const keepModules = new Set<string>(['sqlite3', 'koffi'])
+const keepModules = new Set<string>([
+  'sqlite3',
+  'electron-liquid-glass',
+  'node-gyp-build',
+])
 const keepLanguages = new Set(['en', 'en_GB', 'en-US', 'en_US'])
 
 /**
@@ -260,13 +260,7 @@ const config: ForgeConfig = {
     appVersion: fileVersion,
     appBundleId: 'dev.innei.torrentvibe.client',
     icon: 'resources/icon',
-    extraResource: [
-      './resources/app-update.yml',
-      // macOS menubar speed Swift dylib
-      ...(process.platform === 'darwin'
-        ? ['./native/menubar-speed/libmenubar_speed.dylib']
-        : []),
-    ],
+    extraResource: ['./resources/app-update.yml'],
     protocols: [
       {
         name: 'Magnet Link',
@@ -321,7 +315,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['darwin']),
-    // eslint-disable-next-line new-cap
+
     new MakerAppImage({
       config: {
         // 自定义输出文件名使用 fileVersion

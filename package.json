@@ -38,9 +38,6 @@
     "typecheck:turbo": "turbo run typecheck --filter=@torrent-vibe/*",
     "update:generate-signing": "node scripts/generate-update-signing-keypair.js"
   },
-  "dependencies": {
-    "koffi": "^2.15.1"
-  },
   "devDependencies": {
     "@egoist/tailwindcss-icons": "1.9.0",
     "@electron-forge/cli": "^7.11.1",
@@ -112,5 +109,5 @@
     ]
   },
   "productName": "Torrent Vibe",
-  "mainHash": "9f32e73dd997e9e857d2b2a7b72c9b552ae42903fbbf6f9130d18422e7bd5e02"
+  "mainHash": "2456eb4b57ba1658b747d918c36e5e48a498b7aa4cc8f57663328abb7090c64a"
 }

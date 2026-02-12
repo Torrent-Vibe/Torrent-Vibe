@@ -46,7 +46,7 @@ class ElectronBootstrap {
     this.options = {
       devServerPort: 5173, // Default Vite dev server port
       devServerHost: 'localhost',
-      enableDevTools: this.isDevelopment,
+      enableDevTools: false,
       enableSingleInstance: true,
       ...options,
       windowOptions: {
