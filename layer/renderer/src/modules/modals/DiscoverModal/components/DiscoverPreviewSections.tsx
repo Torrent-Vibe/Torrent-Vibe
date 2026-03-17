@@ -42,22 +42,26 @@ export const PreviewHero = ({ data }: PreviewHeroProps) => (
       <h4 className="text-base font-semibold text-text select-text">
         {data.title}
       </h4>
-      {data.subtitle ? (
-        <p className="text-xs leading-relaxed text-text-secondary select-text">
-          {data.subtitle}
-        </p>
-      ) : null}
+      {data.subtitle
+        ? (
+            <p className="text-xs leading-relaxed text-text-secondary select-text">
+              {data.subtitle}
+            </p>
+          )
+        : null}
     </div>
 
     {data.tags.length > 0 && (
       <div className="space-y-1 @[620px]:col-span-1">
-        {data.tagsLabel ? (
-          <span className="text-[11px] uppercase tracking-wide text-text-tertiary select-text">
-            {data.tagsLabel}
-          </span>
-        ) : null}
+        {data.tagsLabel
+          ? (
+              <span className="text-[11px] uppercase tracking-wide text-text-tertiary select-text">
+                {data.tagsLabel}
+              </span>
+            )
+          : null}
         <div className="flex flex-wrap gap-1.5 @[620px]:gap-2">
-          {data.tags.map((tag) => (
+          {data.tags.map(tag => (
             <span
               key={tag}
               className="rounded-full bg-fill-secondary px-2 py-0.5 text-xs text-text-secondary select-text"
@@ -71,7 +75,7 @@ export const PreviewHero = ({ data }: PreviewHeroProps) => (
 
     {data.stats.length > 0 && (
       <div className="grid grid-cols-1 gap-2.5 text-xs @[420px]:grid-cols-2 @[620px]:col-span-1 @[620px]:col-start-2 @[620px]:self-start">
-        {data.stats.map((stat) => (
+        {data.stats.map(stat => (
           <PreviewHeroStat key={stat.id} stat={stat} />
         ))}
       </div>
@@ -120,7 +124,7 @@ export const PreviewLinks = ({
       {title}
     </PreviewSectionTitle>
     <ul className="space-y-0.5 text-xs @[620px]:space-y-1 @[620px]:text-sm">
-      {links.map((link) => (
+      {links.map(link => (
         <li key={link.id}>
           <a
             href={link.href}
@@ -153,7 +157,7 @@ export const PreviewDescription = ({
 
   const shouldRenderMarkdown = renderer === 'markdown'
   const bbcodeHtml = useMemo(() => {
-    if (shouldRenderMarkdown) return null
+    if (shouldRenderMarkdown) { return null }
     return bbobHTML(content, presetHTML5())
   }, [content, shouldRenderMarkdown])
   if (renderer === 'bbcode' && content.trim().length === 0) {
@@ -170,114 +174,120 @@ export const PreviewDescription = ({
         {title}
       </PreviewSectionTitle>
       <div className="rounded-lg border border-border/60 bg-fill-secondary/40 p-2.5 text-sm text-text-secondary @[500px]:p-3 @[840px]:p-4 @[840px]:text-[15px]">
-        {shouldRenderMarkdown ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            className={'overflow-x-auto'}
-            components={{
-              h1: ({ node, className, ...props }) => (
-                <h1
-                  className={clsx(
-                    'mb-2.5 text-lg font-semibold text-text',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              h2: ({ node, className, ...props }) => (
-                <h2
-                  className={clsx(
-                    'mb-2.5 text-base font-semibold text-text',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              h3: ({ node, className, ...props }) => (
-                <h3
-                  className={clsx(
-                    'mb-1.5 text-sm font-semibold text-text',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              p: ({ node, className, ...props }) => (
-                <p
-                  className={clsx(
-                    'mb-2.5 leading-relaxed last:mb-0',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              ul: ({ node, className, ...props }) => (
-                <ul
-                  className={clsx(
-                    'mb-2.5 list-disc space-y-0.5 pl-5 last:mb-0',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              ol: ({ node, className, ...props }) => (
-                <ol
-                  className={clsx(
-                    'mb-2.5 list-decimal space-y-0.5 pl-5 last:mb-0',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              blockquote: ({ node, className, ...props }) => (
-                <blockquote
-                  className={clsx(
-                    'mb-2.5 border-l-2 border-border/80 pl-3 text-text-secondary/90 last:mb-0',
-                    className,
-                  )}
-                  {...props}
-                />
-              ),
-              li: ({ node, className, ...props }) => (
-                <li className={clsx('leading-relaxed', className)} {...props} />
-              ),
-              strong: ({ node, className, ...props }) => (
-                <strong
-                  className={clsx('font-semibold text-text', className)}
-                  {...props}
-                />
-              ),
-              em: ({ node, className, ...props }) => (
-                <em className={clsx('italic', className)} {...props} />
-              ),
+        {shouldRenderMarkdown
+          ? (
+              <div className="overflow-x-auto">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ node, className, ...props }) => (
+                      <h1
+                        className={clsx(
+                          'mb-2.5 text-lg font-semibold text-text',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    h2: ({ node, className, ...props }) => (
+                      <h2
+                        className={clsx(
+                          'mb-2.5 text-base font-semibold text-text',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    h3: ({ node, className, ...props }) => (
+                      <h3
+                        className={clsx(
+                          'mb-1.5 text-sm font-semibold text-text',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    p: ({ node, className, ...props }) => (
+                      <p
+                        className={clsx(
+                          'mb-2.5 leading-relaxed last:mb-0',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    ul: ({ node, className, ...props }) => (
+                      <ul
+                        className={clsx(
+                          'mb-2.5 list-disc space-y-0.5 pl-5 last:mb-0',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    ol: ({ node, className, ...props }) => (
+                      <ol
+                        className={clsx(
+                          'mb-2.5 list-decimal space-y-0.5 pl-5 last:mb-0',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    blockquote: ({ node, className, ...props }) => (
+                      <blockquote
+                        className={clsx(
+                          'mb-2.5 border-l-2 border-border/80 pl-3 text-text-secondary/90 last:mb-0',
+                          className,
+                        )}
+                        {...props}
+                      />
+                    ),
+                    li: ({ node, className, ...props }) => (
+                      <li
+                        className={clsx('leading-relaxed', className)}
+                        {...props}
+                      />
+                    ),
+                    strong: ({ node, className, ...props }) => (
+                      <strong
+                        className={clsx('font-semibold text-text', className)}
+                        {...props}
+                      />
+                    ),
+                    em: ({ node, className, ...props }) => (
+                      <em className={clsx('italic', className)} {...props} />
+                    ),
 
-              a: ({ node, className, ...props }) => (
-                <a
-                  className={clsx(
-                    'text-accent underline underline-offset-2 hover:opacity-80',
-                    className,
-                  )}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  {...props}
-                />
-              ),
-              img: ({ node, className, ...props }) => (
-                <img
-                  className={clsx('my-2 max-w-full', className)}
-                  {...props}
-                  alt={props.alt || ''}
-                />
-              ),
-            }}
-          >
-            {markdown}
-          </ReactMarkdown>
-        ) : (
-          <div className="space-y-2 overflow-x-auto leading-relaxed whitespace-pre break-all [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border/80 [&_blockquote]:pl-3 [&_strong]:text-text">
-            <div dangerouslySetInnerHTML={{ __html: bbcodeHtml! }} />
-          </div>
-        )}
+                    a: ({ node, className, ...props }) => (
+                      <a
+                        className={clsx(
+                          'text-accent underline underline-offset-2 hover:opacity-80',
+                          className,
+                        )}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        {...props}
+                      />
+                    ),
+                    img: ({ node, className, ...props }) => (
+                      <img
+                        className={clsx('my-2 max-w-full', className)}
+                        {...props}
+                        alt={props.alt || ''}
+                      />
+                    ),
+                  }}
+                >
+                  {markdown}
+                </ReactMarkdown>
+              </div>
+            )
+          : (
+              <div className="space-y-2 overflow-x-auto leading-relaxed whitespace-pre break-all [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border/80 [&_blockquote]:pl-3 [&_strong]:text-text">
+                <div dangerouslySetInnerHTML={{ __html: bbcodeHtml! }} />
+              </div>
+            )}
       </div>
     </section>
   )
@@ -308,11 +318,13 @@ export const PreviewFiles = ({
           </li>
         ))}
       </ul>
-      {overflowLabel ? (
-        <p className="text-[11px] text-text-tertiary @[620px]:text-xs">
-          {overflowLabel}
-        </p>
-      ) : null}
+      {overflowLabel
+        ? (
+            <p className="text-[11px] text-text-tertiary @[620px]:text-xs">
+              {overflowLabel}
+            </p>
+          )
+        : null}
     </div>
   </section>
 )
@@ -358,14 +370,14 @@ export const PreviewMediainfo = ({
 }) => (
   <CollapseCssGroup>
     <CollapseCss
-      title={
+      title={(
         <div className="px-3.5 h-8 flex items-center text-xs font-semibold uppercase tracking-wide text-text-tertiary @[620px]:px-4 @[620px]:py-2">
           <span className="inline-flex items-center gap-1.5">
             <i className="i-mingcute-terminal-box-line text-sm" />
             <span>{title}</span>
           </span>
         </div>
-      }
+      )}
       className="@[840px]:col-span-2 overflow-hidden rounded-lg border border-border/60 bg-fill-secondary/30 @[620px]:rounded-xl"
     >
       <pre className="whitespace-pre-wrap px-2 text-xs leading-relaxed text-text-secondary">

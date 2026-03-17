@@ -20,6 +20,11 @@ export default defineConfig(
     },
     rules: {
       'unicorn/prefer-math-trunc': 'off',
+      'style/max-statements-per-line': 'off',
+      'node/prefer-global/process': 'off',
+      'node/prefer-global/buffer': 'off',
+      'react-hooks/use-memo': 'off',
+      'e18e/prefer-static-regex': 'off',
       '@eslint-react/no-clone-element': 0,
       '@eslint-react/hooks-extra/no-direct-set-state-in-use-effect': 0,
       // NOTE: Disable this temporarily
@@ -30,8 +35,8 @@ export default defineConfig(
         {
           name: 'location',
           message:
-            "Since you don't use the same router instance in electron and browser, you can't use the global location to get the route info. \n\n" +
-            'You can use `useLocaltion` or `getReadonlyRoute` to get the route info.',
+            'Since you don\'t use the same router instance in electron and browser, you can\'t use the global location to get the route info. \n\n'
+            + 'You can use `useLocaltion` or `getReadonlyRoute` to get the route info.',
         },
       ],
     },

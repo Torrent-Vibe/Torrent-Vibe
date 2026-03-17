@@ -4,7 +4,6 @@ import path from 'node:path'
 
 import type { FileFilter } from 'electron'
 import { dialog, shell } from 'electron'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 const URL_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
@@ -52,13 +51,16 @@ const tryOpenCandidate = async (
   action: PathAction,
 ): Promise<PathActionResult> => {
   const trimmed = candidate?.trim()
-  if (!trimmed) return { ok: false, message: 'EMPTY_PATH' }
+  if (!trimmed) {
+    return { ok: false, message: 'EMPTY_PATH' }
+  }
 
   if (isUrl(trimmed)) {
     try {
       await shell.openExternal(trimmed)
       return { ok: true, usedPath: trimmed, details: 'external' }
-    } catch {
+    }
+    catch {
       return { ok: false, message: 'OPEN_EXTERNAL_FAILED' }
     }
   }
@@ -67,7 +69,8 @@ const tryOpenCandidate = async (
   let stats: Stats | null = null
   try {
     stats = await fs.stat(normalized)
-  } catch {
+  }
+  catch {
     stats = null
   }
 
@@ -75,7 +78,9 @@ const tryOpenCandidate = async (
     const folderPath = stats?.isDirectory()
       ? normalized
       : path.dirname(normalized)
-    if (!folderPath) return { ok: false, message: 'NO_FOLDER' }
+    if (!folderPath) {
+      return { ok: false, message: 'NO_FOLDER' }
+    }
     const error = await shell.openPath(folderPath)
     if (error) {
       return { ok: false, message: error }
@@ -86,7 +91,9 @@ const tryOpenCandidate = async (
   if (action === 'reveal') {
     if (stats?.isDirectory()) {
       const error = await shell.openPath(normalized)
-      if (error) return { ok: false, message: error }
+      if (error) {
+        return { ok: false, message: error }
+      }
       return { ok: true, usedPath: normalized, details: 'directory-opened' }
     }
     shell.showItemInFolder(normalized)
@@ -96,7 +103,9 @@ const tryOpenCandidate = async (
   // action === 'open'
   if (stats?.isDirectory()) {
     const error = await shell.openPath(normalized)
-    if (error) return { ok: false, message: error }
+    if (error) {
+      return { ok: false, message: error }
+    }
     return { ok: true, usedPath: normalized, details: 'directory-opened' }
   }
 
@@ -115,7 +124,6 @@ export class FileSystemService extends IpcService {
 
   @IpcMethod()
   async selectDirectory(
-    _context: IpcContext,
     options?: DirectoryDialogOptions,
   ): Promise<DirectoryDialogResult> {
     const result = await dialog.showOpenDialog({
@@ -141,12 +149,11 @@ export class FileSystemService extends IpcService {
 
   @IpcMethod()
   async handlePathAction(
-    _context: IpcContext,
     payload: PathActionPayload,
   ): Promise<PathActionResult> {
     if (
-      !Array.isArray(payload?.candidates) ||
-      payload.candidates.length === 0
+      !Array.isArray(payload?.candidates)
+      || payload.candidates.length === 0
     ) {
       return { ok: false, message: 'NO_CANDIDATES' }
     }
@@ -160,7 +167,8 @@ export class FileSystemService extends IpcService {
           return result
         }
         lastError = result.message
-      } catch (error) {
+      }
+      catch (error) {
         lastError = error instanceof Error ? error.message : String(error)
       }
     }
@@ -173,7 +181,6 @@ export class FileSystemService extends IpcService {
 
   @IpcMethod()
   async saveTextFile(
-    _context: IpcContext,
     payload: SaveTextFilePayload,
   ): Promise<SaveTextFileResult> {
     if (typeof payload?.content !== 'string') {

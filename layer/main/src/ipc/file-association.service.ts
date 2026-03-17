@@ -1,4 +1,3 @@
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { t } from '~/utils/i18n'
@@ -7,7 +6,7 @@ export class FileAssociationService extends IpcService {
   static override readonly groupName = 'fileAssociation'
 
   @IpcMethod()
-  async repair(_context: IpcContext) {
+  async repair() {
     try {
       if (process.platform === 'darwin') {
         // On macOS, associations are defined in Info.plist (forge extendInfo)
@@ -20,7 +19,8 @@ export class FileAssociationService extends IpcService {
       }
       // Linux (AppImage) usually relies on desktop integration and mimetype cache
       return { ok: true, message: t('fileAssociation.repair.linux') }
-    } catch (e: unknown) {
+    }
+    catch (e: unknown) {
       const error = e as Error
       return { ok: false, message: String(error?.message || e) }
     }

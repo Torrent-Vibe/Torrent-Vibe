@@ -33,7 +33,11 @@ export const GeneralTab = ({
 }: GeneralTabProps) => {
   const { t } = useTranslation()
   return (
-    <ScrollArea flex viewportClassName="px-4 pt-4 pb-4 @container">
+    <ScrollArea
+      flex
+      rootClassName="h-0 grow"
+      viewportClassName="px-4 pt-4 pb-4 @container"
+    >
       <div className="space-y-6">
         {/* Progress */}
         <SettingSectionCard title={t('detail.progress')}>
@@ -43,7 +47,8 @@ export const GeneralTab = ({
                 {t('detail.progress')}
               </span>
               <span className="text-sm font-bold text-text">
-                {(torrent.progress * 100).toFixed(1)}%
+                {(torrent.progress * 100).toFixed(1)}
+                %
               </span>
             </div>
             <div className="relative h-2 bg-fill-tertiary rounded-full overflow-hidden">
@@ -117,12 +122,20 @@ export const GeneralTab = ({
               </SettingField>
               <SettingField label={t('detail.seeds')}>
                 <span className="text-sm font-semibold text-text">
-                  {torrent.num_seeds} ({torrent.num_complete})
+                  {torrent.num_seeds}
+                  {' '}
+                  (
+                  {torrent.num_complete}
+                  )
                 </span>
               </SettingField>
               <SettingField label={t('detail.peers')}>
                 <span className="text-sm font-semibold text-text">
-                  {torrent.num_leechs} ({torrent.num_incomplete})
+                  {torrent.num_leechs}
+                  {' '}
+                  (
+                  {torrent.num_incomplete}
+                  )
                 </span>
               </SettingField>
             </div>
@@ -194,16 +207,16 @@ export const GeneralTab = ({
             <div className="space-y-2">
               <SettingField label={t('detail.dlLimit')}>
                 <span className="text-xs font-medium text-text">
-                  {typeof properties?.dl_limit === 'number' &&
-                  (properties!.dl_limit as number) > 0
+                  {typeof properties?.dl_limit === 'number'
+                    && (properties!.dl_limit as number) > 0
                     ? `${formatBytes(properties!.dl_limit as number)}/s`
                     : t('detail.unlimited')}
                 </span>
               </SettingField>
               <SettingField label={t('detail.ulLimit')}>
                 <span className="text-xs font-medium text-text">
-                  {typeof properties?.up_limit === 'number' &&
-                  (properties!.up_limit as number) > 0
+                  {typeof properties?.up_limit === 'number'
+                    && (properties!.up_limit as number) > 0
                     ? `${formatBytes(properties!.up_limit as number)}/s`
                     : t('detail.unlimited')}
                 </span>
@@ -217,8 +230,8 @@ export const GeneralTab = ({
               </SettingField>
               <SettingField label={t('detail.shareRatio')}>
                 <span className="text-xs font-medium text-text">
-                  {properties?.share_ratio?.toFixed?.(2) ??
-                    torrent.ratio.toFixed(2)}
+                  {properties?.share_ratio?.toFixed?.(2)
+                    ?? torrent.ratio.toFixed(2)}
                 </span>
               </SettingField>
             </div>

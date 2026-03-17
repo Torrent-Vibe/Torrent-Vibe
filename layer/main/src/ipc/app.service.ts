@@ -1,5 +1,4 @@
 import { app, nativeTheme, shell } from 'electron'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { WindowManager } from '~/manager/window-manager'
@@ -15,15 +14,12 @@ export class AppService extends IpcService {
   }
 
   @IpcMethod()
-  setAppearance(
-    context: IpcContext,
-    appearance: 'dark' | 'light' | 'system',
-  ): void {
+  setAppearance(appearance: 'dark' | 'light' | 'system'): void {
     nativeTheme.themeSource = appearance
   }
 
   @IpcMethod()
-  openUrl(context: IpcContext, url: string): void {
+  openUrl(url: string): void {
     shell.openExternal(url)
   }
 
@@ -33,16 +29,17 @@ export class AppService extends IpcService {
   }
 
   @IpcMethod()
-  async reload(_context: IpcContext) {
+  async reload() {
     WindowManager.getInstance().reloadWindowContent()
   }
 
   @IpcMethod()
-  async setMainLanguage(context: IpcContext, language: string) {
+  async setMainLanguage(language: string) {
     try {
       await i18n.changeLanguage(language)
       return { ok: true }
-    } catch (e: unknown) {
+    }
+    catch (e: unknown) {
       console.error('Failed to change main process language:', e)
       const error = e as Error
       return { ok: false, error: String(error?.message || e) }
@@ -59,8 +56,8 @@ export class AppService extends IpcService {
     // App version: prefer app.getVersion(); if placeholder, derive from __BUILD_TIME__
     const raw = app.getVersion?.() || ''
     let appVersion = raw
-    const buildTime: string | null =
-      typeof __BUILD_TIME__ !== 'undefined' ? String(__BUILD_TIME__) : null
+    const buildTime: string | null
+      = typeof __BUILD_TIME__ !== 'undefined' ? String(__BUILD_TIME__) : null
     if ((!appVersion || appVersion === '0.0.0') && buildTime) {
       const d = new Date(buildTime)
       if (!Number.isNaN(d.getTime())) {
@@ -73,8 +70,8 @@ export class AppService extends IpcService {
     // Renderer version: what WindowManager actually loaded
     const info = WindowManager.getInstance().getRendererInfo()
     const rendererVersion: string | null = info?.version ?? null
-    const rendererSource: 'hot-update' | 'bundled' | 'dev' =
-      info?.source ?? 'bundled'
+    const rendererSource: 'hot-update' | 'bundled' | 'dev'
+      = info?.source ?? 'bundled'
 
     return {
       appVersion,

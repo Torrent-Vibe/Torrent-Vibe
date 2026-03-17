@@ -1,6 +1,5 @@
 // import type { BrowserWindow } from 'electron'
 // import { app, screen } from 'electron'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 // import { WindowManager } from '~/manager/window-manager'
@@ -61,7 +60,7 @@ export class FloatWindowService extends IpcService {
   }
 
   @IpcMethod()
-  setShowFloatOnClose(_context: IpcContext, _enabled: boolean): void {
+  setShowFloatOnClose(_enabled: boolean): void {
     // this.floatManager.setShowFloatOnClose(enabled)
   }
 
@@ -78,7 +77,7 @@ export class FloatWindowService extends IpcService {
 
   // Custom window dragging to avoid app-region and keep events
   @IpcMethod()
-  async startDrag(_ctx: { sender: Electron.WebContents }): Promise<void> {
+  async startDrag(): Promise<void> {
     // Always drag the float window (not the panel)
     // const win = await this.floatManager.createFloatWindow()
     // this.stopDrag()

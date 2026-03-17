@@ -1,4 +1,3 @@
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import type {
@@ -31,12 +30,12 @@ export class ApiTokenIPCService extends IpcService {
   }
 
   @IpcMethod()
-  getValue(_context: IpcContext, id: string): string | null {
+  getValue(id: string): string | null {
     return this.store.getTokenValue(id)
   }
 
   @IpcMethod()
-  setValue(_context: IpcContext, payload: SetValuePayload): ApiTokenSummary {
+  setValue(payload: SetValuePayload): ApiTokenSummary {
     const sanitizedId = payload.id.trim()
     const sanitizedValue = payload.value ?? ''
     const preferredEncryption = payload.encryption || 'plain'
@@ -48,7 +47,7 @@ export class ApiTokenIPCService extends IpcService {
   }
 
   @IpcMethod()
-  clearValue(_context: IpcContext, id: string): ApiTokenSummary {
+  clearValue(id: string): ApiTokenSummary {
     const sanitizedId = id.trim()
     return this.store.clearTokenValue(sanitizedId)
   }

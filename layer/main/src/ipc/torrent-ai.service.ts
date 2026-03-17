@@ -1,5 +1,4 @@
 import type { TorrentAIEnrichmentResult } from '@torrent-vibe/shared'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { TorrentAiEngine } from '../services/torrent-ai'
@@ -17,7 +16,6 @@ export class TorrentAiIPCService extends IpcService {
 
   @IpcMethod()
   async analyzeName(
-    _context: IpcContext,
     payload: AnalyzeNamePayload,
   ): Promise<TorrentAIEnrichmentResult> {
     const normalized = payload?.rawName?.trim()
@@ -34,7 +32,7 @@ export class TorrentAiIPCService extends IpcService {
   }
 
   @IpcMethod()
-  isAvailable(_context: IpcContext): boolean {
+  isAvailable(): boolean {
     return this.engine.hasConfiguredProvider()
   }
 

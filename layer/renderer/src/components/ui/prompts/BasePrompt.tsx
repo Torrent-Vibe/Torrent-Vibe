@@ -44,7 +44,8 @@ export const BasePrompt: ModalComponent<PromptOptions> = ({
   const handleCancel = async () => {
     try {
       await onCancel?.()
-    } finally {
+    }
+    finally {
       dismiss()
     }
   }
@@ -53,7 +54,8 @@ export const BasePrompt: ModalComponent<PromptOptions> = ({
     try {
       setSubmitting(true)
       await onConfirm?.()
-    } finally {
+    }
+    finally {
       setSubmitting(false)
       Modal.dismiss(modalId)
     }
@@ -63,11 +65,13 @@ export const BasePrompt: ModalComponent<PromptOptions> = ({
     <div>
       <DialogHeader className="mb-2">
         <DialogTitle>{title}</DialogTitle>
-        {description ? (
-          <DialogDescription className="text-text-secondary">
-            {description}
-          </DialogDescription>
-        ) : null}
+        {description
+          ? (
+              <DialogDescription className="text-text-secondary break-all">
+                {description}
+              </DialogDescription>
+            )
+          : null}
       </DialogHeader>
       {content && <div className="mt-4">{content}</div>}
       <DialogFooter className="mt-4">

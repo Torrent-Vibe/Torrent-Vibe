@@ -3,7 +3,6 @@ import type {
   QBittorrentConfig,
 } from '@torrent-vibe/qb-client'
 import { QBittorrentClient } from '@torrent-vibe/qb-client'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { getLogger } from '../config/log-config'
@@ -30,7 +29,8 @@ export class QBittorrentIPCService extends IpcService {
     'requestMainData',
     'requestTransferInfo',
   ])
-  private readonly cache = new Map<string, { expiry: number; value: any }>()
+
+  private readonly cache = new Map<string, { expiry: number, value: any }>()
   private readonly inFlight = new Map<string, Promise<any>>()
 
   private loggerIf(...args: any[]) {
@@ -49,15 +49,15 @@ export class QBittorrentIPCService extends IpcService {
         const originalInit: any = init ?? {}
         const headers = this.headersToObject(originalInit.headers)
         if (this.sid) {
-          headers['Cookie'] = `SID=${this.sid}`
+          headers.Cookie = `SID=${this.sid}`
         }
 
         const method = (
-          originalInit.method ||
-          (input && typeof input === 'object' && 'method' in (input as any)
+          originalInit.method
+          || (input && typeof input === 'object' && 'method' in (input as any)
             ? (input as any).method
-            : 'GET') ||
-          'GET'
+            : 'GET')
+          || 'GET'
         )
           .toString()
           .toUpperCase()
@@ -76,11 +76,11 @@ export class QBittorrentIPCService extends IpcService {
         try {
           const res = await fetch(input as any, finalInit)
 
-          const cookies: string[] =
-            (res as any).headers.getSetCookie?.() ??
-            (res.headers.get('set-cookie')
-              ? [res.headers.get('set-cookie') as string]
-              : [])
+          const cookies: string[]
+            = (res as any).headers.getSetCookie?.()
+              ?? (res.headers.get('set-cookie')
+                ? [res.headers.get('set-cookie') as string]
+                : [])
           const sid = this.extractSid(cookies)
           if (sid && sid !== this.sid) {
             this.logger.debug(`[${requestId}] session SID updated`)
@@ -95,12 +95,14 @@ export class QBittorrentIPCService extends IpcService {
 
           if (res.status >= 400) {
             this.logger.warn(logLine)
-          } else {
+          }
+          else {
             this.loggerIf(logLine)
           }
 
           return res
-        } catch (err) {
+        }
+        catch (err) {
           const duration = Date.now() - start
           this.logger.error(
             `[${requestId}] !! ${method} ${maskedUrl} failed in ${duration}ms`,
@@ -113,7 +115,7 @@ export class QBittorrentIPCService extends IpcService {
   }
 
   @IpcMethod()
-  setSharedConfig(_ctx: IpcContext, config: QBittorrentConfig): void {
+  setSharedConfig(config: QBittorrentConfig): void {
     const safe = this.redactConfig(config)
     this.logger.info('setSharedConfig', safe)
     this.shared = QBittorrentClient.create(this.extendConfig(config))
@@ -122,14 +124,14 @@ export class QBittorrentIPCService extends IpcService {
   }
 
   @IpcMethod()
-  async call(
-    _ctx: IpcContext,
-    method: string,
-    args: AnyArgs = [],
-  ): Promise<any> {
-    if (!this.shared) throw new Error('QB client not configured')
+  async call(method: string, args: AnyArgs = []): Promise<any> {
+    if (!this.shared) {
+      throw new Error('QB client not configured')
+    }
     const fn = (this.shared as any)[method]
-    if (typeof fn !== 'function') throw new Error(`Unknown method: ${method}`)
+    if (typeof fn !== 'function') {
+      throw new TypeError(`Unknown method: ${method}`)
+    }
 
     const isCacheable = this.cacheableMethods.has(method)
     const key = isCacheable ? this.buildCacheKey('shared', method, args) : null
@@ -155,25 +157,31 @@ export class QBittorrentIPCService extends IpcService {
       return result
     })()
 
-    if (key) this.inFlight.set(key, exec)
+    if (key) {
+      this.inFlight.set(key, exec)
+    }
     try {
       const res = await exec
       return res
-    } finally {
-      if (key) this.inFlight.delete(key)
+    }
+    finally {
+      if (key) {
+        this.inFlight.delete(key)
+      }
     }
   }
 
   @IpcMethod()
   async callWithConfig(
-    _ctx: IpcContext,
     config: QBittorrentConfig,
     method: string,
     args: AnyArgs = [],
   ): Promise<any> {
     const client = QBittorrentClient.create(this.extendConfig(config))
     const fn = (client as any)[method]
-    if (typeof fn !== 'function') throw new Error(`Unknown method: ${method}`)
+    if (typeof fn !== 'function') {
+      throw new TypeError(`Unknown method: ${method}`)
+    }
 
     const deserialized = await this.deserializeArgs(method, args)
     const result = await fn.apply(client, deserialized)
@@ -194,11 +202,11 @@ export class QBittorrentIPCService extends IpcService {
         torrents?: Array<
           | Blob
           | {
-              __binary: true
-              data: Uint8Array
-              type?: string
-              name?: string
-            }
+            __binary: true
+            data: Uint8Array
+            type?: string
+            name?: string
+          }
         >
       }
       if (options.torrents && Array.isArray(options.torrents)) {
@@ -228,24 +236,32 @@ export class QBittorrentIPCService extends IpcService {
   }
 
   private maskValue(v: any, depth = 0): any {
-    if (depth > 2) return '[depth]'
-    if (v == null) return v
-    if (
-      typeof v === 'string' ||
-      typeof v === 'number' ||
-      typeof v === 'boolean'
-    )
+    if (depth > 2) {
+      return '[depth]'
+    }
+    if (v == null) {
       return v
-    if (Array.isArray(v))
-      return v.slice(0, 50).map((x) => this.maskValue(x, depth + 1))
+    }
+    if (
+      typeof v === 'string'
+      || typeof v === 'number'
+      || typeof v === 'boolean'
+    ) {
+      return v
+    }
+    if (Array.isArray(v)) {
+      return v.slice(0, 50).map(x => this.maskValue(x, depth + 1))
+    }
     if (typeof v === 'object') {
       const out: any = {}
       for (const [k, val] of Object.entries(v)) {
         if (/password|cookie|authorization|auth/i.test(k)) {
           out[k] = val ? '********' : ''
-        } else if (k === 'torrents') {
+        }
+        else if (k === 'torrents') {
           out[k] = '[omitted]'
-        } else {
+        }
+        else {
           out[k] = this.maskValue(val, depth + 1)
         }
       }
@@ -257,7 +273,9 @@ export class QBittorrentIPCService extends IpcService {
   private extractSid(setCookies: string[]): string | null {
     for (const line of setCookies || []) {
       const m = /\bSID=([^;]+)/.exec(line)
-      if (m) return m[1]
+      if (m) {
+        return m[1]
+      }
     }
     return null
   }
@@ -266,7 +284,8 @@ export class QBittorrentIPCService extends IpcService {
     let argsKey = ''
     try {
       argsKey = JSON.stringify(args)
-    } catch {
+    }
+    catch {
       argsKey = '[unserializable]'
     }
     return `${scope}::${method}::${argsKey}`
@@ -274,11 +293,14 @@ export class QBittorrentIPCService extends IpcService {
 
   private normalizeUrlString(input: any): string {
     try {
-      if (typeof input === 'string') return input
+      if (typeof input === 'string') {
+        return input
+      }
       if (input && typeof input === 'object' && 'url' in input) {
         return String((input as any).url)
       }
-    } catch (err) {
+    }
+    catch (err) {
       this.logger.debug('normalizeUrlString failed', { error: String(err) })
     }
     return '[unknown-url]'
@@ -294,18 +316,21 @@ export class QBittorrentIPCService extends IpcService {
         }
       })
       return u.toString()
-    } catch {
+    }
+    catch {
       return urlStr
     }
   }
 
   private headersToObject(headersLike: any): Record<string, string> {
     const out: Record<string, string> = {}
-    if (!headersLike) return out
+    if (!headersLike) {
+      return out
+    }
     try {
       if (
-        typeof headersLike.forEach === 'function' &&
-        typeof headersLike.append === 'function'
+        typeof headersLike.forEach === 'function'
+        && typeof headersLike.append === 'function'
       ) {
         headersLike.forEach((v: string, k: string) => {
           out[k] = v
@@ -324,27 +349,36 @@ export class QBittorrentIPCService extends IpcService {
           out[String(k)] = String(v as any)
         }
       }
-    } catch (err) {
+    }
+    catch (err) {
       this.logger.debug('headersToObject failed', { error: String(err) })
     }
     return out
   }
 
   private describeBody(body: any): string {
-    if (body == null) return 'none'
-    if (typeof body === 'string') return `string(${body.length})`
-    if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body))
+    if (body == null) {
+      return 'none'
+    }
+    if (typeof body === 'string') {
+      return `string(${body.length})`
+    }
+    if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) {
       return `buffer(${body.length})`
-    if (body instanceof Uint8Array) return `uint8(${body.byteLength})`
-    if (typeof (body as any).size === 'number')
+    }
+    if (body instanceof Uint8Array) {
+      return `uint8(${body.byteLength})`
+    }
+    if (typeof (body as any).size === 'number') {
       return `binary(${(body as any).size})`
+    }
 
     if (body instanceof FormData) {
       return JSON.stringify(Object.fromEntries(body.entries()))
     }
-    const name =
-      (body && (body as any).constructor && (body as any).constructor.name) ||
-      typeof body
+    const name
+      = (body && (body as any).constructor && (body as any).constructor.name)
+        || typeof body
     return name
   }
 }

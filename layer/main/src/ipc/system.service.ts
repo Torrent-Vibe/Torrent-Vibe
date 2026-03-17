@@ -1,7 +1,6 @@
 import { arch, freemem, platform, totalmem, version } from 'node:os'
 
 import { nativeTheme } from 'electron'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 export class SystemService extends IpcService {
@@ -13,7 +12,7 @@ export class SystemService extends IpcService {
   }
 
   @IpcMethod()
-  setTheme(context: IpcContext, theme: 'dark' | 'light' | 'system'): void {
+  setTheme(theme: 'dark' | 'light' | 'system'): void {
     nativeTheme.themeSource = theme
   }
 

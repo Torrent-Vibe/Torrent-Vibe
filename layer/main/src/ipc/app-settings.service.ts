@@ -1,7 +1,6 @@
 import { existsSync, statSync } from 'node:fs'
 
 import type { AiProviderId } from '@torrent-vibe/shared'
-import type { IpcContext } from 'electron-ipc-decorator'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { AppSettingsStore } from '~/services/app-settings-store'
@@ -30,10 +29,9 @@ export class AppSettingsIPCService extends IpcService {
   }
 
   @IpcMethod()
-  async setChromeExecutablePath(
-    _context: IpcContext,
-    input: { chromeExecutablePath: string | null },
-  ) {
+  async setChromeExecutablePath(input: {
+    chromeExecutablePath: string | null
+  }) {
     const normalized = input.chromeExecutablePath?.trim()
     if (normalized) {
       if (!existsSync(normalized)) {
@@ -44,7 +42,8 @@ export class AppSettingsIPCService extends IpcService {
         if (!stat.isFile()) {
           return { ok: false, error: 'notFile' as const }
         }
-      } catch (error) {
+      }
+      catch (error) {
         return {
           ok: false,
           error: 'notAccessible' as const,
@@ -63,10 +62,7 @@ export class AppSettingsIPCService extends IpcService {
   }
 
   @IpcMethod()
-  setAiPreferredProviders(
-    _context: IpcContext,
-    input: { preferredProviders: string[] },
-  ) {
+  setAiPreferredProviders(input: { preferredProviders: string[] }) {
     const sanitized = Array.isArray(input.preferredProviders)
       ? input.preferredProviders.filter(
           (item): item is string =>
@@ -85,7 +81,7 @@ export class AppSettingsIPCService extends IpcService {
   }
 
   @IpcMethod()
-  detectChromeExecutable(_context: IpcContext) {
+  detectChromeExecutable() {
     return {
       chromeExecutablePath: detectChromeExecutable(),
     }
