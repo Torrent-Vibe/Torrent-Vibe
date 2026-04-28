@@ -1,18 +1,18 @@
 packages:
   - layer/*
   - packages/*
-
-onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
-  - electron
-  - electron-window-corner-addon
-  - electron-winstaller
-  - esbuild
-  - fs-xattr
-  - macos-alias
-  - simple-git-hooks
-  - sqlite3
-  - unrs-resolver
-
 patchedDependencies:
   linkedom: patches/linkedom.patch
+nodeLinker: hoisted
+autoInstallPeers: false
+allowBuilds:
+  "@tailwindcss/oxide": true
+  electron: true
+  electron-window-corner-addon: true
+  electron-winstaller: true
+  esbuild: true
+  fs-xattr: true
+  macos-alias: true
+  simple-git-hooks: true
+  sqlite3: true
+  unrs-resolver: true
