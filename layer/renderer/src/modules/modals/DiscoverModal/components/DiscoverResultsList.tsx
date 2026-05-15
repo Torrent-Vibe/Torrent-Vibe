@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Components } from 'react-virtuoso'
-import { Virtuoso } from 'react-virtuoso'
 
 import { Checkbox } from '~/components/ui/checkbox'
 import { useScrollViewElement } from '~/components/ui/scroll-areas/hooks'
+import { VirtualList } from '~/components/ui/virtual-list/VirtualList'
 import { useIntersectionObserver } from '~/hooks/common'
 import { cn } from '~/lib/cn'
 import { stopPropagation } from '~/lib/dom'
@@ -16,8 +15,12 @@ import { useDiscoverModalStore } from '../store'
 import { formatDiscountLabel } from './utils'
 
 const formatImdbRating = (value?: number | null) => {
-  if (value === null || value === undefined) return null
-  if (!Number.isFinite(value) || value <= 0) return null
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    return null
+  }
   const fixed = value.toFixed(1)
   return fixed.endsWith('.0') ? fixed.slice(0, -2) : fixed
 }
@@ -26,9 +29,9 @@ export const DiscoverResultsList = () => {
   const { t: settingT } = useTranslation('setting')
   const actions = DiscoverModalActions.shared
   const { selection, enrichment } = actions.slices
-  const items = useDiscoverModalStore((state) => state.items)
-  const selectedIds = useDiscoverModalStore((state) => state.selectedIds)
-  const previewId = useDiscoverModalStore((state) => state.previewId)
+  const items = useDiscoverModalStore(state => state.items)
+  const selectedIds = useDiscoverModalStore(state => state.selectedIds)
+  const previewId = useDiscoverModalStore(state => state.previewId)
   const scrollParent = useScrollViewElement()
 
   const formatDiscount = useCallback(
@@ -47,11 +50,10 @@ export const DiscoverResultsList = () => {
   const { toggleSelection } = selection
 
   const renderItem = useCallback(
-    (_: number, item: DiscoverItem) => {
+    (item: DiscoverItem) => {
       const selected = selectedIds.has(item.id)
       return (
         <DiscoverResultRow
-          key={item.id}
           item={item}
           selected={selected}
           isPreviewed={previewId === item.id}
@@ -72,18 +74,19 @@ export const DiscoverResultsList = () => {
     ],
   )
 
-  const customScrollParent =
-    scrollParent && scrollParent !== document.documentElement
+  const customScrollParent
+    = scrollParent && scrollParent !== document.documentElement
       ? scrollParent
       : undefined
 
   return (
-    <Virtuoso<DiscoverItem>
+    <VirtualList<DiscoverItem>
       data={items}
-      itemContent={renderItem}
-      computeItemKey={(_, item) => item.id}
-      components={discoverVirtuosoComponents}
-      customScrollParent={customScrollParent}
+      renderItem={renderItem}
+      getItemKey={item => item.id}
+      estimateSize={140}
+      scrollElement={customScrollParent ?? null}
+      itemClassName="border-b border-border last:border-b-0"
     />
   )
 }
@@ -98,7 +101,7 @@ interface DiscoverResultRowProps {
   loadImdb: (id: string) => void
 }
 
-const DiscoverResultRow = ({
+function DiscoverResultRow({
   item,
   selected,
   isPreviewed,
@@ -106,7 +109,7 @@ const DiscoverResultRow = ({
   formatDiscount,
   scrollParent,
   loadImdb,
-}: DiscoverResultRowProps) => {
+}: DiscoverResultRowProps) {
   const { t: settingT } = useTranslation('setting')
   const { t: appT } = useTranslation('app')
   const imdbInfo = item.external?.imdb
@@ -122,7 +125,9 @@ const DiscoverResultRow = ({
   const imdbCountries = imdbInfo?.enrichment?.countries ?? []
   const imdbErrorKey = imdbInfo?.enrichmentError ?? null
   const imdbErrorMessage = useMemo(() => {
-    if (!imdbErrorKey) return null
+    if (!imdbErrorKey) {
+      return null
+    }
     if (imdbErrorKey === 'missingToken') {
       return settingT('discover.modal.imdbMissingToken')
     }
@@ -138,8 +143,12 @@ const DiscoverResultRow = ({
   })
 
   useEffect(() => {
-    if (!imdbInfo?.id) return
-    if (!inView) return
+    if (!imdbInfo?.id) {
+      return
+    }
+    if (!inView) {
+      return
+    }
     loadImdb(item.id)
   }, [imdbInfo?.id, inView, item.id, loadImdb])
 
@@ -197,13 +206,17 @@ const DiscoverResultRow = ({
                 <span className="rounded-sm bg-amber-500/10 px-1.5 py-0.5 font-semibold text-amber-500">
                   IMDb
                 </span>
-                {imdbRating ? (
-                  <span className="font-medium text-text">{imdbRating}</span>
-                ) : imdbStatus === 'loading' ? (
-                  <i className="i-mingcute-loading-3-line animate-spin text-amber-500" />
-                ) : (
-                  <span className="text-text-tertiary">—</span>
-                )}
+                {imdbRating
+                  ? (
+                      <span className="font-medium text-text">{imdbRating}</span>
+                    )
+                  : imdbStatus === 'loading'
+                    ? (
+                        <i className="i-mingcute-loading-3-line animate-spin text-amber-500" />
+                      )
+                    : (
+                        <span className="text-text-tertiary">—</span>
+                      )}
                 {imdbStatus === 'error' && (
                   <i
                     className="i-mingcute-warning-line text-amber-600"
@@ -219,7 +232,9 @@ const DiscoverResultRow = ({
               )}
               {imdbVotes !== null && imdbVotes > 0 && (
                 <span className="text-[11px] text-text-tertiary">
-                  {appT('discover.modal.detailVotes')}:{' '}
+                  {appT('discover.modal.detailVotes')}
+                  :
+                  {' '}
                   {imdbVotes.toLocaleString()}
                 </span>
               )}
@@ -228,7 +243,7 @@ const DiscoverResultRow = ({
         </div>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1 text-[11px] text-text-tertiary">
-            {tags.map((tag) => (
+            {tags.map(tag => (
               <span
                 key={tag}
                 className="rounded-full bg-fill-secondary/70 px-2 py-0.5"
@@ -266,7 +281,11 @@ const DiscoverResultRow = ({
           {imdbRuntime && imdbRuntime > 0 && (
             <span className="inline-flex items-center gap-1">
               <i className="i-mingcute-movie-line" />
-              <span>{imdbRuntime} min</span>
+              <span>
+                {imdbRuntime}
+                {' '}
+                min
+              </span>
             </span>
           )}
           {imdbLanguages.length > 0 && (
@@ -285,24 +304,4 @@ const DiscoverResultRow = ({
       </div>
     </button>
   )
-}
-
-const DiscoverResultsListContainer: Components<DiscoverItem>['List'] = ({
-  ref,
-  style,
-  ...props
-}) => {
-  const { className, ...rest } = props as { className?: string }
-  return (
-    <div
-      ref={ref as any}
-      style={style}
-      className={cn('divide-y divide-border', className)}
-      {...(rest as any)}
-    />
-  )
-}
-
-const discoverVirtuosoComponents: Components<DiscoverItem> = {
-  List: DiscoverResultsListContainer,
 }

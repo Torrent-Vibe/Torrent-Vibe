@@ -12,6 +12,7 @@ import {
 import { getAiIntegrationEnabled } from '~/lib/ai-integration'
 import { stopPropagation } from '~/lib/dom'
 import { ipcServices } from '~/lib/ipc-client'
+import { isTorrentTableScrollActive } from '~/modules/torrent/stores/torrent-table-performance'
 import { TorrentAiActions, useTorrentAiStore } from '~/modules/torrent-ai'
 import { selectTorrentAiEntry } from '~/modules/torrent-ai/selectors'
 
@@ -30,7 +31,9 @@ const MEDIA_TYPE_LABEL_KEYS: Record<string, I18nKeys> = {
 }
 
 const formatConfidence = (value: number | null | undefined): string => {
-  if (value == null) return ''
+  if (value == null) {
+    return ''
+  }
   const percentage = Math.round(Math.min(1, Math.max(0, value)) * 100)
   return `${percentage}%`
 }
@@ -46,13 +49,21 @@ type TechnicalInsight = {
 
 const buildTechnicalBadges = (technical: TechnicalInsight) => {
   const badges: string[] = []
-  if (technical.resolution) badges.push(technical.resolution)
-  if (technical.source) badges.push(technical.source)
-  if (technical.videoCodec) badges.push(technical.videoCodec)
+  if (technical.resolution) {
+    badges.push(technical.resolution)
+  }
+  if (technical.source) {
+    badges.push(technical.source)
+  }
+  if (technical.videoCodec) {
+    badges.push(technical.videoCodec)
+  }
   if (technical.audio && technical.audio.length > 0) {
     badges.push(technical.audio[0])
   }
-  if (technical.edition) badges.push(technical.edition)
+  if (technical.edition) {
+    badges.push(technical.edition)
+  }
   if (technical.otherTags && technical.otherTags.length > 0) {
     badges.push(...technical.otherTags.slice(0, 2))
   }
@@ -80,6 +91,38 @@ const NON_RETRYABLE_ERRORS = new Set([
   'ai.providers.unavailable',
 ])
 
+const METADATA_REQUEST_VISIBLE_DELAY = 1200
+const METADATA_REQUEST_SCROLL_RETRY_DELAY = 250
+
+let cachedAiAvailability: boolean | null = null
+let aiAvailabilityPromise: Promise<boolean> | null = null
+
+const resolveAiAvailability = async () => {
+  if (cachedAiAvailability !== null) {
+    return cachedAiAvailability
+  }
+
+  aiAvailabilityPromise ??= (async () => {
+    try {
+      const userEnabled = getAiIntegrationEnabled()
+      const available = userEnabled
+        ? await ipcServices?.torrentAi.isAvailable()
+        : false
+      cachedAiAvailability = Boolean(available)
+      return cachedAiAvailability
+    }
+    catch {
+      cachedAiAvailability = false
+      return false
+    }
+    finally {
+      aiAvailabilityPromise = null
+    }
+  })()
+
+  return aiAvailabilityPromise
+}
+
 export const TorrentAiMetadataRow = ({
   hash,
   rawName,
@@ -101,19 +144,12 @@ export const TorrentAiMetadataRow = ({
       }
     }
 
-    ;(async () => {
-      try {
-        const userEnabled = getAiIntegrationEnabled()
-        const available = userEnabled
-          ? await ipcServices?.torrentAi.isAvailable()
-          : false
-        if (!mounted) return
-        setAiAvailable(Boolean(available))
-      } catch {
-        if (!mounted) return
-        setAiAvailable(false)
+    void resolveAiAvailability().then((available) => {
+      if (!mounted) {
+        return
       }
-    })()
+      setAiAvailable(available)
+    })
 
     return () => {
       mounted = false
@@ -121,12 +157,14 @@ export const TorrentAiMetadataRow = ({
   }, [isElectron])
 
   const entry = useTorrentAiStore(
-    useShallow((state) => selectTorrentAiEntry(state, hash) ?? null),
+    useShallow(state => selectTorrentAiEntry(state, hash) ?? null),
   )
 
   const requestMetadata = useCallback(
     (force = false) => {
-      if (!hash || !trimmedName) return
+      if (!hash || !trimmedName) {
+        return
+      }
       void TorrentAiActions.shared.ensureMetadata({
         hash,
         rawName: trimmedName,
@@ -137,28 +175,62 @@ export const TorrentAiMetadataRow = ({
   )
 
   useEffect(() => {
-    if (!isElectron) return
-    if (aiAvailable !== true) return
-    if (isInViewport !== true) return
-    if (!hash || !trimmedName) return
-    if (!entry) {
+    if (!isElectron) {
+      return
+    }
+    if (aiAvailable !== true) {
+      return
+    }
+    if (isInViewport !== true) {
+      return
+    }
+    if (!hash || !trimmedName) {
+      return
+    }
+
+    let timer: number | null = null
+    let disposed = false
+
+    const run = () => {
+      if (disposed) {
+        return
+      }
+
+      if (isTorrentTableScrollActive()) {
+        timer = window.setTimeout(run, METADATA_REQUEST_SCROLL_RETRY_DELAY)
+        return
+      }
+
+      if (!entry) {
+        requestMetadata()
+        return
+      }
+
+      if (entry.status === 'loading' || entry.status === 'error') {
+        return
+      }
+
+      const metadataMatches
+        = entry.status === 'ready'
+          && entry.metadata
+          && entry.language === language
+          && entry.rawName === trimmedName
+
+      if (metadataMatches) {
+        return
+      }
+
       requestMetadata()
-      return
     }
 
-    if (entry.status === 'loading' || entry.status === 'error') return
+    timer = window.setTimeout(run, METADATA_REQUEST_VISIBLE_DELAY)
 
-    const metadataMatches =
-      entry.status === 'ready' &&
-      entry.metadata &&
-      entry.language === language &&
-      entry.rawName === trimmedName
-
-    if (metadataMatches) {
-      return
+    return () => {
+      disposed = true
+      if (timer) {
+        window.clearTimeout(timer)
+      }
     }
-
-    requestMetadata()
   }, [
     hash,
     trimmedName,
@@ -177,15 +249,17 @@ export const TorrentAiMetadataRow = ({
     return null
   }
 
-  if (!entry) return null
+  if (!entry) {
+    return null
+  }
 
   if (entry.status === 'error') {
     // Hide UI when AI is not enabled or not supported
     if (entry.error && NON_RETRYABLE_ERRORS.has(entry.error)) {
       return null
     }
-    const messageKey =
-      entry.error && entry.error in ERROR_MESSAGE_KEY
+    const messageKey
+      = entry.error && entry.error in ERROR_MESSAGE_KEY
         ? ERROR_MESSAGE_KEY[entry.error as keyof typeof ERROR_MESSAGE_KEY]
         : 'torrent.ai.status.error.default'
     const errorLabel = t(messageKey)
@@ -224,17 +298,19 @@ export const TorrentAiMetadataRow = ({
               <div className="font-medium">{errorLabel}</div>
             </div>
           </div>
-          {isRetryable ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="h-6 px-2"
-              type="button"
-              onClick={handleRetry}
-            >
-              {t('torrent.ai.actions.retry')}
-            </Button>
-          ) : null}
+          {isRetryable
+            ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-6 px-2"
+                  type="button"
+                  onClick={handleRetry}
+                >
+                  {t('torrent.ai.actions.retry')}
+                </Button>
+              )
+            : null}
 
           <HoverCardArrow />
         </HoverCardContent>
@@ -259,47 +335,49 @@ export const TorrentAiMetadataRow = ({
   }
 
   const { metadata } = entry
-  const localizedTitle =
-    metadata.title.localizedTitle || metadata.title.canonicalTitle
+  const localizedTitle
+    = metadata.title.localizedTitle || metadata.title.canonicalTitle
   const { canonicalTitle } = metadata.title
   const { seasonNumber } = metadata.title
   const { episodeNumbers } = metadata.title
-  const episodeRange: { from: number; to: number } | null = (() => {
-    if (!episodeNumbers || episodeNumbers.length < 2) return null
+  const episodeRange: { from: number, to: number } | null = (() => {
+    if (!episodeNumbers || episodeNumbers.length < 2) {
+      return null
+    }
     const sorted = [...episodeNumbers].sort((a, b) => a - b)
     const first = sorted[0]
     const last = sorted.at(-1)!
     const isContiguous = last - first + 1 === sorted.length
     return isContiguous ? { from: first, to: last } : null
   })()
-  const showOriginalTitle =
-    metadata.title.originalTitle &&
-    metadata.title.originalTitle !== localizedTitle &&
-    metadata.title.originalTitle !== canonicalTitle
+  const showOriginalTitle
+    = metadata.title.originalTitle
+      && metadata.title.originalTitle !== localizedTitle
+      && metadata.title.originalTitle !== canonicalTitle
 
   const keywords = metadata.keywords ?? []
   const explanations = metadata.explanations ?? []
   const mayBeTitle = metadata.mayBeTitle?.trim()
   const confidenceLabel = formatConfidence(metadata.confidence?.overall ?? null)
-  const mediaTypeKey =
-    MEDIA_TYPE_LABEL_KEYS[metadata.mediaType] ?? MEDIA_TYPE_LABEL_KEYS.other
+  const mediaTypeKey
+    = MEDIA_TYPE_LABEL_KEYS[metadata.mediaType] ?? MEDIA_TYPE_LABEL_KEYS.other
   const mediaTypeLabel = t(mediaTypeKey)
   const infoButtonLabel = t('torrent.ai.actions.openDetails')
-  const previewUrl =
-    metadata.previewImageUrl ??
-    metadata.tmdb?.posterUrl ??
-    metadata.tmdb?.backdropUrl ??
-    null
+  const previewUrl
+    = metadata.previewImageUrl
+      ?? metadata.tmdb?.posterUrl
+      ?? metadata.tmdb?.backdropUrl
+      ?? null
 
-  const originalTitleLabel =
-    showOriginalTitle && metadata.title.originalTitle
+  const originalTitleLabel
+    = showOriginalTitle && metadata.title.originalTitle
       ? t('torrent.ai.labels.originalTitle', {
           title: metadata.title.originalTitle,
         })
       : null
 
-  const tmdbTitleLabel =
-    metadata.tmdb?.title && metadata.tmdb.title !== localizedTitle
+  const tmdbTitleLabel
+    = metadata.tmdb?.title && metadata.tmdb.title !== localizedTitle
       ? t('torrent.ai.labels.tmdbTitle', {
           title: metadata.tmdb.title,
         })
@@ -311,8 +389,8 @@ export const TorrentAiMetadataRow = ({
       })
     : null
 
-  const ratingLabel =
-    typeof metadata.tmdb?.rating === 'number'
+  const ratingLabel
+    = typeof metadata.tmdb?.rating === 'number'
       ? t('torrent.ai.labels.rating', {
           rating: metadata.tmdb.rating.toFixed(1),
         })
@@ -329,19 +407,25 @@ export const TorrentAiMetadataRow = ({
           className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
           aria-label={infoButtonLabel}
         >
-          {mayBeTitle ? (
-            <i className="i-lucide-flame text-[12px]" aria-hidden="true" />
-          ) : (
-            <i
-              className="i-lucide-file-question-mark text-[12px]"
-              aria-hidden="true"
-            />
-          )}
-          {mayBeTitle ? (
-            <span className="max-w-[200px] truncate">{mayBeTitle}</span>
-          ) : confidenceLabel ? (
-            <span>{confidenceLabel}</span>
-          ) : null}
+          {mayBeTitle
+            ? (
+                <i className="i-lucide-flame text-[12px]" aria-hidden="true" />
+              )
+            : (
+                <i
+                  className="i-lucide-file-question-mark text-[12px]"
+                  aria-hidden="true"
+                />
+              )}
+          {mayBeTitle
+            ? (
+                <span className="max-w-[200px] truncate">{mayBeTitle}</span>
+              )
+            : confidenceLabel
+              ? (
+                  <span>{confidenceLabel}</span>
+                )
+              : null}
         </span>
       </HoverCardTrigger>
       <HoverCardContent
@@ -355,35 +439,41 @@ export const TorrentAiMetadataRow = ({
             <div className="text-sm font-semibold text-text">
               {localizedTitle}
             </div>
-            {seasonNumber != null ||
-            (episodeNumbers && episodeNumbers.length > 0) ||
-            episodeRange ? (
-              <div className="text-xs text-text-tertiary">
-                {(() => {
-                  const s =
-                    seasonNumber != null
-                      ? `S${String(seasonNumber).padStart(2, '0')}`
-                      : null
-                  const e = episodeRange
-                    ? `E${String(episodeRange.from).padStart(2, '0')}-E${String(episodeRange.to).padStart(2, '0')}`
-                    : episodeNumbers && episodeNumbers.length > 0
-                      ? episodeNumbers
-                          .slice(0, 3)
-                          .map((n) => `E${String(n).padStart(2, '0')}`)
-                          .join(', ') + (episodeNumbers.length > 3 ? '…' : '')
-                      : null
-                  return [s, e].filter(Boolean).join(' ')
-                })()}
-              </div>
-            ) : null}
-            {originalTitleLabel ? (
-              <div className="text-xs text-text-tertiary">
-                {originalTitleLabel}
-              </div>
-            ) : null}
-            {tmdbTitleLabel ? (
-              <div className="text-xs text-text-tertiary">{tmdbTitleLabel}</div>
-            ) : null}
+            {seasonNumber != null
+              || (episodeNumbers && episodeNumbers.length > 0)
+              || episodeRange
+              ? (
+                  <div className="text-xs text-text-tertiary">
+                    {(() => {
+                      const s
+                        = seasonNumber != null
+                          ? `S${String(seasonNumber).padStart(2, '0')}`
+                          : null
+                      const e = episodeRange
+                        ? `E${String(episodeRange.from).padStart(2, '0')}-E${String(episodeRange.to).padStart(2, '0')}`
+                        : episodeNumbers && episodeNumbers.length > 0
+                          ? episodeNumbers
+                            .slice(0, 3)
+                            .map(n => `E${String(n).padStart(2, '0')}`)
+                            .join(', ') + (episodeNumbers.length > 3 ? '…' : '')
+                          : null
+                      return [s, e].filter(Boolean).join(' ')
+                    })()}
+                  </div>
+                )
+              : null}
+            {originalTitleLabel
+              ? (
+                  <div className="text-xs text-text-tertiary">
+                    {originalTitleLabel}
+                  </div>
+                )
+              : null}
+            {tmdbTitleLabel
+              ? (
+                  <div className="text-xs text-text-tertiary">{tmdbTitleLabel}</div>
+                )
+              : null}
           </div>
           <div className="flex flex-row items-end gap-1">
             <Button
@@ -403,96 +493,126 @@ export const TorrentAiMetadataRow = ({
                 {t('torrent.ai.actions.refresh')}
               </span>
             </Button>
-            {previewUrl ? (
-              <div className="overflow-hidden rounded bg-material-opaque h-18">
-                <img
-                  src={previewUrl}
-                  alt={localizedTitle}
-                  className="h-18 object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            ) : null}
+            {previewUrl
+              ? (
+                  <div className="overflow-hidden rounded bg-material-opaque h-18">
+                    <img
+                      src={previewUrl}
+                      alt={localizedTitle}
+                      className="h-18 object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                )
+              : null}
           </div>
         </div>
 
-        {technicalBadges.slice(0, 5).length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {technicalBadges.slice(0, 5).map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] text-text-tertiary"
-              >
-                {badge}
-              </span>
-            ))}
-            {metadata.mediaType !== 'other' ? (
-              <span className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-tertiary">
-                {mediaTypeLabel}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
-        {keywords.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {keywords.slice(0, 6).map((keyword) => (
-              <span
-                key={keyword}
-                className="inline-flex items-center rounded-full bg-material-opaque px-2 py-0.5 text-[10px] text-text-tertiary"
-              >
-                {t('torrent.ai.labels.keyword', { keyword })}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {metadata.tmdb ? (
-          <div className="flex items-center gap-2 text-xs text-text-secondary">
-            {ratingLabel ? (
-              <span className="inline-flex items-center gap-1">
-                <i
-                  className="i-mingcute-star-line text-accent"
-                  aria-hidden="true"
-                />
-                <span>{ratingLabel}</span>
-                {votesLabel ? <span> · {votesLabel}</span> : null}
-              </span>
-            ) : null}
-            {releaseLabel ? <span>{releaseLabel}</span> : null}
-          </div>
-        ) : null}
-
-        {metadata.synopsis ? (
-          <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-5">
-            {metadata.synopsis}
-          </p>
-        ) : null}
-
-        {explanations.length > 0 ? (
-          <div className="space-y-1">
-            {explanations.slice(0, 2).map((ex) => (
-              <div
-                key={`${ex.heading}::${ex.body ?? ''}`}
-                className="space-y-0.5"
-              >
-                <div className="text-xs font-medium text-text">
-                  {ex.heading}
-                </div>
-                {ex.body ? (
-                  <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-4">
-                    {ex.body}
-                  </p>
-                ) : null}
+        {technicalBadges.slice(0, 5).length > 0
+          ? (
+              <div className="flex flex-wrap gap-1">
+                {technicalBadges.slice(0, 5).map(badge => (
+                  <span
+                    key={badge}
+                    className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] text-text-tertiary"
+                  >
+                    {badge}
+                  </span>
+                ))}
+                {metadata.mediaType !== 'other'
+                  ? (
+                      <span className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-tertiary">
+                        {mediaTypeLabel}
+                      </span>
+                    )
+                  : null}
               </div>
-            ))}
-          </div>
-        ) : null}
+            )
+          : null}
+
+        {keywords.length > 0
+          ? (
+              <div className="flex flex-wrap gap-1">
+                {keywords.slice(0, 6).map(keyword => (
+                  <span
+                    key={keyword}
+                    className="inline-flex items-center rounded-full bg-material-opaque px-2 py-0.5 text-[10px] text-text-tertiary"
+                  >
+                    {t('torrent.ai.labels.keyword', { keyword })}
+                  </span>
+                ))}
+              </div>
+            )
+          : null}
+
+        {metadata.tmdb
+          ? (
+              <div className="flex items-center gap-2 text-xs text-text-secondary">
+                {ratingLabel
+                  ? (
+                      <span className="inline-flex items-center gap-1">
+                        <i
+                          className="i-mingcute-star-line text-accent"
+                          aria-hidden="true"
+                        />
+                        <span>{ratingLabel}</span>
+                        {votesLabel
+                          ? (
+                              <span>
+                                {' '}
+                                ·
+                                {votesLabel}
+                              </span>
+                            )
+                          : null}
+                      </span>
+                    )
+                  : null}
+                {releaseLabel ? <span>{releaseLabel}</span> : null}
+              </div>
+            )
+          : null}
+
+        {metadata.synopsis
+          ? (
+              <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-5">
+                {metadata.synopsis}
+              </p>
+            )
+          : null}
+
+        {explanations.length > 0
+          ? (
+              <div className="space-y-1">
+                {explanations.slice(0, 2).map(ex => (
+                  <div
+                    key={`${ex.heading}::${ex.body ?? ''}`}
+                    className="space-y-0.5"
+                  >
+                    <div className="text-xs font-medium text-text">
+                      {ex.heading}
+                    </div>
+                    {ex.body
+                      ? (
+                          <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-4">
+                            {ex.body}
+                          </p>
+                        )
+                      : null}
+                  </div>
+                ))}
+              </div>
+            )
+          : null}
 
         {!!metadata.model && !!metadata.provider && (
           <div className="text-[10px] -mt-1 text-right text-text-secondary">
-            This metadata is generated by {metadata.provider}/{metadata.model}
+            This metadata is generated by
+            {' '}
+            {metadata.provider}
+            /
+            {metadata.model}
           </div>
         )}
         <HoverCardArrow />

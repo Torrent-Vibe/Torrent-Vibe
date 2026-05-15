@@ -1,9 +1,7 @@
-/* eslint-disable unicorn/prefer-code-point */
 import { m } from 'motion/react'
 import { useCallback, useMemo } from 'react'
-import type { Components } from 'react-virtuoso'
-import { Virtuoso } from 'react-virtuoso'
 
+import { VirtualList } from '~/components/ui/virtual-list/VirtualList'
 import { cn } from '~/lib/cn'
 import { formatBytesSmart, formatSpeed } from '~/lib/format'
 import type { TorrentPeer } from '~/types/torrent'
@@ -14,14 +12,18 @@ interface PeersTabProps {
 }
 
 const countryCodeToFlag = (code?: string) => {
-  if (!code) return ''
+  if (!code) {
+    return ''
+  }
   const cc = code.trim().toUpperCase()
-  if (cc.length !== 2 || /[^A-Z]/.test(cc)) return ''
-  const OFFSET = 0x1f1e6
+  if (cc.length !== 2 || /[^A-Z]/.test(cc)) {
+    return ''
+  }
+  const OFFSET = 0x1F1E6
   const A = 'A'.codePointAt(0)!
   return (
-    String.fromCodePoint(OFFSET + (cc.charCodeAt(0) - A)) +
-    String.fromCodePoint(OFFSET + (cc.charCodeAt(1) - A))
+    String.fromCodePoint(OFFSET + (cc.charCodeAt(0) - A))
+    + String.fromCodePoint(OFFSET + (cc.charCodeAt(1) - A))
   )
 }
 
@@ -29,12 +31,9 @@ const countryCodeToFlag = (code?: string) => {
 // Columns: status dot | ip:port + client (left) | dl speed | up speed
 export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
   const entries = useMemo(() => Object.entries(peers || {}), [peers])
-  const itemContent = useCallback((_, [key, peer]: [string, TorrentPeer]) => {
+  const renderItem = useCallback(([, peer]: [string, TorrentPeer]) => {
     return (
-      <div
-        key={key}
-        className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 hover:bg-fill-secondary/30 transition-colors border border-transparent hover:border-separator"
-      >
+      <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 hover:bg-fill-secondary/30 transition-colors border border-transparent hover:border-separator">
         <m.div
           className={cn(
             'w-2.5 h-2.5 rounded-full shadow-sm',
@@ -63,7 +62,9 @@ export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
             >
               {countryCodeToFlag(peer.country_code) || '🌐'}
             </span>
-            {peer.ip}:{peer.port}
+            {peer.ip}
+            :
+            {peer.port}
           </div>
           <div className="text-xs text-text-secondary truncate">
             {peer.client}
@@ -107,37 +108,16 @@ export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
     )
   }
 
-  const Scroller = PeersScroller
-  const Item = PeersItem
-
   return (
     <div className="-mx-4 -my-4 flex-1 min-h-0">
-      <Virtuoso<[string, TorrentPeer]>
-        style={{ height: '100%' }}
+      <VirtualList<[string, TorrentPeer]>
         data={entries}
-        components={{ Scroller, Item }}
-        itemContent={itemContent}
+        renderItem={renderItem}
+        getItemKey={([key]) => key}
+        estimateSize={58}
+        className="px-4 pb-4"
+        itemClassName="pb-0.5 last:pb-0"
       />
     </div>
   )
 }
-
-// Stable custom components per Virtuoso docs
-const PeersScroller: Components<[string, TorrentPeer]>['Scroller'] = ({
-  ref,
-  style,
-  ...props
-}) => {
-  return (
-    <div
-      ref={ref as any}
-      style={style}
-      className={cn('px-4 pb-4 [&>div]:left-0', (props as any).className)}
-      {...(props as any)}
-    />
-  )
-}
-
-const PeersItem: Components<[string, TorrentPeer]>['Item'] = ({ ...props }) => (
-  <div className={'mb-0.5 last:mb-0'} {...props} />
-)

@@ -11,11 +11,23 @@ import type {
   TorrentStore,
 } from '../types/store'
 import { STICKY_FILTER_DURATION } from '../types/store'
+import type { TorrentStatusGroup } from '../utils/status-grouping'
 import { isStatusInGroup } from '../utils/status-grouping'
+
+const TORRENT_STATUS_GROUPS = new Set<TorrentStatusGroup>([
+  'downloading',
+  'seeding',
+  'completed',
+  'paused',
+  'error',
+])
+
+const isTorrentStatusGroup = (status: string): status is TorrentStatusGroup =>
+  TORRENT_STATUS_GROUPS.has(status as TorrentStatusGroup)
 
 // Helper function to check if torrent matches a status filter (centralized)
 const matchesStatusFilter = (torrent: TorrentInfo, status: string): boolean =>
-  isStatusInGroup(torrent.state, status as any)
+  isTorrentStatusGroup(status) && isStatusInGroup(torrent.state, status)
 
 // Clean up expired sticky filter entries
 const cleanExpiredStickyEntries = (
@@ -23,7 +35,7 @@ const cleanExpiredStickyEntries = (
 ): StickyFilterEntry[] => {
   const now = Date.now()
   return entries.filter(
-    (entry) => now - entry.operationTime < STICKY_FILTER_DURATION,
+    entry => now - entry.operationTime < STICKY_FILTER_DURATION,
   )
 }
 
@@ -33,25 +45,27 @@ const shouldKeepTorrentVisible = (
   currentFilter: TorrentFilterState,
   stickyEntries: StickyFilterEntry[],
 ): boolean => {
-  const stickyEntry = stickyEntries.find((entry) => entry.hash === torrent.hash)
-  if (!stickyEntry) return false
+  const stickyEntry = stickyEntries.find(entry => entry.hash === torrent.hash)
+  if (!stickyEntry) {
+    return false
+  }
 
   // Check if the sticky entry's original filter matches the current filter
   if (
-    typeof currentFilter === 'string' &&
-    typeof stickyEntry.originalFilter === 'string'
+    typeof currentFilter === 'string'
+    && typeof stickyEntry.originalFilter === 'string'
   ) {
     return currentFilter === stickyEntry.originalFilter
   }
 
   // For object filters, do a deep comparison
   if (
-    typeof currentFilter === 'object' &&
-    typeof stickyEntry.originalFilter === 'object'
+    typeof currentFilter === 'object'
+    && typeof stickyEntry.originalFilter === 'object'
   ) {
     return (
-      JSON.stringify(currentFilter) ===
-      JSON.stringify(stickyEntry.originalFilter)
+      JSON.stringify(currentFilter)
+      === JSON.stringify(stickyEntry.originalFilter)
     )
   }
 
@@ -64,7 +78,9 @@ const filterTorrents = (
   filterState: TorrentFilterState,
   stickyEntries: StickyFilterEntry[] = [],
 ): TorrentInfo[] => {
-  if (filterState === 'all') return torrents
+  if (filterState === 'all') {
+    return torrents
+  }
 
   return torrents.filter((torrent) => {
     // First check if torrent should be kept visible due to sticky filter
@@ -82,7 +98,7 @@ const filterTorrents = (
       if (filterState.type === 'tag') {
         const torrentTags = (torrent.tags || '')
           .split(', ')
-          .map((tag) => tag.trim())
+          .map(tag => tag.trim())
           .filter(Boolean)
         return torrentTags.includes(filterState.value)
       }
@@ -92,9 +108,9 @@ const filterTorrents = (
 
         // If no filters selected, show nothing
         if (
-          statuses.length === 0 &&
-          categories.length === 0 &&
-          tags.length === 0
+          statuses.length === 0
+          && categories.length === 0
+          && tags.length === 0
         ) {
           return false
         }
@@ -105,9 +121,8 @@ const filterTorrents = (
 
         // Check status filters (OR logic within statuses)
         if (statuses.length > 0) {
-          matchesStatus = statuses.some((status) =>
-            matchesStatusFilter(torrent, status),
-          )
+          matchesStatus = statuses.some(status =>
+            matchesStatusFilter(torrent, status))
         }
 
         // Check category filters (OR logic within categories)
@@ -120,10 +135,10 @@ const filterTorrents = (
           const torrentTags = new Set(
             (torrent.tags || '')
               .split(', ')
-              .map((tag) => tag.trim())
+              .map(tag => tag.trim())
               .filter(Boolean),
           )
-          matchesTag = tags.some((tag) => torrentTags.has(tag))
+          matchesTag = tags.some(tag => torrentTags.has(tag))
         }
 
         // All selected filter types must match (AND logic between filter types)
@@ -144,7 +159,9 @@ const sortTorrents = (
   sortKey: keyof TorrentInfo,
   sortDirection: 'asc' | 'desc',
 ): TorrentInfo[] => {
-  if (!sortKey || torrents.length === 0) return torrents
+  if (!sortKey || torrents.length === 0) {
+    return torrents
+  }
 
   return [...torrents].sort((a, b) => {
     const aValue = a[sortKey]
@@ -162,9 +179,15 @@ const sortTorrents = (
     }
 
     // Handle undefined/null values
-    if (aValue == null && bValue == null) return 0
-    if (aValue == null) return 1
-    if (bValue == null) return -1
+    if (aValue == null && bValue == null) {
+      return 0
+    }
+    if (aValue == null) {
+      return 1
+    }
+    if (bValue == null) {
+      return -1
+    }
 
     // Default fallback for other types
     const comparison = String(aValue).localeCompare(String(bValue))
@@ -187,6 +210,7 @@ const rebuildFuzzyIndex = (torrents: TorrentInfo[]) => {
       { name: 'tags', weight: 0.1 },
     ],
   })
+  return fuzzyIndex
 }
 
 // Combined filter and sort function with search support
@@ -201,13 +225,116 @@ const processFilteredSortedTorrents = (
   const filteredByState = filterTorrents(torrents, filterState, stickyEntries)
   const normalizedQuery = (searchQuery || '').trim().toLowerCase()
   let filtered = filteredByState
-  if (normalizedQuery && fuzzyIndex) {
+  if (normalizedQuery) {
+    const index = fuzzyIndex ?? rebuildFuzzyIndex(torrents)
+
     const matchedHashes = new Set(
-      fuzzyIndex.search(normalizedQuery).map((r) => r.item.hash),
+      index.search(normalizedQuery).map(r => r.item.hash),
     )
-    filtered = filteredByState.filter((t) => matchedHashes.has(t.hash))
+    filtered = filteredByState.filter(t => matchedHashes.has(t.hash))
   }
   return sortTorrents(filtered, sortKey, sortDirection)
+}
+
+const hasSearchQuery = (query: string | undefined) => Boolean(query?.trim())
+
+const isAllFilter = (filterState: TorrentFilterState) => filterState === 'all'
+
+const TORRENT_INFO_KEYS: Array<keyof TorrentInfo> = [
+  'hash',
+  'name',
+  'size',
+  'progress',
+  'dlspeed',
+  'upspeed',
+  'priority',
+  'num_seeds',
+  'num_leechs',
+  'ratio',
+  'eta',
+  'state',
+  'category',
+  'tags',
+  'added_on',
+  'completion_on',
+  'last_activity',
+  'dl_limit',
+  'up_limit',
+  'downloaded',
+  'uploaded',
+  'downloaded_session',
+  'uploaded_session',
+  'amount_left',
+  'auto_tmm',
+  'availability',
+  'completed',
+  'content_path',
+  'f_l_piece_prio',
+  'force_start',
+  'magnet_uri',
+  'max_ratio',
+  'max_seeding_time',
+  'num_complete',
+  'num_incomplete',
+  'ratio_limit',
+  'save_path',
+  'seeding_time',
+  'seeding_time_limit',
+  'seen_complete',
+  'seq_dl',
+  'super_seeding',
+  'time_active',
+  'total_size',
+  'tracker',
+  'isPrivate',
+]
+
+const areTorrentInfoEqual = (previous: TorrentInfo, next: TorrentInfo) => {
+  for (const key of TORRENT_INFO_KEYS) {
+    if (previous[key] !== next[key]) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const reuseStableTorrentReferences = (
+  torrents: TorrentInfo[],
+  previousByHash: Record<string, TorrentInfo>,
+) =>
+  torrents.map((torrent) => {
+    const previous = previousByHash[torrent.hash]
+    return previous && areTorrentInfoEqual(previous, torrent)
+      ? previous
+      : torrent
+  })
+
+const canReuseSortedTorrentOrder = (
+  state: TorrentStore,
+  nextTorrentsByHash: Record<string, TorrentInfo>,
+) => {
+  if (
+    !isAllFilter(state.filterState)
+    || hasSearchQuery(state.searchQuery)
+    || state.stickyFilterEntries.length > 0
+    || state.sortedTorrents.length !== state.torrents.length
+  ) {
+    return false
+  }
+
+  for (const previousTorrent of state.sortedTorrents) {
+    const nextTorrent = nextTorrentsByHash[previousTorrent.hash]
+    if (!nextTorrent) {
+      return false
+    }
+
+    if (previousTorrent[state.sortKey] !== nextTorrent[state.sortKey]) {
+      return false
+    }
+  }
+
+  return true
 }
 
 const initialState: TorrentStore = {
@@ -230,36 +357,56 @@ const initialState: TorrentStore = {
 export const useTorrentDataStore = createWithEqualityFn<TorrentStore>()(
   subscribeWithSelector(immer(() => initialState)),
 )
-// eslint-disable-next-line unused-imports/no-unused-vars
 const { setState: set, getState: get } = useTorrentDataStore
 
 export const torrentDataStoreSetters = {
-  setTorrents: (torrents: TorrentInfo[]) =>
+  setTorrents: (torrents: TorrentInfo[]) => {
+    const stableTorrents = reuseStableTorrentReferences(
+      torrents,
+      get().torrentsByHash,
+    )
+
     set((state) => {
-      state.torrents = torrents
+      const nextTorrentsByHash: Record<string, TorrentInfo> = {}
+      for (const torrent of stableTorrents) {
+        nextTorrentsByHash[torrent.hash] = torrent
+      }
+      const canReuseOrder = canReuseSortedTorrentOrder(
+        state,
+        nextTorrentsByHash,
+      )
+
+      state.torrents = stableTorrents
 
       // Build hash-based lookup using references to prevent memory duplication
-      state.torrentsByHash = {}
-      for (const torrent of torrents) {
-        state.torrentsByHash[torrent.hash] = torrent
-      }
+      state.torrentsByHash = nextTorrentsByHash
 
-      rebuildFuzzyIndex(torrents)
+      if ((state.searchQuery || '').trim()) {
+        rebuildFuzzyIndex(stableTorrents)
+      }
+      else {
+        fuzzyIndex = null
+      }
 
       // Clean up expired sticky entries
       state.stickyFilterEntries = cleanExpiredStickyEntries(
         state.stickyFilterEntries,
       )
 
-      state.sortedTorrents = processFilteredSortedTorrents(
-        torrents,
-        state.filterState,
-        state.sortKey,
-        state.sortDirection,
-        state.searchQuery || '',
-        state.stickyFilterEntries,
-      )
-    }),
+      state.sortedTorrents = canReuseOrder
+        ? state.sortedTorrents.map(
+            torrent => nextTorrentsByHash[torrent.hash],
+          )
+        : processFilteredSortedTorrents(
+            stableTorrents,
+            state.filterState,
+            state.sortKey,
+            state.sortDirection,
+            state.searchQuery || '',
+            state.stickyFilterEntries,
+          )
+    })
+  },
 
   setServerState: (serverState: ServerState) =>
     set((state) => {
@@ -276,7 +423,8 @@ export const torrentDataStoreSetters = {
       const index = state.selectedTorrents.indexOf(hash)
       if (index !== -1) {
         state.selectedTorrents.splice(index, 1)
-      } else {
+      }
+      else {
         state.selectedTorrents.push(hash)
       }
     }),
@@ -292,7 +440,8 @@ export const torrentDataStoreSetters = {
         if (!state.selectedTorrents.includes(hash)) {
           state.selectedTorrents.push(hash)
         }
-      } else {
+      }
+      else {
         const index = state.selectedTorrents.indexOf(hash)
         if (index !== -1) {
           state.selectedTorrents.splice(index, 1)
@@ -307,7 +456,7 @@ export const torrentDataStoreSetters = {
 
   selectAllTorrents: () =>
     set((state) => {
-      state.selectedTorrents = state.sortedTorrents.map((t) => t.hash)
+      state.selectedTorrents = state.sortedTorrents.map(t => t.hash)
     }),
 
   setSorting: (key: keyof TorrentInfo, direction: 'asc' | 'desc') =>
@@ -349,7 +498,8 @@ export const torrentDataStoreSetters = {
 
         if (statusIndex !== -1) {
           statuses.splice(statusIndex, 1)
-        } else {
+        }
+        else {
           statuses.push(status)
         }
 
@@ -359,10 +509,12 @@ export const torrentDataStoreSetters = {
           categories: currentFilter.categories || [],
           tags: currentFilter.tags || [],
         }
-      } else if (currentFilter === status) {
+      }
+      else if (currentFilter === status) {
         // If single filter matches, switch to 'all'
         newFilter = 'all'
-      } else if (currentFilter === 'all' || typeof currentFilter === 'string') {
+      }
+      else if (currentFilter === 'all' || typeof currentFilter === 'string') {
         // Create new multi-select with this status
         newFilter = {
           type: 'multi',
@@ -370,7 +522,8 @@ export const torrentDataStoreSetters = {
           categories: [],
           tags: [],
         }
-      } else {
+      }
+      else {
         // From category/tag filter, add status to new multi-select
         newFilter = {
           type: 'multi',
@@ -404,7 +557,8 @@ export const torrentDataStoreSetters = {
 
         if (categoryIndex !== -1) {
           categories.splice(categoryIndex, 1)
-        } else {
+        }
+        else {
           categories.push(category)
         }
 
@@ -414,14 +568,16 @@ export const torrentDataStoreSetters = {
           categories,
           tags: currentFilter.tags || [],
         }
-      } else if (
-        typeof currentFilter === 'object' &&
-        currentFilter.type === 'category' &&
-        currentFilter.value === category
+      }
+      else if (
+        typeof currentFilter === 'object'
+        && currentFilter.type === 'category'
+        && currentFilter.value === category
       ) {
         // If single category filter matches, switch to 'all'
         newFilter = 'all'
-      } else {
+      }
+      else {
         // Convert current filter to multi-select and add category
         const currentStatuses: string[] = []
         const currentTags: string[] = []
@@ -467,7 +623,8 @@ export const torrentDataStoreSetters = {
 
         if (tagIndex !== -1) {
           tags.splice(tagIndex, 1)
-        } else {
+        }
+        else {
           tags.push(tag)
         }
 
@@ -477,14 +634,16 @@ export const torrentDataStoreSetters = {
           categories: currentFilter.categories || [],
           tags,
         }
-      } else if (
-        typeof currentFilter === 'object' &&
-        currentFilter.type === 'tag' &&
-        currentFilter.value === tag
+      }
+      else if (
+        typeof currentFilter === 'object'
+        && currentFilter.type === 'tag'
+        && currentFilter.value === tag
       ) {
         // If single tag filter matches, switch to 'all'
         newFilter = 'all'
-      } else {
+      }
+      else {
         // Convert current filter to multi-select and add tag
         const currentStatuses: string[] = []
         const currentCategories: string[] = []
@@ -496,8 +655,8 @@ export const torrentDataStoreSetters = {
 
         // Preserve current category filter
         if (
-          typeof currentFilter === 'object' &&
-          currentFilter.type === 'category'
+          typeof currentFilter === 'object'
+          && currentFilter.type === 'category'
         ) {
           currentCategories.push(currentFilter.value)
         }
@@ -523,7 +682,7 @@ export const torrentDataStoreSetters = {
     }),
 
   setCategories: (
-    categories: Record<string, { name: string; savePath: string }>,
+    categories: Record<string, { name: string, savePath: string }>,
   ) =>
     set((state) => {
       state.categories = categories
@@ -536,6 +695,13 @@ export const torrentDataStoreSetters = {
 
   setSearchQuery: (query: string) =>
     set((state) => {
+      if (query.trim()) {
+        rebuildFuzzyIndex(state.torrents)
+      }
+      else {
+        fuzzyIndex = null
+      }
+
       state.searchQuery = query
       state.sortedTorrents = processFilteredSortedTorrents(
         state.torrents,
@@ -555,11 +721,11 @@ export const torrentDataStoreSetters = {
 
       // Remove existing entries for these hashes to avoid duplicates
       state.stickyFilterEntries = state.stickyFilterEntries.filter(
-        (entry) => !hashes.includes(entry.hash),
+        entry => !hashes.includes(entry.hash),
       )
 
       // Add new sticky entries
-      const newEntries: StickyFilterEntry[] = hashes.map((hash) => ({
+      const newEntries: StickyFilterEntry[] = hashes.map(hash => ({
         hash,
         originalFilter: currentFilter,
         operationTime: now,
@@ -572,7 +738,7 @@ export const torrentDataStoreSetters = {
   removeStickyFilterEntries: (hashes: string[]) =>
     set((state) => {
       state.stickyFilterEntries = state.stickyFilterEntries.filter(
-        (entry) => !hashes.includes(entry.hash),
+        entry => !hashes.includes(entry.hash),
       )
     }),
 

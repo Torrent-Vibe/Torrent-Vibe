@@ -2,6 +2,7 @@ import { getAiIntegrationEnabled } from '~/lib/ai-integration'
 import { ipcServices } from '~/lib/ipc-client'
 import { queryClient } from '~/lib/query/query-client'
 import { QueryKeys } from '~/lib/query/query-keys'
+import { isTorrentTableScrollActive } from '~/modules/torrent/stores/torrent-table-performance'
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 import type { TorrentFile } from '~/types'
 
@@ -23,7 +24,9 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
   ) => {
     context.setState((draft) => {
       const entry = draft.entries[hash]
-      if (!entry) return
+      if (!entry) {
+        return
+      }
       updater(entry)
     })
   }
@@ -39,6 +42,10 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
     // Respect user toggle to disable AI integration entirely
     if (!getAiIntegrationEnabled()) {
       return { ok: false, error: 'ai.disabled' }
+    }
+
+    if (!options.force && isTorrentTableScrollActive()) {
+      return { ok: false, error: 'ai.deferred', transient: true }
     }
 
     // Language is tracked in store via i18n.language (set later when updating entry)
@@ -79,7 +86,7 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
     })
 
     try {
-      let compactFileList: Array<{ path: string; size?: number }> | undefined
+      let compactFileList: Array<{ path: string, size?: number }> | undefined
       try {
         const filesKey = QueryKeys.torrentDetails.files(options.hash)
         let files = queryClient.getQueryData(filesKey) as
@@ -94,12 +101,14 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
           })
         }
 
-        if (files)
-          compactFileList = files.slice(0, MAX_FILE_TREE_COUNT).map((f) => ({
+        if (files) {
+          compactFileList = files.slice(0, MAX_FILE_TREE_COUNT).map(f => ({
             path: f.name,
             size: f.size,
           }))
-      } catch {
+        }
+      }
+      catch {
         // Ignore cache access errors
       }
 
@@ -107,7 +116,7 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
         rawName: string
         hash?: string
         forceRefresh?: boolean
-        fileList?: Array<{ path: string; size?: number }>
+        fileList?: Array<{ path: string, size?: number }>
       } = {
         rawName: trimmedName,
         hash: options.hash,
@@ -144,7 +153,8 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
         error: result.error ?? fallbackError,
         transient: result.transient,
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('[torrent-ai] renderer fetch failed', {
         hash: options.hash,
         error,

@@ -32,7 +32,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
   const nameData = useTorrentDataStore(
     useShallow(
       useCallback(
-        (state) => selectTorrentName(state, deferredRowIndex),
+        state => selectTorrentName(state, deferredRowIndex),
         [deferredRowIndex],
       ),
     ),
@@ -41,7 +41,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
   const { progress, state } = useTorrentDataStore(
     useShallow(
       useCallback(
-        (state) => selectTorrentProgress(state, deferredRowIndex),
+        state => selectTorrentProgress(state, deferredRowIndex),
         [deferredRowIndex],
       ),
     ),
@@ -52,7 +52,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
     ? nameData.tags
         .split(',')
         .filter(Boolean)
-        .map((t) => t.trim())
+        .map(t => t.trim())
     : []
 
   const handleModifyTag = useCallback(
@@ -60,24 +60,25 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
       ModifyTagPrompt.show({
         tagName,
         onConfirm: async (newTagName: string) => {
-          if (newTagName.trim() === tagName.trim()) return // No change
+          if (newTagName.trim() === tagName.trim()) {
+            return
+          } // No change
 
           // Since qBittorrent doesn't support renaming tags directly,
           // we need to create the new tag and update all torrents that use the old tag
           const { torrents } = useTorrentDataStore.getState()
-          const torrentsWithTag = torrents.filter((torrent) =>
+          const torrentsWithTag = torrents.filter(torrent =>
             torrent.tags
               .split(',')
-              .map((t) => t.trim())
-              .includes(tagName),
-          )
+              .map(t => t.trim())
+              .includes(tagName))
 
           // Create new tag
           await createTagMutation.mutateAsync([newTagName.trim()])
 
           // Add new tag to all torrents that had the old tag
           if (torrentsWithTag.length > 0) {
-            const hashes = torrentsWithTag.map((t) => t.hash)
+            const hashes = torrentsWithTag.map(t => t.hash)
             await addTorrentTagsMutation.mutateAsync({
               hashes,
               tags: [newTagName.trim()],
@@ -118,7 +119,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
 
   if (!nameData.name) {
     return (
-      <div className={'absolute inset-0'}>
+      <div className="absolute inset-0">
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="flex-shrink-0">
             <TorrentStateIcon
@@ -155,7 +156,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
           </span>
           {tagList.length > 0 && (
             <div className="flex gap-1 overflow-hidden">
-              {tagList.slice(0, 2).map((tag) => (
+              {tagList.slice(0, 2).map(tag => (
                 <Tag
                   key={tag}
                   tag={tag}
@@ -177,13 +178,17 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
             </div>
           )}
 
-          <div className="ml-auto shrink-0 h-0 -translate-y-3 translate-x-2">
-            <TorrentAiMetadataRow
-              hash={nameData.hash}
-              rawName={nameData.name}
-              isInViewport={isInViewport}
-            />
-          </div>
+          {isInViewport
+            ? (
+                <div className="ml-auto shrink-0 h-0 -translate-y-3 translate-x-2">
+                  <TorrentAiMetadataRow
+                    hash={nameData.hash}
+                    rawName={nameData.name}
+                    isInViewport={isInViewport}
+                  />
+                </div>
+              )
+            : null}
         </div>
       </div>
     </div>

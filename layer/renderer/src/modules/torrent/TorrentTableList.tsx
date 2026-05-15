@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import { titleCase } from 'title-case'
 import { useShallow } from 'zustand/shallow'
 
-import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
 import type { TorrentInfo } from '~/types'
 
 import { DragPreview } from './components/DragComponents'
@@ -27,6 +26,8 @@ import {
   getTorrentTableActions,
   useTorrentTableSelectors,
 } from './stores/torrent-table-store'
+
+const MemoTableHeader = React.memo(TableHeader)
 
 export interface TorrentTableConfig {
   table: Table<TorrentInfo>
@@ -59,7 +60,7 @@ export const TorrentTableList = () => {
   }
   return <TorrentTableListImpl />
 }
-const TorrentTableListImpl = () => {
+function TorrentTableListImpl() {
   const sortTorrents = useTorrentDataStore(selectSortedTorrents)
   const dragState = useTorrentTableSelectors.useDragState()
   const columnOrder = useTorrentTableSelectors.useColumnOrder()
@@ -88,8 +89,8 @@ const TorrentTableListImpl = () => {
     if (sortState.sortKey && sortState.sortDirection) {
       const currentSort = selectSortState(useTorrentDataStore.getState())
       if (
-        currentSort.sortKey !== sortState.sortKey ||
-        currentSort.sortDirection !== sortState.sortDirection
+        currentSort.sortKey !== sortState.sortKey
+        || currentSort.sortDirection !== sortState.sortDirection
       ) {
         torrentDataStoreSetters.setSorting(
           sortState.sortKey as keyof TorrentInfo,
@@ -126,11 +127,13 @@ const TorrentTableListImpl = () => {
       actions.updateColumnVisibility((prev) => {
         const next = typeof updater === 'function' ? updater(prev) : updater
         const visible = getAllColumns()
-          .filter((c) => c.id !== 'select')
-          .map((c) => c.id as string)
-          .filter((k) => next[k] !== false)
+          .filter(c => c.id !== 'select')
+          .map(c => c.id as string)
+          .filter(k => next[k] !== false)
         // Ensure at least one column visible (besides select)
-        if (visible.length === 0) return prev
+        if (visible.length === 0) {
+          return prev
+        }
         actions.setVisibleColumns(visible)
         return next
       })
@@ -154,10 +157,10 @@ const TorrentTableListImpl = () => {
   // Derive from TanStack state each render so changes (visibility/order/size)
   // immediately reflect in layout without stale memoization
   const visibleLeafColumns = table.getVisibleLeafColumns()
-  const visibleColumnIds = visibleLeafColumns.map((c) => c.id)
+  const visibleColumnIds = visibleLeafColumns.map(c => c.id)
 
   const gridTemplateColumns = visibleLeafColumns
-    .map((c) => `${c.getSize()}px`)
+    .map(c => `${c.getSize()}px`)
     .join(' ')
 
   // Compute cumulative left offsets for sticky support
@@ -189,7 +192,6 @@ const TorrentTableListImpl = () => {
 
   // Extract behavior logic into custom hooks
   const dragDrop = useTorrentTableDragDrop()
-  const virtualization = useTorrentTableVirtualization(sortTorrents.length)
   const columnMenu = useTorrentTableColumnMenu()
 
   return (
@@ -199,42 +201,207 @@ const TorrentTableListImpl = () => {
       onDragStart={dragDrop.handleDragStart}
       onDragEnd={dragDrop.handleDragEnd}
     >
-      <ScrollArea
-        scrollbarClassName="z-10"
-        id="fixed-data-table"
-        ref={(el) => {
-          // keep both refs in sync for virtualizer
-          ;(
-            virtualization.containerRef as React.MutableRefObject<HTMLDivElement | null>
-          ).current = el
-          ;(
-            virtualization.bodyRef as React.MutableRefObject<HTMLDivElement | null>
-          ).current = el
-          // attach TABLE focus scope to the viewport element
-          setTableScopeRef(el as HTMLDivElement)
-        }}
-        rootClassName="flex-1 h-0 bg-background relative"
-        viewportClassName="size-full"
-        orientation="both"
-        style={{ minHeight: '400px', width: '100%' }}
+      <TorrentTableVirtualViewport
+        columnMenu={columnMenu}
+        dragState={dragState}
+        setTableScopeRef={setTableScopeRef}
+        tableConfig={tableConfig}
+        torrentsLength={sortTorrents.length}
+      />
+    </DndContext>
+  )
+}
+
+interface TorrentTableVirtualViewportProps {
+  columnMenu: ReturnType<typeof useTorrentTableColumnMenu>
+  dragState: ReturnType<typeof useTorrentTableSelectors.useDragState>
+  setTableScopeRef: React.Dispatch<React.SetStateAction<HTMLDivElement>>
+  tableConfig: TorrentTableConfig
+  torrentsLength: number
+}
+
+function TorrentTableVirtualViewport({
+  columnMenu,
+  dragState,
+  setTableScopeRef,
+  tableConfig,
+  torrentsLength,
+}: TorrentTableVirtualViewportProps) {
+  const {
+    bodyHeight,
+    handleKeyDown,
+    handleWheel,
+    headerHeight,
+    isScrolling,
+    getScrollOffset,
+    rowVirtualizer,
+    setBodyElement,
+    setContainerElement,
+    setScrollOffset,
+    setScrollSamplingMode,
+    totalSize,
+  } = useTorrentTableVirtualization(torrentsLength)
+
+  return (
+    <div
+      id="fixed-data-table"
+      ref={(el) => {
+        setContainerElement(el)
+        // attach TABLE focus scope to the viewport element
+        if (el) {
+          setTableScopeRef(el)
+        }
+      }}
+      className="relative flex flex-1 h-0 min-h-[400px] w-full flex-col overflow-hidden bg-background outline-none"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => {
+        event.currentTarget.focus({ preventScroll: true })
+      }}
+    >
+      <MemoTableHeader {...tableConfig} columnMenu={columnMenu} />
+
+      <DragOverlay>
+        {dragState.isDragging && dragState.draggedColumnId
+          ? (
+              <DragPreview columnId={dragState.draggedColumnId}>
+                {titleCase(dragState.draggedColumnId)}
+              </DragPreview>
+            )
+          : null}
+      </DragOverlay>
+
+      <div
+        ref={setBodyElement}
+        className="relative min-h-0 flex-1 overflow-hidden"
+        onWheel={handleWheel}
       >
-        <TableHeader {...tableConfig} columnMenu={columnMenu} />
-
-        <DragOverlay>
-          {dragState.isDragging && dragState.draggedColumnId ? (
-            <DragPreview columnId={dragState.draggedColumnId}>
-              {titleCase(dragState.draggedColumnId)}
-            </DragPreview>
-          ) : null}
-        </DragOverlay>
-
         <TableBody
           {...tableConfig}
-          rowVirtualizer={virtualization.rowVirtualizer}
-          viewportHeight={virtualization.bodyHeight}
-          headerHeight={virtualization.headerHeight}
+          rowVirtualizer={rowVirtualizer}
+          viewportHeight={bodyHeight}
+          headerHeight={headerHeight}
+          isScrolling={isScrolling}
+          logicalScrollMode
         />
-      </ScrollArea>
-    </DndContext>
+      </div>
+
+      <LogicalVerticalScrollbar
+        viewportHeight={bodyHeight}
+        totalSize={totalSize}
+        getScrollOffset={getScrollOffset}
+        setScrollOffset={setScrollOffset}
+        setScrollSamplingMode={setScrollSamplingMode}
+      />
+    </div>
+  )
+}
+
+interface LogicalVerticalScrollbarProps {
+  viewportHeight: number
+  totalSize: number
+  getScrollOffset: () => number
+  setScrollOffset: (
+    nextOffset: number | ((current: number) => number),
+    isScrolling?: boolean,
+  ) => void
+  setScrollSamplingMode: (mode: 'default' | 'drag') => void
+}
+
+function LogicalVerticalScrollbar({
+  viewportHeight,
+  totalSize,
+  getScrollOffset,
+  setScrollOffset,
+  setScrollSamplingMode,
+}: LogicalVerticalScrollbarProps) {
+  const [dragState, setDragState] = React.useState<{
+    startY: number
+    startOffset: number
+  } | null>(null)
+
+  const maxScrollOffset = Math.max(0, totalSize - viewportHeight)
+
+  const thumbHeight
+    = maxScrollOffset > 0
+      ? Math.max(28, Math.floor((viewportHeight / totalSize) * viewportHeight))
+      : viewportHeight
+  const maxThumbTop = Math.max(0, viewportHeight - thumbHeight)
+
+  React.useEffect(() => {
+    if (!dragState) {
+      return
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      event.preventDefault()
+
+      const deltaY = event.clientY - dragState.startY
+      const scrollDelta
+        = maxThumbTop > 0 ? (deltaY / maxThumbTop) * maxScrollOffset : 0
+
+      setScrollOffset(dragState.startOffset + scrollDelta)
+    }
+
+    const finishDrag = () => {
+      setScrollOffset(current => current)
+      setScrollSamplingMode('default')
+      setDragState(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', finishDrag)
+    window.addEventListener('pointercancel', finishDrag)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', finishDrag)
+      window.removeEventListener('pointercancel', finishDrag)
+    }
+  }, [
+    dragState,
+    maxScrollOffset,
+    maxThumbTop,
+    setScrollOffset,
+    setScrollSamplingMode,
+  ])
+
+  if (maxScrollOffset <= 0 || viewportHeight <= 0) {
+    return null
+  }
+
+  return (
+    <div
+      className="absolute right-0 top-12 bottom-0 z-20 w-2.5 select-none p-0.5"
+      onPointerDown={(event) => {
+        if (event.target !== event.currentTarget) {
+          return
+        }
+
+        const rect = event.currentTarget.getBoundingClientRect()
+        const thumbCenter = event.clientY - rect.top - thumbHeight / 2
+        const ratio = maxThumbTop > 0 ? thumbCenter / maxThumbTop : 0
+
+        setScrollOffset(ratio * maxScrollOffset)
+      }}
+    >
+      <div
+        className="absolute left-0.5 right-0.5 rounded-xl bg-zinc-500/50 hover:bg-zinc-500/70 active:bg-zinc-500/70"
+        style={{
+          height: thumbHeight,
+          transform: `translate3d(0, calc(var(--torrent-table-scroll-progress, 0) * ${maxThumbTop}px), 0)`,
+          willChange: 'transform',
+        }}
+        onPointerDown={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          setScrollSamplingMode('drag')
+          setDragState({
+            startY: event.clientY,
+            startOffset: getScrollOffset(),
+          })
+        }}
+      />
+    </div>
   )
 }
