@@ -6,6 +6,7 @@ patchedDependencies:
 nodeLinker: hoisted
 autoInstallPeers: false
 blockExoticSubdeps: false
+minimumReleaseAge: 0
 allowBuilds:
   "@tailwindcss/oxide": true
   bufferutil: false
