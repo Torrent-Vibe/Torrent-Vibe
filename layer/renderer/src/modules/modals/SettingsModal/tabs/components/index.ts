@@ -1,5 +1,5 @@
+export * from './AgentBrowserSection'
 export * from './AppearanceSection'
-export * from './ChromeSearchSection'
 export * from './DataManagementSection'
 export * from './DesktopFeaturesSection'
 export * from './PollingSection'

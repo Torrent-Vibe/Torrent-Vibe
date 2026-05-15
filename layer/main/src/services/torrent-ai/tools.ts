@@ -3,7 +3,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 
 import { getLogger } from '~/config/log-config'
-import { detectChromeExecutable as detectChromeExec } from '~/manager/chrome-manager'
+import { detectAgentBrowserCli } from '~/manager/agent-browser-manager'
 import { i18n } from '~/utils/i18n'
 
 import type { SearchEngine } from './search'
@@ -11,12 +11,11 @@ import { createSearchTools, resolveSearchOption } from './search'
 import type { TmdbClient } from './tmdb-client'
 import { extractReadableFromUrl } from './web-extract'
 
-export const detectChromeExecutable = () => detectChromeExec()
+export const detectAgentBrowser = () => detectAgentBrowserCli()
 
 // Re-export search functionality for external use
 export type { SearchEngine, SearchParams, SearchResponse } from './search'
 export {
-  chromeManager,
   executeHeadlessSearch,
   searchDuckDuckGo,
   searchGoogle,
@@ -102,7 +101,7 @@ export const createTmdbTools = (tmdbClient: TmdbClient) => {
 const webExtractTool = {
   webExtractReadable: tool({
     description:
-      'Given a URL, open it in headless Chrome, wait for the page to settle, then extract readable article content using Mozilla Readability and return title, byline, excerpt, textContent, html, siteName, lang, and publishedTime.',
+      'Given a URL, open it with agent-browser, wait for the page to settle, then extract readable article content using Mozilla Readability and return title, byline, excerpt, textContent, html, siteName, lang, and publishedTime.',
     inputSchema: z.object({
       url: z.url(),
     }),

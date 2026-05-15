@@ -3,11 +3,11 @@ import { existsSync, statSync } from 'node:fs'
 import type { AiProviderId } from '@torrent-vibe/shared'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
-import { AppSettingsStore } from '~/services/app-settings-store'
 import {
-  chromeManager,
-  detectChromeExecutable,
-} from '~/services/torrent-ai/tools'
+  agentBrowserManager,
+  detectAgentBrowserCli,
+} from '~/manager/agent-browser-manager'
+import { AppSettingsStore } from '~/services/app-settings-store'
 
 export class AppSettingsIPCService extends IpcService {
   static override readonly groupName = 'appSettings'
@@ -17,7 +17,7 @@ export class AppSettingsIPCService extends IpcService {
   @IpcMethod()
   getSearchSettings() {
     return {
-      chromeExecutablePath: this.store.getChromeExecutablePath(),
+      agentBrowserPath: this.store.getAgentBrowserPath(),
     }
   }
 
@@ -29,10 +29,8 @@ export class AppSettingsIPCService extends IpcService {
   }
 
   @IpcMethod()
-  async setChromeExecutablePath(input: {
-    chromeExecutablePath: string | null
-  }) {
-    const normalized = input.chromeExecutablePath?.trim()
+  setAgentBrowserPath(input: { agentBrowserPath: string | null }) {
+    const normalized = input.agentBrowserPath?.trim()
     if (normalized) {
       if (!existsSync(normalized)) {
         return { ok: false, error: 'notFound' as const }
@@ -42,8 +40,7 @@ export class AppSettingsIPCService extends IpcService {
         if (!stat.isFile()) {
           return { ok: false, error: 'notFile' as const }
         }
-      }
-      catch (error) {
+      } catch (error) {
         return {
           ok: false,
           error: 'notAccessible' as const,
@@ -52,12 +49,12 @@ export class AppSettingsIPCService extends IpcService {
       }
     }
 
-    this.store.setChromeExecutablePath(normalized ?? null)
-    await chromeManager.dispose()
+    this.store.setAgentBrowserPath(normalized ?? null)
+    agentBrowserManager.reset()
 
     return {
       ok: true,
-      chromeExecutablePath: this.store.getChromeExecutablePath(),
+      agentBrowserPath: this.store.getAgentBrowserPath(),
     }
   }
 
@@ -81,9 +78,9 @@ export class AppSettingsIPCService extends IpcService {
   }
 
   @IpcMethod()
-  detectChromeExecutable() {
+  detectAgentBrowser() {
     return {
-      chromeExecutablePath: detectChromeExecutable(),
+      agentBrowserPath: detectAgentBrowserCli(),
     }
   }
 }

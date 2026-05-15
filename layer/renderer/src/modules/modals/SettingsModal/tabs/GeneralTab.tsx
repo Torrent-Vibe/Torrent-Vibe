@@ -1,6 +1,6 @@
 import {
+  AgentBrowserSection,
   AppearanceSection,
-  ChromeSearchSection,
   DataManagementSection,
   DesktopFeaturesSection,
   PollingSection,
@@ -12,7 +12,7 @@ export const GeneralTab = () => {
       <AppearanceSection />
       <PollingSection />
       {ELECTRON && <DesktopFeaturesSection />}
-      {ELECTRON && <ChromeSearchSection />}
+      {ELECTRON && <AgentBrowserSection />}
       <DataManagementSection />
     </div>
   )

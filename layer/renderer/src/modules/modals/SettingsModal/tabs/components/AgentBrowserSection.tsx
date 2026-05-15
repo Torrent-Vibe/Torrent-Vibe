@@ -7,7 +7,7 @@ import { ipcServices } from '~/lib/ipc-client'
 
 import { SettingField, SettingInputField, SettingSectionCard } from '.'
 
-export const ChromeSearchSection = () => {
+export const AgentBrowserSection = () => {
   const { t } = useTranslation('setting')
   const [currentPath, setCurrentPath] = useState('')
   const [initialPath, setInitialPath] = useState('')
@@ -25,8 +25,10 @@ export const ChromeSearchSection = () => {
     ipcServices?.appSettings
       .getSearchSettings()
       .then((settings) => {
-        if (!mounted) return
-        const path = settings?.chromeExecutablePath ?? ''
+        if (!mounted) {
+          return
+        }
+        const path = settings?.agentBrowserPath ?? ''
         setCurrentPath(path)
         setInitialPath(path)
       })
@@ -48,43 +50,45 @@ export const ChromeSearchSection = () => {
   const hasChanges = trimmedCurrentPath !== trimmedInitialPath
 
   const submitPath = async (pathValue: string) => {
-    if (!ELECTRON) return
+    if (!ELECTRON) {
+      return
+    }
     setSaving(true)
     try {
-      const result = await ipcServices?.appSettings.setChromeExecutablePath({
-        chromeExecutablePath: pathValue.trim() || null,
+      const result = await ipcServices?.appSettings.setAgentBrowserPath({
+        agentBrowserPath: pathValue.trim() || null,
       })
 
       if (!result?.ok) {
         switch (result?.error) {
           case 'notFound': {
-            toast.error(t('desktop.chromeSearch.messages.pathMissing'))
+            toast.error(t('desktop.agentBrowser.messages.pathMissing'))
             break
           }
           case 'notFile': {
-            toast.error(t('desktop.chromeSearch.messages.pathNotFile'))
+            toast.error(t('desktop.agentBrowser.messages.pathNotFile'))
             break
           }
           case 'notAccessible': {
-            toast.error(t('desktop.chromeSearch.messages.pathNotAccessible'))
+            toast.error(t('desktop.agentBrowser.messages.pathNotAccessible'))
             break
           }
           default: {
-            toast.error(t('desktop.chromeSearch.messages.saveFailed'))
+            toast.error(t('desktop.agentBrowser.messages.saveFailed'))
             break
           }
         }
         return false
       }
 
-      const normalized = result.chromeExecutablePath ?? ''
+      const normalized = result.agentBrowserPath ?? ''
       setInitialPath(normalized)
       setCurrentPath(normalized)
-      toast.success(t('desktop.chromeSearch.messages.saved'))
+      toast.success(t('desktop.agentBrowser.messages.saved'))
       return true
     } catch (error) {
       toast.error(
-        t('desktop.chromeSearch.messages.saveFailedWithReason', {
+        t('desktop.agentBrowser.messages.saveFailedWithReason', {
           reason: String((error as Error)?.message ?? error),
         }),
       )
@@ -99,24 +103,26 @@ export const ChromeSearchSection = () => {
   }
 
   const handleDetect = async () => {
-    if (!ELECTRON) return
+    if (!ELECTRON) {
+      return
+    }
     setDetecting(true)
     try {
-      const { chromeExecutablePath } =
-        (await ipcServices?.appSettings.detectChromeExecutable()) ?? {}
-      if (chromeExecutablePath) {
-        setCurrentPath(chromeExecutablePath)
+      const { agentBrowserPath } =
+        (await ipcServices?.appSettings.detectAgentBrowser()) ?? {}
+      if (agentBrowserPath) {
+        setCurrentPath(agentBrowserPath)
         toast.success(
-          t('desktop.chromeSearch.messages.detected', {
-            path: chromeExecutablePath,
+          t('desktop.agentBrowser.messages.detected', {
+            path: agentBrowserPath,
           }),
         )
       } else {
-        toast.error(t('desktop.chromeSearch.messages.detectFailed'))
+        toast.error(t('desktop.agentBrowser.messages.detectFailed'))
       }
     } catch (error) {
       toast.error(
-        t('desktop.chromeSearch.messages.detectFailedWithReason', {
+        t('desktop.agentBrowser.messages.detectFailedWithReason', {
           reason: String((error as Error)?.message ?? error),
         }),
       )
@@ -131,21 +137,21 @@ export const ChromeSearchSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('desktop.chromeSearch.title')}
-      description={t('desktop.chromeSearch.description')}
+      title={t('desktop.agentBrowser.title')}
+      description={t('desktop.agentBrowser.description')}
     >
       <SettingInputField
-        id="chrome-search-path"
-        label={t('desktop.chromeSearch.path.label')}
-        description={t('desktop.chromeSearch.path.description')}
-        placeholder={t('desktop.chromeSearch.path.placeholder')}
+        id="agent-browser-path"
+        label={t('desktop.agentBrowser.path.label')}
+        description={t('desktop.agentBrowser.path.description')}
+        placeholder={t('desktop.agentBrowser.path.placeholder')}
         value={currentPath}
         onChange={setCurrentPath}
         disabled={!ELECTRON || loading}
       />
       <SettingField
-        label={t('desktop.chromeSearch.actions.label')}
-        description={t('desktop.chromeSearch.actions.help')}
+        label={t('desktop.agentBrowser.actions.label')}
+        description={t('desktop.agentBrowser.actions.help')}
         controlAlign="start"
       >
         <div className="flex flex-wrap gap-2">
@@ -157,8 +163,8 @@ export const ChromeSearchSection = () => {
             onClick={handleDetect}
           >
             {detecting
-              ? t('desktop.chromeSearch.actions.detecting')
-              : t('desktop.chromeSearch.actions.detect')}
+              ? t('desktop.agentBrowser.actions.detecting')
+              : t('desktop.agentBrowser.actions.detect')}
           </Button>
           <Button
             type="button"
@@ -169,8 +175,8 @@ export const ChromeSearchSection = () => {
             onClick={handleSave}
           >
             {saving
-              ? t('desktop.chromeSearch.actions.saving')
-              : t('desktop.chromeSearch.actions.save')}
+              ? t('desktop.agentBrowser.actions.saving')
+              : t('desktop.agentBrowser.actions.save')}
           </Button>
           <Button
             type="button"
@@ -184,7 +190,7 @@ export const ChromeSearchSection = () => {
             }
             onClick={handleClear}
           >
-            {t('desktop.chromeSearch.actions.clear')}
+            {t('desktop.agentBrowser.actions.clear')}
           </Button>
         </div>
       </SettingField>

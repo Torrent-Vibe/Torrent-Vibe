@@ -7,7 +7,7 @@ import { app } from 'electron'
 
 interface AppSettingsData {
   search?: {
-    chromeExecutablePath?: string | null
+    agentBrowserPath?: string | null
   }
   ai?: {
     preferredProviders?: AiProviderId[]
@@ -75,15 +75,15 @@ export class AppSettingsStore {
     }
   }
 
-  getChromeExecutablePath(): string | null {
-    return sanitizePath(this.cache.search?.chromeExecutablePath) ?? null
+  getAgentBrowserPath(): string | null {
+    return sanitizePath(this.cache.search?.agentBrowserPath) ?? null
   }
 
-  setChromeExecutablePath(path: string | null) {
+  setAgentBrowserPath(path: string | null) {
     const normalized = sanitizePath(path)
     this.cache.search = {
       ...this.cache.search,
-      chromeExecutablePath: normalized,
+      agentBrowserPath: normalized,
     }
     this.save()
   }

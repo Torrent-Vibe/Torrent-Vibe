@@ -1,17 +1,13 @@
 import { tool } from 'ai'
-import { dialog } from 'electron'
 import log from 'electron-log'
-import type { Page } from 'puppeteer-core'
 import { z } from 'zod'
 
 import {
-  ChromeLaunchError,
-  chromeManager as globalChromeManager,
-  ChromeNotFoundError,
-  ChromePageError,
-} from '~/manager/chrome-manager'
-import { ConcurrencyGate } from '~/utils/concurrency-gate'
-import { i18n } from '~/utils/i18n'
+  AgentBrowserError,
+  agentBrowserManager,
+  AgentBrowserNotFoundError,
+  HEADLESS_USER_AGENT,
+} from '~/manager/agent-browser-manager'
 
 // Types
 export type SearchEngine = 'google' | 'duckduckgo'
@@ -71,17 +67,6 @@ export type SearchEngineConfig = {
   extractor: SearchExtractor
 }
 
-// Constants
-const INTERACTIVE_SOLVE_TIMEOUT_MS = 2 * 60 * 1000
-const INTERACTIVE_POLL_INTERVAL_MS = 1500
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-const searchConcurrencyGate = new ConcurrencyGate(5)
-const interactiveSolveGate = new ConcurrencyGate(1)
-
-export const chromeManager = globalChromeManager
-
 // Search Extractors
 const googleExtractor: SearchExtractor = () => {
   // Prefer stable attributes and structure over obfuscated class names
@@ -97,7 +82,9 @@ const googleExtractor: SearchExtractor = () => {
       const url = new URL(href, base)
       if (url.pathname === '/url') {
         const real = url.searchParams.get('q')
-        if (real) return real
+        if (real) {
+          return real
+        }
       }
       return url.href
     } catch {
@@ -124,8 +111,12 @@ const googleExtractor: SearchExtractor = () => {
     url: string | null,
     snippet: string | null,
   ) => {
-    if (!title || !title.trim()) return
-    if (!url || !url.trim()) return
+    if (!title || !title.trim()) {
+      return
+    }
+    if (!url || !url.trim()) {
+      return
+    }
     const siteName = getSiteNameFromHref(url)
     out.push({
       title: title.trim(),
@@ -141,8 +132,12 @@ const googleExtractor: SearchExtractor = () => {
   )
   for (const heading of headingNodes) {
     const anchor = heading.closest('a') as HTMLAnchorElement | null
-    if (!anchor) continue
-    if (seen.has(anchor)) continue
+    if (!anchor) {
+      continue
+    }
+    if (seen.has(anchor)) {
+      continue
+    }
     seen.add(anchor)
 
     const href = decodeGoogleUrl(
@@ -186,7 +181,9 @@ const googleExtractor: SearchExtractor = () => {
     ).slice(0, 20)
     for (const heading of headings) {
       const anchor = heading.closest('a') as HTMLAnchorElement | null
-      if (!anchor) continue
+      if (!anchor) {
+        continue
+      }
       const href = decodeGoogleUrl(
         anchor.getAttribute('href') || anchor.href || '',
       )
@@ -199,7 +196,9 @@ const googleExtractor: SearchExtractor = () => {
         const candidate = container.querySelector(
           'div[data-sncf]',
         ) as HTMLElement | null
-        if (candidate) snippet = candidate.textContent || ''
+        if (candidate) {
+          snippet = candidate.textContent || ''
+        }
       }
       pushResult(title, href, snippet)
     }
@@ -229,7 +228,9 @@ const duckduckgoExtractor: SearchExtractor = () => {
       // DDG often uses redirect links like /l/?uddg=ENCODED
       if (url.pathname.startsWith('/l/') && url.searchParams.has('uddg')) {
         const real = url.searchParams.get('uddg')
-        if (real) return decodeURIComponent(real)
+        if (real) {
+          return decodeURIComponent(real)
+        }
       }
       return url.href
     } catch {
@@ -256,8 +257,12 @@ const duckduckgoExtractor: SearchExtractor = () => {
     url: string | null,
     snippet: string | null,
   ) => {
-    if (!title || !title.trim()) return
-    if (!url || !url.trim()) return
+    if (!title || !title.trim()) {
+      return
+    }
+    if (!url || !url.trim()) {
+      return
+    }
     const siteName = getSiteNameFromHref(url)
     out.push({
       title: title.trim(),
@@ -272,7 +277,9 @@ const duckduckgoExtractor: SearchExtractor = () => {
       document.querySelectorAll<HTMLAnchorElement>(selector),
     )
     for (const anchor of anchors) {
-      if (seen.has(anchor)) continue
+      if (seen.has(anchor)) {
+        continue
+      }
       seen.add(anchor)
 
       const href = decodeDuckDuckGoUrl(
@@ -329,7 +336,7 @@ export const SEARCH_ENGINE_CONFIG: Record<SearchEngine, SearchEngineConfig> = {
     key: 'googleSearch',
     engine: 'google',
     description:
-      'Perform a Chrome-powered Google search to find authoritative references. Returns organic results with title, url, siteName, and snippet.',
+      'Perform a browser-powered Google search to find authoritative references. Returns organic results with title, url, siteName, and snippet.',
     logScope: 'ai.google',
     defaultLanguage: 'en',
 
@@ -348,11 +355,12 @@ export const SEARCH_ENGINE_CONFIG: Record<SearchEngine, SearchEngineConfig> = {
       return `https://www.google.com/search?${params.toString()}`
     },
     detectBlock: (currentUrl) => {
-      if (!currentUrl) return
+      if (!currentUrl) {
+        return
+      }
       if (currentUrl.includes('/sorry/') || currentUrl.includes('consent.')) {
         return 'ai.google.blocked'
       }
-      return
     },
     parseErrorKey: 'ai.google.parseFailed',
     navigationErrorKey: 'ai.google.navigationFailed',
@@ -369,7 +377,7 @@ export const SEARCH_ENGINE_CONFIG: Record<SearchEngine, SearchEngineConfig> = {
     key: 'duckduckgoSearch',
     engine: 'duckduckgo',
     description:
-      'Perform a Chrome-powered DuckDuckGo search to gather references. Returns organic results with title, url, siteName, and snippet.',
+      'Perform a browser-powered DuckDuckGo search to gather references. Returns organic results with title, url, siteName, and snippet.',
     logScope: 'ai.duckduckgo',
     defaultLanguage: 'en-US',
 
@@ -393,11 +401,12 @@ export const SEARCH_ENGINE_CONFIG: Record<SearchEngine, SearchEngineConfig> = {
       return `https://duckduckgo.com/?${params.toString()}`
     },
     detectBlock: (currentUrl) => {
-      if (!currentUrl) return
+      if (!currentUrl) {
+        return
+      }
       if (currentUrl.includes('captcha') || currentUrl.includes('/sorry/')) {
         return 'ai.duckduckgo.blocked'
       }
-      return
     },
     parseErrorKey: 'ai.duckduckgo.parseFailed',
     navigationErrorKey: 'ai.duckduckgo.navigationFailed',
@@ -413,81 +422,12 @@ export const SEARCH_ENGINE_CONFIG: Record<SearchEngine, SearchEngineConfig> = {
   },
 }
 
-// Interactive Search Solving
-const runInteractiveSolve = async (options: {
-  searchUrl: string
-  config: SearchEngineConfig
-  maxResults: number
-}): Promise<SearchResult[] | null> => {
-  const { searchUrl, config, maxResults } = options
-  await interactiveSolveGate.acquire()
-
-  let page: Page | null = null
-
-  try {
-    await chromeManager.closeHeadless()
-    page = await chromeManager.newInteractivePage()
-    await page.goto(searchUrl, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000,
-    })
-
-    await dialog.showMessageBox({
-      type: 'info',
-      title: i18n.t('ai.search.solveVerification.title'),
-      message: i18n.t('ai.search.solveVerification.message'),
-    })
-
-    const deadline = Date.now() + INTERACTIVE_SOLVE_TIMEOUT_MS
-    while (Date.now() < deadline) {
-      try {
-        const results = (await page.evaluate(
-          config.extractor,
-        )) as SearchResult[]
-        if (Array.isArray(results) && results.length > 0) {
-          log.info(`[${config.logScope}] interactive solve succeeded`, {
-            count: results.length,
-          })
-          return results.slice(0, maxResults)
-        }
-      } catch (error) {
-        log.debug(`[${config.logScope}] interactive polling failed`, { error })
-      }
-      await delay(INTERACTIVE_POLL_INTERVAL_MS)
-    }
-
-    log.warn(`[${config.logScope}] interactive solve timed out`)
-    return null
-  } catch (error) {
-    log.error(`[${config.logScope}] interactive solve failed`, { error })
-    return null
-  } finally {
-    try {
-      if (page && !page.isClosed()) {
-        await page.close()
-      }
-    } catch (error) {
-      log.warn('[ai.chrome] failed to close interactive page', { error })
-    }
-
-    try {
-      await chromeManager.closeInteractive()
-    } catch (error) {
-      log.warn('[ai.chrome] failed to close interactive browser', { error })
-    }
-
-    interactiveSolveGate.release()
-  }
-}
-
 // Core Search Logic
 export const executeHeadlessSearch = async (
   config: SearchEngineConfig,
   params: SearchParams,
   preferredLanguage?: string,
 ): Promise<SearchResponse> => {
-  await searchConcurrencyGate.acquire()
-
   const resolvedLanguage =
     config.normalizeLanguage?.(params.language, preferredLanguage) ||
     params.language ||
@@ -496,12 +436,11 @@ export const executeHeadlessSearch = async (
 
   const num = Math.min(Math.max(params.maxResults, 1), config.maxResultsLimit)
 
-  const searchArgs: SearchExecutionArgs = {
+  const searchUrl = config.buildUrl({
     query: params.query,
     language: resolvedLanguage,
     maxResults: num,
-  }
-  const searchUrl = config.buildUrl(searchArgs)
+  })
 
   log.debug(`[${config.logScope}] performing search`, {
     query: params.query,
@@ -510,112 +449,50 @@ export const executeHeadlessSearch = async (
     searchUrl,
   })
 
-  let page: Page | null = null
-
   try {
-    page = await chromeManager.newPage()
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': resolvedLanguage,
-    })
+    return await agentBrowserManager.run(async (browser) => {
+      await browser.open(searchUrl, { userAgent: HEADLESS_USER_AGENT })
 
-    await page.goto(searchUrl, {
-      waitUntil: 'domcontentloaded',
-      timeout: config.waitTimeoutMs ?? 12000,
-    })
-
-    const currentUrl = page.url()
-    const blockedKey = config.detectBlock?.(currentUrl)
-    if (blockedKey) {
-      await page.close().catch((error) => {
-        log.warn(`[${config.logScope}] closing blocked page failed`, {
-          error,
-        })
-      })
-      page = null
-
-      const interactiveResults = await runInteractiveSolve({
-        searchUrl,
-        config,
-        maxResults: num,
-      })
-
-      if (interactiveResults && interactiveResults.length > 0) {
-        return {
-          ok: true,
-          results: interactiveResults,
-        }
+      const currentUrl = await browser.getCurrentUrl()
+      const blockedKey = config.detectBlock?.(currentUrl)
+      if (blockedKey) {
+        return { ok: false, error: blockedKey }
       }
 
-      return { ok: false, error: blockedKey }
-    }
-
-    if (config.waitSelectors.length > 0) {
-      try {
-        await page.waitForFunction(
-          (selectors: string[]) =>
-            selectors.some((selector) =>
-              Boolean(document.querySelector(selector)),
-            ),
-          { timeout: config.waitTimeoutMs ?? 8000 },
+      if (config.waitSelectors.length > 0) {
+        const condition = `${JSON.stringify(
           config.waitSelectors,
-        )
-      } catch (waitError) {
-        log.debug(`[${config.logScope}] waitForFunction timed out`, {
-          waitError,
-          query: params.query,
-        })
+        )}.some((selector) => Boolean(document.querySelector(selector)))`
+        await browser.waitForCondition(condition, config.waitTimeoutMs ?? 8000)
       }
-    }
 
-    const results = await page.evaluate(config.extractor)
+      const results = await browser.evaluateFn(config.extractor)
 
-    log.info(`[${config.logScope}] search results`, {
-      count: Array.isArray(results) ? results.length : 0,
+      if (!Array.isArray(results)) {
+        return { ok: false, error: config.parseErrorKey }
+      }
+
+      log.info(`[${config.logScope}] search results`, {
+        count: results.length,
+      })
+
+      return { ok: true, results: results.slice(0, num) }
     })
-
-    if (!Array.isArray(results)) {
-      return { ok: false, error: config.parseErrorKey }
-    }
-
-    log.info(`[${config.logScope}] search results`, {
-      results,
-    })
-
-    return {
-      ok: true,
-      results: results.slice(0, num),
-    }
   } catch (error) {
     log.error(`[${config.logScope}] search failed`, {
       query: params.query,
       error,
     })
-    if (error instanceof ChromeNotFoundError) {
-      return { ok: false, error: 'ai.search.chromeNotFound' }
+    if (error instanceof AgentBrowserNotFoundError) {
+      return { ok: false, error: 'ai.search.agentBrowserNotFound' }
     }
-    if (error instanceof ChromeLaunchError) {
-      return { ok: false, error: 'ai.search.chromeLaunchFailed' }
-    }
-    if (error instanceof ChromePageError) {
-      return { ok: false, error: 'ai.search.chromePageFailed' }
-    }
-
-    const isParseIssue = error instanceof Error && error.name === 'TimeoutError'
-    if (isParseIssue) {
-      return { ok: false, error: config.parseErrorKey }
+    if (error instanceof AgentBrowserError) {
+      if (/navigation/i.test(error.message)) {
+        return { ok: false, error: config.navigationErrorKey }
+      }
+      return { ok: false, error: 'ai.search.agentBrowserFailed' }
     }
     return { ok: false, error: config.navigationErrorKey }
-  } finally {
-    if (page) {
-      try {
-        if (!page.isClosed()) {
-          await page.close()
-        }
-      } catch (closeError) {
-        log.warn(`[${config.logScope}] failed to close tab`, closeError)
-      }
-    }
-    searchConcurrencyGate.release()
   }
 }
 
@@ -688,7 +565,9 @@ export const createSearchTools = (
   const uniqueEngines = Array.from(new Set(engines))
   for (const engine of uniqueEngines) {
     const config = SEARCH_ENGINE_CONFIG[engine]
-    if (!config) continue
+    if (!config) {
+      continue
+    }
     Reflect.set(
       tools,
       config.key,
@@ -717,13 +596,19 @@ export const resolveSearchOption = (
       engines: SearchEngine[]
     }
   | undefined => {
-  if (!searchOption) return undefined
-  if (searchOption === 'native') return { mode: 'native' }
+  if (!searchOption) {
+    return undefined
+  }
+  if (searchOption === 'native') {
+    return { mode: 'native' }
+  }
   if (searchOption === 'headless') {
     return { mode: 'headless', engines: DEFAULT_SEARCH_ENGINES }
   }
   const mode = searchOption.mode ?? 'headless'
-  if (mode === 'native') return { mode: 'native' }
+  if (mode === 'native') {
+    return { mode: 'native' }
+  }
   const engines =
     searchOption.engines && searchOption.engines.length > 0
       ? searchOption.engines

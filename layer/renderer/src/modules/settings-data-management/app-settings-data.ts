@@ -46,11 +46,10 @@ const EXPORTABLE_LOCAL_STORAGE_KEYS = new Set<string>(
   ),
 )
 
-const hasOwn = (object: object, key: PropertyKey) =>
-  Object.prototype.hasOwnProperty.call(object, key)
+const hasOwn = (object: object, key: PropertyKey) => Object.hasOwn(object, key)
 
 const desktopAppSettingsSchema = z.object({
-  chromeExecutablePath: z.string().nullable().optional(),
+  agentBrowserPath: z.string().nullable().optional(),
   aiPreferredProviders: z.array(z.string()).optional(),
 })
 
@@ -128,7 +127,9 @@ function collectManagedLocalStorageEntries(): Record<string, string> {
   const entries: Record<string, string> = {}
   EXPORTABLE_LOCAL_STORAGE_KEYS.forEach((key) => {
     const value = localStorage.getItem(key)
-    if (value == null) return
+    if (value == null) {
+      return
+    }
     entries[key] = value
   })
 
@@ -144,10 +145,16 @@ function normalizeAiProviderOrder(order?: unknown): AiProviderId[] {
   const normalized: AiProviderId[] = []
 
   for (const value of order) {
-    if (typeof value !== 'string') continue
-    if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) continue
+    if (typeof value !== 'string') {
+      continue
+    }
+    if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) {
+      continue
+    }
     const id = value as AiProviderId
-    if (seen.has(id)) continue
+    if (seen.has(id)) {
+      continue
+    }
     seen.add(id)
     normalized.push(id)
   }
@@ -164,9 +171,13 @@ function normalizeAiProviderOrder(order?: unknown): AiProviderId[] {
 async function collectDesktopAppSettings(): Promise<
   DesktopAppSettingsExport | undefined
 > {
-  if (!ELECTRON) return undefined
+  if (!ELECTRON) {
+    return undefined
+  }
   const service = ipcServices?.appSettings
-  if (!service) return undefined
+  if (!service) {
+    return undefined
+  }
 
   const [searchSettings, aiSettings] = await Promise.all([
     service.getSearchSettings?.() ?? Promise.resolve(),
@@ -176,10 +187,10 @@ async function collectDesktopAppSettings(): Promise<
   const payload: DesktopAppSettingsExport = {}
   let hasValue = false
 
-  if (searchSettings && 'chromeExecutablePath' in searchSettings) {
-    payload.chromeExecutablePath =
-      typeof searchSettings.chromeExecutablePath === 'string'
-        ? searchSettings.chromeExecutablePath
+  if (searchSettings && 'agentBrowserPath' in searchSettings) {
+    payload.agentBrowserPath =
+      typeof searchSettings.agentBrowserPath === 'string'
+        ? searchSettings.agentBrowserPath
         : null
     hasValue = true
   }
@@ -197,9 +208,13 @@ async function collectDesktopAppSettings(): Promise<
 async function collectApiTokenExport(): Promise<
   AppSettingsExport['apiTokens']
 > {
-  if (!ELECTRON) return undefined
+  if (!ELECTRON) {
+    return undefined
+  }
   const service = ipcServices?.apiTokens
-  if (!service?.listSlots || !service.getValue) return undefined
+  if (!service?.listSlots || !service.getValue) {
+    return undefined
+  }
 
   try {
     const summaries = await service.listSlots()
@@ -209,12 +224,20 @@ async function collectApiTokenExport(): Promise<
 
     const slots: Array<z.infer<typeof apiTokenSlotExportSchema>> = []
     for (const summary of summaries) {
-      if (!summary?.hasValue) continue
-      if (!summary.id) continue
+      if (!summary?.hasValue) {
+        continue
+      }
+      if (!summary.id) {
+        continue
+      }
       const value = await service.getValue(summary.id)
-      if (typeof value !== 'string') continue
+      if (typeof value !== 'string') {
+        continue
+      }
       const trimmed = value.trim()
-      if (!trimmed) continue
+      if (!trimmed) {
+        continue
+      }
       slots.push({
         id: summary.id,
         value: trimmed,
@@ -235,7 +258,9 @@ async function collectMultiServerExport(): Promise<
   AppSettingsExport['multiServer']
 > {
   const config = loadMultiServerConfig()
-  if (config.servers.length === 0) return undefined
+  if (config.servers.length === 0) {
+    return undefined
+  }
 
   const serversWithPasswords = await Promise.all(
     config.servers.map(async (server) => {
@@ -281,7 +306,9 @@ export async function exportAppSettingsAsString(): Promise<string> {
 }
 
 function clearManagedLocalStorage() {
-  if (typeof localStorage === 'undefined') return
+  if (typeof localStorage === 'undefined') {
+    return
+  }
 
   const existingConfig = loadMultiServerConfig()
 
@@ -295,13 +322,17 @@ function clearManagedLocalStorage() {
 }
 
 function applyLocalStorageEntries(entries: Record<string, string>): number {
-  if (typeof localStorage === 'undefined') return 0
+  if (typeof localStorage === 'undefined') {
+    return 0
+  }
 
   clearManagedLocalStorage()
 
   let applied = 0
   for (const [key, value] of Object.entries(entries)) {
-    if (!EXPORTABLE_LOCAL_STORAGE_KEYS.has(key)) continue
+    if (!EXPORTABLE_LOCAL_STORAGE_KEYS.has(key)) {
+      continue
+    }
     localStorage.setItem(key, value)
     applied += 1
   }
@@ -352,7 +383,9 @@ async function applyMultiServerConfig(
   await Promise.all(
     input.servers.map(async (server) => {
       const password = server.config.password ?? ''
-      if (!password) return
+      if (!password) {
+        return
+      }
       await saveServerPassword(server.id, password)
     }),
   )
@@ -363,24 +396,25 @@ async function applyMultiServerConfig(
 async function applyDesktopAppSettings(
   input?: DesktopAppSettingsExport,
 ): Promise<number> {
-  if (!ELECTRON) return 0
-  if (!input) return 0
+  if (!ELECTRON) {
+    return 0
+  }
+  if (!input) {
+    return 0
+  }
 
   const service = ipcServices?.appSettings
-  if (!service) return 0
+  if (!service) {
+    return 0
+  }
 
   let applied = 0
 
-  if (
-    hasOwn(input, 'chromeExecutablePath') &&
-    service.setChromeExecutablePath
-  ) {
-    const chromeExecutablePath =
-      typeof input.chromeExecutablePath === 'string'
-        ? input.chromeExecutablePath
-        : null
+  if (hasOwn(input, 'agentBrowserPath') && service.setAgentBrowserPath) {
+    const agentBrowserPath =
+      typeof input.agentBrowserPath === 'string' ? input.agentBrowserPath : null
 
-    await service.setChromeExecutablePath({ chromeExecutablePath })
+    await service.setAgentBrowserPath({ agentBrowserPath })
     applied += 1
   }
 
@@ -402,7 +436,9 @@ const apiTokenSlotMap = new Map(API_TOKEN_SLOTS.map((slot) => [slot.id, slot]))
 
 function resolveTokenEncryptionPreference(id: string): 'safeStorage' | 'plain' {
   const definition = apiTokenSlotMap.get(id as ApiTokenSlotId)
-  if (!definition) return 'safeStorage'
+  if (!definition) {
+    return 'safeStorage'
+  }
   const type = definition.inputType
   return type === 'text' || type === 'url' ? 'plain' : 'safeStorage'
 }
@@ -410,8 +446,12 @@ function resolveTokenEncryptionPreference(id: string): 'safeStorage' | 'plain' {
 async function applyApiTokens(
   input?: AppSettingsExport['apiTokens'],
 ): Promise<number> {
-  if (!ELECTRON) return 0
-  if (!input) return 0
+  if (!ELECTRON) {
+    return 0
+  }
+  if (!input) {
+    return 0
+  }
 
   const service = ipcServices?.apiTokens
   if (!service?.listSlots || !service.clearValue || !service.setValue) {
@@ -435,9 +475,13 @@ async function applyApiTokens(
   let applied = 0
 
   for (const slot of input.slots) {
-    if (!slot?.id) continue
+    if (!slot?.id) {
+      continue
+    }
     const value = typeof slot.value === 'string' ? slot.value.trim() : ''
-    if (!value) continue
+    if (!value) {
+      continue
+    }
 
     try {
       await service.setValue({
