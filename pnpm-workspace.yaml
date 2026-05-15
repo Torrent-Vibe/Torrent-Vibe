@@ -5,8 +5,10 @@ patchedDependencies:
   linkedom: patches/linkedom.patch
 nodeLinker: hoisted
 autoInstallPeers: false
+blockExoticSubdeps: false
 allowBuilds:
   "@tailwindcss/oxide": true
+  bufferutil: false
   electron: true
   electron-window-corner-addon: true
   electron-winstaller: true
@@ -16,3 +18,4 @@ allowBuilds:
   simple-git-hooks: true
   sqlite3: true
   unrs-resolver: true
+  utf-8-validate: false

@@ -1,20 +1,21 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ESNext",
     "lib": [
       "ESNext"
     ],
+    "baseUrl": ".",
+    "rootDir": "src",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
     "declaration": true,
-    "composite": true,
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
     "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "."
+    "isolatedModules": true,
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "src/**/*"

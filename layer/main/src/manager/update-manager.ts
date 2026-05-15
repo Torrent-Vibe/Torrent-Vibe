@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 
-import { app } from 'electron/main'
+import { app } from 'electron'
 import log from 'electron-log'
 import { join } from 'pathe'
 import { extract, list } from 'tar'
@@ -25,7 +25,9 @@ export class UpdateManager {
   private static instance: UpdateManager | null = null
   private logger = log.scope('UpdateManager')
   static getInstance(): UpdateManager {
-    if (!this.instance) this.instance = new UpdateManager()
+    if (!this.instance) {
+      this.instance = new UpdateManager()
+    }
     return this.instance
   }
 
@@ -50,7 +52,8 @@ export class UpdateManager {
     const legacy = join(base, 'security', 'update_pubkey.pem')
     try {
       return readFileSync(signPubPref, 'utf8')
-    } catch {
+    }
+    catch {
       return readFileSync(legacy, 'utf8')
     }
   }
@@ -65,13 +68,18 @@ export class UpdateManager {
 
   private readCurrentMainHashFromPackage(): string | null {
     try {
-      if (!app.isPackaged) return null
+      if (!app.isPackaged) {
+        return null
+      }
       const pkgPath = join(app.getAppPath(), 'package.json')
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as any
       const hash: string | undefined = pkg.mainHash
-      if (!hash) return null
+      if (!hash) {
+        return null
+      }
       return String(hash)
-    } catch (e) {
+    }
+    catch (e) {
       this.logger.error('Failed to read mainHash from package.json:', e)
       return null
     }
@@ -89,9 +97,9 @@ export class UpdateManager {
       })
 
       // Check if all entries start with 'dist/' (indicating a dist wrapper)
-      const hasDistWrapper =
-        entries.length > 0 &&
-        entries.every((entry) => entry.startsWith('dist/') || entry === 'dist')
+      const hasDistWrapper
+        = entries.length > 0
+          && entries.every(entry => entry.startsWith('dist/') || entry === 'dist')
 
       const stripLevels = hasDistWrapper ? 1 : 0
       this.logger.info(
@@ -104,7 +112,8 @@ export class UpdateManager {
         strip: stripLevels,
       })
       this.logger.info(`Successfully extracted ${tarGzPath} to ${dest}`)
-    } catch (error) {
+    }
+    catch (error) {
       this.logger.error(`Failed to extract ${tarGzPath}:`, error)
       throw new Error(
         `Extraction failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -116,7 +125,8 @@ export class UpdateManager {
     let fd: number | null = null
     try {
       fd = this.acquireLock()
-    } catch {
+    }
+    catch {
       throw new Error('Another update is in progress')
     }
     try {
@@ -134,16 +144,20 @@ export class UpdateManager {
 
         // Compatibility is validated in UpdateService using manifest.yaml
         try {
-          if (!existsSync(this.updateDir))
+          if (!existsSync(this.updateDir)) {
             mkdirSync(this.updateDir, { recursive: true })
+          }
           const tarGzPath = join(this.updateDir, `${parsed.version}.tar.gz`)
           this.logger.info(`Writing decrypted update package to: ${tarGzPath}`)
           writeFileSync(tarGzPath, decrypted)
           const dest = join(this.updateDir, parsed.version)
-          if (!existsSync(dest)) mkdirSync(dest)
+          if (!existsSync(dest)) {
+            mkdirSync(dest)
+          }
           await this.extractTarGz(tarGzPath, dest)
           unlinkSync(tarGzPath)
-        } catch (e) {
+        }
+        catch (e) {
           this.logger.error(
             'Failed to extract update package, write to disk failed:',
             e,
@@ -152,13 +166,17 @@ export class UpdateManager {
             'Failed to extract update package, write to disk failed',
           )
         }
-      } catch {
+      }
+      catch {
         throw new Error(
           'Failed to decrypt update package, maybe the app is outdated, please update to the latest version',
         )
       }
-    } finally {
-      if (fd !== null) this.releaseLock(fd)
+    }
+    finally {
+      if (fd !== null) {
+        this.releaseLock(fd)
+      }
     }
   }
 }
