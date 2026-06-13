@@ -259,31 +259,40 @@ function TorrentTableVirtualViewport({
         event.currentTarget.focus({ preventScroll: true })
       }}
     >
-      <MemoTableHeader {...tableConfig} columnMenu={columnMenu} />
-
-      <DragOverlay>
-        {dragState.isDragging && dragState.draggedColumnId
-          ? (
-              <DragPreview columnId={dragState.draggedColumnId}>
-                {titleCase(dragState.draggedColumnId)}
-              </DragPreview>
-            )
-          : null}
-      </DragOverlay>
-
       <div
-        ref={setBodyElement}
-        className="relative min-h-0 flex-1 overflow-hidden"
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden"
         onWheel={handleWheel}
       >
-        <TableBody
-          {...tableConfig}
-          rowVirtualizer={rowVirtualizer}
-          viewportHeight={bodyHeight}
-          headerHeight={headerHeight}
-          isScrolling={isScrolling}
-          logicalScrollMode
-        />
+        <div
+          className="flex h-full min-w-full flex-col"
+          style={{ minWidth: tableConfig.minTableWidth }}
+        >
+          <MemoTableHeader {...tableConfig} columnMenu={columnMenu} />
+
+          <DragOverlay>
+            {dragState.isDragging && dragState.draggedColumnId
+              ? (
+                  <DragPreview columnId={dragState.draggedColumnId}>
+                    {titleCase(dragState.draggedColumnId)}
+                  </DragPreview>
+                )
+              : null}
+          </DragOverlay>
+
+          <div
+            ref={setBodyElement}
+            className="relative min-h-0 flex-1 overflow-hidden"
+          >
+            <TableBody
+              {...tableConfig}
+              rowVirtualizer={rowVirtualizer}
+              viewportHeight={bodyHeight}
+              headerHeight={headerHeight}
+              isScrolling={isScrolling}
+              logicalScrollMode
+            />
+          </div>
+        </div>
       </div>
 
       <LogicalVerticalScrollbar

@@ -393,6 +393,10 @@ export const useTorrentTableVirtualization = (
 
   const handleWheel = React.useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
+      if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+        return
+      }
+
       const delta = normalizeWheelDelta(event, bodyHeight)
       if (delta === 0) {
         return

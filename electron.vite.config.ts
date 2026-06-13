@@ -10,6 +10,16 @@ import viteConfig from './vite.config'
 
 const PWD = fileURLToPath(new URL('./', import.meta.url))
 const ROOT = join(PWD, 'layer/renderer')
+const ELECTRON_EXTERNALS = ['electron', /^electron\//]
+const MAIN_PROCESS_EXTERNALS = [
+  ...ELECTRON_EXTERNALS,
+  'electron-liquid-glass',
+  'sqlite3',
+  'bindings',
+  'node-gyp-build',
+  'bufferutil',
+  'utf-8-validate',
+]
 
 export default defineConfig({
   main: {
@@ -20,7 +30,7 @@ export default defineConfig({
         entry: './layer/main/src/index.ts',
       },
       rollupOptions: {
-        external: ['electron-liquid-glass'],
+        external: MAIN_PROCESS_EXTERNALS,
       },
     },
     resolve: {
@@ -45,6 +55,7 @@ export default defineConfig({
       },
       // bundle cjs
       rollupOptions: {
+        external: ELECTRON_EXTERNALS,
         output: {
           format: 'cjs',
         },
