@@ -1,22 +1,8 @@
-import type { AppErrorCode } from '@torrent-vibe/shared'
-
 import type { UpdaterUiStatus } from '~/updater/status'
 
 export interface BridgeEventMap {
   // Updater status push (Sparkle on macOS, electron-updater on win/linux)
   'updater:status': UpdaterUiStatus
-
-  // Update events
-  'update:checking': { startedAt: string }
-  'update:ready': { version: string, prerelease: boolean }
-  'update:progress': { percent: number, transferred: number, total: number }
-  'update:error': { message: string, code?: AppErrorCode, downloadUrl?: string }
-  'update:downloaded': { version: string }
-  'update:uptodate': {
-    reason: 'no-release' | 'up-to-date' | 'older-than-app' | 'incompatible'
-    installed?: string | null
-    latest?: string | null
-  }
 
   // File open events (OS-level association)
   'file:open-torrents': {

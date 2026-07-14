@@ -6,19 +6,21 @@ export const VersionsSection = () => {
   const [appVersion, setAppVersion] = useState<string>('')
   const [appBuildTime, setAppBuildTime] = useState<string | null>(null)
   const [rendererVersion, setRendererVersion] = useState<string | null>(null)
-  const [rendererSource, setRendererSource] = useState<
-    'hot-update' | 'bundled' | 'dev'
-  >('bundled')
+  const [isDevRenderer, setIsDevRenderer] = useState(false)
 
   useEffect(() => {
     let mounted = true
-    if (!ELECTRON) return
+    if (!ELECTRON) {
+      return
+    }
     ipcServices?.app.getVersions().then((v) => {
-      if (!mounted) return
+      if (!mounted) {
+        return
+      }
       setAppVersion(v.appVersion)
       setAppBuildTime(v.appBuildTime)
       setRendererVersion(v.rendererVersion)
-      setRendererSource(v.rendererSource)
+      setIsDevRenderer(v.rendererSource === 'dev')
     })
     return () => {
       mounted = false
@@ -44,11 +46,7 @@ export const VersionsSection = () => {
           Renderer version:
         </span>
         <span className="text-text">
-          {rendererSource === 'dev'
-            ? 'Dev server'
-            : rendererVersion
-              ? `${rendererVersion} (${rendererSource})`
-              : 'Bundled renderer'}
+          {isDevRenderer ? 'Dev server' : rendererVersion || 'Bundled renderer'}
         </span>
       </div>
     </div>

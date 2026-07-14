@@ -7,24 +7,14 @@ import { FloatingUpdatePill } from './FloatingUpdatePill'
 export const UpdateNotificationDemo = () => {
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
 
-  const showDownloadingState = () => {
-    setUpdateState({
-      version: '2.1.0',
-      isDownloading: true,
-      downloadProgress: 45,
-    })
-  }
-
   const showReadyState = () => {
     setUpdateState({
       version: '2.1.0',
-      isDownloading: false,
     })
   }
 
   const showErrorState = () => {
     setUpdateState({
-      isDownloading: false,
       hasError: true,
       errorMessage: 'Network connection failed',
     })
@@ -40,9 +30,6 @@ export const UpdateNotificationDemo = () => {
         Update Notification Demo
       </h3>
       <div className="flex flex-col gap-2">
-        <Button size="sm" onClick={showDownloadingState}>
-          Show Downloading
-        </Button>
         <Button size="sm" onClick={showReadyState}>
           Show Ready
         </Button>
@@ -56,9 +43,9 @@ export const UpdateNotificationDemo = () => {
 
       <FloatingUpdatePill
         updateState={updateState}
-        onInstall={() => console.info('Install clicked')}
-        onLater={() => console.info('Later clicked')}
-        onRetry={() => console.info('Retry clicked')}
+        onInstall={() => console.warn('Install clicked')}
+        onLater={() => console.warn('Later clicked')}
+        onRetry={() => console.warn('Retry clicked')}
         onDismiss={() => setUpdateState(null)}
       />
     </div>
