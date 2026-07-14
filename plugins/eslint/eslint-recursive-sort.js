@@ -4,7 +4,7 @@ const sortObjectKeys = (obj) => {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((element) => sortObjectKeys(element))
+    return obj.map(element => sortObjectKeys(element))
   }
 
   return Object.keys(obj)
@@ -27,8 +27,8 @@ export default {
       create(context) {
         return {
           Program(node) {
-            if (context.getFilename().endsWith('.json')) {
-              const sourceCode = context.getSourceCode()
+            if (context.filename.endsWith('.json')) {
+              const sourceCode = context.sourceCode
               const text = sourceCode.getText()
 
               try {
@@ -45,7 +45,8 @@ export default {
                     },
                   })
                 }
-              } catch (error) {
+              }
+              catch (error) {
                 context.report({
                   node,
                   message: `Invalid JSON: ${error.message}`,
