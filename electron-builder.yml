@@ -1,0 +1,95 @@
+appId: dev.innei.torrentvibe.client
+productName: Torrent Vibe
+icon: resources/icon
+directories:
+  output: release
+afterPack: scripts/afterPack.cjs
+publish:
+  provider: github
+  owner: Torrent-Vibe
+  repo: Torrent-Vibe
+files:
+  - dist/main/**
+  - dist/preload/**
+  - dist/renderer/**
+  - resources/icon.png
+  - native/sparkle-bridge/build/**
+  - package.json
+  - "!**/*.ts"
+  - "!**/*.map"
+asarUnpack:
+  - "**/*.{node,dylib,so}"
+  - "**/native/sparkle-bridge/build/**"
+protocols:
+  - name: Magnet Link
+    schemes:
+      - magnet
+dmg:
+  writeUpdateInfo: false
+  artifactName: Torrent.Vibe-${version}-macos-${arch}.${ext}
+zip:
+  writeUpdateInfo: false
+mac:
+  icon: resources/icon.icns
+  category: public.app-category.utilities
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  identity: null
+  artifactName: Torrent.Vibe-${version}-macos-${arch}.${ext}
+  extraFiles:
+    - from: native/sparkle-bridge/vendor/Sparkle.framework
+      to: Frameworks/Sparkle.framework
+  extendInfo:
+    ITSAppUsesNonExemptEncryption: false
+    SUFeedURL: https://github.com/Torrent-Vibe/Torrent-Vibe/releases/latest/download/appcast.xml
+    # CI injects the real EdDSA public key over this placeholder at build time — keep it
+    # greppable (SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER) so that step has a stable anchor.
+    SUPublicEDKey: SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER
+    SUEnableInstallerLauncherService: false
+    SUScheduledCheckInterval: 3600
+    UTImportedTypeDeclarations:
+      - UTTypeIdentifier: org.bittorrent.torrent
+        UTTypeDescription: BitTorrent Document
+        UTTypeConformsTo:
+          - public.data
+        UTTypeTagSpecification:
+          public.filename-extension:
+            - torrent
+          public.mime-type: application/x-bittorrent
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: BitTorrent Document
+        LSItemContentTypes:
+          - org.bittorrent.torrent
+        CFBundleTypeRole: Viewer
+        LSHandlerRank: Owner
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: Torrent.Vibe-${version}-windows-${arch}.${ext}
+nsis:
+  artifactName: Torrent.Vibe-${version}-windows-${arch}.${ext}
+linux:
+  icon: resources/icon.png
+  category: Network
+  target:
+    - target: AppImage
+      arch: [x64]
+  artifactName: Torrent.Vibe-${version}-linux-${arch}.${ext}
+  mimeTypes:
+    - application/x-bittorrent
+  desktop:
+    entry:
+      Name: Torrent Vibe
+      Comment: A modern qBittorrent Web UI client
+      Categories: Network;FileTransfer;P2P;
+      Keywords: torrent;bittorrent;p2p;download;
+      StartupNotify: "true"
+      Terminal: "false"
+      Type: Application
+appImage:
+  artifactName: Torrent.Vibe-${version}-linux-${arch}.${ext}

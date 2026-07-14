@@ -2,6 +2,7 @@ packages:
   - layer/*
   - packages/*
 patchedDependencies:
+  app-builder-lib@26.15.3: patches/app-builder-lib@26.15.3.patch
   linkedom: patches/linkedom.patch
 nodeLinker: hoisted
 autoInstallPeers: false
