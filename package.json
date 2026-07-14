@@ -30,6 +30,7 @@
     "license:update": "node scripts/update-licenses.js",
     "lint": "eslint --fix",
     "prepare": "simple-git-hooks",
+    "release:dry-run": "bash scripts/release-dry-run.sh",
     "serve": "vite preview",
     "start:electron": "pnpm electron:build && electron .",
     "typecheck": "pnpm -F @torrent-vibe/renderer typecheck",

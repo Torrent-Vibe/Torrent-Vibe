@@ -1,0 +1,338 @@
+name: desktop-release
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag (desktop-vX.Y.Z), must already exist"
+        required: true
+        type: string
+
+concurrency:
+  group: desktop-release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+env:
+  SPARKLE_VERSION: "2.9.4"
+  SPARKLE_TARBALL_SHA256: "ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9"
+  REPO_SLUG: "Torrent-Vibe/Torrent-Vibe"
+
+jobs:
+  release-mac:
+    runs-on: macos-14
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: version consistency check (tag vs root package.json)
+        id: version
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF#refs/tags/}}"
+          case "$TAG" in
+            desktop-v*) ;;
+            *)
+              echo "::error::tag $TAG does not match desktop-vX.Y.Z"
+              exit 1
+              ;;
+          esac
+          TAG_VERSION="${TAG#desktop-v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::tag $TAG (version $TAG_VERSION) does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: assert Sparkle secrets present (fail fast — an empty public key would be silently baked into the app)
+        env:
+          SPARKLE_ED_PUBLIC_KEY: ${{ secrets.SPARKLE_ED_PUBLIC_KEY }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PUBLIC_KEY" ] || [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "::error::SPARKLE_ED_PUBLIC_KEY / SPARKLE_ED_PRIVATE_KEY repo secrets are missing or empty"
+            exit 1
+          fi
+
+      - name: extract release notes from CHANGELOG (fail fast, before the build)
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## " ver "( |$)" { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if ! grep -q '[^[:space:]]' "$NOTES_FILE"; then
+            echo "::error::no \"## $VERSION\" section found in CHANGELOG.md — add the section before tagging"
+            exit 1
+          fi
+          echo "file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          # only the content-addressable pnpm store is cached, never node_modules —
+          # a cached node_modules can carry a stale @electron/rebuild meta entry
+          # that lies about a native module already being built for Electron's ABI.
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck (main)
+        run: pnpm typecheck:main
+
+      - name: build native modules
+        run: pnpm build:native
+
+      - name: fetch Sparkle tools
+        run: |
+          curl -sSL -o /tmp/sparkle.tar.xz \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          echo "${SPARKLE_TARBALL_SHA256}  /tmp/sparkle.tar.xz" | shasum -a 256 -c -
+          mkdir -p /tmp/sparkle
+          tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle bin/
+          chmod +x /tmp/sparkle/bin/*
+          echo "/tmp/sparkle/bin" >> "$GITHUB_PATH"
+
+      - name: inject SUPublicEDKey into electron-builder.yml
+        env:
+          SPARKLE_ED_PUBLIC_KEY: ${{ secrets.SPARKLE_ED_PUBLIC_KEY }}
+        run: |
+          PLACEHOLDER="SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER"
+          if ! grep -q "$PLACEHOLDER" electron-builder.yml; then
+            echo "::error::placeholder $PLACEHOLDER not found in electron-builder.yml — has the Sparkle bridge integration point moved?"
+            exit 1
+          fi
+          sed -i '' "s|$PLACEHOLDER|$SPARKLE_ED_PUBLIC_KEY|" electron-builder.yml
+
+      - name: compile + package desktop (dmg + zip arm64, ad-hoc signed, no paid identity)
+        run: |
+          pnpm electron:build
+          pnpm exec electron-builder --mac dmg zip --arm64 --publish never
+
+      - name: verify ad-hoc signature (dmg + zip both embed the afterPack-signed app)
+        run: |
+          # electron-builder.yml's afterPack hook (scripts/afterPack.cjs)
+          # ad-hoc signs the .app once, before either target is packaged, so
+          # both the dmg and the zip embed an already-valid CodeDirectory —
+          # this step only has to confirm that, not re-sign or re-zip.
+          # generate_appcast refuses any archive whose .app doesn't pass
+          # `codesign --verify --deep --strict`.
+          ZIP_PATH="$PWD/$(echo release/*.zip)"
+          DMG_PATH="$PWD/$(echo release/*.dmg)"
+
+          ZIP_EXTRACT_DIR="$(mktemp -d)"
+          ditto -x -k "$ZIP_PATH" "$ZIP_EXTRACT_DIR"
+          codesign --verify --deep --strict "$ZIP_EXTRACT_DIR"/*.app
+          rm -rf "$ZIP_EXTRACT_DIR"
+
+          DMG_MOUNT_DIR="$(mktemp -d)"
+          hdiutil attach "$DMG_PATH" -mountpoint "$DMG_MOUNT_DIR" -nobrowse -quiet
+          codesign --verify --deep --strict "$DMG_MOUNT_DIR"/*.app
+          hdiutil detach "$DMG_MOUNT_DIR" -quiet
+
+      - name: prepare release archive dir
+        id: archive
+        run: |
+          ARCHIVE_DIR="$RUNNER_TEMP/release-archive"
+          mkdir -p "$ARCHIVE_DIR"
+          # only the zip goes into ARCHIVE_DIR — that's the directory
+          # generate_appcast scans, and an unsigned dmg would just be skipped
+          # with a warning (or worse, confuse delta-base detection). The dmg
+          # is uploaded to the release directly from release/.
+          cp release/*.zip "$ARCHIVE_DIR/"
+          # a .md with the same basename as the zip is how generate_appcast picks up
+          # release notes; with --embed-release-notes below they land in the appcast
+          # <description sparkle:format="markdown"> so the Sparkle dialog shows them.
+          ZIP_BASE="$(basename release/*.zip .zip)"
+          cp "${{ steps.notes.outputs.file }}" "$ARCHIVE_DIR/$ZIP_BASE.md"
+          {
+            echo "dir=$ARCHIVE_DIR"
+            echo "dmg_path=$(echo release/*.dmg)"
+            echo "zip_name=$(basename release/*.zip)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: fetch existing appcast + last 2 release archives (delta base)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # old zips are fetched into the same dir generate_appcast scans so it can
+          # diff them for deltas, but they must NOT be re-uploaded as this release's
+          # own assets — the publish step uploads only this release's own
+          # dmg (dmg_path) and zip (zip_name), captured above, plus appcast.xml + *.delta.
+          # $REPO_SLUG may also host non-desktop releases, so these queries filter
+          # to desktop-v* tags explicitly rather than trusting "latest across the
+          # whole repo" — an unrelated release published after a desktop one would
+          # otherwise get picked as the delta base.
+          ARCHIVE_DIR="${{ steps.archive.outputs.dir }}"
+          LATEST_TAG="$(gh release list --repo "$REPO_SLUG" --exclude-drafts --limit 20 --json tagName \
+            -q '[.[] | select(.tagName | startswith("desktop-v"))][0].tagName' 2>/dev/null || true)"
+          if [ -n "$LATEST_TAG" ]; then
+            gh release download --repo "$REPO_SLUG" --pattern 'appcast.xml' --dir "$ARCHIVE_DIR" "$LATEST_TAG" \
+              || echo "no appcast.xml asset on latest release $LATEST_TAG"
+          else
+            echo "no previous release (first release) — generate_appcast will create a fresh appcast.xml"
+          fi
+          PREV_TAGS="$(gh release list --repo "$REPO_SLUG" --exclude-drafts --limit 20 --json tagName \
+            -q '[.[] | select(.tagName | startswith("desktop-v"))][0:2][].tagName' 2>/dev/null || true)"
+          for T in $PREV_TAGS; do
+            gh release download --repo "$REPO_SLUG" --pattern '*.zip' --dir "$ARCHIVE_DIR" "$T" \
+              || echo "no zip asset on release $T, skipping"
+          done
+
+      - name: sign + generate appcast (EdDSA key lives only on a RAM disk)
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          ARCHIVE_DIR="${{ steps.archive.outputs.dir }}"
+          TAG="${{ steps.version.outputs.tag }}"
+
+          DEV="$(hdiutil attach -nomount ram://16384 | awk '{print $1}')"
+          diskutil erasevolume HFS+ SparkleKeyRAM "$DEV" >/dev/null
+          KEY_DIR="/Volumes/SparkleKeyRAM"
+          KEY_FILE="$KEY_DIR/ed_private_key"
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEY_FILE"
+
+          generate_appcast \
+            --ed-key-file "$KEY_FILE" \
+            --download-url-prefix "https://github.com/${REPO_SLUG}/releases/download/${TAG}/" \
+            --embed-release-notes \
+            --full-release-notes-url "https://github.com/${REPO_SLUG}/releases" \
+            "$ARCHIVE_DIR"
+
+          dd if=/dev/urandom of="$KEY_FILE" bs=1024 count=4 conv=notrunc 2>/dev/null
+          rm -f "$KEY_FILE"
+          hdiutil detach "$DEV"
+
+      - name: repoint old appcast enclosures at their own release tags
+        run: node .github/scripts/fix-appcast-enclosure-urls.mjs "${{ steps.archive.outputs.dir }}/appcast.xml" "$REPO_SLUG"
+
+      - name: publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          ARCHIVE_DIR="${{ steps.archive.outputs.dir }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          ASSETS=(
+            "${{ steps.archive.outputs.dmg_path }}"
+            "$ARCHIVE_DIR/${{ steps.archive.outputs.zip_name }}"
+            "$ARCHIVE_DIR/appcast.xml"
+            "$ARCHIVE_DIR"/*.delta
+          )
+          # published immediately (no --draft): the app's Sparkle feed points at
+          # releases/latest/download/appcast.xml, so publishing IS the rollout.
+          gh release create "$TAG" \
+            --repo "$REPO_SLUG" \
+            --title "Torrent Vibe $TAG" \
+            --notes-file "${{ steps.notes.outputs.file }}" \
+            "${ASSETS[@]}"
+
+  release-windows:
+    runs-on: windows-latest
+    needs: release-mac
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # native/build-all.sh only builds the sparkle-bridge addon, whose build.sh
+      # exits 0 on non-Darwin; the npm-dependency natives (sqlite3, bufferutil,
+      # utf-8-validate) are rebuilt for Electron's ABI by electron-builder's
+      # @electron/rebuild during packaging, so no build:native step is needed here.
+      - name: compile + package desktop (NSIS x64)
+        shell: bash
+        run: |
+          pnpm electron:build
+          pnpm electron:make:win32
+
+      - name: upload windows assets to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.release-mac.outputs.tag }}"
+          gh release upload "$TAG" --repo "$REPO_SLUG" --clobber \
+            release/*.exe \
+            release/latest.yml \
+            release/*.blockmap
+
+  release-linux:
+    runs-on: ubuntu-latest
+    needs: release-mac
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # native/build-all.sh only builds the sparkle-bridge addon (Darwin-only,
+      # no-ops here); the npm-dependency natives are rebuilt for Electron's ABI
+      # by electron-builder's @electron/rebuild during packaging.
+      - name: compile + package desktop (AppImage x64)
+        run: |
+          pnpm electron:build
+          pnpm electron:make:linux
+
+      - name: upload linux assets to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.release-mac.outputs.tag }}"
+          gh release upload "$TAG" --repo "$REPO_SLUG" --clobber \
+            release/*.AppImage \
+            release/latest-linux.yml

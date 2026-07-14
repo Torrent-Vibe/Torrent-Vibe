@@ -1,0 +1,66 @@
+name: 🚀 Web Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_OPTIONS: --max-old-space-size=8192
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Compute tag name
+        id: compute-tag
+        run: |
+          UTC_TAG=$(date -u +%Y%m%d%H%M%S)
+          TAG_NAME="web-v$UTC_TAG"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Computed tag: $TAG_NAME"
+
+      - name: Build Web Production
+        run: pnpm run build:production
+
+      - name: Create web artifact archive
+        run: |
+          cd layer/renderer/dist
+          mkdir -p public
+          find . -maxdepth 1 -mindepth 1 ! -name public -exec mv {} public/ \;
+          tar -czf ../../../qb-client-webui-web.tar.gz public/
+
+      - name: Upload web artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.compute-tag.outputs.tag_name }}
+          name: Web Release ${{ steps.compute-tag.outputs.tag_name }}
+          generate_release_notes: false
+          fail_on_unmatched_files: false
+          append_body: true
+          make_latest: false
+          files: |
+            qb-client-webui-web.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
