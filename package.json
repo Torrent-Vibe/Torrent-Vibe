@@ -52,7 +52,6 @@
     "@iconify-json/lucide": "1.2.112",
     "@iconify-json/mingcute": "1.2.7",
     "@innei/prettier": "^1.0.0",
-    "@pengx17/electron-forge-maker-appimage": "1.2.1",
     "@tailwindcss/container-queries": "0.1.1",
     "@tailwindcss/postcss": "4.3.1",
     "@tailwindcss/typography": "0.5.20",
