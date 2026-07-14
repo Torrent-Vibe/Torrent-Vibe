@@ -12,6 +12,7 @@ Release
 resources/native
 
 build
+native/sparkle-bridge/vendor/
 scripts/post-compile-apple/
 scripts/apple/Contents/
 resources/security/update_privkey.pem
