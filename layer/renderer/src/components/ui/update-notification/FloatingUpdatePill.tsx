@@ -33,12 +33,7 @@ const ReadyState = ({
 }) => (
   <div className="flex items-center gap-3">
     <i className="i-mingcute-check-circle-line text-green" />
-    <span className="text-sm text-text">
-      Update
-      {version}
-      {' '}
-      ready
-    </span>
+    <span className="text-sm text-text">{`Update ${version} ready`}</span>
     <div className="flex items-center gap-2">
       <Button
         variant="primary"
@@ -72,8 +67,7 @@ const ErrorState = ({
   <div className="flex items-center gap-3">
     <i className="i-mingcute-alert-circle-line text-red" />
     <span className="text-sm text-text">
-      Update failed:
-      {errorMessage}
+      {`Update failed: ${errorMessage}`}
     </span>
     <div className="flex items-center gap-2">
       <Button
