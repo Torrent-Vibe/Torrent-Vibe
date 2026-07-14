@@ -1,5 +1,5 @@
 import type { BridgeEventData } from '@torrent-vibe/main'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '~/components/ui/button/Button'
@@ -8,22 +8,39 @@ import { ipcServices } from '~/lib/ipc-client'
 
 type UpdaterStatus = BridgeEventData<'updater:status'>
 
+const CHECK_FALLBACK_TIMEOUT = 15000
+
 export const UpdateSection = () => {
   const { t } = useTranslation('setting')
   const [checking, setChecking] = useState(false)
   const [status, setStatus] = useState<UpdaterStatus>({ kind: 'unknown' })
+  const checkFallbackTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  const clearCheckFallbackTimer = () => {
+    if (checkFallbackTimerRef.current) {
+      clearTimeout(checkFallbackTimerRef.current)
+      checkFallbackTimerRef.current = null
+    }
+  }
 
   useBridgeEvent('updater:status', (next) => {
+    clearCheckFallbackTimer()
     setChecking(false)
     setStatus(next)
   })
 
   useEffect(() => {
     ipcServices?.updater.getStatus().then(setStatus)
+    return clearCheckFallbackTimer
   }, [])
 
   const onCheck = () => {
     setChecking(true)
+    clearCheckFallbackTimer()
+    checkFallbackTimerRef.current = setTimeout(() => {
+      checkFallbackTimerRef.current = null
+      setChecking(false)
+    }, CHECK_FALLBACK_TIMEOUT)
     ipcServices?.updater.check()
   }
 
