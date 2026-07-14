@@ -17,7 +17,7 @@
     "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 vite build --mode production",
     "build:turbo": "turbo run build --filter=@torrent-vibe/*",
     "dev": "vite",
-    "predev:electron": "pnpm build:native && node scripts/write-main-hash-dev.js",
+    "predev:electron": "pnpm build:native",
     "dev:electron": "node scripts/dev-electron.mjs",
     "electron:build": "vite build --config vite.config.electron.ts && tsdown",
     "electron:make": "electron-forge make",
@@ -34,8 +34,7 @@
     "typecheck": "pnpm -F @torrent-vibe/renderer typecheck",
     "typecheck:main": "pnpm -F @torrent-vibe/main typecheck",
     "typecheck:renderer": "pnpm -F @torrent-vibe/renderer typecheck",
-    "typecheck:turbo": "turbo run typecheck --filter=@torrent-vibe/*",
-    "update:generate-signing": "node scripts/generate-update-signing-keypair.js"
+    "typecheck:turbo": "turbo run typecheck --filter=@torrent-vibe/*"
   },
   "devDependencies": {
     "@egoist/tailwindcss-icons": "1.9.2",
@@ -106,6 +105,5 @@
       "eslint --fix"
     ]
   },
-  "productName": "Torrent Vibe",
-  "mainHash": "5793dd54e44596873cb5107329da4efb31fb6cfe7b49f5d6f45408907273ef94"
+  "productName": "Torrent Vibe"
 }

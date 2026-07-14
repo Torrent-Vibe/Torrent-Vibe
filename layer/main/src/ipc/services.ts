@@ -11,6 +11,7 @@ import { QBittorrentIPCService } from './qbittorrent.service'
 import { SecurityIPCService } from './security.service'
 import { SystemService } from './system.service'
 import { TorrentAiIPCService } from './torrent-ai.service'
+import { UpdaterService } from './updater.service'
 import { WindowService } from './window.service'
 
 export const services = createServices([
@@ -26,6 +27,7 @@ export const services = createServices([
   QBittorrentIPCService,
   FileSystemService,
   TorrentAiIPCService,
+  UpdaterService,
 ])
 
 export const initializeServices = () => {

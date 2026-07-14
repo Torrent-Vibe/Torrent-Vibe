@@ -1,7 +1,7 @@
 import { app, dialog } from 'electron'
 
 import { configureLogging, logSystemInfo } from './config/log-config'
-import { initializeServices, services } from './ipc/services'
+import { initializeServices } from './ipc/services'
 import { AppMenuManager } from './manager/app-menu'
 import { DefaultWindowContentLoader } from './manager/content-loader'
 import { DeeplinkManager } from './manager/deeplink-manager'
@@ -12,8 +12,8 @@ import { RendererLifecycleManager } from './manager/renderer-lifecycle'
 import { SessionManager } from './manager/session-manager'
 import { SingleInstanceManager } from './manager/single-instance-manager'
 import { WindowManager } from './manager/window-manager'
-import { UpdateService } from './services/update-service'
 import type { WindowManagerOptions } from './types/window-manager.types'
+import { initUpdater } from './updater'
 
 interface BootstrapOptions {
   // Development server configuration
@@ -40,8 +40,8 @@ class ElectronBootstrap {
     app.commandLine.appendSwitch('disable-web-security')
     app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
 
-    this.isDevelopment =
-      process.env.NODE_ENV === 'development' || !app.isPackaged
+    this.isDevelopment
+      = process.env.NODE_ENV === 'development' || !app.isPackaged
 
     this.options = {
       devServerPort: 5173, // Default Vite dev server port
@@ -127,11 +127,12 @@ class ElectronBootstrap {
       if (this.isDevelopment && this.options.enableDevTools) {
         try {
           // Dynamic import so build does not fail if dependency is missing in production
-          const { default: installExtension, REACT_DEVELOPER_TOOLS } =
-            await import('electron-devtools-installer')
+          const { default: installExtension, REACT_DEVELOPER_TOOLS }
+            = await import('electron-devtools-installer')
           await installExtension(REACT_DEVELOPER_TOOLS)
-          console.info('React DevTools installed')
-        } catch (e) {
+          console.warn('React DevTools installed')
+        }
+        catch (e) {
           // Non-fatal if not installed or fails
           console.warn('Failed to install React DevTools:', e)
         }
@@ -169,16 +170,10 @@ class ElectronBootstrap {
       // Flush queued opens (e.g., macOS open-file before ready)
       // Pending buffers are flushed by the managers upon ready
 
-      // Cleanup stale update resources at startup (best-effort)
-      try {
-        await UpdateService.shared.cleanup(2)
-      } catch (e) {
-        console.warn('Startup cleanup encountered issues:', e)
-      }
-
-      // Prioritized update flow: renderer hot-update first, then app updater
-      await services.app.checkForUpdate()
-    } catch (error) {
+      // Platform-split application updater: Sparkle on macOS, electron-updater elsewhere
+      initUpdater()
+    }
+    catch (error) {
       console.error('Failed to initialize Electron application:', error)
       await this.showErrorDialog('Initialization Error', String(error))
       app.quit()

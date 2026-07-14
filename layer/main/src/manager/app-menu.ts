@@ -5,7 +5,7 @@ import log from 'electron-log'
 
 import { APP_NAME, isDevelopment, isMacOS } from '~/constants'
 import { BridgeService } from '~/services/bridge-service'
-import { UpdateService } from '~/services/update-service'
+import { getUpdaterHandle } from '~/updater'
 
 import { i18n, t } from '../utils/i18n'
 import { WindowManager } from './window-manager'
@@ -59,7 +59,7 @@ export class AppMenuManager {
                 {
                   label: t('menu.checkForUpdates'),
                   click: () => {
-                    UpdateService.shared.checkAndPrepareUpdate()
+                    getUpdaterHandle().checkNow()
                   },
                 },
                 { type: 'separator' },
@@ -148,7 +148,9 @@ export class AppMenuManager {
               ?.isAlwaysOnTop(),
             click: () => {
               const mainWindow = WindowManager.getInstance().getMainWindow()
-              if (!mainWindow) return
+              if (!mainWindow) {
+                return
+              }
               mainWindow.setAlwaysOnTop(!mainWindow.isAlwaysOnTop())
               this.registerAppMenu()
             },

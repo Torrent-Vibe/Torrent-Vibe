@@ -2,7 +2,6 @@ import { app, nativeTheme, shell } from 'electron'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { WindowManager } from '~/manager/window-manager'
-import { UpdateService } from '~/services/update-service'
 import { i18n } from '~/utils/i18n'
 
 export class AppService extends IpcService {
@@ -21,11 +20,6 @@ export class AppService extends IpcService {
   @IpcMethod()
   openUrl(url: string): void {
     shell.openExternal(url)
-  }
-
-  @IpcMethod()
-  async checkForUpdate() {
-    UpdateService.shared.checkAndPrepareUpdate()
   }
 
   @IpcMethod()
