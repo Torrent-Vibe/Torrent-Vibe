@@ -163,18 +163,6 @@ export class AppMenuManager {
               label: t('menu.debug'),
               submenu: [
                 {
-                  label: t('menu.switchContentLoader'),
-                  type: 'checkbox',
-                  checked: WindowManager.getInstance().isUsingHotUpdate(),
-                  click: async () => {
-                    await WindowManager.getInstance().switchContentLoader()
-                    // Update the menu to reflect the new state
-                    this.registerAppMenu()
-                  },
-                },
-
-                { type: 'separator' },
-                {
                   label: t('menu.reloadWindow'),
                   accelerator: 'F5',
                   click: async () => {
@@ -187,11 +175,6 @@ export class AppMenuManager {
                   click: () => {
                     WindowManager.getInstance().forceReloadWindow()
                   },
-                },
-                { type: 'separator' },
-                {
-                  label: `${t('menu.currentLoader')}: ${WindowManager.getInstance().getCurrentContentLoaderType()}`,
-                  enabled: false,
                 },
               ],
             },

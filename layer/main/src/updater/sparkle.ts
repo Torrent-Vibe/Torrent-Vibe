@@ -13,7 +13,6 @@ export interface SparkleBridge {
   init: (options: SparkleInitOptions) => boolean
   checkForUpdates: () => void
   installUpdateNow: () => void
-  setAutomaticChecks: (enabled: boolean) => void
 }
 
 interface SparkleBridgeLoadDeps {
@@ -33,7 +32,7 @@ const ADDON_RELATIVE_PATH = join(
 
 export function resolveSparkleAddonPath(deps: SparkleBridgeLoadDeps): string {
   if (deps.isPackaged) {
-    // electron-forge's asar unpacks native binaries under app.asar.unpacked with the
+    // electron-builder's asarUnpack places native binaries under app.asar.unpacked with the
     // project-relative layout preserved, so the addon keeps its native/ prefix.
     return join(deps.resourcesPath, 'app.asar.unpacked', ADDON_RELATIVE_PATH)
   }
@@ -53,7 +52,6 @@ export function loadSparkleBridge(
       typeof addon.init !== 'function'
       || typeof addon.checkForUpdates !== 'function'
       || typeof addon.installUpdateNow !== 'function'
-      || typeof addon.setAutomaticChecks !== 'function'
     ) {
       deps.log?.(
         'addon loaded but missing expected exports, treating as unavailable',

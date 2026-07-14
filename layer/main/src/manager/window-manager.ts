@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import liquidGlass from 'electron-liquid-glass'
 
-import { getUpdateDir } from '~/config/paths'
 import { isDevelopment } from '~/constants'
 import { isHttpLike } from '~/utils/_'
 
@@ -18,7 +17,6 @@ import { getUpdaterHandle } from '../updater'
 import { restoreWindowState, trackWindowState } from '../utils/window-state'
 import { DefaultWindowContentLoader } from './content-loader'
 // import { FloatWindowManager } from './float-window-manager'
-import { HotUpdateContentLoader } from './hot-content-loader'
 import { SessionManager } from './session-manager'
 
 export class WindowManager implements IWindowManager {
@@ -26,8 +24,6 @@ export class WindowManager implements IWindowManager {
   private mainWindow: BrowserWindow | null = null
   // Float window moved to FloatWindowManager
   private contentLoader: WindowContentLoader
-  private isUsingHotUpdateLoader = false
-  private baseContentLoader: DefaultWindowContentLoader | null = null
   private options: Required<
     Omit<
       WindowManagerOptions,
@@ -41,7 +37,7 @@ export class WindowManager implements IWindowManager {
   private isInitialized = false
 
   private currentRendererInfo: {
-    source: 'dev' | 'hot-update' | 'bundled'
+    source: 'dev' | 'bundled'
     version?: string | null
     pathOrUrl?: string
   } | null = null
@@ -56,11 +52,6 @@ export class WindowManager implements IWindowManager {
     })
 
     this.contentLoader = options.contentLoader ?? defaultLoader
-    this.baseContentLoader = defaultLoader
-
-    // Detect if we're using HotUpdateContentLoader
-    this.isUsingHotUpdateLoader
-      = this.contentLoader instanceof HotUpdateContentLoader
     const isMacOS = process.platform === 'darwin'
     this.useLiquidGlass = isMacOS && liquidGlass.isGlassSupported()
 
@@ -477,25 +468,10 @@ export class WindowManager implements IWindowManager {
         const indexPath = this.contentLoader.getProductionIndexPath()
         console.warn(`Loading production build: ${indexPath}`)
         await this.mainWindow.loadFile(indexPath)
-        // Determine if hot-update or bundled
-        const updatesDir = getUpdateDir()
-        const normalized = indexPath.replaceAll('\\', '/')
-        const normalizedUpdates = updatesDir.replaceAll('\\', '/')
-        if (normalized.startsWith(normalizedUpdates)) {
-          const rest = normalized.slice(normalizedUpdates.length + 1)
-          const ver = rest.split('/')[0] || null
-          this.currentRendererInfo = {
-            source: 'hot-update',
-            version: ver,
-            pathOrUrl: indexPath,
-          }
-        }
-        else {
-          this.currentRendererInfo = {
-            source: 'bundled',
-            version: null,
-            pathOrUrl: indexPath,
-          }
+        this.currentRendererInfo = {
+          source: 'bundled',
+          version: null,
+          pathOrUrl: indexPath,
         }
       }
     }
@@ -524,43 +500,15 @@ export class WindowManager implements IWindowManager {
     }
 
     try {
-      if (this.isUsingHotUpdateLoader) {
-        // Production: Load from dist directory
-        const indexPath = this.contentLoader.getProductionIndexPath()
-        console.warn(`Loading production build: ${indexPath}`)
-        await this.mainWindow.loadFile(indexPath)
-        const updatesDir = getUpdateDir()
-        const normalized = indexPath.replaceAll('\\', '/')
-        const normalizedUpdates = updatesDir.replaceAll('\\', '/')
-        if (normalized.startsWith(normalizedUpdates)) {
-          const rest = normalized.slice(normalizedUpdates.length + 1)
-          const ver = rest.split('/')[0] || null
-          this.currentRendererInfo = {
-            source: 'hot-update',
-            version: ver,
-            pathOrUrl: indexPath,
-          }
-        }
-        else {
-          this.currentRendererInfo = {
-            source: 'bundled',
-            version: null,
-            pathOrUrl: indexPath,
-          }
-        }
-      }
-      else {
-        // Development: Load from Vite dev server
-        const devUrl = (
-          this.contentLoader as DefaultWindowContentLoader
-        ).getDevServerUrl()
-        console.warn(`Loading development server: ${devUrl}`)
-        await this.mainWindow.loadURL(devUrl)
-        this.currentRendererInfo = {
-          source: 'dev',
-          version: null,
-          pathOrUrl: devUrl,
-        }
+      const devUrl = (
+        this.contentLoader as DefaultWindowContentLoader
+      ).getDevServerUrl()
+      console.warn(`Loading development server: ${devUrl}`)
+      await this.mainWindow.loadURL(devUrl)
+      this.currentRendererInfo = {
+        source: 'dev',
+        version: null,
+        pathOrUrl: devUrl,
       }
     }
     catch (error) {
@@ -569,53 +517,6 @@ export class WindowManager implements IWindowManager {
         'Loading Error',
         `Failed to load application: ${error}`,
       )
-    }
-  }
-
-  /**
-   * Switch between DefaultWindowContentLoader and HotUpdateContentLoader
-   * Only works in development mode
-   */
-  public async switchContentLoader(): Promise<void> {
-    if (!this.contentLoader.isDevelopment) {
-      console.warn(
-        'Content loader switching is only available in development mode',
-      )
-      return
-    }
-
-    if (!this.baseContentLoader) {
-      console.warn('Base content loader not available')
-      return
-    }
-
-    try {
-      // Create the appropriate content loader
-      const newLoader = this.isUsingHotUpdateLoader
-        ? this.baseContentLoader
-        : new HotUpdateContentLoader(this.baseContentLoader)
-
-      // Update the content loader
-      this.contentLoader = newLoader
-      this.isUsingHotUpdateLoader = !this.isUsingHotUpdateLoader
-
-      // Update window options with new preload path
-      if (this.mainWindow && this.options.windowOptions.webPreferences) {
-        this.options.windowOptions.webPreferences.preload
-          = newLoader.getPreloadPath()
-      }
-
-      // Reload the window content with new loader
-      await this.reloadWindowContent()
-
-      const loaderType = this.isUsingHotUpdateLoader
-        ? 'HotUpdateContentLoader'
-        : 'DefaultWindowContentLoader'
-
-      console.warn(`Switched to ${loaderType}`)
-    }
-    catch (error) {
-      console.error('Failed to switch content loader:', error)
     }
   }
 
@@ -652,27 +553,11 @@ export class WindowManager implements IWindowManager {
     }
   }
 
-  /**
-   * Get the current content loader type
-   */
-  public getCurrentContentLoaderType(): string {
-    return this.isUsingHotUpdateLoader
-      ? 'HotUpdateContentLoader'
-      : 'DefaultWindowContentLoader'
-  }
-
   public getRendererInfo(): {
-    source: 'dev' | 'hot-update' | 'bundled'
+    source: 'dev' | 'bundled'
     version?: string | null
   } | null {
     return this.currentRendererInfo
-  }
-
-  /**
-   * Check if currently using hot update loader
-   */
-  public isUsingHotUpdate(): boolean {
-    return this.isUsingHotUpdateLoader
   }
 
   /**

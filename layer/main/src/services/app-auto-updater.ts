@@ -10,9 +10,9 @@ import type { UpdaterHandle } from '~/updater/updater'
 
 /**
  * AppAutoUpdater integrates electron-updater to provide full application updates
- * from GitHub Releases defined by resources/app-update.yml. It auto-downloads
- * updates and prompts the user to restart when ready. Used on Windows/Linux only;
- * macOS updates run through Sparkle.
+ * from GitHub Releases (electron-builder generates app-update.yml from its publish
+ * config at package time). It auto-downloads updates and prompts the user to restart
+ * when ready. Used on Windows/Linux only; macOS updates run through Sparkle.
  */
 export class AppAutoUpdater implements UpdaterHandle {
   private static _instance: AppAutoUpdater | null = null

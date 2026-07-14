@@ -1,3 +1,6 @@
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { app, dialog } from 'electron'
 
 import { configureLogging, logSystemInfo } from './config/log-config'
@@ -6,7 +9,6 @@ import { AppMenuManager } from './manager/app-menu'
 import { DefaultWindowContentLoader } from './manager/content-loader'
 import { DeeplinkManager } from './manager/deeplink-manager'
 import { FileOpenManager } from './manager/file-open-manager'
-import { HotUpdateContentLoader } from './manager/hot-content-loader'
 import { IconManager } from './manager/icon-manager'
 import { RendererLifecycleManager } from './manager/renderer-lifecycle'
 import { SessionManager } from './manager/session-manager'
@@ -70,14 +72,11 @@ class ElectronBootstrap {
     }
 
     // Initialize WindowManager singleton with content loader
-    const baseLoader = new DefaultWindowContentLoader({
+    const contentLoader = new DefaultWindowContentLoader({
       isDevelopment: this.isDevelopment,
       devServerPort: this.options.devServerPort,
       devServerHost: this.options.devServerHost,
     })
-    const contentLoader = this.isDevelopment
-      ? baseLoader
-      : new HotUpdateContentLoader(baseLoader)
 
     const windowManagerOptions: WindowManagerOptions = {
       windowOptions: this.options.windowOptions,
@@ -100,6 +99,8 @@ class ElectronBootstrap {
       // Configure logging as early as possible
       configureLogging()
       logSystemInfo()
+
+      this.purgeLegacyUpdateArtifacts()
 
       // Handle single instance application
       if (this.options.enableSingleInstance) {
@@ -177,6 +178,24 @@ class ElectronBootstrap {
       console.error('Failed to initialize Electron application:', error)
       await this.showErrorDialog('Initialization Error', String(error))
       app.quit()
+    }
+  }
+
+  private purgeLegacyUpdateArtifacts(): void {
+    // Leftover renderers/cache from the removed hot-update system; loading them would break the UI.
+    const userData = app.getPath('userData')
+    const legacyPaths = [
+      join(userData, 'AppRenderUpdates'),
+      join(userData, 'AppCache', 'UpdateCache'),
+      join(userData, 'AppCache', 'update.lock'),
+    ]
+    for (const target of legacyPaths) {
+      try {
+        rmSync(target, { recursive: true, force: true })
+      }
+      catch (error) {
+        console.warn('Failed to purge legacy update artifact:', target, error)
+      }
     }
   }
 

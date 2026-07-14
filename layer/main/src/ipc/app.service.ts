@@ -45,7 +45,7 @@ export class AppService extends IpcService {
     appVersion: string
     appBuildTime: string | null
     rendererVersion: string | null
-    rendererSource: 'hot-update' | 'bundled' | 'dev'
+    rendererSource: 'bundled' | 'dev'
   } {
     // App version: prefer app.getVersion(); if placeholder, derive from __BUILD_TIME__
     const raw = app.getVersion?.() || ''
@@ -64,8 +64,7 @@ export class AppService extends IpcService {
     // Renderer version: what WindowManager actually loaded
     const info = WindowManager.getInstance().getRendererInfo()
     const rendererVersion: string | null = info?.version ?? null
-    const rendererSource: 'hot-update' | 'bundled' | 'dev'
-      = info?.source ?? 'bundled'
+    const rendererSource: 'bundled' | 'dev' = info?.source ?? 'bundled'
 
     return {
       appVersion,
