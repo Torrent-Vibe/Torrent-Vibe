@@ -1,7 +1,7 @@
 {
   "name": "torrent-vibe",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packageManager": "pnpm@11.1.2",
   "author": "Torrent Vibe Team",
   "repository": {
