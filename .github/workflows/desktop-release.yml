@@ -225,6 +225,24 @@ jobs:
           rm -f "$KEY_FILE"
           hdiutil detach "$DEV"
 
+      - name: rename delta files to GitHub-safe asset names
+        run: |
+          # generate_appcast names deltas after the .app bundle ("Torrent Vibe..."),
+          # but GitHub replaces spaces in uploaded asset names with dots, so the
+          # %20-encoded URL the appcast points at would 404 and every delta
+          # download would silently fall back to the full zip.
+          ARCHIVE_DIR="${{ steps.archive.outputs.dir }}"
+          cd "$ARCHIVE_DIR"
+          shopt -s nullglob
+          for f in *.delta; do
+            safe="${f// /.}"
+            [ "$safe" = "$f" ] && continue
+            mv "$f" "$safe"
+            enc="${f// /%20}"
+            sed -i '' "s|/$enc\"|/$safe\"|g" appcast.xml
+            echo "renamed '$f' -> '$safe'"
+          done
+
       - name: repoint old appcast enclosures at their own release tags
         run: node .github/scripts/fix-appcast-enclosure-urls.mjs "${{ steps.archive.outputs.dir }}/appcast.xml" "$REPO_SLUG"
 

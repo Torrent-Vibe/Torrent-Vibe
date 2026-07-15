@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2
+
+- Fixed Sparkle delta updates on macOS: delta files are now uploaded under
+  GitHub-safe asset names, so the appcast's delta URLs no longer 404 and
+  updates between consecutive versions download the small delta instead of
+  falling back to the full archive.
+
 ## 1.0.1
 
 - Fixed the Linux AppImage build failing during packaging: the fuse-flipping
