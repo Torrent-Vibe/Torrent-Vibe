@@ -44,16 +44,16 @@ const variantClasses = {
   default: {
     container:
       'p-1 rounded-lg border border-border backdrop-blur bg-material-medium',
-    button: 'rounded-lg',
+    button: 'rounded-md',
     indicator:
-      'bg-background-secondary rounded-lg border border-border shadow-sm',
+      'bg-background-secondary rounded-md border border-border shadow-sm',
   },
   compact: {
     container:
       'px-1 py-0.5 rounded-md border border-border backdrop-blur bg-material-medium',
-    button: 'rounded-md',
+    button: 'rounded',
     indicator:
-      'bg-background-secondary rounded-md border border-border/80 shadow-sm',
+      'bg-background-secondary rounded border border-border/80 shadow-sm',
   },
 } as const
 
@@ -146,7 +146,7 @@ export function SegmentTab<T = string>({
                   layoutId={`${id}-segment-tab-indicator`}
                   className={cn(
                     // Floating pill indicator with subtle border & shadow
-                    'absolute inset-x-0 inset-y-0.5 pointer-events-none z-[-1]',
+                    'absolute inset-0 pointer-events-none z-[-1]',
                     styles.indicator,
                     responsiveWrap && 'hidden @[420px]:block',
                     className,

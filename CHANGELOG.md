@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3
+
+- Fixed uneven padding and mismatched corner radius on the segmented tab
+  control (torrent detail panel tabs and settings appearance toggles): the
+  active pill now sits with equal spacing on all sides and its corners stay
+  concentric with the container.
+
 ## 1.0.2
 
 - Fixed Sparkle delta updates on macOS: delta files are now uploaded under
