@@ -38,6 +38,10 @@ mac:
     - target: zip
       arch: [arm64]
   identity: null
+  # Keep false even when APPLE_* env vars are present: builder's built-in
+  # notarize waits on notarytool with no timeout. CI notarizes + staples via
+  # .github/scripts/notarize-and-staple.sh after packaging.
+  notarize: false
   artifactName: Torrent.Vibe-${version}-macos-${arch}.${ext}
   extraFiles:
     - from: native/sparkle-bridge/vendor/Sparkle.framework

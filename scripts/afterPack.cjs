@@ -34,6 +34,15 @@ module.exports = async function afterPack(context) {
 
   if (context.electronPlatformName !== 'darwin') { return }
 
+  // CSC_LINK present + identity:null dropped from electron-builder.yml (CI does
+  // both together) means electron-builder will Developer-ID-sign right after
+  // this hook — an ad-hoc --deep sign here would only be thrown away. Both
+  // conditions are required: a stray local CSC_LINK with identity still null
+  // must keep the ad-hoc path, or the app ships with no signature at all.
+  if (process.env.CSC_LINK && context.packager.platformSpecificBuildOptions.identity !== null) {
+    return
+  }
+
   // identity: null means the only signature is Electron's ad-hoc one, and
   // flipping fuses + copying in extraFiles/asarUnpack invalidates the bundle's
   // CodeDirectory. Re-sign ad-hoc here (no cert) so both dmg and zip ship a

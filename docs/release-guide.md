@@ -11,10 +11,12 @@
    `desktop-release` workflow. If that tag already exists, it does nothing.
 3. `desktop-release` (`.github/workflows/desktop-release.yml`) builds and
    publishes the release:
-   - **macOS** (arm64 only): builds the dmg + zip, ad-hoc signs the app,
-     signs the update archive and generates a Sparkle `appcast.xml` (with
-     delta updates against the previous release), and publishes the GitHub
-     Release with the dmg, zip, and appcast as assets.
+   - **macOS** (arm64 only): builds the dmg + zip; if the five Apple signing
+     secrets are set, Developer-ID-signs + notarizes + staples the app
+     (otherwise ad-hoc signs as before); signs the update archive and
+     generates a Sparkle `appcast.xml` (with delta updates against the
+     previous release); publishes the GitHub Release with the dmg, zip, and
+     appcast as assets.
    - **Windows** (x64, NSIS): builds the installer and uploads the `.exe`,
      `latest.yml`, and `.blockmap` to the same release.
    - **Linux** (x64, AppImage): builds the AppImage (with its differential
@@ -35,6 +37,36 @@ and publishes the release (they upload assets onto it).
   Sparkle's `generate_keys` tool (bundled in the Sparkle release tarball) and
   store both halves as repo secrets. The workflow fails fast if either is
   missing or empty.
+
+### Optional — Apple Developer ID + notarization (all five or none)
+
+When **all five** are present, the macOS job signs with Developer ID, submits
+to Apple notary (bounded wait via `.github/scripts/notarize-and-staple.sh`),
+staples the ticket, and rebuilds dmg/zip from the stapled `.app`. When
+**none** are present, the release stays ad-hoc signed (first launch needs
+right-click → Open). A partial set fails the job — a signed-but-unnotarized
+app is still blocked by Gatekeeper.
+
+| Secret | What it is |
+| --- | --- |
+| `CSC_LINK` | base64 of the Developer ID Application `.p12` |
+| `CSC_KEY_PASSWORD` | password for that `.p12` |
+| `APPLE_ID` | Apple ID email used for notarization |
+| `APPLE_APP_SPECIFIC_PASSWORD` | app-specific password for that Apple ID |
+| `APPLE_TEAM_ID` | 10-char Team ID (e.g. `KAMM5N88X3`) |
+
+```bash
+# CSC_LINK from a local .p12
+base64 -i Certificates.p12 | gh secret set CSC_LINK -R Torrent-Vibe/Torrent-Vibe
+gh secret set CSC_KEY_PASSWORD -R Torrent-Vibe/Torrent-Vibe
+gh secret set APPLE_ID -R Torrent-Vibe/Torrent-Vibe
+gh secret set APPLE_APP_SPECIFIC_PASSWORD -R Torrent-Vibe/Torrent-Vibe
+gh secret set APPLE_TEAM_ID -R Torrent-Vibe/Torrent-Vibe -b 'KAMM5N88X3'
+```
+
+Do not submit many notarizations in parallel — Apple's queue will stall for
+hours. Prefer one release-time submit; keep branch/preview builds unsigned or
+sign-only without notary.
 
 ## Local validation before releasing
 
