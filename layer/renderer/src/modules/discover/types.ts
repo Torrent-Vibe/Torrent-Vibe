@@ -3,16 +3,16 @@ import type {
   DiscoverProviderId,
 } from '~/atoms/settings/discover'
 
-export type DiscoverProviderConfig<T extends DiscoverProviderId> =
-  DiscoverProviderConfigMap[T]
+export type DiscoverProviderConfig<T extends DiscoverProviderId>
+  = DiscoverProviderConfigMap[T]
 
 export type DiscoverPreviewDescriptionRenderer = 'markdown' | 'bbcode'
 
-export type DiscoverItemEnrichmentStatus =
-  | 'idle'
-  | 'loading'
-  | 'success'
-  | 'error'
+export type DiscoverItemEnrichmentStatus
+  = | 'idle'
+    | 'loading'
+    | 'success'
+    | 'error'
 
 export interface DiscoverItemImdbEnrichment {
   id: string
@@ -77,7 +77,7 @@ export interface DiscoverItem {
 
 export interface DiscoverItemDetail extends DiscoverItem {
   description?: string | null
-  files?: Array<{ name: string; sizeBytes?: number | null }>
+  files?: Array<{ name: string, sizeBytes?: number | null }>
   screenshots?: string[]
   extra?: Record<string, unknown>
 }
@@ -156,5 +156,8 @@ export interface DiscoverProviderImplementation<T extends DiscoverProviderId> {
   ) => Record<string, unknown>
 }
 
-export type AnyDiscoverProvider =
-  DiscoverProviderImplementation<DiscoverProviderId>
+export type DiscoverProviderRegistry = {
+  [K in DiscoverProviderId]: DiscoverProviderImplementation<K>
+}
+
+export type AnyDiscoverProvider = DiscoverProviderRegistry[DiscoverProviderId]

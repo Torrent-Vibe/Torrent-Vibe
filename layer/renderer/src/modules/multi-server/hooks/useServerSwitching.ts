@@ -12,94 +12,110 @@ import {
   lastAuthErrorAtom,
   lastConnectionErrorAtom,
 } from '~/modules/connection/atoms/connection'
+import { SubscriptionActions } from '~/modules/subscriptions'
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 
 import {
   multiServerStoreSetters,
   useMultiServerStore,
 } from '../stores/multi-server-store'
+import type { ServerConnection } from '../types/multi-server'
 import { loadServerPassword, saveServerPassword } from '../utils/server-config'
 
+const switchToServer = async (
+  serverId: string,
+  activeId: string | null,
+  servers: Record<string, ServerConnection>,
+) => {
+  if (serverId === activeId) {
+    return
+  }
+  const server = servers[serverId]
+  if (!server) {
+    return
+  }
+
+  try {
+    multiServerStoreSetters.setSwitching(serverId)
+    jotaiStore.set(connectionStatusAtom, 'connecting')
+    jotaiStore.set(lastConnectionErrorAtom, null)
+    jotaiStore.set(lastAuthErrorAtom, null)
+
+    const remembered = await loadServerPassword(server.id)
+
+    if (!remembered && !server.config.password) {
+      toast.error(getI18n().t('messages.noPasswordRemembered'))
+
+      Modal.present(InputPrompt, {
+        type: 'password',
+        title: 'Enter password for the selected server',
+        onConfirm: async (value: string) => {
+          await saveServerPassword(server.id, value)
+          await switchToServer(serverId, activeId, servers)
+        },
+        onCancel: async () => {},
+      })
+
+      return
+    }
+
+    const cfg = {
+      ...server.config,
+      password: remembered ?? server.config.password,
+    }
+    QBittorrentClient.configure(cfg)
+
+    await qbQueryManager.scenarios.onConnectionChange()
+
+    let loginOk = true
+    try {
+      loginOk = await QBittorrentClient.shared.login()
+    }
+    catch {
+      loginOk = false
+    }
+
+    if (!loginOk) {
+      jotaiStore.set(authStatusAtom, 'auth_failed')
+      jotaiStore.set(
+        lastAuthErrorAtom,
+        'Authentication failed for the selected server',
+      )
+      jotaiStore.set(connectionStatusAtom, 'error')
+      toast.error(getI18n().t('messages.authFailed'))
+    }
+    else {
+      jotaiStore.set(authStatusAtom, 'authenticated')
+      jotaiStore.set(connectionStatusAtom, 'connected')
+      multiServerStoreSetters.setActiveServer(serverId)
+      void SubscriptionActions.shared.syncServers([serverId]).then(() => {
+        void SubscriptionActions.shared.refreshStatus([serverId])
+      })
+      toast.success(
+        getI18n().t('messages.serverSwitched', { serverName: server.name }),
+      )
+    }
+  }
+  catch (error) {
+    console.error(getI18n().t('messages.serverSwitchFailed'), error)
+    jotaiStore.set(connectionStatusAtom, 'error')
+    jotaiStore.set(
+      lastConnectionErrorAtom,
+      error instanceof Error ? error.message : 'Unknown error',
+    )
+    toast.error(getI18n().t('messages.serverSwitchFailed'))
+  }
+  finally {
+    multiServerStoreSetters.setSwitching(null)
+  }
+}
+
 export function useServerSwitching() {
-  const activeId = useMultiServerStore((s) => s.activeServerId)
-  const servers = useMultiServerStore((s) => s.servers)
+  const activeId = useMultiServerStore(s => s.activeServerId)
+  const servers = useMultiServerStore(s => s.servers)
 
   const switchTo = useCallback(
-    async (serverId: string) => {
-      if (serverId === activeId) return
-      const server = servers[serverId]
-      if (!server) return
-
-      try {
-        multiServerStoreSetters.setSwitching(serverId)
-        jotaiStore.set(connectionStatusAtom, 'connecting')
-        jotaiStore.set(lastConnectionErrorAtom, null)
-        jotaiStore.set(lastAuthErrorAtom, null)
-
-        // Configure shared client to new server (inject remembered password if present)
-        const remembered = await loadServerPassword(server.id)
-
-        if (!remembered && !server.config.password) {
-          toast.error(getI18n().t('messages.noPasswordRemembered'))
-
-          Modal.present(InputPrompt, {
-            type: 'password',
-            title: 'Enter password for the selected server',
-            onConfirm: async (value: string) => {
-              await saveServerPassword(server.id, value)
-              switchTo(server.id)
-            },
-            onCancel: async () => {},
-          })
-
-          return
-        }
-
-        const cfg = {
-          ...server.config,
-          password: remembered ?? server.config.password,
-        }
-        QBittorrentClient.configure(cfg)
-
-        // Clear all cached queries to avoid cross-server contamination
-        await qbQueryManager.scenarios.onConnectionChange()
-
-        // Attempt login if password exists
-        let loginOk = true
-        try {
-          loginOk = await QBittorrentClient.shared.login()
-        } catch {
-          loginOk = false
-        }
-
-        if (!loginOk) {
-          jotaiStore.set(authStatusAtom, 'auth_failed')
-          jotaiStore.set(
-            lastAuthErrorAtom,
-            'Authentication failed for the selected server',
-          )
-          jotaiStore.set(connectionStatusAtom, 'error')
-          toast.error(getI18n().t('messages.authFailed'))
-        } else {
-          jotaiStore.set(authStatusAtom, 'authenticated')
-          jotaiStore.set(connectionStatusAtom, 'connected')
-          multiServerStoreSetters.setActiveServer(serverId)
-          toast.success(
-            getI18n().t('messages.serverSwitched', { serverName: server.name }),
-          )
-        }
-      } catch (error) {
-        console.error(getI18n().t('messages.serverSwitchFailed'), error)
-        jotaiStore.set(connectionStatusAtom, 'error')
-        jotaiStore.set(
-          lastConnectionErrorAtom,
-          error instanceof Error ? error.message : 'Unknown error',
-        )
-        toast.error(getI18n().t('messages.serverSwitchFailed'))
-      } finally {
-        multiServerStoreSetters.setSwitching(null)
-      }
-    },
+    (serverId: string) => switchToServer(serverId, activeId, servers),
     [activeId, servers],
   )
 

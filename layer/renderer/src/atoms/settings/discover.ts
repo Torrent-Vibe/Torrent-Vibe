@@ -3,7 +3,7 @@ import { atom } from 'jotai'
 import { createAtomHooks } from '~/lib/jotai'
 import { storage, STORAGE_KEYS } from '~/lib/storage-keys'
 
-export const DISCOVER_PROVIDER_IDS = ['mteam'] as const
+export const DISCOVER_PROVIDER_IDS = ['mteam', 'mikan'] as const
 
 export type DiscoverProviderId = (typeof DISCOVER_PROVIDER_IDS)[number]
 
@@ -21,8 +21,17 @@ export interface MTeamProviderConfig extends BaseDiscoverProviderConfig {
   pageSize: number
 }
 
+export interface MikanProviderConfig extends BaseDiscoverProviderConfig {
+  id: 'mikan'
+  enabled: boolean
+  displayName: string
+  baseUrl: string
+  pageSize: number
+}
+
 export type DiscoverProviderConfigMap = {
   mteam: MTeamProviderConfig
+  mikan: MikanProviderConfig
 }
 
 export type DiscoverProviderConfigState = {
@@ -40,6 +49,13 @@ const DEFAULT_CONFIG: DiscoverProviderConfigState = {
       mode: 'normal',
       pageSize: 20,
     },
+    mikan: {
+      id: 'mikan',
+      displayName: 'Mikan 蜜柑计划',
+      enabled: false,
+      baseUrl: 'https://mikanani.me',
+      pageSize: 50,
+    },
   },
 }
 
@@ -48,13 +64,17 @@ const loadInitialConfig = (): DiscoverProviderConfigState => {
     STORAGE_KEYS.DISCOVER_PROVIDERS,
   )
 
-  if (!stored) return DEFAULT_CONFIG
+  if (!stored) { return DEFAULT_CONFIG }
 
   const merged: DiscoverProviderConfigState = {
     providers: {
       mteam: {
         ...DEFAULT_CONFIG.providers.mteam,
         ...stored.providers?.mteam,
+      },
+      mikan: {
+        ...DEFAULT_CONFIG.providers.mikan,
+        ...stored.providers?.mikan,
       },
     },
   }
@@ -93,8 +113,8 @@ export const updateDiscoverProviderConfig = <T extends DiscoverProviderId>(
 ) => {
   const prev = getDiscoverConfig()
   const current = prev.providers[id]
-  const next =
-    typeof updater === 'function'
+  const next
+    = typeof updater === 'function'
       ? (
           updater as (
             p: DiscoverProviderConfigMap[T],
@@ -135,7 +155,7 @@ export const setDiscoverProviderEnabled = <T extends DiscoverProviderId>(
   id: T,
   enabled: boolean,
 ) => {
-  updateDiscoverProviderConfig(id, (prev) => ({ ...prev, enabled }))
+  updateDiscoverProviderConfig(id, prev => ({ ...prev, enabled }))
 }
 
 export {

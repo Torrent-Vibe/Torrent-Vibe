@@ -7,6 +7,8 @@ import {
   createConnectionConfig,
   validateConnection,
 } from '~/modules/connection/validation'
+import { WEB_SERVER_ID } from '~/modules/helper-client'
+import { HelperPairingPanel } from '~/modules/helper-client/HelperPairingPanel'
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 import {
   getInitialQBittorrentConfig,
@@ -39,7 +41,9 @@ export const WebConnectionSection = () => {
   const canSave = Boolean(username && (useCurrentPath || (host && port)))
 
   const onSave = async () => {
-    if (!canSave) { return }
+    if (!canSave) {
+      return
+    }
 
     setSaving(true)
     setValidating(true)
@@ -154,6 +158,17 @@ export const WebConnectionSection = () => {
           checked={rememberPassword}
           onCheckedChange={v => setRememberPassword(Boolean(v))}
         />
+
+        <div className="pt-2">
+          <h3 className="text-sm font-medium text-text mb-2">
+            {t('general.connection.helper.title')}
+          </h3>
+          <HelperPairingPanel
+            serverId={WEB_SERVER_ID}
+            host={useCurrentPath ? window.location.hostname : host}
+            name={t('general.connection.helper.title')}
+          />
+        </div>
 
         <div className="pt-4 flex justify-end">
           <Button onClick={onSave} disabled={!canSave || saving} size="sm">

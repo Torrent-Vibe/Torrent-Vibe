@@ -4,6 +4,7 @@ import type { DiscoverProviderId } from '~/atoms/settings/discover'
 import { Modal } from '~/components/ui/modal/ModalManager'
 import { getI18n } from '~/i18n'
 import type { DiscoverItem, DiscoverItemDetail } from '~/modules/discover'
+import { asMikanBangumiExtra } from '~/modules/discover/providers/mikan/utils'
 import { DiscoverService } from '~/modules/discover/service'
 import type { TorrentFormData } from '~/modules/modals/AddTorrentModal'
 import { createAddTorrentOptions } from '~/modules/modals/AddTorrentModal/shared/createAddTorrentOptions'
@@ -38,16 +39,15 @@ const presentImportConfirmation = (
 
     try {
       const links = await Promise.all(
-        targets.map((target) =>
+        targets.map(target =>
           DiscoverService.downloadUrl(providerId, {
             id: target.id,
             item: target.item ?? undefined,
-          }),
-        ),
+          })),
       )
 
       const uniqueUrls = Array.from(
-        new Set(links.map((link) => link.url)),
+        new Set(links.map(link => link.url)),
       ).join('\n')
 
       if (!uniqueUrls) {
@@ -73,12 +73,14 @@ const presentImportConfirmation = (
             count: targets.length,
           }),
         )
-      } else {
+      }
+      else {
         toast.success(i18n.t('discover.messages.singleImportSuccess'))
       }
 
       return { ok: true }
-    } catch (error) {
+    }
+    catch (error) {
       console.error(error)
       context.setState((draft) => {
         draft.importing = false
@@ -86,7 +88,8 @@ const presentImportConfirmation = (
 
       if (mode === 'selected') {
         toast.error(i18n.t('discover.messages.importFailed'))
-      } else {
+      }
+      else {
         toast.error(i18n.t('discover.messages.singleImportFailed'))
       }
 
@@ -96,7 +99,7 @@ const presentImportConfirmation = (
 
   Modal.present(DiscoverImportConfirmModal, {
     mode,
-    items: targets.map((target) => target.summary),
+    items: targets.map(target => target.summary),
     onConfirm: handleConfirm,
   })
 }
@@ -146,8 +149,8 @@ export const createImportingSlice = (context: DiscoverActionContext) => {
       return { ok: false, error: 'noPreview' }
     }
 
-    const previewItem =
-      state.previewDetail ?? findItemById(state.items, previewId) ?? null
+    const previewItem
+      = state.previewDetail ?? findItemById(state.items, previewId) ?? null
 
     const targets: DownloadTarget[] = [
       {
@@ -171,8 +174,45 @@ export const createImportingSlice = (context: DiscoverActionContext) => {
     return { ok: true }
   }
 
+  const importMikanEpisode = async (
+    episodeId: string,
+  ): Promise<ActionResult> => {
+    const state = context.getState()
+    if (!state.providerReady) {
+      return { ok: false, error: 'providerNotReady' }
+    }
+
+    const bangumiItem
+      = state.mikanDetail
+        ?? (state.mikanBangumiId
+          ? findItemById(state.items, state.mikanBangumiId)
+          : null)
+
+    if (!bangumiItem) {
+      return { ok: false, error: 'noPreview' }
+    }
+
+    const episode = asMikanBangumiExtra(bangumiItem.extra)?.episodes?.find(
+      item => item.episodeId === episodeId,
+    )
+
+    presentImportConfirmation(context, 'preview', state.activeProviderId, [
+      {
+        id: episodeId,
+        item: bangumiItem,
+        summary: {
+          id: episodeId,
+          title: episode?.title ?? episodeId,
+        },
+      },
+    ])
+
+    return { ok: true }
+  }
+
   return {
     importSelected,
     importPreview,
+    importMikanEpisode,
   }
 }

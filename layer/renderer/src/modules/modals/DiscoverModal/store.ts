@@ -10,6 +10,7 @@ import type {
   DiscoverPreviewDescriptionRenderer,
 } from '~/modules/discover'
 
+import { readLastProvider } from './actions/lastProviderPersist'
 import type { DiscoverCommittedSearchState, DiscoverFilterState } from './types'
 
 export interface DiscoverModalState {
@@ -35,10 +36,16 @@ export interface DiscoverModalState {
   isPreviewLoading: boolean
   previewError: string | null
   importing: boolean
+  mikanTab: 'season' | 'subscriptions'
+  mikanBangumiId: string | null
+  mikanDetail: DiscoverItemDetail | null
+  mikanDetailLoading: boolean
+  mikanDetailError: string | null
+  mikanSubgroupId: string | null
 }
 
 const createInitialState = (): DiscoverModalState => ({
-  activeProviderId: 'mteam' as DiscoverProviderId,
+  activeProviderId: readLastProvider() ?? ('mteam' as DiscoverProviderId),
   providerReady: false,
   pageSize: 20,
   previewDescriptionRenderer: 'markdown',
@@ -60,6 +67,12 @@ const createInitialState = (): DiscoverModalState => ({
   isPreviewLoading: false,
   previewError: null,
   importing: false,
+  mikanTab: 'season',
+  mikanBangumiId: null,
+  mikanDetail: null,
+  mikanDetailLoading: false,
+  mikanDetailError: null,
+  mikanSubgroupId: null,
 })
 
 export const useDiscoverModalStore = createWithEqualityFn<DiscoverModalState>()(
@@ -75,10 +88,12 @@ export const discoverModalStore = {
     if (typeof updater === 'function') {
       if (replace) {
         useDiscoverModalStore.setState(updater, true)
-      } else {
+      }
+      else {
         useDiscoverModalStore.setState(updater)
       }
-    } else {
+    }
+    else {
       useDiscoverModalStore.setState(updater, true)
     }
   },

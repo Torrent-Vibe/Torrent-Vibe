@@ -22,8 +22,8 @@ const readHistoryMap = (): DiscoverSearchHistoryStorage => {
     return {}
   }
   return (
-    storage.getJSON<DiscoverSearchHistoryStorage>(SEARCH_HISTORY_STORAGE_KEY) ??
-    {}
+    storage.getJSON<DiscoverSearchHistoryStorage>(SEARCH_HISTORY_STORAGE_KEY)
+    ?? {}
   )
 }
 
@@ -33,7 +33,8 @@ const writeHistoryMap = (next: DiscoverSearchHistoryStorage) => {
   }
   if (Object.keys(next).length === 0) {
     storage.removeItem(SEARCH_HISTORY_STORAGE_KEY)
-  } else {
+  }
+  else {
     storage.setJSON(SEARCH_HISTORY_STORAGE_KEY, next)
   }
 }
@@ -52,6 +53,11 @@ export interface DiscoverActionContext {
     currentToken: () => number
     invalidate: () => void
   }
+  mikan: {
+    nextToken: () => number
+    currentToken: () => number
+    invalidate: () => void
+  }
   history: {
     load: (providerId: DiscoverProviderId) => string[]
     persist: (providerId: DiscoverProviderId, history: string[]) => void
@@ -61,6 +67,7 @@ export interface DiscoverActionContext {
 export const createActionContext = (): DiscoverActionContext => {
   let searchToken = 0
   let previewToken = 0
+  let mikanToken = 0
 
   const loadHistory = (providerId: DiscoverProviderId) => {
     const history = readHistoryMap()[providerId]
@@ -74,7 +81,8 @@ export const createActionContext = (): DiscoverActionContext => {
     const map = readHistoryMap()
     if (history.length > 0) {
       map[providerId] = history
-    } else {
+    }
+    else {
       delete map[providerId]
     }
     writeHistoryMap(map)
@@ -96,6 +104,13 @@ export const createActionContext = (): DiscoverActionContext => {
       currentToken: () => previewToken,
       invalidate: () => {
         previewToken += 1
+      },
+    },
+    mikan: {
+      nextToken: () => ++mikanToken,
+      currentToken: () => mikanToken,
+      invalidate: () => {
+        mikanToken += 1
       },
     },
     history: {

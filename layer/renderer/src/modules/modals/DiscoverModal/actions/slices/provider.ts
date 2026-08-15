@@ -1,12 +1,14 @@
 import type { DiscoverProviderId } from '~/atoms/settings/discover'
 
 import type { DiscoverActionContext } from '../context'
+import { writeLastProvider } from '../lastProviderPersist'
 import type { ConfigureProviderOptions } from '../types'
 
 export const createProviderSlice = (context: DiscoverActionContext) => {
   const configureProvider = (options: ConfigureProviderOptions) => {
     context.search.invalidate()
     context.preview.invalidate()
+    context.mikan.invalidate()
 
     const persistedHistory = context.history.load(options.providerId)
 
@@ -34,7 +36,15 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
       draft.importing = false
       draft.totalPages = 0
       draft.total = null
+      draft.mikanTab = 'season'
+      draft.mikanBangumiId = null
+      draft.mikanDetail = null
+      draft.mikanDetailLoading = false
+      draft.mikanDetailError = null
+      draft.mikanSubgroupId = null
     })
+
+    writeLastProvider(options.providerId)
   }
 
   const setActiveProviderId = (providerId: DiscoverProviderId) => {
@@ -43,6 +53,7 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
       draft.activeProviderId = providerId
       draft.searchHistory = history
     })
+    writeLastProvider(providerId)
   }
 
   const updateProviderMeta = (meta: {
@@ -52,7 +63,9 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
     descriptionRenderer?: ConfigureProviderOptions['descriptionRenderer']
   }) => {
     context.setState((draft) => {
-      if (draft.activeProviderId !== meta.providerId) return
+      if (draft.activeProviderId !== meta.providerId) {
+        return
+      }
       draft.providerReady = meta.providerReady
       draft.pageSize = meta.pageSize
       if (meta.descriptionRenderer) {

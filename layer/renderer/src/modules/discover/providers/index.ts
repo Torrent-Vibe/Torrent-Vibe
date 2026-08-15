@@ -1,10 +1,12 @@
 import type { DiscoverProviderId } from '~/atoms/settings/discover'
 
-import type { AnyDiscoverProvider } from '../types'
+import type { AnyDiscoverProvider, DiscoverProviderRegistry } from '../types'
+import { MikanDiscoverProvider } from './mikan'
 import { MTeamDiscoverProvider } from './mteam'
 
-const registry: Record<DiscoverProviderId, AnyDiscoverProvider> = {
+const registry: DiscoverProviderRegistry = {
   mteam: MTeamDiscoverProvider,
+  mikan: MikanDiscoverProvider,
 }
 
 export const getDiscoverProvider = <T extends DiscoverProviderId>(id: T) =>
