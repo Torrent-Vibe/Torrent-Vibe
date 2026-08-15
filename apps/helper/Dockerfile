@@ -7,14 +7,16 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY patches patches
 COPY apps/helper/package.json apps/helper/package.json
 COPY packages/helper-protocol/package.json packages/helper-protocol/package.json
+COPY packages/mikan/package.json packages/mikan/package.json
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter @torrent-vibe/helper...
 COPY apps/helper apps/helper
 COPY packages/helper-protocol packages/helper-protocol
+COPY packages/mikan packages/mikan
 
 ENV PORT=17890 \
-    DATA_DIR=/data \
-    LIBRARY_ROOT=/library \
-    QBIT_URL=http://127.0.0.1:8080
+  DATA_DIR=/data \
+  LIBRARY_ROOT=/library \
+  QBIT_URL=http://127.0.0.1:8080
 
 EXPOSE 17890
 VOLUME ["/data", "/library"]

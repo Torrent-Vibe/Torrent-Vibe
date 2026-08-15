@@ -19,6 +19,7 @@ The 6-character pairing code is printed at boot.
 | `PORT`                      | `17890`                          | HTTP listen port                              |
 | `DATA_DIR`                  | `./data`                         | Replica list and generated token              |
 | `LIBRARY_ROOT`              | _(empty)_                        | Library root used by the download loop        |
+| `POLL_INTERVAL_MS`          | `600000`                         | RSS / completion poll interval (10 minutes)   |
 | `QBIT_URL`                  | `http://127.0.0.1:8080`          | Advertised local qBittorrent WebUI            |
 | `QBIT_USER`                 | `admin`                          | qBittorrent username                          |
 | `QBIT_PASS`                 | _(empty)_                        | qBittorrent password                          |

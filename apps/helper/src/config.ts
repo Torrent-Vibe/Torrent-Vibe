@@ -11,12 +11,15 @@ export interface HelperConfig {
   port: number
   dataDir: string
   version: string
+  pollIntervalMs: number
 }
 
 export const DEFAULT_HELPER_PORT = 17890
 export const HELPER_VERSION = '0.0.1'
 
 const PAIRING_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+export const DEFAULT_POLL_INTERVAL_MS = 10 * 60 * 1000
 
 export function parsePort(value: string | undefined): number {
   const port = Number(value)
@@ -45,7 +48,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): HelperConfig {
     port: parsePort(env.PORT),
     dataDir: env.DATA_DIR ?? './data',
     version: env.HELPER_VERSION ?? HELPER_VERSION,
+    pollIntervalMs: parsePollInterval(env.POLL_INTERVAL_MS),
   }
+}
+
+export function parsePollInterval(value: string | undefined): number {
+  const ms = Number(value)
+  if (!Number.isInteger(ms) || ms <= 0) {
+    return DEFAULT_POLL_INTERVAL_MS
+  }
+  return ms
 }
 
 export async function resolveToken(

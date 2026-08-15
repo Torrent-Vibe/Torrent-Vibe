@@ -4,14 +4,17 @@ import { createServer } from 'node:http'
 
 import type { HelperReplica } from '@torrent-vibe/helper-protocol'
 import { desiredStateDiff } from '@torrent-vibe/helper-protocol'
+import type { RssEpisode } from '@torrent-vibe/mikan'
 
 import type { HelperConfig } from './config'
+import type { BackfillInput } from './loop'
 import type { ReplicaStore } from './store'
 
 export interface HelperServerOptions {
   config: Omit<HelperConfig, 'dataDir'>
   pairingCode: string
   store: ReplicaStore
+  onBackfill?: (input: BackfillInput) => Promise<unknown>
 }
 
 const MAX_BODY_BYTES = 1024 * 1024
@@ -31,7 +34,7 @@ export function applyDesiredReplicas(
 }
 
 export function createHelperServer(options: HelperServerOptions): Server {
-  const { config, pairingCode, store } = options
+  const { config, pairingCode, store, onBackfill } = options
   let bound = false
 
   return createServer((req, res) => {
@@ -107,9 +110,28 @@ export function createHelperServer(options: HelperServerOptions): Server {
 
     if (method === 'GET' && path === '/status') {
       const replicas = await store.load()
+      const episodes = await store.loadEpisodes()
       sendJson(res, 200, {
-        replicas: replicas.map(replica => ({ ...replica, episodes: [] })),
+        replicas: replicas.map(replica => ({
+          ...replica,
+          episodes: episodes[replica.id] ?? [],
+        })),
       })
+      return
+    }
+
+    if (method === 'POST' && path === '/backfill') {
+      const body = await readJson(req, res)
+      if (body === undefined) {
+        return
+      }
+      const input = readBackfill(body)
+      if (!input) {
+        sendJson(res, 400, { error: 'invalid body' })
+        return
+      }
+      const result = onBackfill ? await onBackfill(input) : { episodes: [] }
+      sendJson(res, 200, result)
       return
     }
 
@@ -133,6 +155,55 @@ function safeEqual(left: string, right: string): boolean {
     return false
   }
   return timingSafeEqual(a, b)
+}
+
+function readBackfill(body: unknown): BackfillInput | undefined {
+  if (!body || typeof body !== 'object') {
+    return undefined
+  }
+  const record = body as {
+    bangumiId?: unknown
+    subgroupId?: unknown
+    episodes?: unknown
+  }
+  if (
+    typeof record.bangumiId !== 'string'
+    || typeof record.subgroupId !== 'string'
+    || !Array.isArray(record.episodes)
+  ) {
+    return undefined
+  }
+  const episodes: RssEpisode[] = []
+  for (const item of record.episodes) {
+    if (!item || typeof item !== 'object') {
+      return undefined
+    }
+    const episode = item as Record<string, unknown>
+    if (
+      typeof episode.episodeId !== 'string'
+      || typeof episode.title !== 'string'
+      || typeof episode.torrentUrl !== 'string'
+    ) {
+      return undefined
+    }
+    const parsed: RssEpisode = {
+      episodeId: episode.episodeId,
+      title: episode.title,
+      torrentUrl: episode.torrentUrl,
+    }
+    if (typeof episode.publishedAt === 'string') {
+      parsed.publishedAt = episode.publishedAt
+    }
+    if (typeof episode.sizeBytes === 'number') {
+      parsed.sizeBytes = episode.sizeBytes
+    }
+    episodes.push(parsed)
+  }
+  return {
+    bangumiId: record.bangumiId,
+    subgroupId: record.subgroupId,
+    episodes,
+  }
 }
 
 function readStringField(body: unknown, key: string): string | undefined {

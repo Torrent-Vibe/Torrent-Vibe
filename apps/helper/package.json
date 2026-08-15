@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@torrent-vibe/helper-protocol": "workspace:*",
+    "@torrent-vibe/mikan": "workspace:*",
     "bonjour-service": "^1.3.0",
     "tsx": "^4.20.5"
   },

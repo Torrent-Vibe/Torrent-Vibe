@@ -8,6 +8,7 @@ import type { HelperReplica } from '@torrent-vibe/helper-protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createHelperServer } from './http'
+import type { HelperEpisode } from './store'
 import { createFileReplicaStore } from './store'
 
 const TOKEN = 'test-token'
@@ -28,12 +29,27 @@ function replica(
 
 function memoryStore(initial: HelperReplica[] = []) {
   let replicas = [...initial]
+  let episodes: Record<string, HelperEpisode[]> = {}
   return {
     async load() {
       return [...replicas]
     },
     async save(next: HelperReplica[]) {
       replicas = [...next]
+      const ids = new Set(next.map(item => item.id))
+      episodes = Object.fromEntries(
+        Object.entries(episodes).filter(([id]) => ids.has(id)),
+      )
+    },
+    async loadEpisodes() {
+      return Object.fromEntries(
+        Object.entries(episodes).map(([id, list]) => [id, [...list]]),
+      )
+    },
+    async saveEpisodes(next: Record<string, HelperEpisode[]>) {
+      episodes = Object.fromEntries(
+        Object.entries(next).map(([id, list]) => [id, [...list]]),
+      )
     },
   }
 }
@@ -69,6 +85,15 @@ describe('helper HTTP', () => {
     store?: ReturnType<typeof memoryStore>
     token?: string
     pairingCode?: string
+    onBackfill?: (input: {
+      bangumiId: string
+      subgroupId: string
+      episodes: Array<{
+        episodeId: string
+        title: string
+        torrentUrl: string
+      }>
+    }) => Promise<unknown>
   }) {
     server = createHelperServer({
       config: {
@@ -79,9 +104,11 @@ describe('helper HTTP', () => {
         token: options?.token ?? TOKEN,
         port: 17890,
         version: '0.0.1-test',
+        pollIntervalMs: 600_000,
       },
       pairingCode: options?.pairingCode ?? PAIRING_CODE,
       store: options?.store ?? memoryStore(),
+      onBackfill: options?.onBackfill,
     })
     return listen(server)
   }
@@ -146,6 +173,7 @@ describe('helper HTTP', () => {
       ['GET', '/subscriptions'],
       ['PUT', '/subscriptions'],
       ['GET', '/status'],
+      ['POST', '/backfill'],
     ] as const
 
     for (const [method, path] of routes) {
@@ -215,6 +243,50 @@ describe('helper HTTP', () => {
     expect(response.status).toBe(400)
   })
 
+  it('pOST /backfill rejects a malformed body', async () => {
+    const base = await start()
+    const response = await fetch(`${base}/backfill`, {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${TOKEN}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ bangumiId: '3141' }),
+    })
+    expect(response.status).toBe(400)
+  })
+
+  it('pOST /backfill forwards episodes to the ingest hook', async () => {
+    const episodes = [
+      {
+        episodeId: 'a15a8861ff6e0b10ce5aca24f7dcafa23d1aa25c',
+        title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+        torrentUrl:
+          'https://mikan.example/Download/20240322/a15a8861ff6e0b10ce5aca24f7dcafa23d1aa25c.torrent',
+      },
+    ]
+    const onBackfill = async (input: {
+      bangumiId: string
+      subgroupId: string
+      episodes: typeof episodes
+    }) => ({ episodes: input.episodes })
+    const base = await start({ onBackfill })
+    const response = await fetch(`${base}/backfill`, {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${TOKEN}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        bangumiId: '3141',
+        subgroupId: '583',
+        episodes,
+      }),
+    })
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ episodes })
+  })
+
   it('gET /status returns replicas with empty episode states', async () => {
     const A = replica({ id: 'A' })
     const base = await start({ store: memoryStore([A]) })
@@ -240,6 +312,7 @@ describe('helper HTTP', () => {
           token: TOKEN,
           port: 17890,
           version: '0.0.1-test',
+          pollIntervalMs: 600_000,
         },
         pairingCode: PAIRING_CODE,
         store: createFileReplicaStore(dir),
@@ -267,6 +340,7 @@ describe('helper HTTP', () => {
           token: TOKEN,
           port: 17890,
           version: '0.0.1-test',
+          pollIntervalMs: 600_000,
         },
         pairingCode: PAIRING_CODE,
         store: createFileReplicaStore(dir),

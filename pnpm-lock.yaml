@@ -172,6 +172,9 @@ importers:
       '@torrent-vibe/helper-protocol':
         specifier: workspace:*
         version: link:../../packages/helper-protocol
+      '@torrent-vibe/mikan':
+        specifier: workspace:*
+        version: link:../../packages/mikan
       bonjour-service:
         specifier: ^1.3.0
         version: 1.4.4
