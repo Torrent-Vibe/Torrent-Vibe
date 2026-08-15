@@ -1,8 +1,10 @@
-import type { AiProviderId } from '@torrent-vibe/shared'
+import type { AiProviderId, SearchProviderId } from '@torrent-vibe/shared'
 import {
   AI_PROVIDER_IDS,
   API_TOKENS,
   DEFAULT_AI_PROVIDER_ORDER,
+  DEFAULT_SEARCH_PROVIDER,
+  SEARCH_PROVIDER_IDS,
 } from '@torrent-vibe/shared'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +31,7 @@ import {
 } from '~/modules/api-tokens'
 import { aiModelManager } from '~/modules/api-tokens/ai-model-manager'
 
-import { AiProviderPreferenceSelector } from './api-tokens/AiProviderPreferenceSelector'
+import { ProviderSelect } from './api-tokens/ProviderSelect'
 import { SettingField, SettingSectionCard } from './components'
 
 const STATUS_KEY_MAP: Record<string, I18nKeysForSettings> = {
@@ -40,9 +42,13 @@ const STATUS_KEY_MAP: Record<string, I18nKeysForSettings> = {
 }
 
 const formatTimestamp = (value: string | null): string => {
-  if (!value) { return '' }
+  if (!value) {
+    return ''
+  }
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) { return '' }
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
   // Use custom formatting for Chinese to avoid mixed locale artifacts like 9/19/25, 12:03 AM
 
   const pad = (n: number) => n.toString().padStart(2, '0')
@@ -115,7 +121,9 @@ const TokenSlotField = ({
 
   // Observe related credential slots to know when to refetch models
   const relatedCredentialUpdatedAt = useApiTokenStore((state) => {
-    if (definition.field !== 'model') { return null }
+    if (definition.field !== 'model') {
+      return null
+    }
     if (definition.providerId === 'openai') {
       const apiKeySlot = state.slots[API_TOKENS.ai.openai.apiKey]
       const baseUrlSlot = state.slots[API_TOKENS.ai.openai.baseUrl]
@@ -132,9 +140,15 @@ const TokenSlotField = ({
   })
 
   useEffect(() => {
-    if (!slot) { return }
-    if (slot.isSaving) { return }
-    if (!pendingAction) { return }
+    if (!slot) {
+      return
+    }
+    if (slot.isSaving) {
+      return
+    }
+    if (!pendingAction) {
+      return
+    }
 
     if (!slot.error && pendingAction === 'save') {
       setDraft('')
@@ -143,10 +157,18 @@ const TokenSlotField = ({
   }, [slot, pendingAction])
 
   useEffect(() => {
-    if (!slot?.hasValue) { return }
-    if (slot.isSaving) { return }
-    if (definition.inputType === 'password') { return }
-    if (draft.trim().length > 0) { return }
+    if (!slot?.hasValue) {
+      return
+    }
+    if (slot.isSaving) {
+      return
+    }
+    if (definition.inputType === 'password') {
+      return
+    }
+    if (draft.trim().length > 0) {
+      return
+    }
 
     let cancelled = false
 
@@ -172,7 +194,9 @@ const TokenSlotField = ({
   useEffect(() => {
     let cancelled = false
     const controller = new AbortController()
-    if (definition.field !== 'model') { return }
+    if (definition.field !== 'model') {
+      return
+    }
 
     const fetchModels = async () => {
       setIsLoadingModels(true)
@@ -182,14 +206,22 @@ const TokenSlotField = ({
         const ids = await aiModelManager.getModels(provider, {
           signal: controller.signal,
         })
-        if (!cancelled) { setModelOptions(ids) }
+        if (!cancelled) {
+          setModelOptions(ids)
+        }
       }
       catch (error: any) {
-        if (!cancelled) { setModelsError(error?.message || 'fetchFailed') }
-        if (!cancelled) { setModelOptions([]) }
+        if (!cancelled) {
+          setModelsError(error?.message || 'fetchFailed')
+        }
+        if (!cancelled) {
+          setModelOptions([])
+        }
       }
       finally {
-        if (!cancelled) { setIsLoadingModels(false) }
+        if (!cancelled) {
+          setIsLoadingModels(false)
+        }
       }
     }
 
@@ -202,7 +234,9 @@ const TokenSlotField = ({
   }, [definition.field, definition.providerId, relatedCredentialUpdatedAt])
   const onSave = async (value?: string) => {
     const submittedValue = value ?? draft
-    if (!submittedValue.trim()) { return }
+    if (!submittedValue.trim()) {
+      return
+    }
     setPendingAction('save')
 
     const result = await ApiTokenActions.shared.setTokenValue(
@@ -387,6 +421,13 @@ export const ApiTokensTab = () => {
   const [preferenceInitialized, setPreferenceInitialized] = useState(false)
   const [preferenceLoading, setPreferenceLoading] = useState(false)
   const [preferenceSaving, setPreferenceSaving] = useState(false)
+  const [searchProvider, setSearchProvider] = useState<SearchProviderId>(
+    DEFAULT_SEARCH_PROVIDER,
+  )
+  const [searchSaving, setSearchSaving] = useState(false)
+  const [expandedProvider, setExpandedProvider] = useState<AiProviderId | null>(
+    null,
+  )
 
   const normalizePreferenceOrder = useCallback(
     (order?: unknown): AiProviderId[] => {
@@ -398,10 +439,16 @@ export const ApiTokensTab = () => {
       const normalized: AiProviderId[] = []
 
       for (const value of order) {
-        if (typeof value !== 'string') { continue }
-        if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) { continue }
+        if (typeof value !== 'string') {
+          continue
+        }
+        if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) {
+          continue
+        }
         const id = value as AiProviderId
-        if (seen.has(id)) { continue }
+        if (seen.has(id)) {
+          continue
+        }
         seen.add(id)
         normalized.push(id)
       }
@@ -422,27 +469,46 @@ export const ApiTokensTab = () => {
   )
 
   useEffect(() => {
-    if (!isElectron) { return }
-    if (initialized) { return }
+    if (!isElectron) {
+      return
+    }
+    if (initialized) {
+      return
+    }
     void ApiTokenActions.shared.bootstrap()
   }, [initialized, isElectron])
 
   useEffect(() => {
-    if (!isElectron) { return }
+    if (!isElectron) {
+      return
+    }
     let cancelled = false
 
     const loadPreference = async () => {
       setPreferenceLoading(true)
       try {
         const response = await ipcServices?.appSettings.getAiSettings?.()
-        if (cancelled) { return }
+        if (cancelled) {
+          return
+        }
         const order = normalizePreferenceOrder(response?.preferredProviders)
         setPreferenceOrder(order)
         setPreferredProvider(order[0] ?? null)
+        setExpandedProvider(order[0] ?? null)
+        const nextSearch
+          = typeof response?.searchProvider === 'string'
+            && SEARCH_PROVIDER_IDS.includes(
+              response.searchProvider as SearchProviderId,
+            )
+            ? (response.searchProvider as SearchProviderId)
+            : DEFAULT_SEARCH_PROVIDER
+        setSearchProvider(nextSearch)
         setPreferenceInitialized(true)
       }
       catch (error) {
-        if (cancelled) { return }
+        if (cancelled) {
+          return
+        }
         console.error(
           '[api-tokens] failed to load AI provider preference',
           error,
@@ -450,6 +516,8 @@ export const ApiTokensTab = () => {
         const fallback = normalizePreferenceOrder()
         setPreferenceOrder(fallback)
         setPreferredProvider(fallback[0] ?? null)
+        setExpandedProvider(fallback[0] ?? null)
+        setSearchProvider(DEFAULT_SEARCH_PROVIDER)
         setPreferenceInitialized(true)
       }
       finally {
@@ -499,7 +567,9 @@ export const ApiTokensTab = () => {
   )
 
   useEffect(() => {
-    if (!preferenceInitialized) { return }
+    if (!preferenceInitialized) {
+      return
+    }
     if (configuredProviderIds.length === 0) {
       setPreferredProvider(null)
       return
@@ -522,7 +592,9 @@ export const ApiTokensTab = () => {
       const seen = new Set<AiProviderId>()
 
       const add = (id: AiProviderId) => {
-        if (seen.has(id)) { return }
+        if (seen.has(id)) {
+          return
+        }
         seen.add(id)
         order.push(id)
       }
@@ -567,6 +639,7 @@ export const ApiTokensTab = () => {
         )
         setPreferenceOrder(resolvedOrder)
         setPreferredProvider(resolvedOrder[0] ?? next)
+        setExpandedProvider(next)
       }
       catch (error) {
         console.error(
@@ -583,15 +656,55 @@ export const ApiTokensTab = () => {
     [buildPreferenceOrder, isElectron, normalizePreferenceOrder, t],
   )
 
-  const preferenceOptions = useMemo(
+  const chatProviderOptions = useMemo(
     () =>
-      aiProviderViews
-        .filter(provider => provider.configured)
-        .map(provider => ({
-          id: provider.definition.id,
-          label: t(provider.definition.labelKey),
-        })),
+      aiProviderViews.map(provider => ({
+        id: provider.definition.id,
+        label: t(provider.definition.labelKey),
+      })),
     [aiProviderViews, t],
+  )
+
+  const searchProviderOptions = useMemo(
+    () =>
+      SEARCH_PROVIDER_IDS.map(id => ({
+        id,
+        label: t(`tabs.apiTokens.providers.${id}.label`),
+      })),
+    [t],
+  )
+
+  const handleSearchProviderChange = useCallback(
+    async (next: SearchProviderId) => {
+      setSearchProvider(next)
+      if (!isElectron) {
+        return
+      }
+      const service = ipcServices?.appSettings
+      if (!service?.setAiSearchProvider) {
+        return
+      }
+      setSearchSaving(true)
+      try {
+        const response = await service.setAiSearchProvider({
+          searchProvider: next,
+        })
+        if (
+          response?.searchProvider
+          && SEARCH_PROVIDER_IDS.includes(response.searchProvider)
+        ) {
+          setSearchProvider(response.searchProvider)
+        }
+      }
+      catch (error) {
+        console.error('[api-tokens] failed to update AI search provider', error)
+        toast.error(t('tabs.apiTokens.providers.search.saveFailed'))
+      }
+      finally {
+        setSearchSaving(false)
+      }
+    },
+    [isElectron, t],
   )
 
   if (!isElectron) {
@@ -633,45 +746,95 @@ export const ApiTokensTab = () => {
           {definition.id === 'ai'
             ? (
                 <div className="space-y-4">
-                  <AiProviderPreferenceSelector
-                    providers={preferenceOptions}
+                  <ProviderSelect
+                    label={t('tabs.apiTokens.providers.chat.label')}
+                    description={t('tabs.apiTokens.providers.chat.description')}
+                    placeholder={t(
+                      'tabs.apiTokens.providers.preference.placeholder',
+                    )}
+                    options={chatProviderOptions}
                     value={preferredProvider}
                     onChange={handlePreferredProviderChange}
                     disabled={disableProviderFields || preferenceLoading}
                     loading={preferenceSaving || preferenceLoading}
                   />
-                  <div className="space-y-4">
-                    {aiProviderViews.map(provider => (
-                      <div
-                        key={provider.definition.id}
-                        className="rounded-md border border-border/60 bg-muted/5 p-4"
-                      >
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">
-                            {t(provider.definition.labelKey)}
-                          </h4>
-                          {provider.definition.descriptionKey
+                  <ProviderSelect
+                    label={t('tabs.apiTokens.providers.search.label')}
+                    description={t('tabs.apiTokens.providers.search.description')}
+                    placeholder={t('tabs.apiTokens.providers.search.placeholder')}
+                    options={searchProviderOptions}
+                    value={searchProvider}
+                    onChange={handleSearchProviderChange}
+                    disabled={disableProviderFields || preferenceLoading}
+                    loading={searchSaving || preferenceLoading}
+                  />
+                  <div className="space-y-2">
+                    {aiProviderViews.map((provider) => {
+                      const isOpen = expandedProvider === provider.definition.id
+                      return (
+                        <div
+                          key={provider.definition.id}
+                          className="overflow-hidden rounded-lg border border-border/60"
+                        >
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-fill/40"
+                            onClick={() =>
+                              setExpandedProvider(
+                                isOpen ? null : provider.definition.id,
+                              )}
+                          >
+                            <i
+                              className={`i-mingcute-down-line size-4 shrink-0 text-text-tertiary transition-transform ${
+                                isOpen ? 'rotate-0' : '-rotate-90'
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium">
+                                {t(provider.definition.labelKey)}
+                              </span>
+                              {provider.definition.descriptionKey
+                                ? (
+                                    <span className="mt-0.5 block text-xs text-text-tertiary">
+                                      {t(provider.definition.descriptionKey)}
+                                    </span>
+                                  )
+                                : null}
+                            </span>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] tabular-nums ${
+                                provider.configured
+                                  ? 'bg-green/10 text-green'
+                                  : 'bg-fill/50 text-text-tertiary'
+                              }`}
+                            >
+                              {provider.configured
+                                ? t('tabs.apiTokens.providers.status.configured')
+                                : t(
+                                    'tabs.apiTokens.providers.status.notConfigured',
+                                  )}
+                            </span>
+                          </button>
+                          {isOpen
                             ? (
-                                <p className="text-xs text-text-tertiary">
-                                  {t(provider.definition.descriptionKey)}
-                                </p>
+                                <div className="space-y-4 border-t border-border/50 px-3 py-3">
+                                  {provider.slots.map(
+                                    ({ definition: slotDefinition, state }) => (
+                                      <TokenSlotField
+                                        key={slotDefinition.id}
+                                        definition={slotDefinition}
+                                        slot={state}
+                                        disabled={disableProviderFields}
+                                      />
+                                    ),
+                                  )}
+                                </div>
                               )
                             : null}
                         </div>
-                        <div className="mt-3 space-y-4">
-                          {provider.slots.map(
-                            ({ definition: slotDefinition, state }) => (
-                              <TokenSlotField
-                                key={slotDefinition.id}
-                                definition={slotDefinition}
-                                slot={state}
-                                disabled={disableProviderFields}
-                              />
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )

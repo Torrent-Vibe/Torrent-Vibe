@@ -1,6 +1,7 @@
 import { existsSync, statSync } from 'node:fs'
 
-import type { AiProviderId } from '@torrent-vibe/shared'
+import type { AiProviderId, SearchProviderId } from '@torrent-vibe/shared'
+import { SEARCH_PROVIDER_IDS } from '@torrent-vibe/shared'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import {
@@ -25,6 +26,7 @@ export class AppSettingsIPCService extends IpcService {
   getAiSettings() {
     return {
       preferredProviders: this.store.getPreferredAiProviders(),
+      searchProvider: this.store.getSearchProvider(),
     }
   }
 
@@ -40,7 +42,8 @@ export class AppSettingsIPCService extends IpcService {
         if (!stat.isFile()) {
           return { ok: false, error: 'notFile' as const }
         }
-      } catch (error) {
+      }
+      catch (error) {
         return {
           ok: false,
           error: 'notAccessible' as const,
@@ -74,6 +77,20 @@ export class AppSettingsIPCService extends IpcService {
     return {
       ok: true as const,
       preferredProviders: resolved,
+    }
+  }
+
+  @IpcMethod()
+  setAiSearchProvider(input: { searchProvider: string }) {
+    const next = input.searchProvider
+    const resolved = this.store.setSearchProvider(
+      SEARCH_PROVIDER_IDS.includes(next as SearchProviderId)
+        ? (next as SearchProviderId)
+        : this.store.getSearchProvider(),
+    )
+    return {
+      ok: true as const,
+      searchProvider: resolved,
     }
   }
 

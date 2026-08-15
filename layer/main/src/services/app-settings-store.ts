@@ -1,8 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { AiProviderId } from '@torrent-vibe/shared'
-import { AI_PROVIDER_IDS } from '@torrent-vibe/shared'
+import type { AiProviderId, SearchProviderId } from '@torrent-vibe/shared'
+import {
+  AI_PROVIDER_IDS,
+  DEFAULT_SEARCH_PROVIDER,
+  SEARCH_PROVIDER_IDS,
+} from '@torrent-vibe/shared'
 import { app } from 'electron'
 
 interface AppSettingsData {
@@ -11,6 +15,7 @@ interface AppSettingsData {
   }
   ai?: {
     preferredProviders?: AiProviderId[]
+    searchProvider?: SearchProviderId
   }
 }
 
@@ -59,7 +64,8 @@ export class AppSettingsStore {
       const raw = readFileSync(this.filePath, 'utf8')
       const parsed = JSON.parse(raw) as AppSettingsData
       this.cache = parsed && typeof parsed === 'object' ? parsed : {}
-    } catch (error) {
+    }
+    catch (error) {
       console.warn('[app-settings] failed to load store, resetting', error)
       this.cache = {}
     }
@@ -70,7 +76,8 @@ export class AppSettingsStore {
       const directory = dirname(this.filePath)
       ensureDirectory(directory)
       writeFileSync(this.filePath, JSON.stringify(this.cache, null, 2), 'utf8')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('[app-settings] failed to persist store', error)
     }
   }
@@ -91,8 +98,7 @@ export class AppSettingsStore {
   getPreferredAiProviders(): AiProviderId[] {
     const stored = this.cache.ai?.preferredProviders ?? []
     const valid = stored.filter((id): id is AiProviderId =>
-      AI_PROVIDER_IDS.includes(id),
-    )
+      AI_PROVIDER_IDS.includes(id))
 
     if (valid.length > 0) {
       return Array.from(new Set(valid))
@@ -103,8 +109,7 @@ export class AppSettingsStore {
 
   setPreferredAiProviders(order: AiProviderId[]): AiProviderId[] {
     const normalized = order.filter((id): id is AiProviderId =>
-      AI_PROVIDER_IDS.includes(id),
-    )
+      AI_PROVIDER_IDS.includes(id))
 
     const deduped = normalized.length > 0 ? Array.from(new Set(normalized)) : []
 
@@ -118,5 +123,25 @@ export class AppSettingsStore {
     this.save()
 
     return finalOrder
+  }
+
+  getSearchProvider(): SearchProviderId {
+    const stored = this.cache.ai?.searchProvider
+    if (stored && SEARCH_PROVIDER_IDS.includes(stored)) {
+      return stored
+    }
+    return DEFAULT_SEARCH_PROVIDER
+  }
+
+  setSearchProvider(providerId: SearchProviderId): SearchProviderId {
+    const resolved = SEARCH_PROVIDER_IDS.includes(providerId)
+      ? providerId
+      : DEFAULT_SEARCH_PROVIDER
+    this.cache.ai = {
+      ...this.cache.ai,
+      searchProvider: resolved,
+    }
+    this.save()
+    return resolved
   }
 }

@@ -362,14 +362,16 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
           ? buildTmdbTools(this.tmdbClient)
           : []),
       ]
-      const codexRuntime = getProviderById('codex')?.resolve(config) ?? null
-      if (codexRuntime) {
-        tools.push(
-          buildWebSearchTool({
-            resolveCodex: () => codexRuntime,
-            sessionId,
-          }),
-        )
+      if (this.appSettingsStore.getSearchProvider() === 'codex') {
+        const codexRuntime = getProviderById('codex')?.resolve(config) ?? null
+        if (codexRuntime) {
+          tools.push(
+            buildWebSearchTool({
+              resolveCodex: () => codexRuntime,
+              sessionId,
+            }),
+          )
+        }
       }
 
       const userPrompt = renderUserPrompt(input.rawName, input.fileTreeSummary)
