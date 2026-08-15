@@ -1,36 +1,64 @@
-import { createOpenAI } from '@ai-sdk/openai'
-import type { OpenAIChatModelId } from '@ai-sdk/openai/internal'
+import { createModels } from '@earendil-works/pi-ai'
+import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
 
 import type { ProviderConfig } from '../types'
+import {
+  createCompatCollection,
+  createCompatModel,
+  DEFAULT_OPENAI_MODEL,
+} from './pi-runtime'
 import type { AiProviderAdapter, AiProviderRuntime } from './types'
 
 const ERROR_NAMESPACE = 'ai.openai'
+const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 
 export class OpenAIProviderAdapter implements AiProviderAdapter {
   readonly id = 'openai' as const
   readonly missingCredentialError = `${ERROR_NAMESPACE}.missingApiKey`
 
   isConfigured(config: ProviderConfig): boolean {
-    const apiKey = config.providers.openai.apiKey?.trim()
-    return Boolean(apiKey)
+    return Boolean(config.providers.openai.apiKey?.trim())
   }
 
   resolve(config: ProviderConfig): AiProviderRuntime | null {
-    if (!this.isConfigured(config)) {
+    const apiKey = config.providers.openai.apiKey?.trim()
+    if (!apiKey) {
       return null
     }
 
-    const providerConfig = config.providers.openai
-    const client = createOpenAI({
-      apiKey: providerConfig.apiKey ?? undefined,
-      baseURL: providerConfig.baseUrl || undefined,
-    })
-    const model = client(providerConfig.model as OpenAIChatModelId)
+    const modelId = config.providers.openai.model || DEFAULT_OPENAI_MODEL
+    const baseUrl = config.providers.openai.baseUrl?.trim() || OPENAI_BASE_URL
 
+    if (!config.providers.openai.baseUrl?.trim()) {
+      const models = createModels()
+      models.setProvider(openaiProvider())
+      const catalogModel = models.getModel('openai', modelId)
+      if (catalogModel) {
+        return {
+          id: this.id,
+          model: catalogModel,
+          modelId,
+          models,
+          apiKey,
+          sessionAffinityFormat: 'openai',
+          errorNamespace: ERROR_NAMESPACE,
+        }
+      }
+    }
+
+    const model = createCompatModel({
+      id: modelId,
+      provider: 'openai',
+      baseUrl,
+      sessionAffinityFormat: 'openai',
+    })
     return {
       id: this.id,
       model,
-      modelId: providerConfig.model,
+      modelId,
+      models: createCompatCollection('openai', model, baseUrl),
+      apiKey,
+      sessionAffinityFormat: 'openai',
       errorNamespace: ERROR_NAMESPACE,
     }
   }

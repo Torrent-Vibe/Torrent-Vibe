@@ -12,14 +12,12 @@ import {
 import { getAiIntegrationEnabled } from '~/lib/ai-integration'
 import { stopPropagation } from '~/lib/dom'
 import { ipcServices } from '~/lib/ipc-client'
-import { isTorrentTableScrollActive } from '~/modules/torrent/stores/torrent-table-performance'
 import { TorrentAiActions, useTorrentAiStore } from '~/modules/torrent-ai'
 import { selectTorrentAiEntry } from '~/modules/torrent-ai/selectors'
 
 interface TorrentAiMetadataRowProps {
   hash: string
   rawName: string
-  isInViewport?: boolean
 }
 
 const MEDIA_TYPE_LABEL_KEYS: Record<string, I18nKeys> = {
@@ -80,6 +78,10 @@ const ERROR_MESSAGE_KEY: Record<string, I18nKeys> = {
   'ai.openrouter.requestFailed': 'torrent.ai.status.error.requestFailed',
   'ai.openrouter.invalidResponse': 'torrent.ai.status.error.invalidResponse',
   'ai.openrouter.unexpectedError': 'torrent.ai.status.error.unexpected',
+  'ai.codex.missingApiKey': 'torrent.ai.status.error.missingApiKey',
+  'ai.codex.requestFailed': 'torrent.ai.status.error.requestFailed',
+  'ai.codex.invalidResponse': 'torrent.ai.status.error.invalidResponse',
+  'ai.codex.unexpectedError': 'torrent.ai.status.error.unexpected',
   'ai.providers.unavailable': 'torrent.ai.status.error.missingProvider',
   'ai.providers.requestFailed': 'torrent.ai.status.error.requestFailed',
 } as const
@@ -88,11 +90,9 @@ const NON_RETRYABLE_ERRORS = new Set([
   'ai.notSupported',
   'ai.openai.missingApiKey',
   'ai.openrouter.missingApiKey',
+  'ai.codex.missingApiKey',
   'ai.providers.unavailable',
 ])
-
-const METADATA_REQUEST_VISIBLE_DELAY = 1200
-const METADATA_REQUEST_SCROLL_RETRY_DELAY = 250
 
 let cachedAiAvailability: boolean | null = null
 let aiAvailabilityPromise: Promise<boolean> | null = null
@@ -126,10 +126,8 @@ const resolveAiAvailability = async () => {
 export const TorrentAiMetadataRow = ({
   hash,
   rawName,
-  isInViewport,
 }: TorrentAiMetadataRowProps) => {
-  const { t, i18n } = useTranslation('app')
-  const language = i18n.language || 'zh-CN'
+  const { t } = useTranslation('app')
   const trimmedName = rawName?.trim() ?? ''
   const isElectron = typeof ELECTRON !== 'undefined' && ELECTRON
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null)
@@ -173,74 +171,6 @@ export const TorrentAiMetadataRow = ({
     },
     [hash, trimmedName],
   )
-
-  useEffect(() => {
-    if (!isElectron) {
-      return
-    }
-    if (aiAvailable !== true) {
-      return
-    }
-    if (isInViewport !== true) {
-      return
-    }
-    if (!hash || !trimmedName) {
-      return
-    }
-
-    let timer: number | null = null
-    let disposed = false
-
-    const run = () => {
-      if (disposed) {
-        return
-      }
-
-      if (isTorrentTableScrollActive()) {
-        timer = window.setTimeout(run, METADATA_REQUEST_SCROLL_RETRY_DELAY)
-        return
-      }
-
-      if (!entry) {
-        requestMetadata()
-        return
-      }
-
-      if (entry.status === 'loading' || entry.status === 'error') {
-        return
-      }
-
-      const metadataMatches
-        = entry.status === 'ready'
-          && entry.metadata
-          && entry.language === language
-          && entry.rawName === trimmedName
-
-      if (metadataMatches) {
-        return
-      }
-
-      requestMetadata()
-    }
-
-    timer = window.setTimeout(run, METADATA_REQUEST_VISIBLE_DELAY)
-
-    return () => {
-      disposed = true
-      if (timer) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [
-    hash,
-    trimmedName,
-    language,
-    entry,
-    requestMetadata,
-    isElectron,
-    aiAvailable,
-    isInViewport,
-  ])
   const technicalBadges = useMemo(
     () => buildTechnicalBadges(entry?.metadata?.technical ?? {}),
     [entry?.metadata?.technical],
@@ -250,7 +180,20 @@ export const TorrentAiMetadataRow = ({
   }
 
   if (!entry) {
-    return null
+    return (
+      <button
+        type="button"
+        className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
+        aria-label={t('torrent.ai.actions.analyze')}
+        onClick={(event) => {
+          event.stopPropagation()
+          requestMetadata()
+        }}
+      >
+        <i className="i-lucide-sparkles text-[12px]" aria-hidden="true" />
+        <span>{t('torrent.ai.actions.analyze')}</span>
+      </button>
+    )
   }
 
   if (entry.status === 'error') {

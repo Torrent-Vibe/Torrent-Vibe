@@ -9,6 +9,7 @@ autoInstallPeers: false
 blockExoticSubdeps: false
 minimumReleaseAge: 0
 allowBuilds:
+  "@google/genai": false
   "@tailwindcss/oxide": true
   bufferutil: false
   electron: true
@@ -17,6 +18,8 @@ allowBuilds:
   esbuild: true
   fs-xattr: true
   macos-alias: true
+  node-pty: false
+  protobufjs: false
   simple-git-hooks: true
   sqlite3: true
   unrs-resolver: true

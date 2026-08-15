@@ -31,7 +31,6 @@ function rawLoaderPlugin() {
 const ELECTRON_EXTERNALS = ['electron', /^electron\//]
 const MAIN_PROCESS_EXTERNALS = [
   ...ELECTRON_EXTERNALS,
-  'electron-liquid-glass',
   'sqlite3',
   'bindings',
   'node-gyp-build',

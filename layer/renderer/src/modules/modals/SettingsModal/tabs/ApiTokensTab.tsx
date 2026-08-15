@@ -40,9 +40,9 @@ const STATUS_KEY_MAP: Record<string, I18nKeysForSettings> = {
 }
 
 const formatTimestamp = (value: string | null): string => {
-  if (!value) return ''
+  if (!value) { return '' }
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
+  if (Number.isNaN(date.getTime())) { return '' }
   // Use custom formatting for Chinese to avoid mixed locale artifacts like 9/19/25, 12:03 AM
 
   const pad = (n: number) => n.toString().padStart(2, '0')
@@ -115,7 +115,7 @@ const TokenSlotField = ({
 
   // Observe related credential slots to know when to refetch models
   const relatedCredentialUpdatedAt = useApiTokenStore((state) => {
-    if (definition.field !== 'model') return null
+    if (definition.field !== 'model') { return null }
     if (definition.providerId === 'openai') {
       const apiKeySlot = state.slots[API_TOKENS.ai.openai.apiKey]
       const baseUrlSlot = state.slots[API_TOKENS.ai.openai.baseUrl]
@@ -125,13 +125,16 @@ const TokenSlotField = ({
       const apiKeySlot = state.slots[API_TOKENS.ai.openrouter.apiKey]
       return `${apiKeySlot?.updatedAt ?? ''}`
     }
+    if (definition.providerId === 'codex') {
+      return 'codex'
+    }
     return null
   })
 
   useEffect(() => {
-    if (!slot) return
-    if (slot.isSaving) return
-    if (!pendingAction) return
+    if (!slot) { return }
+    if (slot.isSaving) { return }
+    if (!pendingAction) { return }
 
     if (!slot.error && pendingAction === 'save') {
       setDraft('')
@@ -140,10 +143,10 @@ const TokenSlotField = ({
   }, [slot, pendingAction])
 
   useEffect(() => {
-    if (!slot?.hasValue) return
-    if (slot.isSaving) return
-    if (definition.inputType === 'password') return
-    if (draft.trim().length > 0) return
+    if (!slot?.hasValue) { return }
+    if (slot.isSaving) { return }
+    if (definition.inputType === 'password') { return }
+    if (draft.trim().length > 0) { return }
 
     let cancelled = false
 
@@ -169,7 +172,7 @@ const TokenSlotField = ({
   useEffect(() => {
     let cancelled = false
     const controller = new AbortController()
-    if (definition.field !== 'model') return
+    if (definition.field !== 'model') { return }
 
     const fetchModels = async () => {
       setIsLoadingModels(true)
@@ -179,12 +182,14 @@ const TokenSlotField = ({
         const ids = await aiModelManager.getModels(provider, {
           signal: controller.signal,
         })
-        if (!cancelled) setModelOptions(ids)
-      } catch (error: any) {
-        if (!cancelled) setModelsError(error?.message || 'fetchFailed')
-        if (!cancelled) setModelOptions([])
-      } finally {
-        if (!cancelled) setIsLoadingModels(false)
+        if (!cancelled) { setModelOptions(ids) }
+      }
+      catch (error: any) {
+        if (!cancelled) { setModelsError(error?.message || 'fetchFailed') }
+        if (!cancelled) { setModelOptions([]) }
+      }
+      finally {
+        if (!cancelled) { setIsLoadingModels(false) }
       }
     }
 
@@ -197,7 +202,7 @@ const TokenSlotField = ({
   }, [definition.field, definition.providerId, relatedCredentialUpdatedAt])
   const onSave = async (value?: string) => {
     const submittedValue = value ?? draft
-    if (!submittedValue.trim()) return
+    if (!submittedValue.trim()) { return }
     setPendingAction('save')
 
     const result = await ApiTokenActions.shared.setTokenValue(
@@ -229,117 +234,133 @@ const TokenSlotField = ({
   return (
     <SettingField
       label={t(definition.labelKey)}
-      description={
+      description={(
         <p className="flex flex-wrap gap-1">
           {t(definition.descriptionKey)}
-          {definition.docsUrl ? (
-            <a
-              href={definition.docsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-accent hover:underline"
-            >
-              {t('tabs.apiTokens.learnMore')}
-            </a>
-          ) : null}
+          {definition.docsUrl
+            ? (
+                <a
+                  href={definition.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-accent hover:underline"
+                >
+                  {t('tabs.apiTokens.learnMore')}
+                </a>
+              )
+            : null}
         </p>
-      }
+      )}
       controlClassName="flex flex-col gap-2"
     >
       <div className="flex w-full flex-col gap-2">
-        {definition.field === 'model' ? (
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <ComboboxSelect
+        {definition.field === 'model'
+          ? (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <ComboboxSelect
+                    value={draft}
+                    onValueChange={(v) => {
+                      setDraft(v)
+                      onSave(v)
+                    }}
+                    options={modelOptions ?? []}
+                    placeholder={
+                      definition.placeholderKey
+                        ? t(definition.placeholderKey)
+                        : undefined
+                    }
+                    allowCustom={true}
+                    disabled={saving || disabled || isLoadingModels}
+                    size="sm"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )
+          : (
+              <Input
+                type={definition.inputType ?? 'password'}
+                className="w-full"
+                endAdornmentVisibility="always"
                 value={draft}
-                onValueChange={(v) => {
-                  setDraft(v)
-                  onSave(v)
-                }}
-                options={modelOptions ?? []}
                 placeholder={
                   definition.placeholderKey
                     ? t(definition.placeholderKey)
                     : undefined
                 }
-                allowCustom={true}
-                disabled={saving || disabled || isLoadingModels}
-                size="sm"
-                className="w-full"
-              />
-            </div>
-          </div>
-        ) : (
-          <Input
-            type={definition.inputType ?? 'password'}
-            className="w-full"
-            endAdornmentVisibility="always"
-            value={draft}
-            placeholder={
-              definition.placeholderKey
-                ? t(definition.placeholderKey)
-                : undefined
-            }
-            onChange={(event) => {
-              setDraft(event.target.value)
-            }}
-            disabled={saving || disabled}
-            endAdornment={
-              <div className="flex items-center gap-1 pr-1">
-                <Button
-                  size="sm"
-                  aria-label="Save"
-                  type="button"
-                  onClick={() => onSave()}
-                  disabled={disabled || saving}
-                  className="h-7 w-7 p-1.5 !bg-transparent"
-                  variant="ghost"
-                >
-                  <i className="i-mingcute-check-line text-base" />
-                </Button>
+                onChange={(event) => {
+                  setDraft(event.target.value)
+                }}
+                disabled={saving || disabled}
+                endAdornment={(
+                  <div className="flex items-center gap-1 pr-1">
+                    <Button
+                      size="sm"
+                      aria-label="Save"
+                      type="button"
+                      onClick={() => onSave()}
+                      disabled={disabled || saving}
+                      className="h-7 w-7 p-1.5 !bg-transparent"
+                      variant="ghost"
+                    >
+                      <i className="i-mingcute-check-line text-base" />
+                    </Button>
 
-                <Button
-                  size="sm"
-                  type="button"
-                  aria-label="Clear"
-                  variant="ghost"
-                  className="h-7 w-7 p-1.5 !bg-transparent"
-                  onClick={onClear}
-                  disabled={disabled || saving}
-                >
-                  <i className="i-mingcute-close-line text-base" />
-                </Button>
-              </div>
-            }
-          />
-        )}
+                    <Button
+                      size="sm"
+                      type="button"
+                      aria-label="Clear"
+                      variant="ghost"
+                      className="h-7 w-7 p-1.5 !bg-transparent"
+                      onClick={onClear}
+                      disabled={disabled || saving}
+                    >
+                      <i className="i-mingcute-close-line text-base" />
+                    </Button>
+                  </div>
+                )}
+              />
+            )}
       </div>
       <div className="text-[10px] h-4 text-text-tertiary">
-        {saving ? (
-          <span className="inline-flex items-center gap-1">
-            <i className="i-mingcute-loading-3-line animate-spin" />
-            {t('tabs.apiTokens.status.saving')}
-          </span>
-        ) : isLoadingModels && definition.field === 'model' ? (
-          <span className="inline-flex items-center gap-1">
-            <i className="i-mingcute-loading-3-line animate-spin" />
-          </span>
-        ) : modelsError && definition.field === 'model' ? (
-          <span className="inline-flex items-center gap-1 text-red">
-            <i className="i-mingcute-alert-line" />
-            {modelsError}
-          </span>
-        ) : slot?.error ? (
-          STATUS_KEY_MAP[slot.error] ? (
-            t(STATUS_KEY_MAP[slot.error])
-          ) : (
-            slot.error
-          )
-        ) : slot?.hasValue ? (
-          statusLabel
-        ) : (
-          <i className="i-mingcute-info-line" aria-hidden="true" />
-        )}
+        {saving
+          ? (
+              <span className="inline-flex items-center gap-1">
+                <i className="i-mingcute-loading-3-line animate-spin" />
+                {t('tabs.apiTokens.status.saving')}
+              </span>
+            )
+          : isLoadingModels && definition.field === 'model'
+            ? (
+                <span className="inline-flex items-center gap-1">
+                  <i className="i-mingcute-loading-3-line animate-spin" />
+                </span>
+              )
+            : modelsError && definition.field === 'model'
+              ? (
+                  <span className="inline-flex items-center gap-1 text-red">
+                    <i className="i-mingcute-alert-line" />
+                    {modelsError}
+                  </span>
+                )
+              : slot?.error
+                ? (
+                    STATUS_KEY_MAP[slot.error]
+                      ? (
+                          t(STATUS_KEY_MAP[slot.error])
+                        )
+                      : (
+                          slot.error
+                        )
+                  )
+                : slot?.hasValue
+                  ? (
+                      statusLabel
+                    )
+                  : (
+                      <i className="i-mingcute-info-line" aria-hidden="true" />
+                    )}
       </div>
     </SettingField>
   )
@@ -349,10 +370,9 @@ export const ApiTokensTab = () => {
   const { t } = useTranslation('setting')
   const isElectron = typeof ELECTRON !== 'undefined' && ELECTRON
   const [aiEnabled, setAiEnabled] = useState<boolean>(() =>
-    getAiIntegrationEnabled(),
-  )
+    getAiIntegrationEnabled())
   const { initialized, isLoading, loadError, slots } = useApiTokenStore(
-    (state) => ({
+    state => ({
       initialized: state.initialized,
       isLoading: state.isLoading,
       loadError: state.loadError,
@@ -362,8 +382,8 @@ export const ApiTokensTab = () => {
   const [preferenceOrder, setPreferenceOrder] = useState<AiProviderId[]>(() => [
     ...DEFAULT_AI_PROVIDER_ORDER,
   ])
-  const [preferredProvider, setPreferredProvider] =
-    useState<AiProviderId | null>(null)
+  const [preferredProvider, setPreferredProvider]
+    = useState<AiProviderId | null>(null)
   const [preferenceInitialized, setPreferenceInitialized] = useState(false)
   const [preferenceLoading, setPreferenceLoading] = useState(false)
   const [preferenceSaving, setPreferenceSaving] = useState(false)
@@ -378,10 +398,10 @@ export const ApiTokensTab = () => {
       const normalized: AiProviderId[] = []
 
       for (const value of order) {
-        if (typeof value !== 'string') continue
-        if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) continue
+        if (typeof value !== 'string') { continue }
+        if (!AI_PROVIDER_IDS.includes(value as AiProviderId)) { continue }
         const id = value as AiProviderId
-        if (seen.has(id)) continue
+        if (seen.has(id)) { continue }
         seen.add(id)
         normalized.push(id)
       }
@@ -402,26 +422,27 @@ export const ApiTokensTab = () => {
   )
 
   useEffect(() => {
-    if (!isElectron) return
-    if (initialized) return
+    if (!isElectron) { return }
+    if (initialized) { return }
     void ApiTokenActions.shared.bootstrap()
   }, [initialized, isElectron])
 
   useEffect(() => {
-    if (!isElectron) return
+    if (!isElectron) { return }
     let cancelled = false
 
     const loadPreference = async () => {
       setPreferenceLoading(true)
       try {
         const response = await ipcServices?.appSettings.getAiSettings?.()
-        if (cancelled) return
+        if (cancelled) { return }
         const order = normalizePreferenceOrder(response?.preferredProviders)
         setPreferenceOrder(order)
         setPreferredProvider(order[0] ?? null)
         setPreferenceInitialized(true)
-      } catch (error) {
-        if (cancelled) return
+      }
+      catch (error) {
+        if (cancelled) { return }
         console.error(
           '[api-tokens] failed to load AI provider preference',
           error,
@@ -430,7 +451,8 @@ export const ApiTokensTab = () => {
         setPreferenceOrder(fallback)
         setPreferredProvider(fallback[0] ?? null)
         setPreferenceInitialized(true)
-      } finally {
+      }
+      finally {
         if (!cancelled) {
           setPreferenceLoading(false)
         }
@@ -445,9 +467,9 @@ export const ApiTokensTab = () => {
   }, [isElectron, normalizePreferenceOrder])
 
   const groupedSlots = useMemo(() => {
-    return API_TOKEN_GROUPS.map((group) => ({
+    return API_TOKEN_GROUPS.map(group => ({
       definition: group,
-      slots: group.slots.map((slot) => ({
+      slots: group.slots.map(slot => ({
         definition: slot,
         state: slots[slot.id as ApiTokenSlotId],
       })),
@@ -456,7 +478,7 @@ export const ApiTokensTab = () => {
 
   const aiProviderViews = useMemo(() => {
     return AI_PROVIDER_DEFINITIONS.map((definition) => {
-      const providerSlots = definition.slots.map((slot) => ({
+      const providerSlots = definition.slots.map(slot => ({
         definition: slot,
         state: slots[slot.id as ApiTokenSlotId],
       }))
@@ -471,13 +493,13 @@ export const ApiTokensTab = () => {
   const configuredProviderIds = useMemo(
     () =>
       aiProviderViews
-        .filter((provider) => provider.configured)
-        .map((provider) => provider.definition.id),
+        .filter(provider => provider.configured)
+        .map(provider => provider.definition.id),
     [aiProviderViews],
   )
 
   useEffect(() => {
-    if (!preferenceInitialized) return
+    if (!preferenceInitialized) { return }
     if (configuredProviderIds.length === 0) {
       setPreferredProvider(null)
       return
@@ -487,9 +509,9 @@ export const ApiTokensTab = () => {
       if (current && configuredProviderIds.includes(current)) {
         return current
       }
-      const fallback =
-        preferenceOrder.find((id) => configuredProviderIds.includes(id)) ??
-        configuredProviderIds[0]!
+      const fallback
+        = preferenceOrder.find(id => configuredProviderIds.includes(id))
+          ?? configuredProviderIds[0]!
       return fallback
     })
   }, [configuredProviderIds, preferenceOrder, preferenceInitialized])
@@ -500,7 +522,7 @@ export const ApiTokensTab = () => {
       const seen = new Set<AiProviderId>()
 
       const add = (id: AiProviderId) => {
-        if (seen.has(id)) return
+        if (seen.has(id)) { return }
         seen.add(id)
         order.push(id)
       }
@@ -545,14 +567,16 @@ export const ApiTokensTab = () => {
         )
         setPreferenceOrder(resolvedOrder)
         setPreferredProvider(resolvedOrder[0] ?? next)
-      } catch (error) {
+      }
+      catch (error) {
         console.error(
           '[api-tokens] failed to update AI provider preference',
           error,
         )
         toast.error(t('tabs.apiTokens.providers.preference.saveFailed'))
         setPreferenceOrder(nextOrder)
-      } finally {
+      }
+      finally {
         setPreferenceSaving(false)
       }
     },
@@ -562,8 +586,8 @@ export const ApiTokensTab = () => {
   const preferenceOptions = useMemo(
     () =>
       aiProviderViews
-        .filter((provider) => provider.configured)
-        .map((provider) => ({
+        .filter(provider => provider.configured)
+        .map(provider => ({
           id: provider.definition.id,
           label: t(provider.definition.labelKey),
         })),
@@ -606,61 +630,69 @@ export const ApiTokensTab = () => {
               }
             : {})}
         >
-          {definition.id === 'ai' ? (
-            <div className="space-y-4">
-              <AiProviderPreferenceSelector
-                providers={preferenceOptions}
-                value={preferredProvider}
-                onChange={handlePreferredProviderChange}
-                disabled={disableProviderFields || preferenceLoading}
-                loading={preferenceSaving || preferenceLoading}
-              />
-              <div className="space-y-4">
-                {aiProviderViews.map((provider) => (
-                  <div
-                    key={provider.definition.id}
-                    className="rounded-md border border-border/60 bg-muted/5 p-4"
-                  >
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        {t(provider.definition.labelKey)}
-                      </h4>
-                      {provider.definition.descriptionKey ? (
-                        <p className="text-xs text-text-tertiary">
-                          {t(provider.definition.descriptionKey)}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="mt-3 space-y-4">
-                      {provider.slots.map(
-                        ({ definition: slotDefinition, state }) => (
-                          <TokenSlotField
-                            key={slotDefinition.id}
-                            definition={slotDefinition}
-                            slot={state}
-                            disabled={disableProviderFields}
-                          />
-                        ),
-                      )}
-                    </div>
+          {definition.id === 'ai'
+            ? (
+                <div className="space-y-4">
+                  <AiProviderPreferenceSelector
+                    providers={preferenceOptions}
+                    value={preferredProvider}
+                    onChange={handlePreferredProviderChange}
+                    disabled={disableProviderFields || preferenceLoading}
+                    loading={preferenceSaving || preferenceLoading}
+                  />
+                  <div className="space-y-4">
+                    {aiProviderViews.map(provider => (
+                      <div
+                        key={provider.definition.id}
+                        className="rounded-md border border-border/60 bg-muted/5 p-4"
+                      >
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-medium">
+                            {t(provider.definition.labelKey)}
+                          </h4>
+                          {provider.definition.descriptionKey
+                            ? (
+                                <p className="text-xs text-text-tertiary">
+                                  {t(provider.definition.descriptionKey)}
+                                </p>
+                              )
+                            : null}
+                        </div>
+                        <div className="mt-3 space-y-4">
+                          {provider.slots.map(
+                            ({ definition: slotDefinition, state }) => (
+                              <TokenSlotField
+                                key={slotDefinition.id}
+                                definition={slotDefinition}
+                                slot={state}
+                                disabled={disableProviderFields}
+                              />
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : groupSlots.length > 0 ? (
-            groupSlots.map(({ definition: slotDefinition, state }) => (
-              <TokenSlotField
-                key={slotDefinition.id}
-                definition={slotDefinition}
-                slot={state}
-                disabled={isLoading}
-              />
-            ))
-          ) : definition.emptyStateKey ? (
-            <p className="text-sm text-text-tertiary">
-              {t(definition.emptyStateKey)}
-            </p>
-          ) : null}
+                </div>
+              )
+            : groupSlots.length > 0
+              ? (
+                  groupSlots.map(({ definition: slotDefinition, state }) => (
+                    <TokenSlotField
+                      key={slotDefinition.id}
+                      definition={slotDefinition}
+                      slot={state}
+                      disabled={isLoading}
+                    />
+                  ))
+                )
+              : definition.emptyStateKey
+                ? (
+                    <p className="text-sm text-text-tertiary">
+                      {t(definition.emptyStateKey)}
+                    </p>
+                  )
+                : null}
         </SettingSectionCard>
       ))}
     </div>

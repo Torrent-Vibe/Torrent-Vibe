@@ -37,7 +37,7 @@
 - title.canonicalTitle must be a non-empty string. If unknown, use the normalized title derived from the release name instead of null.
 
 ## TOOLS POLICY
-- Available tools may include: duckduckgoSearch, googleSearch, webExtractReadable, tmdbSearch, tmdbDetails.
+- Available tools may include: webSearch (Codex), tmdbSearch, tmdbDetails, read_skill, bash. Use webSearch for public-web facts. Load a skill with read_skill, then run its CLI steps with bash.
 - Search trigger policy: If any of these would be null/uncertain or have low confidence (< 0.8) based only on the name/file tree — mediaType, title.releaseYear, canonical/original title, synopsis, or keywords — first run a web search (duckduckgoSearch or googleSearch) with a focused query before finalizing.
 - Search query guidance: Use the release name and any inferred candidate titles/years. Prefer queries like "<release name>" or "<canonical title> <year>"; consider site filters like "site:themoviedb.org" or "site:wikipedia.org". Pass language = {{language}}.
 - Concurrency: When helpful and independent (e.g., validating two TMDb candidates or two URLs), you may invoke multiple tool calls concurrently.

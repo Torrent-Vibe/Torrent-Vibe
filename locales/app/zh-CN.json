@@ -469,6 +469,7 @@
   "torrent.advanced.modifyTag": "修改标签",
   "torrent.advanced.more": "更多",
   "torrent.advanced.tags": "标签",
+  "torrent.ai.actions.analyze": "识别",
   "torrent.ai.actions.forceRefresh": "强制刷新",
   "torrent.ai.actions.openDetails": "查看 AI 详情",
   "torrent.ai.actions.refresh": "刷新",

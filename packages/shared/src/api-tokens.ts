@@ -1,11 +1,12 @@
-export type ApiTokenSlotId =
-  | 'discover.omdb.apiKey'
-  | 'ai.openai.apiKey'
-  | 'ai.openai.baseUrl'
-  | 'ai.openai.model'
-  | 'ai.openrouter.apiKey'
-  | 'ai.openrouter.model'
-  | 'metadata.tmdb.apiKey'
+export type ApiTokenSlotId
+  = | 'discover.omdb.apiKey'
+    | 'ai.openai.apiKey'
+    | 'ai.openai.baseUrl'
+    | 'ai.openai.model'
+    | 'ai.openrouter.apiKey'
+    | 'ai.openrouter.model'
+    | 'ai.codex.model'
+    | 'metadata.tmdb.apiKey'
 
 export const API_TOKENS = {
   discover: {
@@ -23,6 +24,9 @@ export const API_TOKENS = {
       apiKey: 'ai.openrouter.apiKey' as const,
       model: 'ai.openrouter.model' as const,
     },
+    codex: {
+      model: 'ai.codex.model' as const,
+    },
   },
   metadata: {
     tmdb: {
@@ -31,11 +35,12 @@ export const API_TOKENS = {
   },
 } as const
 
-export type ApiTokenKey =
-  | typeof API_TOKENS.discover.omdb.apiKey
-  | typeof API_TOKENS.ai.openai.apiKey
-  | typeof API_TOKENS.ai.openai.baseUrl
-  | typeof API_TOKENS.ai.openai.model
-  | typeof API_TOKENS.ai.openrouter.apiKey
-  | typeof API_TOKENS.ai.openrouter.model
-  | typeof API_TOKENS.metadata.tmdb.apiKey
+export type ApiTokenKey
+  = | typeof API_TOKENS.discover.omdb.apiKey
+    | typeof API_TOKENS.ai.openai.apiKey
+    | typeof API_TOKENS.ai.openai.baseUrl
+    | typeof API_TOKENS.ai.openai.model
+    | typeof API_TOKENS.ai.openrouter.apiKey
+    | typeof API_TOKENS.ai.openrouter.model
+    | typeof API_TOKENS.ai.codex.model
+    | typeof API_TOKENS.metadata.tmdb.apiKey

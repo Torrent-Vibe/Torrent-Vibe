@@ -184,7 +184,6 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
                   <TorrentAiMetadataRow
                     hash={nameData.hash}
                     rawName={nameData.name}
-                    isInViewport={isInViewport}
                   />
                 </div>
               )

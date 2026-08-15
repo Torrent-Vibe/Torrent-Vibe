@@ -12,7 +12,7 @@ export interface AnalyzeTorrentNameOptions {
    * Optional simplified file list for additional context in AI analysis.
    * Provide relative paths (as shown in client) and sizes in bytes when available.
    */
-  fileList?: Array<{ path: string; size?: number }>
+  fileList?: Array<{ path: string, size?: number }>
 }
 
 export interface OpenAIProviderConfig {
@@ -26,10 +26,15 @@ export interface OpenRouterProviderConfig {
   model: string
 }
 
+export interface CodexProviderConfig {
+  model: string
+}
+
 export interface ProviderConfig {
   providers: {
     openai: OpenAIProviderConfig
     openrouter: OpenRouterProviderConfig
+    codex: CodexProviderConfig
   }
   preferredProviders: AiProviderId[]
   tmdbApiKey: string | null

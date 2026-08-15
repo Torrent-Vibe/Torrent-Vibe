@@ -1,4 +1,4 @@
-import type { KeyBindingMap, KeyBindingOptions } from 'tinykeys'
+import type { KeybindingOptions, KeybindingsMap } from 'tinykeys'
 import { tinykeys } from 'tinykeys'
 
 import type { HotkeyConfig, ResolvedHotkey } from '../types'
@@ -20,7 +20,7 @@ export class TinykeysAdapter {
   }
 
   updateBindings(resolvedHotkeys: Map<string, ResolvedHotkey>): void {
-    if (!this.config.enabled) return
+    if (!this.config.enabled) { return }
 
     // Check if bindings have actually changed to avoid unnecessary updates
     if (this.areBindingsEqual(this.currentBindings, resolvedHotkeys)) {
@@ -46,7 +46,7 @@ export class TinykeysAdapter {
     current: Map<string, ResolvedHotkey>,
     incoming: Map<string, ResolvedHotkey>,
   ): boolean {
-    if (current.size !== incoming.size) return false
+    if (current.size !== incoming.size) { return false }
 
     for (const [combo, hotkey] of incoming) {
       const currentHotkey = current.get(combo)
@@ -60,11 +60,11 @@ export class TinykeysAdapter {
 
   private areHotkeysEqual(h1: ResolvedHotkey, h2: ResolvedHotkey): boolean {
     return (
-      h1.combo === h2.combo &&
-      h1.scopeId === h2.scopeId &&
-      h1.disabled === h2.disabled &&
-      h1.preventDefault === h2.preventDefault &&
-      h1.stopPropagation === h2.stopPropagation
+      h1.combo === h2.combo
+      && h1.scopeId === h2.scopeId
+      && h1.disabled === h2.disabled
+      && h1.preventDefault === h2.preventDefault
+      && h1.stopPropagation === h2.stopPropagation
     )
   }
 
@@ -72,8 +72,8 @@ export class TinykeysAdapter {
     resolvedHotkeys: Map<string, ResolvedHotkey>,
   ): void {
     // Convert resolved hotkeys to tinykeys format
-    const keyBindingMap: KeyBindingMap = {}
-    const options: KeyBindingOptions = {
+    const keyBindingMap: KeybindingsMap = {}
+    const options: KeybindingOptions = {
       event: 'keydown',
     }
 
@@ -102,7 +102,7 @@ export class TinykeysAdapter {
         // Fix spacing
         .replaceAll(/\s+/g, '')
         .split('+')
-        .map((part) => part.trim())
+        .map(part => part.trim())
         .join('+')
     )
   }
@@ -135,7 +135,8 @@ export class TinykeysAdapter {
     // Call the event handler
     try {
       this.eventHandler(originalCombo, event)
-    } catch (error) {
+    }
+    catch (error) {
       console.error(
         `[TinykeysAdapter] Error handling key event for ${originalCombo}:`,
         error,
@@ -151,7 +152,8 @@ export class TinykeysAdapter {
     if (config.enabled !== undefined) {
       if (config.enabled) {
         this.updateBindings(this.currentBindings)
-      } else {
+      }
+      else {
         this.disable()
       }
     }

@@ -1,12 +1,19 @@
+import type {
+  Model,
+  Models,
+  SessionAffinityFormat,
+} from '@earendil-works/pi-ai'
 import type { AiProviderId } from '@torrent-vibe/shared'
-import type { LanguageModel } from 'ai'
 
 import type { ProviderConfig } from '../types'
 
 export interface AiProviderRuntime {
   id: AiProviderId
-  model: LanguageModel
+  model: Model<string>
   modelId: string
+  models: Models
+  apiKey?: string
+  sessionAffinityFormat: SessionAffinityFormat
   errorNamespace: `ai.${string}`
 }
 

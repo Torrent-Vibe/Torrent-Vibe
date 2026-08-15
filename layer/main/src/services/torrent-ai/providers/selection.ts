@@ -16,7 +16,9 @@ const buildCandidateOrder = (preferred: AiProviderId[]): AiProviderId[] => {
   const seen = new Set<AiProviderId>()
 
   for (const id of [...preferred, ...DEFAULT_AI_PROVIDER_ORDER]) {
-    if (seen.has(id)) continue
+    if (seen.has(id)) {
+      continue
+    }
     seen.add(id)
     order.push(id)
   }
@@ -30,7 +32,9 @@ export const selectProvider = (config: ProviderConfig): SelectionResult => {
 
   for (const id of preferredOrder) {
     const adapter = getProviderById(id)
-    if (!adapter) continue
+    if (!adapter) {
+      continue
+    }
 
     if (!adapter.isConfigured(config)) {
       if (!firstError) {

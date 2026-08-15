@@ -63,8 +63,7 @@ const EMPTY_ROW_STICKY_STATUS: RowStickyStatus = {
 const MemoCell: React.FC<{ columnId: string, rowIndex: number }> = React.memo(
   ({ columnId, rowIndex }) => {
     const Renderer = CELL_RENDERERS[columnId as keyof typeof CELL_RENDERERS] as
-      | ((p: { rowIndex: number }) => React.ReactNode)
-      | undefined
+      ((p: { rowIndex: number }) => React.ReactNode) | undefined
 
     if (!Renderer) {
       return null
@@ -459,6 +458,7 @@ const NON_RETRYABLE_AI_PREVIEW_ERRORS = new Set([
   'ai.notSupported',
   'ai.openai.missingApiKey',
   'ai.openrouter.missingApiKey',
+  'ai.codex.missingApiKey',
   'ai.providers.unavailable',
 ])
 

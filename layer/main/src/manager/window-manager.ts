@@ -2,7 +2,6 @@ import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { app, BrowserWindow, dialog, shell } from 'electron'
-import liquidGlass from 'electron-liquid-glass'
 
 import { isDevelopment } from '~/constants'
 import { isHttpLike } from '~/utils/_'
@@ -43,7 +42,6 @@ export class WindowManager implements IWindowManager {
   } | null = null
 
   private enableFloatingMode = true
-  private useLiquidGlass = false
   // private floatManager: FloatWindowManager
 
   private constructor(options: WindowManagerOptions = {}) {
@@ -53,7 +51,6 @@ export class WindowManager implements IWindowManager {
 
     this.contentLoader = options.contentLoader ?? defaultLoader
     const isMacOS = process.platform === 'darwin'
-    this.useLiquidGlass = isMacOS && liquidGlass.isGlassSupported()
 
     this.options = {
       enableDevTools: options.enableDevTools ?? false,
@@ -71,16 +68,9 @@ export class WindowManager implements IWindowManager {
         },
         titleBarStyle: isMacOS ? 'hiddenInset' : 'default',
         ...options.windowOptions,
-        // Decide mode before window creation:
-        // - liquid glass mode: transparent window
-        // - fallback mode: normal window + vibrancy
-        transparent: isMacOS
-          ? this.useLiquidGlass
-          : options.windowOptions?.transparent,
+        transparent: isMacOS ? false : options.windowOptions?.transparent,
         vibrancy: isMacOS
-          ? this.useLiquidGlass
-            ? undefined
-            : (options.windowOptions?.vibrancy ?? 'sidebar')
+          ? (options.windowOptions?.vibrancy ?? 'sidebar')
           : options.windowOptions?.vibrancy,
         webPreferences: {
           ...options.windowOptions?.webPreferences,
@@ -212,7 +202,6 @@ export class WindowManager implements IWindowManager {
     })
 
     this.handleWindowOpenLink(this.mainWindow)
-    this.applyLiquidGlass(this.mainWindow)
 
     if (this.contentLoader.isDevelopment) {
       await this.loadDebugWindowContent()
@@ -373,47 +362,6 @@ export class WindowManager implements IWindowManager {
         rmSync(codeCacheDir, { recursive: true, force: true })
       }
     })
-  }
-
-  private applyLiquidGlass(win: BrowserWindow): void {
-    if (process.platform !== 'darwin' || !this.useLiquidGlass) {
-      return
-    }
-
-    let hasApplied = false
-    const apply = () => {
-      if (hasApplied || win.isDestroyed()) {
-        return
-      }
-      hasApplied = true
-
-      if (win.isDestroyed()) {
-        return
-      }
-
-      try {
-        const glassId = liquidGlass.addView(win.getNativeWindowHandle())
-
-        if (glassId >= 0) {
-          liquidGlass.unstable_setVariant(glassId, 15)
-          return
-        }
-
-        console.warn(
-          'Liquid glass returned invalid view id; window remains in transparent mode.',
-        )
-      }
-      catch (error) {
-        console.error('Failed to apply liquid glass effect:', error)
-      }
-    }
-
-    win.webContents.once('did-finish-load', apply)
-
-    // Fallback for late binding: if main frame is already loaded, apply immediately.
-    if (!win.webContents.isLoadingMainFrame() && win.webContents.getURL()) {
-      setImmediate(apply)
-    }
   }
 
   private handleWindowOpenLink(win: BrowserWindow): void {
