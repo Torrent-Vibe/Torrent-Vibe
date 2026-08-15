@@ -91,7 +91,6 @@ export const createMikanSlice = (context: DiscoverActionContext) => {
       draft.mikanDetailLoading = true
       draft.mikanDetailError = null
       draft.mikanSubgroupId = readLastMikanSubgroup(item.id)
-      draft.mikanTab = 'season'
     })
 
     void loadBangumiDetail(item.id)

@@ -51,6 +51,8 @@ export const STORAGE_KEYS = {
     APP_PREFIX,
     'discover-mikan-last-subgroup',
   ),
+  SUBSCRIPTIONS: createStorageKey(APP_PREFIX, 'subscriptions'),
+  HELPER_BINDINGS: createStorageKey(APP_PREFIX, 'helper-bindings'),
   DISCOVER_SEARCH_HISTORY: createStorageKey(
     APP_PREFIX,
     'discover-search-history',

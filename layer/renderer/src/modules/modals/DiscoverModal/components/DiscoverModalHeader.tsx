@@ -17,11 +17,51 @@ import {
   MIKAN_SEASONS,
   resolveMikanSeason,
 } from '~/modules/discover/providers/mikan/utils'
+import {
+  useCurrentHelperPaired,
+  useCurrentHelperTarget,
+} from '~/modules/helper-client/hooks'
+import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
 import { DiscoverSearchInput } from './DiscoverSearchInput'
+
+const MikanHelperStatus = () => {
+  const { t } = useTranslation('app')
+  const paired = useCurrentHelperPaired()
+  const target = useCurrentHelperTarget()
+  const statusError = useSubscriptionsStore((state) => {
+    const serverId = target?.id
+    return serverId ? state.statusByServer[serverId]?.error : undefined
+  })
+
+  if (!paired) {
+    return (
+      <button
+        type="button"
+        className="text-xs text-text-tertiary hover:text-accent"
+        onClick={() =>
+          presentSettingsModal({
+            tab: ELECTRON ? 'servers' : 'appConnection',
+          })}
+      >
+        {t('discover.modal.mikan.helperMissing')}
+      </button>
+    )
+  }
+
+  return (
+    <p className="text-xs text-text-tertiary">
+      {statusError
+        ? t('discover.modal.mikan.helperUnreachable')
+        : t('discover.modal.mikan.helperBound', {
+            name: target?.name ?? '',
+          })}
+    </p>
+  )
+}
 
 const MIKAN_SEASON_LABELS = {
   春: 'discover.modal.mikan.season.spring',
@@ -130,6 +170,7 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
           <p className="max-w-2xl text-sm text-text-secondary">
             {t('discover.modal.subtitle')}
           </p>
+          {activeProviderId === 'mikan' && <MikanHelperStatus />}
         </div>
         <div className="flex items-center gap-1.5">
           <Select

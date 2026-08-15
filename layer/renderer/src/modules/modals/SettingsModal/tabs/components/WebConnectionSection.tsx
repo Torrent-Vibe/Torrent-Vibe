@@ -7,6 +7,8 @@ import {
   createConnectionConfig,
   validateConnection,
 } from '~/modules/connection/validation'
+import { WEB_SERVER_ID } from '~/modules/helper-client'
+import { HelperPairingPanel } from '~/modules/helper-client/HelperPairingPanel'
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 import {
   getInitialQBittorrentConfig,
@@ -39,7 +41,9 @@ export const WebConnectionSection = () => {
   const canSave = Boolean(username && (useCurrentPath || (host && port)))
 
   const onSave = async () => {
-    if (!canSave) return
+    if (!canSave) {
+      return
+    }
 
     setSaving(true)
     setValidating(true)
@@ -47,8 +51,8 @@ export const WebConnectionSection = () => {
     try {
       const resolvedHost = useCurrentPath ? window.location.hostname : host
       const resolvedPort = useCurrentPath
-        ? Number(window.location.port) ||
-          (window.location.protocol === 'https:' ? 443 : 80)
+        ? Number(window.location.port)
+        || (window.location.protocol === 'https:' ? 443 : 80)
         : Number(port)
 
       const configData = {
@@ -76,9 +80,11 @@ export const WebConnectionSection = () => {
       QBittorrentClient.configure(config)
 
       await qbQueryManager.scenarios.onConnectionChange()
-    } catch {
+    }
+    catch {
       setValidating(false)
-    } finally {
+    }
+    finally {
       setSaving(false)
     }
   }
@@ -94,7 +100,7 @@ export const WebConnectionSection = () => {
           id="useCurrentPath"
           label={t('general.connection.useCurrentPath.label')}
           checked={useCurrentPath}
-          onCheckedChange={(v) => setUseCurrentPath(Boolean(v))}
+          onCheckedChange={v => setUseCurrentPath(Boolean(v))}
         />
 
         <SettingInputField
@@ -102,7 +108,7 @@ export const WebConnectionSection = () => {
           label={t('general.connection.host.label')}
           placeholder={t('general.connection.host.placeholder')}
           value={host}
-          onChange={(v) => setHost(v)}
+          onChange={v => setHost(v)}
           disabled={useCurrentPath}
           required={!useCurrentPath}
         />
@@ -113,7 +119,7 @@ export const WebConnectionSection = () => {
           placeholder={t('general.connection.port.placeholder')}
           value={port}
           inputMode="numeric"
-          onChange={(v) => setPort(v ? Number(v) : '')}
+          onChange={v => setPort(v ? Number(v) : '')}
           disabled={useCurrentPath}
           required={!useCurrentPath}
         />
@@ -123,7 +129,7 @@ export const WebConnectionSection = () => {
           label={t('general.connection.username.label')}
           placeholder={t('general.connection.username.placeholder')}
           value={username}
-          onChange={(v) => setUsername(v)}
+          onChange={v => setUsername(v)}
         />
 
         <SettingInputField
@@ -132,7 +138,7 @@ export const WebConnectionSection = () => {
           placeholder={t('general.connection.password.placeholder')}
           type="password"
           value={password}
-          onChange={(v) => setPassword(v)}
+          onChange={v => setPassword(v)}
         />
 
         <SettingSwitchField
@@ -142,15 +148,26 @@ export const WebConnectionSection = () => {
             window.location.protocol === 'https:' || useHttps || useCurrentPath
           }
           disabled={window.location.protocol === 'https:' || useCurrentPath}
-          onCheckedChange={(v) => setUseHttps(Boolean(v))}
+          onCheckedChange={v => setUseHttps(Boolean(v))}
         />
 
         <SettingSwitchField
           id="remember"
           label={t('general.connection.rememberPassword.label')}
           checked={rememberPassword}
-          onCheckedChange={(v) => setRememberPassword(Boolean(v))}
+          onCheckedChange={v => setRememberPassword(Boolean(v))}
         />
+
+        <div className="pt-2">
+          <h3 className="text-sm font-medium text-text mb-2">
+            {t('general.connection.helper.title')}
+          </h3>
+          <HelperPairingPanel
+            serverId={WEB_SERVER_ID}
+            host={useCurrentPath ? window.location.hostname : host}
+            name={t('general.connection.helper.title')}
+          />
+        </div>
 
         <div className="pt-4 flex justify-end">
           <Button onClick={onSave} disabled={!canSave || saving} size="sm">

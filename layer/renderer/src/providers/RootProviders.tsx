@@ -11,6 +11,7 @@ import { jotaiStore } from '~/lib/jotai'
 import { queryClient } from '~/lib/query/query-client'
 import { Spring } from '~/lib/spring'
 import { HotkeyProvider } from '~/modules/hotkey'
+import { SubscriptionsInitializer } from '~/modules/subscriptions/SubscriptionsInitializer'
 
 import { ContextMenuProvider } from './ContextMenuProvider'
 import { EventProvider } from './EventProvider'
@@ -32,6 +33,7 @@ export const RootProviders: FC<PropsWithChildren> = ({ children }) => {
             <HotkeyProvider>
               <I18nProvider>
                 <MultiServerInitializer />
+                <SubscriptionsInitializer />
                 <AuthInitializer />
                 <EventProvider />
                 <StableRouterProvider />

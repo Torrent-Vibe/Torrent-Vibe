@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '~/lib/cn'
 import type { DiscoverItem } from '~/modules/discover'
 import { asMikanBangumiExtra } from '~/modules/discover/providers/mikan/utils'
+import { useServerHelperTargets } from '~/modules/helper-client/hooks'
+import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
@@ -12,6 +14,7 @@ import {
   resolveMikanCoverUrl,
   weekdayLabelKey,
 } from './helpers'
+import { serverNamesForIds, subscriptionsForBangumi } from './subscription-view'
 
 export const MikanBangumiCard = ({
   item,
@@ -20,8 +23,18 @@ export const MikanBangumiCard = ({
   item: DiscoverItem
   onSelect: (item: DiscoverItem) => void
 }) => {
+  const { t } = useTranslation('app')
   const extra = asMikanBangumiExtra(item.extra)
   const cover = resolveMikanCoverUrl(extra?.coverUrl)
+  const subscriptions = useSubscriptionsStore(state => state.items)
+  const targets = useServerHelperTargets()
+  const matched = subscriptionsForBangumi(subscriptions, item.id)
+  const names = [
+    ...new Set(
+      matched.flatMap(entry =>
+        serverNamesForIds(entry.targetServerIds, targets)),
+    ),
+  ]
 
   return (
     <button
@@ -44,10 +57,20 @@ export const MikanBangumiCard = ({
                 <i className="i-mingcute-movie-line text-2xl" />
               </div>
             )}
+        {names.length > 0 && (
+          <span className="absolute inset-x-1 bottom-1 truncate rounded bg-black/65 px-1.5 py-0.5 text-[10px] text-white">
+            {names.join(' · ')}
+          </span>
+        )}
       </div>
       <span className="line-clamp-2 text-sm font-medium text-text">
         {item.title}
       </span>
+      {extra?.weekday !== undefined && (
+        <span className="text-xs text-text-tertiary">
+          {t(weekdayLabelKey(extra.weekday))}
+        </span>
+      )}
     </button>
   )
 }

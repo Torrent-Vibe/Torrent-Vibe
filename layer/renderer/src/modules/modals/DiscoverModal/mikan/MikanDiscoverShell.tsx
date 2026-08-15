@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 
 import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
 import { SegmentTab } from '~/components/ui/segment-tab'
+import { SubscriptionActions } from '~/modules/subscriptions'
+import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
@@ -11,6 +13,7 @@ import { useDiscoverModalStore } from '../store'
 import { MikanBangumiPage } from './MikanBangumiPage'
 import { MikanSearchResults } from './MikanSearchResults'
 import { MikanSeasonWall } from './MikanSeasonWall'
+import { MikanSubscriptionsTab } from './MikanSubscriptionsTab'
 
 export const MikanDiscoverShell = () => {
   const { t } = useTranslation('app')
@@ -29,10 +32,15 @@ export const MikanDiscoverShell = () => {
   const searchError = useDiscoverModalStore(state => state.searchError)
   const mikanTab = useDiscoverModalStore(state => state.mikanTab)
   const bangumiId = useDiscoverModalStore(state => state.mikanBangumiId)
+  const subscriptionCount = useSubscriptionsStore(state => state.items.length)
 
   const seasonKey = `${String(year ?? '')}:${String(season ?? '')}`
   const previousKeywordRef = useRef(keyword)
   const previousSeasonKeyRef = useRef(seasonKey)
+
+  useEffect(() => {
+    void SubscriptionActions.shared.refreshStatus()
+  }, [])
 
   useEffect(() => {
     if (previousKeywordRef.current === keyword) {
@@ -71,10 +79,12 @@ export const MikanDiscoverShell = () => {
       },
       {
         value: 'subscriptions' as const,
-        label: t('discover.modal.mikan.tabSubscriptions', { count: 0 }),
+        label: t('discover.modal.mikan.tabSubscriptions', {
+          count: subscriptionCount,
+        }),
       },
     ],
-    [t],
+    [subscriptionCount, t],
   )
 
   const showSearchResults = Boolean(committedSearch?.keyword.trim())
@@ -107,16 +117,10 @@ export const MikanDiscoverShell = () => {
           />
         )}
 
-        {providerReady && mikanTab === 'subscriptions' && (
-          <DiscoverEmptyState
-            icon="i-mingcute-notify-line"
-            title={t('discover.modal.mikan.subscriptionsTitle')}
-            description={t('discover.modal.mikan.subscriptionsDescription')}
-          />
-        )}
+        {providerReady && bangumiId && <MikanBangumiPage />}
 
-        {providerReady && mikanTab === 'season' && bangumiId && (
-          <MikanBangumiPage />
+        {providerReady && mikanTab === 'subscriptions' && !bangumiId && (
+          <MikanSubscriptionsTab />
         )}
 
         {providerReady && mikanTab === 'season' && !bangumiId && (

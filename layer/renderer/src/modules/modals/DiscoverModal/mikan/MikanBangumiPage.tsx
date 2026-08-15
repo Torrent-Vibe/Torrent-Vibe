@@ -1,29 +1,25 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/cn'
-import { formatBytesSmart } from '~/lib/format'
 import { asMikanBangumiExtra } from '~/modules/discover/providers/mikan/utils'
+import {
+  useCurrentHelperPaired,
+  useCurrentServerId,
+} from '~/modules/helper-client/hooks'
+import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
+import {
+  backfillReleasedEpisodes,
+  openHelperSettings,
+  presentBangumiSubscribe,
+  presentBangumiUnsubscribe,
+} from './bangumi-actions'
 import { resolveMikanCoverUrl, weekdayLabelKey } from './helpers'
-
-const HelperBoundAction = ({
-  label,
-  hint,
-}: {
-  label: string
-  hint: string
-}) => {
-  return (
-    <span title={hint}>
-      <Button size="sm" variant="secondary" disabled>
-        {label}
-      </Button>
-    </span>
-  )
-}
+import { MikanEpisodeList } from './MikanEpisodeList'
 
 export const MikanBangumiPage = () => {
   const { t } = useTranslation('app')
@@ -37,17 +33,58 @@ export const MikanBangumiPage = () => {
   const error = useDiscoverModalStore(state => state.mikanDetailError)
   const subgroupId = useDiscoverModalStore(state => state.mikanSubgroupId)
   const importingFlag = useDiscoverModalStore(state => state.importing)
+  const helperPaired = useCurrentHelperPaired()
+  const currentServerId = useCurrentServerId()
+  const subscriptions = useSubscriptionsStore(state => state.items)
+  const statusByServer = useSubscriptionsStore(state => state.statusByServer)
+  const [backfilling, setBackfilling] = useState(false)
 
   const item = detail ?? items.find(entry => entry.id === bangumiId) ?? null
   const extra = asMikanBangumiExtra(item?.extra)
   const cover = resolveMikanCoverUrl(extra?.coverUrl)
   const subgroups = extra?.subgroups ?? []
   const helperHint = t('discover.modal.mikan.helperNotBound')
+  const subscription = subscriptions.find(
+    entry =>
+      entry.bangumiId === bangumiId
+      && entry.subgroupId === (subgroupId ?? entry.subgroupId),
+  )
 
   const allEpisodes = extra?.episodes ?? []
   const episodes = subgroupId
     ? allEpisodes.filter(episode => episode.subgroupId === subgroupId)
     : allEpisodes
+
+  const handleSubscribe = () => {
+    if (!helperPaired || !bangumiId || !subgroupId || !item) {
+      return
+    }
+    const group = subgroups.find(entry => entry.id === subgroupId)
+    presentBangumiSubscribe({
+      bangumiId,
+      title: item.title,
+      coverUrl: extra?.coverUrl,
+      bangumiSubjectId: extra?.bangumiSubjectId,
+      subgroupId,
+      subgroupName: group?.name || subgroupId,
+      initialIds:
+        subscription?.targetServerIds
+        ?? (currentServerId ? [currentServerId] : []),
+    })
+  }
+
+  const handleBackfill = async () => {
+    if (!helperPaired || !bangumiId || !subgroupId || episodes.length === 0) {
+      return
+    }
+    setBackfilling(true)
+    try {
+      await backfillReleasedEpisodes(bangumiId, subgroupId, episodes)
+    }
+    finally {
+      setBackfilling(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
@@ -126,16 +163,56 @@ export const MikanBangumiPage = () => {
               )}
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <HelperBoundAction
-              label={t('discover.modal.mikan.importReleased')}
-              hint={helperHint}
-            />
-            <HelperBoundAction
-              label={t('discover.modal.mikan.subscribe')}
-              hint={helperHint}
-            />
+            <span title={helperPaired ? undefined : helperHint}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!helperPaired || backfilling || !subgroupId}
+                onClick={() => {
+                  void handleBackfill()
+                }}
+              >
+                {backfilling && (
+                  <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
+                )}
+                {t('discover.modal.mikan.importReleased')}
+              </Button>
+            </span>
+            <span title={helperPaired ? undefined : helperHint}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!helperPaired || !subgroupId}
+                onClick={handleSubscribe}
+              >
+                {subscription
+                  ? t('discover.modal.mikan.editTargets')
+                  : t('discover.modal.mikan.subscribe')}
+              </Button>
+            </span>
+            {subscription && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  presentBangumiUnsubscribe(
+                    subscription,
+                    item?.title ?? subscription.title,
+                  )}
+              >
+                {t('discover.modal.mikan.unsubscribe')}
+              </Button>
+            )}
           </div>
-          <p className="text-xs text-text-tertiary">{helperHint}</p>
+          {!helperPaired && (
+            <button
+              type="button"
+              className="text-left text-xs text-accent hover:underline"
+              onClick={openHelperSettings}
+            >
+              {helperHint}
+            </button>
+          )}
         </div>
       </div>
 
@@ -165,39 +242,17 @@ export const MikanBangumiPage = () => {
         </p>
       )}
 
-      {episodes.length > 0 && (
-        <ul className="divide-y divide-border rounded-lg border border-border bg-background">
-          {episodes.map(episode => (
-            <li
-              key={episode.episodeId}
-              className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-text">{episode.title}</p>
-                <div className="mt-1 flex flex-wrap gap-3 text-xs text-text-secondary">
-                  <span>
-                    {episode.sizeBytes
-                      ? formatBytesSmart(episode.sizeBytes)
-                      : '—'}
-                  </span>
-                  <span>{episode.publishedAt || '—'}</span>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                disabled={importingFlag}
-                onClick={() => {
-                  void importing.importMikanEpisode(episode.episodeId)
-                }}
-              >
-                {importingFlag && (
-                  <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
-                )}
-                {t('discover.modal.mikan.importEpisode')}
-              </Button>
-            </li>
-          ))}
-        </ul>
+      {episodes.length > 0 && bangumiId && (
+        <MikanEpisodeList
+          bangumiId={bangumiId}
+          subgroupId={subgroupId}
+          episodes={episodes}
+          importing={importingFlag}
+          statusByServer={statusByServer}
+          onImport={(episodeId) => {
+            void importing.importMikanEpisode(episodeId)
+          }}
+        />
       )}
     </div>
   )

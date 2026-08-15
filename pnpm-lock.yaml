@@ -344,6 +344,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: 3.14.2
         version: 3.14.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@torrent-vibe/helper-protocol':
+        specifier: workspace:*
+        version: link:../../packages/helper-protocol
       '@torrent-vibe/main':
         specifier: workspace:*
         version: link:../main

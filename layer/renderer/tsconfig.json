@@ -23,6 +23,9 @@
       "@locales/*": [
         "../../locales/*"
       ],
+      "@torrent-vibe/helper-protocol": [
+        "../../packages/helper-protocol/src/index.ts"
+      ],
       "@torrent-vibe/mikan": [
         "../../packages/mikan/src/index.ts"
       ],
