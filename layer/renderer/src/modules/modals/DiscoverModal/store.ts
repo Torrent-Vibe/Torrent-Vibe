@@ -10,6 +10,7 @@ import type {
   DiscoverPreviewDescriptionRenderer,
 } from '~/modules/discover'
 
+import { readLastProvider } from './actions/lastProviderPersist'
 import type { DiscoverCommittedSearchState, DiscoverFilterState } from './types'
 
 export interface DiscoverModalState {
@@ -38,7 +39,7 @@ export interface DiscoverModalState {
 }
 
 const createInitialState = (): DiscoverModalState => ({
-  activeProviderId: 'mteam' as DiscoverProviderId,
+  activeProviderId: readLastProvider() ?? ('mteam' as DiscoverProviderId),
   providerReady: false,
   pageSize: 20,
   previewDescriptionRenderer: 'markdown',
@@ -75,10 +76,12 @@ export const discoverModalStore = {
     if (typeof updater === 'function') {
       if (replace) {
         useDiscoverModalStore.setState(updater, true)
-      } else {
+      }
+      else {
         useDiscoverModalStore.setState(updater)
       }
-    } else {
+    }
+    else {
       useDiscoverModalStore.setState(updater, true)
     }
   },

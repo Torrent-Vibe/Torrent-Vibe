@@ -253,6 +253,7 @@
   "discover.modal.title": "发现资源",
   "discover.modal.waitingDescription": "输入关键字并点击搜索以浏览资源。",
   "discover.modal.waitingTitle": "随时可以开始",
+  "discover.providers.mikan.label": "Mikan 蜜柑计划",
   "errors.actionFailed": "操作失败",
   "errors.connectionFailed": "连接失败",
   "errors.fieldRequired": "至少需要显示一个字段",

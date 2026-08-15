@@ -253,6 +253,7 @@
   "discover.modal.title": "Discover Torrents",
   "discover.modal.waitingDescription": "Enter a keyword and press search to explore torrents.",
   "discover.modal.waitingTitle": "Ready when you are",
+  "discover.providers.mikan.label": "Mikan 蜜柑计划",
   "errors.actionFailed": "Action failed",
   "errors.connectionFailed": "Connection Failed",
   "errors.fieldRequired": "At least one field must be visible",

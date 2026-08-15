@@ -1,6 +1,7 @@
 import type { DiscoverProviderId } from '~/atoms/settings/discover'
 
 import type { DiscoverActionContext } from '../context'
+import { writeLastProvider } from '../lastProviderPersist'
 import type { ConfigureProviderOptions } from '../types'
 
 export const createProviderSlice = (context: DiscoverActionContext) => {
@@ -35,6 +36,8 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
       draft.totalPages = 0
       draft.total = null
     })
+
+    writeLastProvider(options.providerId)
   }
 
   const setActiveProviderId = (providerId: DiscoverProviderId) => {
@@ -43,6 +46,7 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
       draft.activeProviderId = providerId
       draft.searchHistory = history
     })
+    writeLastProvider(providerId)
   }
 
   const updateProviderMeta = (meta: {
@@ -52,7 +56,7 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
     descriptionRenderer?: ConfigureProviderOptions['descriptionRenderer']
   }) => {
     context.setState((draft) => {
-      if (draft.activeProviderId !== meta.providerId) return
+      if (draft.activeProviderId !== meta.providerId) { return }
       draft.providerReady = meta.providerReady
       draft.pageSize = meta.pageSize
       if (meta.descriptionRenderer) {

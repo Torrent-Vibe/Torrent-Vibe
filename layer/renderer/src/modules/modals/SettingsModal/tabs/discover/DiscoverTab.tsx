@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { MTeamProviderSection } from './providers'
+import { MikanProviderSection, MTeamProviderSection } from './providers'
 
 export const DiscoverTab = () => {
   const { t } = useTranslation('setting')
@@ -12,6 +12,7 @@ export const DiscoverTab = () => {
       </p>
 
       <MTeamProviderSection />
+      <MikanProviderSection />
     </div>
   )
 }

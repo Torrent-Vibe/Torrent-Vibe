@@ -9,6 +9,7 @@
   "types": "src/main.tsx",
   "scripts": {
     "build": "vite build --config ../../vite.config.ts",
+    "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "@tanstack/react-table": "8.21.3",
     "@tanstack/react-virtual": "3.14.2",
     "@torrent-vibe/main": "workspace:*",
+    "@torrent-vibe/mikan": "workspace:*",
     "@torrent-vibe/qb-client": "workspace:*",
     "@torrent-vibe/shared": "workspace:*",
     "clsx": "2.1.1",
@@ -77,5 +79,8 @@
     "vaul": "1.1.2",
     "zod": "4.4.3",
     "zustand": "5.0.14"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

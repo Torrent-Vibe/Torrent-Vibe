@@ -13,6 +13,11 @@ import type { ResizablePanelConfig } from '~/modules/layout/desktop/components/R
 
 import { presentSettingsModal } from '../SettingsModal'
 import { DiscoverModalActions } from './actions'
+import { resolveLastProvider } from './actions/lastProvider'
+import {
+  readLastProvider,
+  writeLastProvider,
+} from './actions/lastProviderPersist'
 import {
   DiscoverEmptyState,
   DiscoverFilterBar,
@@ -53,38 +58,53 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
   const providers = useDiscoverProviders()
 
   const activeProviderId = useDiscoverModalStore(
-    (state) => state.activeProviderId,
+    state => state.activeProviderId,
   )
-  const providerReady = useDiscoverModalStore((state) => state.providerReady)
+  const providerReady = useDiscoverModalStore(state => state.providerReady)
   const committedSearch = useDiscoverModalStore(
-    (state) => state.committedSearch,
+    state => state.committedSearch,
   )
-  const isSearching = useDiscoverModalStore((state) => state.isSearching)
-  const items = useDiscoverModalStore((state) => state.items)
-  const hasMore = useDiscoverModalStore((state) => state.hasMore)
-  const searchError = useDiscoverModalStore((state) => state.searchError)
+  const isSearching = useDiscoverModalStore(state => state.isSearching)
+  const items = useDiscoverModalStore(state => state.items)
+  const hasMore = useDiscoverModalStore(state => state.hasMore)
+  const searchError = useDiscoverModalStore(state => state.searchError)
 
   const lastConfiguredSignature = useRef<string | null>(null)
 
-  // Ensure active provider id stays valid when provider list changes
   useEffect(() => {
-    if (providers.length === 0) return
+    if (providers.length === 0) { return }
 
-    if (!providers.some((provider) => provider.id === activeProviderId)) {
+    const readyIds = providers
+      .filter(provider => provider.ready)
+      .map(provider => provider.id)
+    const remembered = readLastProvider()
+    const resolved = resolveLastProvider(remembered, readyIds)
+
+    if (resolved) {
+      if (resolved !== activeProviderId) {
+        providerActions.setActiveProviderId(resolved)
+      }
+      else if (remembered !== resolved) {
+        writeLastProvider(resolved)
+      }
+      return
+    }
+
+    if (!providers.some(provider => provider.id === activeProviderId)) {
       providerActions.setActiveProviderId(providers[0]!.id)
     }
   }, [providers, activeProviderId])
 
   useEffect(() => {
-    if (providers.length === 0) return
+    if (providers.length === 0) { return }
 
-    const provider =
-      providers.find((item) => item.id === activeProviderId) ?? providers[0]
+    const provider
+      = providers.find(item => item.id === activeProviderId) ?? providers[0]
 
-    if (!provider) return
+    if (!provider) { return }
 
-    const filterDefinitions =
-      provider.implementation.getFilterDefinitions?.(
+    const filterDefinitions
+      = provider.implementation.getFilterDefinitions?.(
         provider.config as never,
       ) ?? []
 
@@ -125,10 +145,10 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
   }, [searchError, t])
 
   const activeProvider = providers.find(
-    (provider) => provider.id === activeProviderId,
+    provider => provider.id === activeProviderId,
   )
 
-  const hasReadyProviders = providers.some((provider) => provider.ready)
+  const hasReadyProviders = providers.some(provider => provider.ready)
 
   const showPagination = Boolean(
     committedSearch && (hasMore || (committedSearch?.page ?? 1) > 1),
@@ -137,7 +157,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
     !committedSearch || isSearching || (committedSearch.page ?? 1) <= 1,
   )
 
-  const previewId = useDiscoverModalStore((state) => state.previewId)
+  const previewId = useDiscoverModalStore(state => state.previewId)
   const disableNext = Boolean(!committedSearch || isSearching || !hasMore)
   const showLoading = Boolean(isSearching && committedSearch)
   const resizablePanel = useMemo<ResizablePanelConfig | undefined>(() => {
@@ -160,16 +180,16 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
       <div className="flex flex-1 gap-3 h-0 relative">
         <div className="flex min-w-0 flex-1 flex-row grow overflow-hidden absolute inset-0 bg-background-secondary/30">
           <ResizableLayout
-            mainContent={
+            mainContent={(
               <div className="flex-1 flex flex-col h-0">
                 <DiscoverResultsToolbar />
                 <ScrollArea
                   rootClassName="flex-1 h-0"
                   viewportClassName="bg-background"
                 >
-                  {(!hasReadyProviders ||
-                    !providerReady ||
-                    !activeProvider) && (
+                  {(!hasReadyProviders
+                    || !providerReady
+                    || !activeProvider) && (
                     <DiscoverEmptyState
                       icon="i-mingcute-settings-4-line"
                       title={t('discover.modal.noProviderTitle')}
@@ -179,16 +199,16 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
                     />
                   )}
 
-                  {hasReadyProviders &&
-                    providerReady &&
-                    committedSearch === null &&
-                    items.length === 0 && (
-                      <DiscoverEmptyState
-                        icon="i-mingcute-search-2-line"
-                        title={t('discover.modal.waitingTitle')}
-                        description={t('discover.modal.waitingDescription')}
-                      />
-                    )}
+                  {hasReadyProviders
+                    && providerReady
+                    && committedSearch === null
+                    && items.length === 0 && (
+                    <DiscoverEmptyState
+                      icon="i-mingcute-search-2-line"
+                      title={t('discover.modal.waitingTitle')}
+                      description={t('discover.modal.waitingDescription')}
+                    />
+                  )}
 
                   {showLoading && (
                     <div className="flex items-center justify-center py-10 text-text-tertiary gap-1.5">
@@ -208,7 +228,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
                         size="sm"
                         disabled={disablePrev}
                         onClick={() => {
-                          if (!committedSearch) return
+                          if (!committedSearch) { return }
                           void searchActions.goToPage(
                             Math.max(1, committedSearch.page - 1),
                           )
@@ -222,7 +242,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
                         size="sm"
                         disabled={disableNext}
                         onClick={() => {
-                          if (!committedSearch) return
+                          if (!committedSearch) { return }
                           void searchActions.goToPage(committedSearch.page + 1)
                         }}
                       >
@@ -233,7 +253,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
                   </div>
                 )}
               </div>
-            }
+            )}
             resizablePanel={resizablePanel}
           />
         </div>
@@ -242,7 +262,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
   )
 }
 
-DiscoverModal.contentClassName =
-  'w-full h-full max-w-none max-h-none p-0 rounded-none'
+DiscoverModal.contentClassName
+  = 'w-full h-full max-w-none max-h-none p-0 rounded-none'
 DiscoverModal.showCloseButton = false
 DiscoverModal.disableDrag = true
