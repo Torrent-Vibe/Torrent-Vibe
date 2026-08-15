@@ -5,7 +5,7 @@ import { formatBytesSmart } from '~/lib/format'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
 
-import { episodeStateLabelKey } from './bangumi-actions'
+import { episodeStateLabelKey } from './episode-state'
 import { episodeStateFor } from './subscription-view'
 
 export const MikanEpisodeList = ({

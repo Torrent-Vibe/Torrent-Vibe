@@ -64,7 +64,7 @@ export const setHelperBinding = (
   serverId: string,
   binding: HelperBinding,
 ): void => {
-  const next = loadHelperBindings()
+  const next = { ...loadHelperBindings() }
   next[serverId] = {
     url: binding.url.trim().replace(/\/+$/, ''),
     token: binding.token,
@@ -73,7 +73,7 @@ export const setHelperBinding = (
 }
 
 export const clearHelperBinding = (serverId: string): void => {
-  const next = loadHelperBindings()
+  const next = { ...loadHelperBindings() }
   delete next[serverId]
   saveHelperBindings(next)
 }

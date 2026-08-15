@@ -14,6 +14,7 @@ import { DiscoverEmptyState } from '../components'
 import { resolveMikanCoverUrl } from './helpers'
 import { presentSubscribeTargets } from './subscribe-flow'
 import {
+  lastRenameDisplay,
   latestEpisodeForSubscription,
   serverNamesForIds,
 } from './subscription-view'
@@ -47,6 +48,9 @@ export const MikanSubscriptionsTab = () => {
         const reachable = item.targetServerIds.some(id =>
           targets.some(target => target.id === id && target.paired))
         const latest = latestEpisodeForSubscription(item, statusByServer)
+        const rename = latest ? lastRenameDisplay(latest) : null
+        const renameText
+          = rename && ('text' in rename ? rename.text : t(rename.key))
         const cover = resolveMikanCoverUrl(item.coverUrl)
 
         return (
@@ -122,8 +126,8 @@ export const MikanSubscriptionsTab = () => {
                   {t('discover.modal.mikan.latestEpisode')}
                   {': '}
                   {latest.title}
-                  {latest.state === 'failed' || latest.state === 'needs-manual'
-                    ? ` · ${t('discover.modal.mikan.lastRename')}: ${latest.state}`
+                  {renameText
+                    ? ` · ${t('discover.modal.mikan.lastRename')}: ${renameText}`
                     : ''}
                 </p>
               )}

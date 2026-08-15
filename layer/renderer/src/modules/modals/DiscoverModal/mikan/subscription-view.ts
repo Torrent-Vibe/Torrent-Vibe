@@ -6,14 +6,21 @@ import type {
 } from '~/modules/helper-client'
 import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
 
-const EPISODE_RANK: Record<HelperEpisodeStatus['state'], number> = {
-  'downloading': 6,
-  'renaming': 5,
-  'added': 4,
-  'pending': 3,
-  'done': 2,
-  'failed': 1,
-  'needs-manual': 0,
+import { episodeStateLabelKey } from './episode-state'
+
+const compareEpisodeRecency = (
+  left: HelperEpisodeStatus,
+  right: HelperEpisodeStatus,
+) => {
+  const season = (right.season ?? 1) - (left.season ?? 1)
+  if (season !== 0) {
+    return season
+  }
+  const episode = (right.episode ?? -1) - (left.episode ?? -1)
+  if (episode !== 0) {
+    return episode
+  }
+  return right.title.localeCompare(left.title)
 }
 
 export const serverNamesForIds = (
@@ -45,15 +52,23 @@ export const latestEpisodeForSubscription = (
   if (episodes.length === 0) {
     return null
   }
-  return (
-    [...episodes].sort((a, b) => {
-      const rank = EPISODE_RANK[b.state] - EPISODE_RANK[a.state]
-      if (rank !== 0) {
-        return rank
-      }
-      return b.title.localeCompare(a.title)
-    })[0] ?? null
-  )
+  return [...episodes].sort(compareEpisodeRecency)[0] ?? null
+}
+
+export const lastRenameDisplay = (
+  episode: HelperEpisodeStatus,
+): { text: string } | { key: I18nKeys } | null => {
+  if (episode.lastError) {
+    return { text: episode.lastError }
+  }
+  if (
+    episode.state === 'done'
+    || episode.state === 'failed'
+    || episode.state === 'needs-manual'
+  ) {
+    return { key: episodeStateLabelKey(episode.state) }
+  }
+  return null
 }
 
 export const episodeStateFor = (
