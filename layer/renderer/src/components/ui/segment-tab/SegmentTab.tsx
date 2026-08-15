@@ -50,7 +50,7 @@ const variantClasses = {
   },
   compact: {
     container:
-      'px-1 py-0.5 rounded-md border border-border backdrop-blur bg-material-medium',
+      'p-1 rounded-md border border-border backdrop-blur bg-material-medium',
     button: 'rounded',
     indicator:
       'bg-background-secondary rounded border border-border/80 shadow-sm',
