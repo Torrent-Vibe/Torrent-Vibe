@@ -19,3 +19,4 @@ scripts/apple/Contents/
 resources/security/update_privkey.pem
 
 .turbo
+.superpowers/
