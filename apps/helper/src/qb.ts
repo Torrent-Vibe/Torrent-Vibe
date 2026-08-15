@@ -120,22 +120,32 @@ export function createQbClient(options: {
         method: 'POST',
         body: form,
       })
-      if (!response.ok) {
-        throw new Error(`qBittorrent add failed: ${response.status}`)
-      }
-      const fromUrl = extractTorrentInfohash(add.urls)
-      if (fromUrl) {
-        return { hash: fromUrl }
+      const body = (await response.text()).trim()
+      if (!response.ok || body === 'Fails.') {
+        throw new Error(
+          `qBittorrent add failed: ${response.ok ? body || 'unknown' : response.status}`,
+        )
       }
       const torrents = await listTorrents()
+      const fromUrl = extractTorrentInfohash(add.urls)
+      if (fromUrl && torrents.some(item => item.hash === fromUrl)) {
+        return { hash: fromUrl }
+      }
+      if (fromUrl && body === 'Ok.') {
+        return { hash: fromUrl }
+      }
       const match = torrents.find(
         item =>
           item.name === add.rename && (item.tags ?? '').includes(add.tags),
       )
-      if (!match) {
-        throw new Error('qBittorrent add succeeded but hash is unknown')
+      if (match) {
+        return { hash: match.hash }
       }
-      return { hash: match.hash }
+      throw new Error(
+        body === 'Ok.'
+          ? 'qBittorrent add succeeded but hash is unknown'
+          : 'qBittorrent add failed',
+      )
     },
     async listFiles(hash) {
       const response = await request(

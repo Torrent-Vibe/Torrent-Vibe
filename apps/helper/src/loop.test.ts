@@ -147,6 +147,38 @@ async function episodesOf(store: ReplicaStore, id = MAP_KEY) {
 }
 
 describe('helper loop', () => {
+  it('marks failed when qBittorrent add throws', async () => {
+    const store = memoryStore([replica()])
+    const qb = fakeQb()
+    qb.client.addTorrent = async () => {
+      throw new Error('qBittorrent add failed')
+    }
+    await tick({
+      store,
+      qb: qb.client,
+      libraryRoot: '/library',
+      fetchRss: async () =>
+        rssItem(
+          rssEpisodeXml({
+            title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+            hash: HASH_28,
+          }),
+        ),
+    })
+
+    expect(await episodesOf(store)).toEqual([
+      {
+        episodeId: HASH_28,
+        infohash: HASH_28,
+        title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+        season: 1,
+        episode: 28,
+        state: 'failed',
+        lastError: 'qBittorrent add failed',
+      },
+    ])
+  })
+
   it('adds a new RSS episode with category, tag, season path, and display name', async () => {
     const store = memoryStore([replica()])
     const qb = fakeQb()

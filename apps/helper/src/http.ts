@@ -8,7 +8,7 @@ import type { RssEpisode } from '@torrent-vibe/mikan'
 
 import type { HelperConfig } from './config'
 import type { BackfillInput } from './loop'
-import type { ReplicaStore } from './store'
+import type { HelperEpisode, ReplicaStore } from './store'
 import { episodeKey } from './store'
 
 export interface HelperServerOptions {
@@ -118,6 +118,7 @@ export function createHelperServer(options: HelperServerOptions): Server {
           episodes:
             episodes[episodeKey(replica.bangumiId, replica.subgroupId)] ?? [],
         })),
+        jobs: statusJobs(replicas, episodes),
       })
       return
     }
@@ -139,6 +140,33 @@ export function createHelperServer(options: HelperServerOptions): Server {
 
     sendJson(res, 404, { error: 'not found' })
   }
+}
+
+function statusJobs(
+  replicas: HelperReplica[],
+  episodes: Record<string, HelperEpisode[]>,
+) {
+  const covered = new Set(
+    replicas.map(replica =>
+      episodeKey(replica.bangumiId, replica.subgroupId)),
+  )
+  const jobs: Array<{
+    bangumiId: string
+    subgroupId: string
+    episodes: HelperEpisode[]
+  }> = []
+  for (const [key, list] of Object.entries(episodes)) {
+    if (covered.has(key)) {
+      continue
+    }
+    const sep = key.indexOf(':')
+    jobs.push({
+      bangumiId: sep === -1 ? key : key.slice(0, sep),
+      subgroupId: sep === -1 ? '' : key.slice(sep + 1),
+      episodes: list,
+    })
+  }
+  return jobs
 }
 
 function authorize(req: IncomingMessage, token: string): boolean {

@@ -292,6 +292,37 @@ describe('helper HTTP', () => {
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
       replicas: [{ ...A, episodes: [] }],
+      jobs: [],
+    })
+  })
+
+  it('gET /status includes episode maps that have no replica', async () => {
+    const store = memoryStore()
+    const episodes = [
+      {
+        episodeId: 'ep-1',
+        title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+        season: 1,
+        episode: 28,
+        state: 'added' as const,
+        infohash: 'a15a8861ff6e0b10ce5aca24f7dcafa23d1aa25c',
+      },
+    ]
+    await store.saveEpisodes({ '3141:583': episodes })
+    const base = await start({ store })
+    const response = await fetch(`${base}/status`, {
+      headers: { authorization: `Bearer ${TOKEN}` },
+    })
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      replicas: [],
+      jobs: [
+        {
+          bangumiId: '3141',
+          subgroupId: '583',
+          episodes,
+        },
+      ],
     })
   })
 
