@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveLastProvider } from './lastProvider'
+import { resolveLastProvider, selectDiscoverProvider } from './lastProvider'
 
 describe('resolveLastProvider', () => {
   it('returns remembered when it is ready', () => {
@@ -23,5 +23,20 @@ describe('resolveLastProvider', () => {
 
   it('keeps readyIds order when falling back', () => {
     expect(resolveLastProvider('missing', ['mikan', 'mteam'])).toBe('mikan')
+  })
+})
+
+describe('selectDiscoverProvider', () => {
+  const options = [
+    { id: 'mikan', ready: true },
+    { id: 'mteam', ready: false },
+  ] as const
+
+  it('activates a ready provider', () => {
+    expect(selectDiscoverProvider('mikan', options)).toBe('activate')
+  })
+
+  it('opens settings when the provider is not ready', () => {
+    expect(selectDiscoverProvider('mteam', options)).toBe('settings')
   })
 })

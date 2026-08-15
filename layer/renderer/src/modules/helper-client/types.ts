@@ -34,8 +34,15 @@ export interface HelperReplicaStatus extends HelperReplica {
   episodes: HelperEpisodeStatus[]
 }
 
+export interface HelperJobStatus {
+  bangumiId: string
+  subgroupId: string
+  episodes: HelperEpisodeStatus[]
+}
+
 export interface HelperStatusResponse {
   replicas: HelperReplicaStatus[]
+  jobs: HelperJobStatus[]
 }
 
 export interface HelperBackfillInput {

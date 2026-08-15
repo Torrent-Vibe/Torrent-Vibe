@@ -352,6 +352,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           subscriptionStore.setState((draft) => {
             draft.statusByServer[serverId] = {
               replicas: [],
+              jobs: [],
               fetchedAt,
               error: 'unbound',
             }
@@ -363,6 +364,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           subscriptionStore.setState((draft) => {
             draft.statusByServer[serverId] = {
               replicas: status.replicas,
+              jobs: status.jobs,
               fetchedAt,
             }
           })
@@ -374,6 +376,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           subscriptionStore.setState((draft) => {
             draft.statusByServer[serverId] = {
               replicas: draft.statusByServer[serverId]?.replicas ?? [],
+              jobs: draft.statusByServer[serverId]?.jobs ?? [],
               fetchedAt,
               error: errorMessage(error),
             }
@@ -423,6 +426,35 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           item.bangumiId === bangumiId && item.subgroupId === subgroupId,
       ) ?? null
 
+  const forgetServer = async (serverId: string): Promise<ActionResult> => {
+    clearHelperBinding(serverId)
+    const stamp = now()
+    const remaining: SubscriptionRecord[] = []
+    for (const item of subscriptionStore.getState().items) {
+      if (!item.targetServerIds.includes(serverId)) {
+        remaining.push(item)
+        continue
+      }
+      const nextTargets = item.targetServerIds.filter(id => id !== serverId)
+      if (nextTargets.length === 0) {
+        continue
+      }
+      const syncByServer = { ...item.syncByServer }
+      delete syncByServer[serverId]
+      remaining.push({
+        ...item,
+        targetServerIds: nextTargets,
+        syncByServer,
+        updatedAt: stamp,
+      })
+    }
+    persistItems(remaining)
+    subscriptionStore.setState((draft) => {
+      delete draft.statusByServer[serverId]
+    })
+    return { ok: true }
+  }
+
   return {
     hydrate,
     subscribe,
@@ -433,6 +465,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     refreshStatus,
     backfill,
     findByBangumiSubgroup,
+    forgetServer,
   }
 }
 

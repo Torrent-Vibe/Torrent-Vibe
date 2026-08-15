@@ -3,6 +3,8 @@ import type { HelperReplica } from '@torrent-vibe/helper-protocol'
 import type {
   HelperBackfillInput,
   HelperDiscoverInfo,
+  HelperEpisodeStatus,
+  HelperJobStatus,
   HelperReplicaStatus,
   HelperStatusResponse,
 } from './types'
@@ -141,6 +143,42 @@ export const putHelperSubscriptions = async (
   return (body as { replicas: HelperReplica[] }).replicas
 }
 
+const parseEpisodes = (value: unknown): HelperEpisodeStatus[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+    const episode = entry as Record<string, unknown>
+    if (
+      typeof episode.episodeId !== 'string'
+      || typeof episode.title !== 'string'
+    ) {
+      return []
+    }
+    return [
+      {
+        episodeId: episode.episodeId,
+        title: episode.title,
+        season: typeof episode.season === 'number' ? episode.season : null,
+        episode: typeof episode.episode === 'number' ? episode.episode : null,
+        state:
+          typeof episode.state === 'string'
+            ? (episode.state as HelperEpisodeStatus['state'])
+            : 'pending',
+        ...(typeof episode.infohash === 'string'
+          ? { infohash: episode.infohash }
+          : {}),
+        ...(typeof episode.lastError === 'string'
+          ? { lastError: episode.lastError }
+          : {}),
+      },
+    ]
+  })
+}
+
 const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
   if (!value || typeof value !== 'object') {
     return null
@@ -156,39 +194,6 @@ const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
   ) {
     return null
   }
-  const episodes = Array.isArray(record.episodes)
-    ? record.episodes.flatMap((entry) => {
-        if (!entry || typeof entry !== 'object') {
-          return []
-        }
-        const episode = entry as Record<string, unknown>
-        if (
-          typeof episode.episodeId !== 'string'
-          || typeof episode.title !== 'string'
-        ) {
-          return []
-        }
-        return [
-          {
-            episodeId: episode.episodeId,
-            title: episode.title,
-            season: typeof episode.season === 'number' ? episode.season : null,
-            episode:
-              typeof episode.episode === 'number' ? episode.episode : null,
-            state:
-              typeof episode.state === 'string'
-                ? (episode.state as HelperReplicaStatus['episodes'][number]['state'])
-                : 'pending',
-            ...(typeof episode.infohash === 'string'
-              ? { infohash: episode.infohash }
-              : {}),
-            ...(typeof episode.lastError === 'string'
-              ? { lastError: episode.lastError }
-              : {}),
-          },
-        ]
-      })
-    : []
   return {
     id: record.id,
     bangumiId: record.bangumiId,
@@ -199,7 +204,25 @@ const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
     subgroupId: record.subgroupId,
     subgroupName: record.subgroupName,
     rssUrl: record.rssUrl,
-    episodes,
+    episodes: parseEpisodes(record.episodes),
+  }
+}
+
+const parseJobStatus = (value: unknown): HelperJobStatus | null => {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+  const record = value as Record<string, unknown>
+  if (
+    typeof record.bangumiId !== 'string'
+    || typeof record.subgroupId !== 'string'
+  ) {
+    return null
+  }
+  return {
+    bangumiId: record.bangumiId,
+    subgroupId: record.subgroupId,
+    episodes: parseEpisodes(record.episodes),
   }
 }
 
@@ -215,9 +238,16 @@ export const getHelperStatus = async (
   ) {
     throw new Error('invalid status payload')
   }
-  return {
-    replicas: (body as { replicas: unknown[] }).replicas.map(parseReplicaStatus).filter((item): item is HelperReplicaStatus => item !== null),
-  }
+  const record = body as { replicas: unknown[], jobs?: unknown }
+  const replicas = record.replicas
+    .map(parseReplicaStatus)
+    .filter((item): item is HelperReplicaStatus => item !== null)
+  const jobs = Array.isArray(record.jobs)
+    ? record.jobs
+        .map(parseJobStatus)
+        .filter((item): item is HelperJobStatus => item !== null)
+    : []
+  return { replicas, jobs }
 }
 
 export const backfillHelper = async (

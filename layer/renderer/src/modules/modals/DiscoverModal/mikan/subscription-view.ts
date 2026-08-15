@@ -78,13 +78,17 @@ export const episodeStateFor = (
   statusByServer: Record<string, HelperStatusSnapshot>,
 ): HelperEpisodeStatus['state'] | null => {
   for (const snapshot of Object.values(statusByServer)) {
+    const job = snapshot.jobs?.find(
+      entry =>
+        entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
+    )
     const replica = snapshot.replicas.find(
       entry =>
         entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
     )
-    const episode = replica?.episodes.find(
-      entry => entry.episodeId === episodeId,
-    )
+    const episode
+      = job?.episodes.find(entry => entry.episodeId === episodeId)
+        ?? replica?.episodes.find(entry => entry.episodeId === episodeId)
     if (episode) {
       return episode.state
     }

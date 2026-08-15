@@ -17,6 +17,12 @@ const WEEKDAY_KEYS = {
   7: 'discover.modal.mikan.weekday.movie',
 } as const
 
+export const mikanBrowseMode = (
+  tab: 'season' | 'subscriptions',
+  keyword: string,
+): 'subscriptions' | 'browse' =>
+  tab === 'subscriptions' && !keyword.trim() ? 'subscriptions' : 'browse'
+
 export const resolveMikanCoverUrl = (coverUrl?: string) => {
   if (!coverUrl) {
     return null

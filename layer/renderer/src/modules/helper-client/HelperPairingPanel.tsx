@@ -41,9 +41,6 @@ export const HelperPairingPanel = ({
       const info = await discoverHelper(url)
       setDiscover(info)
       setManualUrl(normalizeHelperBaseUrl(url))
-      if (info.pairingCode) {
-        setCode(info.pairingCode)
-      }
     }
     catch {
       setDiscover(null)

@@ -10,6 +10,7 @@ import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
 import { DiscoverEmptyState } from '../components'
 import { useDiscoverModalStore } from '../store'
+import { mikanBrowseMode } from './helpers'
 import { MikanBangumiPage } from './MikanBangumiPage'
 import { MikanSearchResults } from './MikanSearchResults'
 import { MikanSeasonWall } from './MikanSeasonWall'
@@ -50,7 +51,10 @@ export const MikanDiscoverShell = () => {
     if (bangumiId) {
       mikan.closeBangumi()
     }
-  }, [bangumiId, keyword, mikan])
+    if (keyword.trim() && mikanTab === 'subscriptions') {
+      mikan.setMikanTab('season')
+    }
+  }, [bangumiId, keyword, mikan, mikanTab])
 
   useEffect(() => {
     if (!providerReady) {
@@ -88,6 +92,7 @@ export const MikanDiscoverShell = () => {
   )
 
   const showSearchResults = Boolean(committedSearch?.keyword.trim())
+  const browseMode = mikanBrowseMode(mikanTab, keyword)
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-background-secondary/30">
@@ -119,11 +124,11 @@ export const MikanDiscoverShell = () => {
 
         {providerReady && bangumiId && <MikanBangumiPage />}
 
-        {providerReady && mikanTab === 'subscriptions' && !bangumiId && (
+        {providerReady && browseMode === 'subscriptions' && !bangumiId && (
           <MikanSubscriptionsTab />
         )}
 
-        {providerReady && mikanTab === 'season' && !bangumiId && (
+        {providerReady && browseMode === 'browse' && !bangumiId && (
           <>
             {isSearching && items.length === 0 && (
               <div className="flex items-center justify-center gap-1.5 py-10 text-text-tertiary">

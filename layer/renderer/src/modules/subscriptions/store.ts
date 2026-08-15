@@ -3,10 +3,14 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { createWithEqualityFn } from 'zustand/traditional'
 
-import type { HelperReplicaStatus } from '../helper-client/types'
+import type {
+  HelperJobStatus,
+  HelperReplicaStatus,
+} from '../helper-client/types'
 
 export interface HelperStatusSnapshot {
   replicas: HelperReplicaStatus[]
+  jobs: HelperJobStatus[]
   fetchedAt: string
   error?: string
 }

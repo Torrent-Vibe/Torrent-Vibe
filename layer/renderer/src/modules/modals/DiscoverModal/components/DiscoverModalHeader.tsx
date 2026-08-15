@@ -25,6 +25,7 @@ import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
+import { selectDiscoverProvider } from '../actions/lastProvider'
 import { useDiscoverModalStore } from '../store'
 import { DiscoverSearchInput } from './DiscoverSearchInput'
 
@@ -175,8 +176,16 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
         <div className="flex items-center gap-1.5">
           <Select
             value={activeProviderId}
-            onValueChange={value =>
-              provider.setActiveProviderId(value as DiscoverProviderId)}
+            onValueChange={(value) => {
+              const next = value as DiscoverProviderId
+              if (
+                selectDiscoverProvider(next, providerOptions) === 'settings'
+              ) {
+                presentSettingsModal({ tab: 'discover' })
+                return
+              }
+              provider.setActiveProviderId(next)
+            }}
           >
             <SelectTrigger className="h-9 w-full sm:w-72 no-drag-region">
               <SelectValue
@@ -184,14 +193,28 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
               />
             </SelectTrigger>
             <SelectContent>
-              {providerOptions.map(provider => (
-                <SelectItem key={provider.id} value={provider.id}>
+              {providerOptions.map(option => (
+                <SelectItem
+                  key={option.id}
+                  value={option.id}
+                  disabled={!option.ready}
+                  className={cn(
+                    !option.ready && 'data-[disabled]:pointer-events-auto',
+                  )}
+                  onPointerDown={(event) => {
+                    if (option.ready) {
+                      return
+                    }
+                    event.preventDefault()
+                    presentSettingsModal({ tab: 'discover' })
+                  }}
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span>{provider.label}</span>
+                    <span>{option.label}</span>
                     <i
                       className={cn(
                         'text-base',
-                        provider.ready
+                        option.ready
                           ? 'i-mingcute-check-line text-green'
                           : 'i-mingcute-warning-line text-yellow',
                       )}

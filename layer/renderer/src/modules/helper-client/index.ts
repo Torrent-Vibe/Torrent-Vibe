@@ -33,6 +33,7 @@ export type {
   HelperBinding,
   HelperDiscoverInfo,
   HelperEpisodeStatus,
+  HelperJobStatus,
   HelperReplicaStatus,
   HelperStatusResponse,
   ServerHelperTarget,

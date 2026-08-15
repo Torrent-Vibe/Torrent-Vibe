@@ -2,6 +2,11 @@ import type { HelperReplica } from '@torrent-vibe/helper-protocol'
 import { desiredStateDiff } from '@torrent-vibe/helper-protocol'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import {
+  getHelperBinding,
+  setHelperBinding,
+  useHelperBindingsStore,
+} from '../helper-client'
 import type { HelperSyncClient } from './actions'
 import { createSubscriptionActions } from './actions'
 import { desiredReplicasForServer } from './desired-set'
@@ -51,6 +56,8 @@ function createFakeHelper(options?: {
 describe('subscription actions', () => {
   beforeEach(() => {
     subscriptionStore.reset()
+    useHelperBindingsStore.setState({ bindings: {} })
+    localStorage.clear()
   })
 
   it('subscribes, persists, and puts the per-helper desired set', async () => {
@@ -264,5 +271,66 @@ describe('subscription actions', () => {
     expect(
       subscriptionStore.getState().items[0]?.syncByServer['srv-a']?.status,
     ).toBe('ok')
+  })
+
+  it('forgetServer clears the helper binding and strips that target', async () => {
+    setHelperBinding('srv-a', { url: 'http://nas:17890', token: 'tok' })
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'sub-1',
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-1',
+      title: 'Frieren',
+      subgroupId: 'sg-1',
+      subgroupName: 'ANi',
+      rssUrl: 'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-1&subgroupid=sg-1',
+      targetServerIds: ['srv-a', 'srv-b'],
+    })
+    helper.puts.length = 0
+
+    const result = await actions.forgetServer('srv-a')
+    expect(result.ok).toBe(true)
+    expect(getHelperBinding('srv-a')).toBeNull()
+    expect(subscriptionStore.getState().items[0]?.targetServerIds).toEqual([
+      'srv-b',
+    ])
+    expect(
+      subscriptionStore.getState().items[0]?.syncByServer['srv-a'],
+    ).toBeUndefined()
+    expect(persist.snapshot().items[0]?.targetServerIds).toEqual(['srv-b'])
+    expect(helper.puts).toEqual([])
+  })
+
+  it('forgetServer unsubscribes when no targets remain', async () => {
+    setHelperBinding('srv-a', { url: 'http://nas:17890', token: 'tok' })
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'sub-1',
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-1',
+      title: 'Frieren',
+      subgroupId: 'sg-1',
+      subgroupName: 'ANi',
+      rssUrl: 'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-1&subgroupid=sg-1',
+      targetServerIds: ['srv-a'],
+    })
+
+    const result = await actions.forgetServer('srv-a')
+    expect(result.ok).toBe(true)
+    expect(getHelperBinding('srv-a')).toBeNull()
+    expect(subscriptionStore.getState().items).toEqual([])
+    expect(persist.snapshot().items).toEqual([])
   })
 })
