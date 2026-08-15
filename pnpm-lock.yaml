@@ -440,6 +440,15 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
 
+  packages/mikan:
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.0)
+
   packages/qb-client:
     dependencies:
       '@innei/qbittorrent-browser':
