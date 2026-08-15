@@ -12,10 +12,90 @@ import {
 } from '~/components/ui/select'
 import { cn } from '~/lib/cn'
 import { useDiscoverProviders } from '~/modules/discover/hooks/useDiscoverProviders'
+import {
+  getCurrentMikanSeason,
+  MIKAN_SEASONS,
+  resolveMikanSeason,
+} from '~/modules/discover/providers/mikan/utils'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
+import { DiscoverSearchInput } from './DiscoverSearchInput'
+
+const MIKAN_SEASON_LABELS = {
+  春: 'discover.modal.mikan.season.spring',
+  夏: 'discover.modal.mikan.season.summer',
+  秋: 'discover.modal.mikan.season.autumn',
+  冬: 'discover.modal.mikan.season.winter',
+} as const
+
+const MikanSeasonPicker = () => {
+  const { t } = useTranslation('app')
+  const { form } = DiscoverModalActions.shared.slices
+  const filters = useDiscoverModalStore(state => state.filters)
+  const current = getCurrentMikanSeason()
+  const parsedYear
+    = typeof filters.year === 'number'
+      ? filters.year
+      : typeof filters.year === 'string' && filters.year.trim()
+        ? Number(filters.year)
+        : Number.NaN
+  const year = Number.isFinite(parsedYear) ? parsedYear : current.year
+  const season = resolveMikanSeason(filters.season) ?? current.season
+  const thisYear = new Date().getFullYear()
+  const years = Array.from(
+    { length: thisYear - 2013 },
+    (_, index) => thisYear - index,
+  )
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Select
+        value={String(year)}
+        onValueChange={(value) => {
+          form.updateFilters(prev => ({
+            ...prev,
+            year: Number(value),
+            season,
+          }))
+        }}
+      >
+        <SelectTrigger className="h-9 w-[6.5rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {years.map(option => (
+            <SelectItem key={option} value={String(option)}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={season}
+        onValueChange={(value) => {
+          form.updateFilters(prev => ({
+            ...prev,
+            year,
+            season: value,
+          }))
+        }}
+      >
+        <SelectTrigger className="h-9 w-[7.5rem]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {MIKAN_SEASONS.map(option => (
+            <SelectItem key={option} value={option}>
+              {t(MIKAN_SEASON_LABELS[option])}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
 
 interface DiscoverModalHeaderProps {
   onClose: () => void
@@ -25,14 +105,14 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
   const { t } = useTranslation(['app', 'setting'])
   const providers = useDiscoverProviders()
   const activeProviderId = useDiscoverModalStore(
-    (state) => state.activeProviderId,
+    state => state.activeProviderId,
   )
   const actions = DiscoverModalActions.shared
   const { provider } = actions.slices
 
   const providerOptions = useMemo(
     () =>
-      providers.map((provider) => ({
+      providers.map(provider => ({
         id: provider.id,
         label: provider.implementation.label,
         ready: provider.ready,
@@ -54,9 +134,8 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
         <div className="flex items-center gap-1.5">
           <Select
             value={activeProviderId}
-            onValueChange={(value) =>
-              provider.setActiveProviderId(value as DiscoverProviderId)
-            }
+            onValueChange={value =>
+              provider.setActiveProviderId(value as DiscoverProviderId)}
           >
             <SelectTrigger className="h-9 w-full sm:w-72 no-drag-region">
               <SelectValue
@@ -64,7 +143,7 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
               />
             </SelectTrigger>
             <SelectContent>
-              {providerOptions.map((provider) => (
+              {providerOptions.map(provider => (
                 <SelectItem key={provider.id} value={provider.id}>
                   <div className="flex items-center justify-between gap-2">
                     <span>{provider.label}</span>
@@ -95,6 +174,16 @@ export const DiscoverModalHeader = ({ onClose }: DiscoverModalHeaderProps) => {
           </Button>
         </div>
       </div>
+      {activeProviderId === 'mikan' && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="min-w-[16rem] flex-1">
+            <DiscoverSearchInput
+              placeholder={t('discover.modal.mikan.keywordPlaceholder')}
+            />
+          </div>
+          <MikanSeasonPicker />
+        </div>
+      )}
     </header>
   )
 }

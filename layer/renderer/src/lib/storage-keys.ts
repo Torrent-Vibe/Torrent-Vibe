@@ -47,6 +47,10 @@ export const STORAGE_KEYS = {
     APP_PREFIX,
     'discover-last-provider',
   ),
+  DISCOVER_MIKAN_LAST_SUBGROUP: createStorageKey(
+    APP_PREFIX,
+    'discover-mikan-last-subgroup',
+  ),
   DISCOVER_SEARCH_HISTORY: createStorageKey(
     APP_PREFIX,
     'discover-search-history',

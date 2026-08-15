@@ -36,6 +36,12 @@ export interface DiscoverModalState {
   isPreviewLoading: boolean
   previewError: string | null
   importing: boolean
+  mikanTab: 'season' | 'subscriptions'
+  mikanBangumiId: string | null
+  mikanDetail: DiscoverItemDetail | null
+  mikanDetailLoading: boolean
+  mikanDetailError: string | null
+  mikanSubgroupId: string | null
 }
 
 const createInitialState = (): DiscoverModalState => ({
@@ -61,6 +67,12 @@ const createInitialState = (): DiscoverModalState => ({
   isPreviewLoading: false,
   previewError: null,
   importing: false,
+  mikanTab: 'season',
+  mikanBangumiId: null,
+  mikanDetail: null,
+  mikanDetailLoading: false,
+  mikanDetailError: null,
+  mikanSubgroupId: null,
 })
 
 export const useDiscoverModalStore = createWithEqualityFn<DiscoverModalState>()(

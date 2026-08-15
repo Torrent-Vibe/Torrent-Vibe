@@ -3,6 +3,7 @@ import { createEnrichmentSlice } from './slices/enrichment'
 import { createFormSlice } from './slices/form'
 import { createHistorySlice } from './slices/history'
 import { createImportingSlice } from './slices/importing'
+import { createMikanSlice } from './slices/mikan'
 import { createPreviewSlice } from './slices/preview'
 import { createProviderSlice } from './slices/provider'
 import { createSearchSlice } from './slices/search'
@@ -19,6 +20,7 @@ const createDiscoverModalActions = () => {
   const search = createSearchSlice(context, { preview })
   const importing = createImportingSlice(context)
   const enrichment = createEnrichmentSlice(context)
+  const mikan = createMikanSlice(context)
 
   const slices = {
     provider,
@@ -29,6 +31,7 @@ const createDiscoverModalActions = () => {
     preview,
     importing,
     enrichment,
+    mikan,
   } as const
 
   const actions = {
@@ -40,6 +43,7 @@ const createDiscoverModalActions = () => {
     ...preview,
     ...importing,
     ...enrichment,
+    ...mikan,
   }
 
   return {
