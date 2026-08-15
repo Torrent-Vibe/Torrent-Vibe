@@ -38,7 +38,8 @@ targets:
       - path: Sources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.innei.TorrentVibe
+        PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe
+        DEVELOPMENT_TEAM: KAMM5N88X3
 
 schemes:
   TorrentVibe:
