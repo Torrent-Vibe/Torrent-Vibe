@@ -41,18 +41,18 @@ export class AuthManager {
       if (ELECTRON) {
         const ms = loadMultiServerConfig()
         const active = ms.activeServerId
-          ? ms.servers.find((s) => s.id === ms.activeServerId)
+          ? ms.servers.find(s => s.id === ms.activeServerId)
           : ms.servers[0]
-        if (!active) return undefined
+        if (!active) { return undefined }
 
         const pwd = await loadServerPassword(active.id)
-        if (!pwd) return undefined
+        if (!pwd) { return undefined }
 
         return { ...active.config, password: pwd }
       }
 
       const { stored, password } = loadStoredConnectionConfig()
-      if (!stored || !password) return undefined
+      if (!stored || !password) { return undefined }
 
       return {
         host: stored.host,
@@ -62,10 +62,12 @@ export class AuthManager {
         useHttps: stored.useHttps,
         baseUrl: stored.baseUrl,
       }
-    } catch {
+    }
+    catch {
       return undefined
     }
   }
+
   /**
    * Initialize authentication on app start
    * Attempts to refresh login with stored credentials
@@ -98,7 +100,8 @@ export class AuthManager {
         jotaiStore.set(authStatusAtom, 'authenticated')
         jotaiStore.set(connectionStatusAtom, 'connected')
         this.startPeriodicRefresh()
-      } else {
+      }
+      else {
         jotaiStore.set(authStatusAtom, 'auth_failed')
         jotaiStore.set(connectionStatusAtom, 'error')
         jotaiStore.set(
@@ -106,7 +109,8 @@ export class AuthManager {
           'Authentication failed with stored credentials',
         )
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`${getI18n().t('messages.authRetryFailed')}:`, error)
       jotaiStore.set(authStatusAtom, 'auth_failed')
       jotaiStore.set(connectionStatusAtom, 'error')
@@ -135,14 +139,16 @@ export class AuthManager {
         jotaiStore.set(connectionStatusAtom, 'connected')
         jotaiStore.set(lastConnectionErrorAtom, null)
         return true
-      } else {
+      }
+      else {
         jotaiStore.set(authStatusAtom, 'auth_failed')
         jotaiStore.set(connectionStatusAtom, 'error')
         jotaiStore.set(lastAuthErrorAtom, 'Authentication refresh failed')
         this.stopPeriodicRefresh()
         return false
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`${getI18n().t('messages.authRetryFailed')}:`, error)
       jotaiStore.set(authStatusAtom, 'auth_failed')
       jotaiStore.set(connectionStatusAtom, 'error')
@@ -150,7 +156,8 @@ export class AuthManager {
       jotaiStore.set(lastConnectionErrorAtom, this.parseErrorMessage(error))
       this.stopPeriodicRefresh()
       return false
-    } finally {
+    }
+    finally {
       this.isRefreshing = false
     }
   }
@@ -197,7 +204,8 @@ export class AuthManager {
     try {
       const result = await QBittorrentClient.shared.login()
       return result === true
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`${getI18n().t('messages.authRetryFailed')}:`, error)
       return false
     }
@@ -210,14 +218,18 @@ export class AuthManager {
     if (error instanceof Error) {
       const message = error.message.toLowerCase()
 
-      if (message.includes('401') || message.includes('unauthorized')) {
+      if (
+        message.includes('401')
+        || message.includes('unauthorized')
+        || message.includes('invalid credentials')
+      ) {
         return 'Invalid username or password'
       }
 
       if (
-        message.includes('network') ||
-        message.includes('fetch') ||
-        message.includes('timeout')
+        message.includes('network')
+        || message.includes('fetch')
+        || message.includes('timeout')
       ) {
         return 'Network error - unable to reach qBittorrent server'
       }

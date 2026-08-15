@@ -67,13 +67,13 @@ const VALIDATION_STATES = {
 
 export const Onboarding = () => {
   const navigate = useNavigate()
-  const [validationState, setValidationState] =
-    useState<ValidationState>('idle')
-  const [validationError, setValidationError] =
-    useState<ValidationError | null>(null)
+  const [validationState, setValidationState]
+    = useState<ValidationState>('idle')
+  const [validationError, setValidationError]
+    = useState<ValidationError | null>(null)
   const currentState = VALIDATION_STATES[validationState]
 
-  const { servers, activeServerId, order } = useMultiServerStore((s) => ({
+  const { servers, activeServerId, order } = useMultiServerStore(s => ({
     servers: s.servers,
     activeServerId: s.activeServerId,
     order: s.order,
@@ -95,14 +95,14 @@ export const Onboarding = () => {
       useHttps:
         local.useHttps ?? base?.config.useHttps ?? initial.useHttps ?? true,
       rememberPassword:
-        local.rememberPassword ??
-        (active ? hasServerPassword(active.id) : false) ??
-        false,
+        local.rememberPassword
+        ?? (active ? hasServerPassword(active.id) : false)
+        ?? false,
     }
   }, [active, order.length, servers])
 
-  const { control, handleSubmit, getValues, reset, setValue, watch } =
-    useForm<OnboardingFormData>({
+  const { control, handleSubmit, getValues, reset, setValue, watch }
+    = useForm<OnboardingFormData>({
       defaultValues,
       mode: 'all',
     })
@@ -116,7 +116,7 @@ export const Onboarding = () => {
     const load = async () => {
       if (active && hasServerPassword(active.id)) {
         const pw = await loadServerPassword(active.id)
-        if (pw) setValue('password', pw)
+        if (pw) { setValue('password', pw) }
       }
     }
     load().catch(() => {})
@@ -134,7 +134,7 @@ export const Onboarding = () => {
   }
 
   const onSubmit = async (formData: OnboardingFormData) => {
-    if (validationState === 'validating') return
+    if (validationState === 'validating') { return }
     setValidationState('validating')
     setValidationError(null)
     try {
@@ -156,7 +156,8 @@ export const Onboarding = () => {
           if (formData.rememberPassword && config.password) {
             await saveServerPassword(server.id, config.password)
           }
-        } else if (active) {
+        }
+        else if (active) {
           // Update active server config
           multiServerStoreSetters.updateServer(active.id, {
             config,
@@ -173,6 +174,7 @@ export const Onboarding = () => {
         })
 
         QBittorrentClient.configure(config)
+        await QBittorrentClient.shared.login()
         await qbQueryManager.scenarios.onConnectionChange()
         jotaiStore.set(authStatusAtom, 'authenticated')
         jotaiStore.set(connectionStatusAtom, 'connected')
@@ -181,12 +183,14 @@ export const Onboarding = () => {
         clearFormDataFromStorage()
         toast.success(getI18n().t('onboarding.messages.connectionSuccessful'))
         navigate('/')
-      } else {
+      }
+      else {
         setValidationState('error')
         setValidationError(result.error!)
         toast.error(result.error!.message)
       }
-    } catch {
+    }
+    catch {
       setValidationState('error')
       const fallbackError: ValidationError = {
         type: 'unknown',
@@ -199,7 +203,7 @@ export const Onboarding = () => {
 
   const onInvalid = (errs: any) => {
     const first = Object.values(errs)[0] as { message?: string } | undefined
-    if (first?.message) toast.error(first.message)
+    if (first?.message) { toast.error(first.message) }
   }
 
   const handleRetry = () => {

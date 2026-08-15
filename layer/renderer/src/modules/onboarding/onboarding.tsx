@@ -70,10 +70,10 @@ export const Onboarding = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { t } = useTranslation()
-  const [validationState, setValidationState] =
-    useState<ValidationState>('idle')
-  const [validationError, setValidationError] =
-    useState<ValidationError | null>(null)
+  const [validationState, setValidationState]
+    = useState<ValidationState>('idle')
+  const [validationError, setValidationError]
+    = useState<ValidationError | null>(null)
 
   const FORM_VALIDATION = {
     hostMessage: t(FORM_VALIDATION_KEYS.hostMessage),
@@ -125,20 +125,20 @@ export const Onboarding = () => {
     const parseBoolean = (
       value: string | null | undefined,
     ): boolean | undefined => {
-      if (!value) return undefined
+      if (!value) { return undefined }
       const normalized = value.toLowerCase()
       return (
-        normalized === '1' ||
-        normalized === 'true' ||
-        normalized === 'yes' ||
-        normalized === 'on'
+        normalized === '1'
+        || normalized === 'true'
+        || normalized === 'yes'
+        || normalized === 'on'
       )
     }
 
     const getParamValue = (keys: readonly string[]): string | null => {
       for (const key of keys) {
         const value = searchParams.get(key)
-        if (value) return value
+        if (value) { return value }
       }
       return null
     }
@@ -153,7 +153,8 @@ export const Onboarding = () => {
           port: url.port ? Number(url.port) : undefined,
           useHttps: url.protocol === 'https:',
         }
-      } catch {
+      }
+      catch {
         // ignore invalid URL
       }
     }
@@ -164,8 +165,8 @@ export const Onboarding = () => {
       username: getParamValue(PARAM_MAPPINGS.username),
       password: getParamValue(PARAM_MAPPINGS.password),
       useHttps:
-        window.location.protocol === 'https:' ||
-        parseBoolean(getParamValue(PARAM_MAPPINGS.useHttps)),
+        window.location.protocol === 'https:'
+        || parseBoolean(getParamValue(PARAM_MAPPINGS.useHttps)),
       rememberPassword: parseBoolean(
         getParamValue(PARAM_MAPPINGS.rememberPassword),
       ),
@@ -173,42 +174,42 @@ export const Onboarding = () => {
 
     return {
       host:
-        paramValues.host ||
-        urlConfig.host ||
-        (localStorageData.host as string | undefined) ||
-        initial.host ||
-        '',
+        paramValues.host
+        || urlConfig.host
+        || (localStorageData.host as string | undefined)
+        || initial.host
+        || '',
       port:
         (paramValues.port && !Number.isNaN(Number(paramValues.port))
           ? Number(paramValues.port)
-          : undefined) ||
-        urlConfig.port ||
-        (localStorageData.port as number | undefined) ||
-        initial.port ||
-        undefined,
+          : undefined)
+        || urlConfig.port
+        || (localStorageData.port as number | undefined)
+        || initial.port
+        || undefined,
       username:
-        paramValues.username ||
-        (localStorageData.username as string | undefined) ||
-        initial.username ||
-        '',
+        paramValues.username
+        || (localStorageData.username as string | undefined)
+        || initial.username
+        || '',
       password:
-        paramValues.password ||
-        (localStorageData.password as string | undefined) ||
-        initial.password ||
-        '',
+        paramValues.password
+        || (localStorageData.password as string | undefined)
+        || initial.password
+        || '',
       useHttps:
-        window.location.protocol === 'https:' ||
-        (paramValues.useHttps ??
-          urlConfig.useHttps ??
-          (localStorageData.useHttps as boolean | undefined) ??
-          (typeof globalThis !== 'undefined' &&
-            globalThis.location?.protocol === 'https:') ??
-          true),
+        window.location.protocol === 'https:'
+        || (paramValues.useHttps
+          ?? urlConfig.useHttps
+          ?? (localStorageData.useHttps as boolean | undefined)
+          ?? (typeof globalThis !== 'undefined'
+            && globalThis.location?.protocol === 'https:')
+          ?? true),
       rememberPassword:
-        paramValues.rememberPassword ??
-        (localStorageData.rememberPassword as boolean | undefined) ??
-        saved?.rememberPassword ??
-        false,
+        paramValues.rememberPassword
+        ?? (localStorageData.rememberPassword as boolean | undefined)
+        ?? saved?.rememberPassword
+        ?? false,
       useCurrentPath:
         (localStorageData.useCurrentPath as boolean | undefined) ?? true,
     }
@@ -219,8 +220,8 @@ export const Onboarding = () => {
     [computeDefaultValues],
   )
 
-  const { control, handleSubmit, watch, getValues, reset } =
-    useForm<OnboardingFormData>({
+  const { control, handleSubmit, watch, getValues, reset }
+    = useForm<OnboardingFormData>({
       defaultValues,
       mode: 'all',
     })
@@ -244,7 +245,7 @@ export const Onboarding = () => {
   }
 
   const onSubmit = async (formData: OnboardingFormData) => {
-    if (validationState === 'validating') return
+    if (validationState === 'validating') { return }
     setValidationState('validating')
     setValidationError(null)
     try {
@@ -261,6 +262,7 @@ export const Onboarding = () => {
         })
         saveStoredConnectionConfig(config, formData.rememberPassword)
         QBittorrentClient.configure(config)
+        await QBittorrentClient.shared.login()
         await qbQueryManager.scenarios.onConnectionChange()
         jotaiStore.set(authStatusAtom, 'authenticated')
         jotaiStore.set(connectionStatusAtom, 'connected')
@@ -269,12 +271,14 @@ export const Onboarding = () => {
         clearFormDataFromStorage()
         toast.success(t('onboarding.messages.connectionSuccessful'))
         navigate('/')
-      } else {
+      }
+      else {
         setValidationState('error')
         setValidationError(result.error!)
         toast.error(result.error!.message)
       }
-    } catch {
+    }
+    catch {
       setValidationState('error')
       const fallbackError: ValidationError = {
         type: 'unknown',
@@ -287,7 +291,7 @@ export const Onboarding = () => {
 
   const onInvalid = (errs: any) => {
     const first = Object.values(errs)[0] as { message?: string } | undefined
-    if (first?.message) toast.error(first.message)
+    if (first?.message) { toast.error(first.message) }
   }
 
   const handleRetry = () => {

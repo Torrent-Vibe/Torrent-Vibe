@@ -15,13 +15,13 @@ import type {
 const MAGNET_BTih_PREFIX = 'urn:btih:'
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const base32ToHex = (value: string): string => {
   let bits = ''
   for (const char of value.toUpperCase()) {
     const index = BASE32_ALPHABET.indexOf(char)
-    if (index === -1) throw new Error('Invalid base32 character in magnet hash')
+    if (index === -1) { throw new Error('Invalid base32 character in magnet hash') }
     bits += index.toString(2).padStart(5, '0')
   }
 
@@ -35,11 +35,12 @@ const base32ToHex = (value: string): string => {
 
 const normalizeInfoHash = (value: string): string => {
   const trimmed = value.replace(/=+$/u, '').trim()
-  if (trimmed.length === 40) return trimmed.toUpperCase()
+  if (trimmed.length === 40) { return trimmed.toUpperCase() }
   if (trimmed.length === 32) {
     try {
       return base32ToHex(trimmed).toUpperCase()
-    } catch {
+    }
+    catch {
       return trimmed.toUpperCase()
     }
   }
@@ -48,17 +49,17 @@ const normalizeInfoHash = (value: string): string => {
 
 const extractMagnetMetadata = (
   magnetUrl: string,
-): { infoHash: string; displayName?: string } | null => {
+): { infoHash: string, displayName?: string } | null => {
   try {
     const parsed = new URL(magnetUrl)
-    if (parsed.protocol !== 'magnet:') return null
+    if (parsed.protocol !== 'magnet:') { return null }
 
     const xtParams = parsed.searchParams.getAll('xt')
     const infoHashValue = xtParams
-      .map((value) => value.trim())
-      .find((value) => value.toLowerCase().startsWith(MAGNET_BTih_PREFIX))
+      .map(value => value.trim())
+      .find(value => value.toLowerCase().startsWith(MAGNET_BTih_PREFIX))
 
-    if (!infoHashValue) return null
+    if (!infoHashValue) { return null }
 
     const hash = normalizeInfoHash(
       infoHashValue.slice(MAGNET_BTih_PREFIX.length),
@@ -66,7 +67,8 @@ const extractMagnetMetadata = (
     const displayName = parsed.searchParams.get('dn') ?? undefined
 
     return { infoHash: hash, displayName }
-  } catch {
+  }
+  catch {
     return null
   }
 }
@@ -98,11 +100,13 @@ export class QBittorrentClient extends QBittorrent {
     if (ownConfig.baseUrl) {
       if (ownConfig.baseUrl.startsWith('/')) {
         baseUrl = `${globalThis.location.origin}${ownConfig.baseUrl}`
-      } else {
+      }
+      else {
         baseUrl = ownConfig.baseUrl
       }
       baseUrl = baseUrl.replace(/\/$/, '')
-    } else {
+    }
+    else {
       baseUrl = `${ownConfig.useHttps ? 'https' : 'http'}://${ownConfig.host}:${ownConfig.port}`
     }
 
@@ -110,6 +114,63 @@ export class QBittorrentClient extends QBittorrent {
       ...ownConfig,
       baseUrl,
     })
+  }
+
+  override async login(): Promise<boolean> {
+    const baseUrl = String(this.config.baseUrl ?? '').replace(/\/$/, '')
+    const apiPath = String(
+      (this.config as { path?: string }).path ?? '/api/v2',
+    ).replace(/\/$/, '')
+    const url = `${baseUrl}${apiPath}/auth/login`
+    const fetchFn = this.config.fetch ?? globalThis.fetch
+    const timeout
+      = Number((this.config as { timeout?: number }).timeout) || 5000
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+    try {
+      const response = await fetchFn(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          username: this.config.username ?? '',
+          password: this.config.password ?? '',
+        }).toString(),
+        redirect: 'manual',
+        signal: controller.signal,
+      })
+
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Authentication failed. Invalid credentials.')
+      }
+      if (!response.ok) {
+        throw new Error(`Login failed with status ${response.status}`)
+      }
+
+      const body = (await response.text()).trim()
+      if (body !== 'Ok.' && body !== 'Ok') {
+        throw new Error('Authentication failed. Invalid credentials.')
+      }
+
+      await this.syncVersion()
+      return true
+    }
+    finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  private async syncVersion(): Promise<void> {
+    const newVersion = await this.getAppVersion()
+    const cleanVersion = newVersion.replace(/^v/, '').split('-')[0] ?? ''
+    this.state.version = {
+      version: newVersion,
+      isVersion5OrHigher:
+        cleanVersion === '5.0.0'
+        || cleanVersion.localeCompare('5.0.0', undefined, { numeric: true }) === 1,
+    }
   }
 
   async requestMainData(rid = 0): Promise<MainData> {
@@ -124,13 +185,13 @@ export class QBittorrentClient extends QBittorrent {
 
   async requestTorrentsInfo(filters?: TorrentFilters): Promise<any[]> {
     const params: Record<string, string> = {}
-    if (filters?.filter) params.filter = filters.filter
-    if (filters?.category) params.category = filters.category
-    if (filters?.tag) params.tag = filters.tag
-    if (filters?.sort) params.sort = filters.sort
-    if (filters?.reverse !== undefined) params.reverse = String(filters.reverse)
-    if (filters?.limit !== undefined) params.limit = String(filters.limit)
-    if (filters?.offset !== undefined) params.offset = String(filters.offset)
+    if (filters?.filter) { params.filter = filters.filter }
+    if (filters?.category) { params.category = filters.category }
+    if (filters?.tag) { params.tag = filters.tag }
+    if (filters?.sort) { params.sort = filters.sort }
+    if (filters?.reverse !== undefined) { params.reverse = String(filters.reverse) }
+    if (filters?.limit !== undefined) { params.limit = String(filters.limit) }
+    if (filters?.offset !== undefined) { params.offset = String(filters.offset) }
     if (filters?.hashes) {
       params.hashes = Array.isArray(filters.hashes)
         ? filters.hashes.join('|')
@@ -146,9 +207,9 @@ export class QBittorrentClient extends QBittorrent {
   async requestTorrentPeers(
     hash: string,
     rid?: number,
-  ): Promise<{ peers: Record<string, TorrentPeer>; show_flags: boolean }> {
+  ): Promise<{ peers: Record<string, TorrentPeer>, show_flags: boolean }> {
     const params: Record<string, string> = { hash }
-    if (rid !== undefined) params.rid = rid.toString()
+    if (rid !== undefined) { params.rid = rid.toString() }
     return this.request('/sync/torrentPeers', 'GET', params)
   }
 
@@ -167,7 +228,7 @@ export class QBittorrentClient extends QBittorrent {
   }
 
   async requestCategories(): Promise<
-    Record<string, { name: string; savePath: string }>
+    Record<string, { name: string, savePath: string }>
   > {
     return this.getCategories()
   }
@@ -201,15 +262,14 @@ export class QBittorrentClient extends QBittorrent {
     const hashString = Array.isArray(hashes) ? hashes.join('|') : hashes
     const formData = new URLSearchParams()
     formData.append('hashes', hashString)
-    if (ratioLimit !== undefined)
-      formData.append('ratioLimit', ratioLimit.toString())
-    if (seedingTimeLimit !== undefined)
-      formData.append('seedingTimeLimit', seedingTimeLimit.toString())
-    if (inactiveSeedingTimeLimit !== undefined)
+    if (ratioLimit !== undefined) { formData.append('ratioLimit', ratioLimit.toString()) }
+    if (seedingTimeLimit !== undefined) { formData.append('seedingTimeLimit', seedingTimeLimit.toString()) }
+    if (inactiveSeedingTimeLimit !== undefined) {
       formData.append(
         'inactiveSeedingTimeLimit',
         inactiveSeedingTimeLimit.toString(),
       )
+    }
     return this.request('/torrents/setShareLimits', 'POST', undefined, formData)
   }
 
@@ -357,7 +417,7 @@ export class QBittorrentClient extends QBittorrent {
 
   async previewMagnet(
     magnetUrl: string,
-    options: { timeoutMs?: number; pollIntervalMs?: number } = {},
+    options: { timeoutMs?: number, pollIntervalMs?: number } = {},
   ): Promise<{
     hash: string
     name: string
@@ -383,7 +443,8 @@ export class QBittorrentClient extends QBittorrent {
     if (!existed) {
       try {
         await this.requestAddTorrent({ urls: magnetUrl, stopped: true })
-      } catch (error) {
+      }
+      catch (error) {
         const verifyExisting = await this.requestTorrentsInfo({ hashes: hash })
         if (!verifyExisting || verifyExisting.length === 0) {
           throw error
@@ -411,11 +472,13 @@ export class QBittorrentClient extends QBittorrent {
                 displayName: metadata.displayName,
               }
             }
-          } catch (error) {
+          }
+          catch (error) {
             lastError = error
           }
         }
-      } catch (error) {
+      }
+      catch (error) {
         lastError = error
       }
 
@@ -431,46 +494,40 @@ export class QBittorrentClient extends QBittorrent {
 
   async requestAddTorrent(options: AddTorrentOptions): Promise<boolean> {
     const formData = new FormData()
-    if (options.urls) formData.append('urls', options.urls)
+    if (options.urls) { formData.append('urls', options.urls) }
     if (options.torrents && options.torrents.length > 0) {
-      options.torrents.forEach((torrent) =>
-        formData.append('torrents', torrent),
-      )
+      options.torrents.forEach(torrent =>
+        formData.append('torrents', torrent))
     }
-    if (options.savepath) formData.append('savepath', options.savepath)
-    if (options.cookie) formData.append('cookie', options.cookie)
-    if (options.category) formData.append('category', options.category)
-    if (options.tags) formData.append('tags', options.tags)
-    if (options.rename) formData.append('rename', options.rename)
-    if (options.skip_checking !== undefined)
-      formData.append('skip_checking', options.skip_checking.toString())
+    if (options.savepath) { formData.append('savepath', options.savepath) }
+    if (options.cookie) { formData.append('cookie', options.cookie) }
+    if (options.category) { formData.append('category', options.category) }
+    if (options.tags) { formData.append('tags', options.tags) }
+    if (options.rename) { formData.append('rename', options.rename) }
+    if (options.skip_checking !== undefined) { formData.append('skip_checking', options.skip_checking.toString()) }
     if (options.stopped !== undefined) {
       formData.append('stopped', options.stopped.toString())
       // For compatibility with older versions of QBittorrent
       formData.append('paused', options.stopped.toString())
     }
-    if (options.root_folder !== undefined && options.root_folder)
-      formData.append('contentLayout', 'Subfolder')
-    if (options.autoTMM !== undefined)
-      formData.append('autoTMM', options.autoTMM.toString())
-    if (options.sequentialDownload !== undefined)
+    if (options.root_folder !== undefined && options.root_folder) { formData.append('contentLayout', 'Subfolder') }
+    if (options.autoTMM !== undefined) { formData.append('autoTMM', options.autoTMM.toString()) }
+    if (options.sequentialDownload !== undefined) {
       formData.append(
         'sequentialDownload',
         options.sequentialDownload.toString(),
       )
-    if (options.firstLastPiecePrio !== undefined)
+    }
+    if (options.firstLastPiecePrio !== undefined) {
       formData.append(
         'firstLastPiecePrio',
         options.firstLastPiecePrio.toString(),
       )
-    if (options.upLimit !== undefined)
-      formData.append('upLimit', options.upLimit.toString())
-    if (options.dlLimit !== undefined)
-      formData.append('dlLimit', options.dlLimit.toString())
-    if (options.ratioLimit !== undefined)
-      formData.append('ratioLimit', options.ratioLimit.toString())
-    if (options.seedingTimeLimit !== undefined)
-      formData.append('seedingTimeLimit', options.seedingTimeLimit.toString())
+    }
+    if (options.upLimit !== undefined) { formData.append('upLimit', options.upLimit.toString()) }
+    if (options.dlLimit !== undefined) { formData.append('dlLimit', options.dlLimit.toString()) }
+    if (options.ratioLimit !== undefined) { formData.append('ratioLimit', options.ratioLimit.toString()) }
+    if (options.seedingTimeLimit !== undefined) { formData.append('seedingTimeLimit', options.seedingTimeLimit.toString()) }
 
     return this.request('/torrents/add', 'POST', undefined, formData)
   }

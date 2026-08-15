@@ -42,7 +42,7 @@ export const VALIDATION_ERRORS = {
 // Error type detection patterns
 const ERROR_PATTERNS = {
   network: ['fetch', 'network', 'Failed to fetch', 'ECONNREFUSED', 'timeout'],
-  auth: ['401', '403', 'Unauthorized', 'Forbidden'],
+  auth: ['401', 'unauthorized', 'invalid credentials', 'authentication failed'],
 } as const
 
 // Detect error type from error message
@@ -92,7 +92,8 @@ export const validateConnection = async (
     return loginSuccess
       ? { success: true }
       : { success: false, error: VALIDATION_ERRORS.auth }
-  } catch (error) {
+  }
+  catch (error) {
     return {
       success: false,
       error:

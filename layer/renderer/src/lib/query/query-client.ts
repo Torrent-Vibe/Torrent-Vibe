@@ -11,16 +11,21 @@ const queryClient = new QueryClient({
       retry(failureCount, error) {
         console.error(error)
 
-        // Handle 401 Unauthorized errors
-        if (error instanceof FetchError && error.statusCode === 401) {
-          // Attempt auth refresh on 401
+        const status
+          = error instanceof FetchError ? error.statusCode : undefined
+        const message = error instanceof Error ? error.message : ''
+        const isAuthError
+          = status === 401
+            || status === 403
+            || /HTTP 401\b|HTTP 403\b|Unauthorized/i.test(message)
+
+        if (isAuthError) {
           authManager.handle401Error().then((success) => {
             if (success) {
-              // Invalidate all queries to retry after successful auth
               queryClient.invalidateQueries()
             }
           })
-          return false // Don't retry immediately, wait for auth refresh
+          return false
         }
 
         if (error instanceof FetchError && error.statusCode === undefined) {
