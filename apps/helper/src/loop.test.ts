@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { backfill, DEFAULT_POLL_INTERVAL_MS, startLoop, tick } from './loop'
 import type { AddTorrentRequest, QbClient, QbFile, QbTorrent } from './qb'
 import type { HelperEpisode, ReplicaStore } from './store'
+import { episodeKey } from './store'
+
+const MAP_KEY = episodeKey('3141', '583')
 
 const HASH_28 = 'a15a8861ff6e0b10ce5aca24f7dcafa23d1aa25c'
 const HASH_27 = '238eeb554bcd07b86335c8f8d402a69c11b15789'
@@ -54,10 +57,6 @@ function memoryStore(
     },
     async save(next) {
       replicas = [...next]
-      const ids = new Set(next.map(item => item.id))
-      episodes = Object.fromEntries(
-        Object.entries(episodes).filter(([id]) => ids.has(id)),
-      )
     },
     async loadEpisodes() {
       return Object.fromEntries(
@@ -143,7 +142,7 @@ function fakeQb(initial: QbTorrent[] = []) {
   }
 }
 
-async function episodesOf(store: ReplicaStore, id = 'sub-1') {
+async function episodesOf(store: ReplicaStore, id = MAP_KEY) {
   return (await store.loadEpisodes())[id] ?? []
 }
 
@@ -210,7 +209,7 @@ describe('helper loop', () => {
 
   it('skips when the infohash is already in the replica map', async () => {
     const store = memoryStore([replica()], {
-      'sub-1': [
+      [MAP_KEY]: [
         {
           episodeId: 'other-episode',
           infohash: HASH_28,
@@ -317,7 +316,7 @@ describe('helper loop', () => {
       savepath: '/library/Example Show/Season 02',
       rename: 'Example Show - S02E07',
     })
-    expect((await episodesOf(store, 'sub-2'))[0]).toMatchObject({
+    expect((await episodesOf(store))[0]).toMatchObject({
       season: 2,
       episode: 7,
       state: 'added',
@@ -411,7 +410,7 @@ describe('helper loop', () => {
 
   it('backfills with the same dedupe, needs-manual, and add rules', async () => {
     const store = memoryStore([replica()], {
-      'sub-1': [
+      [MAP_KEY]: [
         {
           episodeId: HASH_28,
           infohash: HASH_28,
@@ -509,5 +508,127 @@ describe('helper loop', () => {
       expect(fetchRss).toHaveBeenCalledTimes(2)
     })
     handle.stop()
+  })
+
+  it('renames a subscription-less backfill on a later tick', async () => {
+    const store = memoryStore()
+    const qb = fakeQb()
+    qb.setFiles(HASH_28, [
+      { name: '[ANi] 葬送的芙莉莲 - 28 [1080P].mp4', size: 700_000_000 },
+    ])
+
+    await backfill(
+      { store, qb: qb.client, libraryRoot: '/library' },
+      {
+        bangumiId: '3141',
+        subgroupId: '583',
+        episodes: [
+          rssEpisode({
+            title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+            hash: HASH_28,
+          }),
+        ],
+      },
+    )
+    expect(await store.load()).toEqual([])
+    expect(qb.added).toHaveLength(1)
+
+    qb.complete(HASH_28)
+    await tick({
+      store,
+      qb: qb.client,
+      libraryRoot: '/library',
+      fetchRss: async () => rssItem(''),
+    })
+
+    expect(qb.renames).toEqual([
+      {
+        hash: HASH_28,
+        oldPath: '[ANi] 葬送的芙莉莲 - 28 [1080P].mp4',
+        newPath: '葬送的芙莉莲 - S01E28.mp4',
+      },
+    ])
+    const episodes = Object.values(await store.loadEpisodes()).flat()
+    expect(episodes[0]?.state).toBe('done')
+    expect(await store.load()).toEqual([])
+  })
+
+  it('renames a subscription-less backfill after a later subscribe', async () => {
+    const store = memoryStore()
+    const qb = fakeQb()
+    qb.setFiles(HASH_28, [
+      { name: '[ANi] 葬送的芙莉莲 - 28 [1080P].mp4', size: 700_000_000 },
+    ])
+
+    await backfill(
+      { store, qb: qb.client, libraryRoot: '/library' },
+      {
+        bangumiId: '3141',
+        subgroupId: '583',
+        episodes: [
+          rssEpisode({
+            title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+            hash: HASH_28,
+          }),
+        ],
+      },
+    )
+    await store.save([replica({ id: 'real-sub' })])
+    qb.complete(HASH_28)
+    await tick({
+      store,
+      qb: qb.client,
+      libraryRoot: '/library',
+      fetchRss: async () => rssItem(''),
+    })
+
+    expect(qb.renames).toHaveLength(1)
+    expect(qb.added).toHaveLength(1)
+    const episodes = Object.values(await store.loadEpisodes()).flat()
+    expect(episodes[0]?.state).toBe('done')
+  })
+
+  it('serializes overlapping tick and backfill so neither episode map is dropped', async () => {
+    const store = memoryStore([replica()])
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const qb = fakeQb()
+    const ticking = tick({
+      store,
+      qb: qb.client,
+      libraryRoot: '/library',
+      fetchRss: async () => {
+        await gate
+        return rssItem(
+          rssEpisodeXml({
+            title: '[ANi] 葬送的芙莉莲 - 28 [1080P]',
+            hash: HASH_28,
+          }),
+        )
+      },
+    })
+    const filling = backfill(
+      { store, qb: qb.client, libraryRoot: '/library' },
+      {
+        bangumiId: '3141',
+        subgroupId: '583',
+        episodes: [
+          rssEpisode({
+            title: '[ANi] 葬送的芙莉莲 - 27 [1080P]',
+            hash: HASH_27,
+          }),
+        ],
+      },
+    )
+
+    release()
+    await Promise.all([ticking, filling])
+
+    const episodes = Object.values(await store.loadEpisodes()).flat()
+    expect(new Set(episodes.map(item => item.episodeId))).toEqual(
+      new Set([HASH_28, HASH_27]),
+    )
   })
 })

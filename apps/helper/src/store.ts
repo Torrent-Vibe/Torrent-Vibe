@@ -24,13 +24,30 @@ export interface ReplicaStore {
   saveEpisodes: (episodes: Record<string, HelperEpisode[]>) => Promise<void>
 }
 
+export function episodeKey(bangumiId: string, subgroupId: string): string {
+  return `${bangumiId}:${subgroupId}`
+}
+
 interface Persisted {
   replicas: HelperReplica[]
   episodes: Record<string, HelperEpisode[]>
 }
 
+function createSerial() {
+  let tail: Promise<unknown> = Promise.resolve()
+  return function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const next = tail.then(fn, fn)
+    tail = next.then(
+      () => undefined,
+      () => undefined,
+    )
+    return next
+  }
+}
+
 export function createFileReplicaStore(dataDir: string): ReplicaStore {
   const file = join(dataDir, 'replicas.json')
+  const enqueue = createSerial()
 
   async function read(): Promise<Persisted> {
     try {
@@ -60,19 +77,19 @@ export function createFileReplicaStore(dataDir: string): ReplicaStore {
       return (await read()).replicas
     },
     async save(replicas) {
-      const current = await read()
-      const ids = new Set(replicas.map(item => item.id))
-      const episodes = Object.fromEntries(
-        Object.entries(current.episodes).filter(([id]) => ids.has(id)),
-      )
-      await write({ replicas, episodes })
+      return enqueue(async () => {
+        const current = await read()
+        await write({ replicas, episodes: current.episodes })
+      })
     },
     async loadEpisodes() {
       return (await read()).episodes
     },
     async saveEpisodes(episodes) {
-      const current = await read()
-      await write({ replicas: current.replicas, episodes })
+      return enqueue(async () => {
+        const current = await read()
+        await write({ replicas: current.replicas, episodes })
+      })
     },
   }
 }

@@ -7,6 +7,7 @@ import type { QbClient, QbTorrent } from './qb'
 import { extractTorrentInfohash } from './qb'
 import { formatEpisodeName, formatSavePath, planEpisodeRenames } from './rename'
 import type { HelperEpisode, ReplicaStore } from './store'
+import { episodeKey } from './store'
 
 export { DEFAULT_POLL_INTERVAL_MS }
 export const BANGUMI_CATEGORY = 'Bangumi'
@@ -35,62 +36,20 @@ export interface BackfillInput {
   episodes: RssEpisode[]
 }
 
+const workQueues = new WeakMap<
+  object,
+  <T>(fn: () => Promise<T>) => Promise<T>
+>()
+
 export async function tick(deps: LoopDeps): Promise<void> {
-  const replicas = await deps.store.load()
-  const episodesByReplica = await deps.store.loadEpisodes()
-  const torrents = await deps.qb.listTorrents()
-  const presentHashes = hashesOf(torrents)
-
-  for (const replica of replicas) {
-    let episodes = episodesByReplica[replica.id] ?? []
-    let incoming: RssEpisode[] = []
-    try {
-      incoming = parseBangumiRss(
-        await deps.fetchRss(replica.rssUrl),
-        rssBase(replica.rssUrl),
-      )
-    }
-    catch {
-      incoming = []
-    }
-    episodes = await ingestEpisodes(
-      deps,
-      replica,
-      incoming,
-      episodes,
-      presentHashes,
-    )
-    episodes = await syncCompleted(deps, replica, episodes, torrents)
-    episodesByReplica[replica.id] = episodes
-  }
-
-  await deps.store.saveEpisodes(episodesByReplica)
+  return enqueue(deps.store, () => runTick(deps))
 }
 
 export async function backfill(
   deps: Pick<LoopDeps, 'store' | 'qb' | 'libraryRoot'>,
   input: BackfillInput,
 ): Promise<{ episodes: HelperEpisode[] }> {
-  const replicas = await deps.store.load()
-  const replica
-    = replicas.find(
-      item =>
-        item.bangumiId === input.bangumiId
-        && item.subgroupId === input.subgroupId,
-    ) ?? syntheticReplica(input)
-
-  const episodesByReplica = await deps.store.loadEpisodes()
-  const torrents = await deps.qb.listTorrents()
-  const next = await ingestEpisodes(
-    deps,
-    replica,
-    input.episodes,
-    episodesByReplica[replica.id] ?? [],
-    hashesOf(torrents),
-  )
-  episodesByReplica[replica.id] = next
-  await deps.store.saveEpisodes(episodesByReplica)
-  return { episodes: next }
+  return enqueue(deps.store, () => runBackfill(deps, input))
 }
 
 export function startLoop(deps: LoopDeps): { stop: () => void } {
@@ -112,6 +71,96 @@ export function startLoop(deps: LoopDeps): { stop: () => void } {
       stopped = true
       cancel()
     },
+  }
+}
+
+async function runTick(deps: LoopDeps): Promise<void> {
+  const replicas = await deps.store.load()
+  const maps = await deps.store.loadEpisodes()
+  const torrents = await deps.qb.listTorrents()
+  const presentHashes = hashesOf(torrents)
+
+  for (const replica of replicas) {
+    const key = episodeKey(replica.bangumiId, replica.subgroupId)
+    let incoming: RssEpisode[] = []
+    try {
+      incoming = parseBangumiRss(
+        await deps.fetchRss(replica.rssUrl),
+        rssBase(replica.rssUrl),
+      )
+    }
+    catch {
+      incoming = []
+    }
+    maps[key] = await ingestEpisodes(
+      deps,
+      replica,
+      incoming,
+      maps[key] ?? [],
+      presentHashes,
+    )
+  }
+
+  for (const [key, episodes] of Object.entries(maps)) {
+    const replica = replicas.find(
+      item => episodeKey(item.bangumiId, item.subgroupId) === key,
+    )
+    maps[key] = await syncCompleted(
+      deps,
+      replica ?? contextFromMap(key, episodes),
+      episodes,
+      torrents,
+    )
+  }
+
+  await deps.store.saveEpisodes(maps)
+}
+
+async function runBackfill(
+  deps: Pick<LoopDeps, 'store' | 'qb' | 'libraryRoot'>,
+  input: BackfillInput,
+): Promise<{ episodes: HelperEpisode[] }> {
+  const replicas = await deps.store.load()
+  const replica = replicas.find(
+    item =>
+      item.bangumiId === input.bangumiId
+      && item.subgroupId === input.subgroupId,
+  )
+  const key = episodeKey(input.bangumiId, input.subgroupId)
+  const ctx = replica ?? syntheticReplica(input)
+  const maps = await deps.store.loadEpisodes()
+  const torrents = await deps.qb.listTorrents()
+  let next = await ingestEpisodes(
+    deps,
+    ctx,
+    input.episodes,
+    maps[key] ?? [],
+    hashesOf(torrents),
+  )
+  next = await syncCompleted(deps, ctx, next, torrents)
+  maps[key] = next
+  await deps.store.saveEpisodes(maps)
+  return { episodes: next }
+}
+
+function enqueue<T>(store: object, fn: () => Promise<T>): Promise<T> {
+  let run = workQueues.get(store)
+  if (!run) {
+    run = createSerial()
+    workQueues.set(store, run)
+  }
+  return run(fn)
+}
+
+function createSerial() {
+  let tail: Promise<unknown> = Promise.resolve()
+  return function run<T>(fn: () => Promise<T>): Promise<T> {
+    const next = tail.then(fn, fn)
+    tail = next.then(
+      () => undefined,
+      () => undefined,
+    )
+    return next
   }
 }
 
@@ -294,15 +343,33 @@ function isComplete(torrent: QbTorrent): boolean {
 }
 
 function syntheticReplica(input: BackfillInput): HelperReplica {
+  return contextFromMap(
+    episodeKey(input.bangumiId, input.subgroupId),
+    input.episodes.map(item => ({
+      episodeId: item.episodeId,
+      title: item.title,
+      season: null,
+      episode: null,
+      state: 'pending',
+    })),
+  )
+}
+
+function contextFromMap(
+  key: string,
+  episodes: Array<{ title: string }>,
+): HelperReplica {
+  const sep = key.indexOf(':')
+  const bangumiId = sep === -1 ? key : key.slice(0, sep)
+  const subgroupId = sep === -1 ? '' : key.slice(sep + 1)
   const title
-    = input.episodes
-      .map(item => parseMikanTitle(item.title).title)
-      .find(Boolean) || input.bangumiId
+    = episodes.map(item => parseMikanTitle(item.title).title).find(Boolean)
+      || bangumiId
   return {
-    id: `${input.bangumiId}:${input.subgroupId}`,
-    bangumiId: input.bangumiId,
+    id: key,
+    bangumiId,
     title,
-    subgroupId: input.subgroupId,
+    subgroupId,
     subgroupName: '',
     rssUrl: '',
   }

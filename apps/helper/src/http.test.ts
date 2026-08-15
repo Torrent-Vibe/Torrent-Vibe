@@ -36,10 +36,6 @@ function memoryStore(initial: HelperReplica[] = []) {
     },
     async save(next: HelperReplica[]) {
       replicas = [...next]
-      const ids = new Set(next.map(item => item.id))
-      episodes = Object.fromEntries(
-        Object.entries(episodes).filter(([id]) => ids.has(id)),
-      )
     },
     async loadEpisodes() {
       return Object.fromEntries(

@@ -9,6 +9,7 @@ import type { RssEpisode } from '@torrent-vibe/mikan'
 import type { HelperConfig } from './config'
 import type { BackfillInput } from './loop'
 import type { ReplicaStore } from './store'
+import { episodeKey } from './store'
 
 export interface HelperServerOptions {
   config: Omit<HelperConfig, 'dataDir'>
@@ -114,7 +115,8 @@ export function createHelperServer(options: HelperServerOptions): Server {
       sendJson(res, 200, {
         replicas: replicas.map(replica => ({
           ...replica,
-          episodes: episodes[replica.id] ?? [],
+          episodes:
+            episodes[episodeKey(replica.bangumiId, replica.subgroupId)] ?? [],
         })),
       })
       return
