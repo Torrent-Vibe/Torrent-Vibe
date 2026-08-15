@@ -44,7 +44,6 @@ export const RootProviders: FC<PropsWithChildren> = ({ children }) => {
                 <ModalContainer />
                 <AuthFailureAlert />
                 {ELECTRON && <UpdateContainer />}
-                {/* Invite modal now triggered from Activation section when activated */}
                 {ELECTRON && <OpenWithProvider />}
               </I18nProvider>
             </HotkeyProvider>

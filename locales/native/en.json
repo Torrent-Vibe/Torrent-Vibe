@@ -42,6 +42,7 @@
   "menu.hide": "Hide {{name}}",
   "menu.hideOthers": "Hide Others",
   "menu.minimize": "Minimize",
+  "menu.openAiTrace": "AI Trace",
   "menu.openLogFile": "Open Log File",
   "menu.openUserDataDirectory": "Open User Data Directory",
   "menu.paste": "Paste",

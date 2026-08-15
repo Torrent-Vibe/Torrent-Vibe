@@ -44,6 +44,10 @@ export interface TorrentAiEngineContract {
   analyzeName: (
     options: AnalyzeTorrentNameOptions,
   ) => Promise<TorrentAIEnrichmentResult>
+  lookupCached: (options: {
+    rawName: string
+    hash?: string
+  }) => Promise<TorrentAIEnrichmentResult>
   clearCache: () => Promise<void>
 }
 

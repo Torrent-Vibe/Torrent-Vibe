@@ -349,7 +349,7 @@
   "tabs.apiTokens.learnMore": "了解更多",
   "tabs.apiTokens.providers.chat.description": "点击「识别」时用来分析种子的模型。",
   "tabs.apiTokens.providers.chat.label": "聊天模型",
-  "tabs.apiTokens.providers.codex.description": "ChatGPT Codex，走 OAuth，用于分析和独立网页搜索。不需要 API Key。",
+  "tabs.apiTokens.providers.codex.description": "ChatGPT Codex，复用本机 Codex CLI 登录（~/.codex/auth.json），用于分析和独立网页搜索。不需要 API Key。",
   "tabs.apiTokens.providers.codex.label": "Codex",
   "tabs.apiTokens.providers.openai.description": "直接连接 OpenAI Responses API 或兼容的网关。",
   "tabs.apiTokens.providers.openai.label": "OpenAI",

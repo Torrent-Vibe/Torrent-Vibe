@@ -8,6 +8,7 @@ import { BridgeService } from '~/services/bridge-service'
 import { getUpdaterHandle } from '~/updater'
 
 import { i18n, t } from '../utils/i18n'
+import { AiTraceWindowManager } from './ai-trace-window-manager'
 import { WindowManager } from './window-manager'
 
 export class AppMenuManager {
@@ -174,6 +175,14 @@ export class AppMenuManager {
                   accelerator: 'CmdOrCtrl+Shift+R',
                   click: () => {
                     WindowManager.getInstance().forceReloadWindow()
+                  },
+                },
+                { type: 'separator' },
+                {
+                  label: t('menu.openAiTrace'),
+                  accelerator: 'CmdOrCtrl+Shift+T',
+                  click: () => {
+                    void AiTraceWindowManager.getInstance().show()
                   },
                 },
               ],

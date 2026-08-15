@@ -42,6 +42,7 @@
   "menu.hide": "隐藏 {{name}}",
   "menu.hideOthers": "隐藏其他",
   "menu.minimize": "最小化",
+  "menu.openAiTrace": "AI 跟踪",
   "menu.openLogFile": "打开日志文件",
   "menu.openUserDataDirectory": "打开用户数据目录",
   "menu.paste": "粘贴",

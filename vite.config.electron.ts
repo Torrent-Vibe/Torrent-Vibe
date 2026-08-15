@@ -41,6 +41,7 @@ export default defineConfig({
         main: resolve(ROOT, 'index.html'),
         mini: resolve(ROOT, 'mini.html'),
         panel: resolve(ROOT, 'panel.html'),
+        trace: resolve(ROOT, 'trace.html'),
       },
     },
   },

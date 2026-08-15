@@ -14,8 +14,10 @@ import { ApiTokenStore } from '../api-token-store'
 import { AppSettingsStore } from '../app-settings-store'
 import { buildBashTool } from './agentTools/bashTool'
 import { buildReadSkillTool } from './agentTools/skillTool'
+import { buildSubmitMetadataTool } from './agentTools/submitMetadataTool'
 import { buildTmdbTools } from './agentTools/tmdbTools'
 import { buildWebSearchTool } from './agentTools/webSearchTool'
+import { clamp, normalizePayloadShape } from './normalize-payload'
 import { renderUserPrompt } from './prompts'
 import type { AiProviderRuntime } from './providers'
 import { getProviderById, selectProvider } from './providers'
@@ -30,6 +32,7 @@ import { runAnalysisAgent } from './session'
 import { loadSkillIndex } from './skills'
 import { TmdbClient } from './tmdb-client'
 import { TorrentAiDatabase } from './torrent-ai-database'
+import { getAiTraceSink } from './trace'
 import type {
   AnalyzeTorrentNameOptions,
   ProviderConfig,
@@ -37,10 +40,7 @@ import type {
   TorrentAiEngineContract,
 } from './types'
 
-const CACHE_LIMIT = 200
-
-const clamp = (value: number, min = 0, max = 1) =>
-  Math.min(max, Math.max(min, value))
+const CACHE_LIMIT = 400
 
 const analysisConcurrencyGate = new ConcurrencyGate(5)
 
@@ -111,26 +111,28 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       return { ok: false, error: errorKey, transient: false }
     }
 
-    const cacheKey = this.buildCacheKey(
-      rawName,
-      i18n.language,
-      runtime,
-      fileDigest,
-    )
+    const cacheKeys = this.buildCacheKeys(rawName, i18n.language, options.hash)
+    const inflightKey = cacheKeys[0]
 
     if (!options.forceRefresh) {
-      const cached = await this.metadataStore.get(cacheKey)
+      const cached = await this.readCachedMetadata(
+        rawName,
+        i18n.language,
+        options.hash,
+      )
       if (cached) {
+        this.logger.debug('Cache hit, skipping analysis', {
+          requestId,
+          rawName,
+          cacheKeys,
+        })
         return {
           ok: true,
-          metadata: {
-            ...cached.metadata,
-            generatedAt: cached.metadata.generatedAt,
-          },
+          metadata: cached.metadata,
         }
       }
 
-      const pending = this.inFlight.get(cacheKey)
+      const pending = this.inFlight.get(inflightKey)
       if (pending) {
         this.logger.debug(
           'Request already in flight - returning existing promise',
@@ -140,6 +142,8 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
         )
         return pending
       }
+
+      this.logger.debug('Cache miss', { requestId, rawName, cacheKeys })
     }
     else {
       this.logger.debug('Force refresh requested - bypassing cache', {
@@ -148,30 +152,52 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
     }
 
     const execution = this.performAnalysis(
-      { rawName, language: i18n.language, fileTreeSummary },
+      {
+        rawName,
+        language: i18n.language,
+        fileTreeSummary,
+        hash: options.hash,
+      },
       config,
       runtime,
       requestId,
     )
       .then(async (result) => {
         if (result.ok && result.metadata) {
-          await this.metadataStore.set(
-            cacheKey,
-            {
-              metadata: result.metadata,
-              createdAt: Date.now(),
-            },
-            { limit: CACHE_LIMIT },
-          )
+          await this.persistMetadata(cacheKeys, result.metadata)
         }
         return result
       })
       .finally(() => {
-        this.inFlight.delete(cacheKey)
+        this.inFlight.delete(inflightKey)
       })
 
-    this.inFlight.set(cacheKey, execution)
+    this.inFlight.set(inflightKey, execution)
     return execution
+  }
+
+  async lookupCached(options: {
+    rawName: string
+    hash?: string
+  }): Promise<TorrentAIEnrichmentResult> {
+    const rawName = options.rawName?.trim()
+    if (!rawName) {
+      return { ok: false, error: 'ai.invalidRawName', transient: false }
+    }
+
+    const cached = await this.readCachedMetadata(
+      rawName,
+      i18n.language,
+      options.hash,
+    )
+    if (!cached) {
+      return { ok: false, error: 'ai.cache.miss', transient: false }
+    }
+
+    return {
+      ok: true,
+      metadata: cached.metadata,
+    }
   }
 
   async clearCache() {
@@ -329,14 +355,54 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[idx]}`
   }
 
-  private buildCacheKey(
+  private buildCacheKeys(
     rawName: string,
     language: string,
-    runtime: AiProviderRuntime,
-    fileDigest?: string | null,
-  ): TorrentAiCacheKey {
-    const base = `${language}::${runtime.id}:${runtime.modelId}::${rawName}`
-    return fileDigest ? `${base}::ft=${fileDigest}` : base
+    hash?: string | null,
+  ): TorrentAiCacheKey[] {
+    const keys: TorrentAiCacheKey[] = []
+    const normalizedHash = hash?.trim()
+    if (normalizedHash) {
+      keys.push(`${language}::hash:${normalizedHash}`)
+    }
+    keys.push(`${language}::name:${rawName}`)
+    return keys
+  }
+
+  private async readCachedMetadata(
+    rawName: string,
+    language: string,
+    hash?: string | null,
+  ) {
+    const keys = this.buildCacheKeys(rawName, language, hash)
+    for (const key of keys) {
+      const cached = await this.metadataStore.get(key)
+      if (cached) {
+        return cached
+      }
+    }
+    const legacy = await this.metadataStore.findLatestByRawName(rawName)
+    if (legacy) {
+      await this.persistMetadata(keys, legacy.metadata)
+    }
+    return legacy
+  }
+
+  private async persistMetadata(
+    keys: TorrentAiCacheKey[],
+    metadata: TorrentAIMetadata,
+  ) {
+    const value = {
+      metadata,
+      createdAt: Date.now(),
+    }
+    for (const [index, key] of keys.entries()) {
+      await this.metadataStore.set(
+        key,
+        value,
+        index === keys.length - 1 ? { limit: CACHE_LIMIT } : undefined,
+      )
+    }
   }
 
   private async performAnalysis(
@@ -344,20 +410,52 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       rawName: string
       language: string
       fileTreeSummary?: string | null
+      hash?: string
     },
     config: ProviderConfig,
     runtime: AiProviderRuntime,
     requestId: string,
   ): Promise<TorrentAIEnrichmentResult> {
     await analysisConcurrencyGate.acquire()
+    const sessionId = randomUUID()
+    const runId = sessionId.replaceAll('-', '').slice(0, 8)
+    const sink = getAiTraceSink()
+    const startedAt = Date.now()
+    sink.emit({
+      type: 'run_start',
+      runId,
+      ts: startedAt,
+      sessionId,
+      rawName: input.rawName,
+      ...(input.hash ? { hash: input.hash } : {}),
+      provider: runtime.id,
+      model: runtime.modelId,
+    })
+    const finishRun = (result: TorrentAIEnrichmentResult) => {
+      sink.emit({
+        type: 'run_end',
+        runId,
+        ts: Date.now(),
+        ok: result.ok,
+        durationMs: Date.now() - startedAt,
+        ...(result.error ? { error: result.error } : {}),
+        ...(result.metadata?.mediaType
+          ? { mediaType: result.metadata.mediaType }
+          : {}),
+        ...(result.metadata?.confidence.overall == null
+          ? {}
+          : { confidence: result.metadata.confidence.overall }),
+      })
+      return result
+    }
 
     try {
       this.tmdbClient.setApiKey(config.tmdbApiKey)
-      const sessionId = randomUUID()
       const skillIndex = loadSkillIndex()
       const tools = [
         buildReadSkillTool(skillIndex),
         buildBashTool(),
+        buildSubmitMetadataTool(),
         ...(this.tmdbClient.isConfigured()
           ? buildTmdbTools(this.tmdbClient)
           : []),
@@ -388,6 +486,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
         fileTreeSummary: input.fileTreeSummary,
         tools,
         sessionId,
+        runId,
       })
 
       this.logger.debug('AI generation result received', {
@@ -395,34 +494,35 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
         provider: runtime.id,
         model: runtime.modelId,
         text: result.text,
+        hasToolPayload: result.payload != null,
         errorMessage: result.errorMessage,
       })
 
-      if (result.errorMessage && !result.text) {
-        return {
+      if (result.errorMessage && result.payload == null && !result.text) {
+        return finishRun({
           ok: false,
           error: `${runtime.errorNamespace}.requestFailed`,
           transient: this.isTransientError(new Error(result.errorMessage)),
-        }
+        })
       }
 
       const recovered = this.parseMetadataPayload(
-        result.text,
+        result.payload ?? result.text,
         input,
         runtime,
         requestId,
       )
       if (!recovered) {
-        return {
+        return finishRun({
           ok: false,
           error: `${runtime.errorNamespace}.unexpectedError`,
           transient: false,
-        }
+        })
       }
 
       const metadata = recovered.ok ? recovered.metadata : null
       if (!metadata) {
-        return recovered
+        return finishRun(recovered)
       }
 
       this.logger.debug('Metadata mapping completed', {
@@ -436,7 +536,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
         hasKeywords: !!metadata.keywords?.length,
       })
 
-      return { ok: true, metadata }
+      return finishRun({ ok: true, metadata })
     }
     catch (error) {
       const errorDetails = {
@@ -464,13 +564,13 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
           error instanceof Error ? error.constructor.name : typeof error,
       })
 
-      return {
+      return finishRun({
         ok: false,
         error: transient
           ? `${runtime.errorNamespace}.requestFailed`
           : `${runtime.errorNamespace}.unexpectedError`,
         transient,
-      }
+      })
     }
     finally {
       analysisConcurrencyGate.release()
@@ -589,20 +689,25 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
   }
 
   private parseMetadataPayload(
-    rawText: string,
+    rawInput: unknown,
     input: { rawName: string, language: string },
     runtime: AiProviderRuntime,
     requestId: string,
   ): TorrentAIEnrichmentResult | null {
-    const raw = rawText.trim()
-    if (!raw) {
-      this.logger.debug('Recovery failed: no raw text available', { requestId })
-      return null
-    }
-
     try {
-      const parsed = JSON.parse(raw) as unknown
-      const normalized = this.normalizePayloadShape(parsed, input)
+      const parsed
+        = typeof rawInput === 'string'
+          ? rawInput.trim()
+            ? JSON.parse(rawInput)
+            : null
+          : rawInput
+      if (parsed == null) {
+        this.logger.debug('Recovery failed: no payload available', {
+          requestId,
+        })
+        return null
+      }
+      const normalized = normalizePayloadShape(parsed, input)
       const result = TorrentAiMetadataSchema.safeParse(normalized)
       if (!result.success) {
         this.logger.warn('Schema validation failed during recovery', {
@@ -625,113 +730,10 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       this.logger.warn('Recovery parse failed', {
         requestId,
         rawName: input.rawName,
-        raw,
+        raw: rawInput,
         parseError,
       })
       return null
     }
-  }
-
-  private normalizePayloadShape(
-    payload: unknown,
-    input?: { rawName: string, language: string },
-  ): unknown {
-    if (!payload || typeof payload !== 'object') {
-      return payload
-    }
-
-    const draft = structuredClone(payload) as Record<string, unknown>
-
-    // Normalize language and top-level strings
-    if (
-      (typeof draft.language !== 'string' || !draft.language.trim())
-      && input?.language
-    ) {
-      draft.language = input.language
-    }
-    if (
-      (typeof draft.normalizedName !== 'string' || !draft.normalizedName)
-      && input?.rawName
-    ) {
-      draft.normalizedName = input.rawName
-    }
-
-    // Ensure title object exists and has a canonicalTitle
-    if (!draft.title || typeof draft.title !== 'object') {
-      draft.title = { canonicalTitle: input?.rawName || '' }
-    }
-    else {
-      const title = draft.title as Record<string, unknown>
-      if (typeof title.canonicalTitle !== 'string' || !title.canonicalTitle) {
-        title.canonicalTitle = input?.rawName || ''
-      }
-      // Coerce episodeNumbers to array<number> when possible
-      if (
-        title.episodeNumbers != null
-        && !Array.isArray(title.episodeNumbers)
-      ) {
-        const v = title.episodeNumbers as unknown
-        if (typeof v === 'number' && Number.isInteger(v) && v >= 0) {
-          title.episodeNumbers = [v]
-        }
-        else {
-          title.episodeNumbers = undefined
-        }
-      }
-    }
-
-    // Normalize series shape
-    if (draft.series && typeof draft.series === 'object') {
-      const series = draft.series as Record<string, unknown>
-      if (
-        series.episodeNumbers != null
-        && !Array.isArray(series.episodeNumbers)
-      ) {
-        const v = series.episodeNumbers as unknown
-        if (typeof v === 'number' && Number.isInteger(v) && v >= 0) {
-          series.episodeNumbers = [v]
-        }
-        else {
-          series.episodeNumbers = undefined
-        }
-      }
-      // Convert tuple-like array to object for episodeRange if needed
-      if (Array.isArray(series.episodeRange)) {
-        const arr = series.episodeRange as unknown[]
-        const from = Number(arr[0])
-        const to = Number(arr[1])
-        if (
-          Number.isInteger(from)
-          && Number.isInteger(to)
-          && from >= 0
-          && to >= 0
-        ) {
-          series.episodeRange = { from, to }
-        }
-        else {
-          series.episodeRange = undefined
-        }
-      }
-    }
-
-    // Normalize confidence field
-    if (draft.confidence == null) {
-      draft.confidence = { overall: 0.5 }
-    }
-    else if (typeof draft.confidence === 'number') {
-      draft.confidence = { overall: clamp(draft.confidence) }
-    }
-    else if (typeof draft.confidence === 'object') {
-      const confidence = draft.confidence as Record<string, unknown>
-      if (typeof confidence.overall !== 'number') {
-        confidence.overall = 0.5
-      }
-      else {
-        confidence.overall = clamp(confidence.overall as number)
-      }
-      draft.confidence = confidence
-    }
-
-    return draft
   }
 }

@@ -351,7 +351,7 @@
   "tabs.apiTokens.learnMore": "Learn more",
   "tabs.apiTokens.providers.chat.description": "Model used to analyze a torrent when you click Recognize.",
   "tabs.apiTokens.providers.chat.label": "Chat model",
-  "tabs.apiTokens.providers.codex.description": "ChatGPT Codex via OAuth. Used for analysis and the dedicated web search tool. No API key.",
+  "tabs.apiTokens.providers.codex.description": "ChatGPT Codex via the local Codex CLI login (~/.codex/auth.json). Used for analysis and web search. No API key.",
   "tabs.apiTokens.providers.codex.label": "Codex",
   "tabs.apiTokens.providers.openai.description": "Connect directly to OpenAI's Responses API or a compatible gateway.",
   "tabs.apiTokens.providers.openai.label": "OpenAI",

@@ -6,7 +6,7 @@ import {
   TorrentAiMetadataRowSchema,
 } from '../database'
 import type { SqliteDatabase } from '../database/sqlite-utils'
-import { exec, get, run } from '../database/sqlite-utils'
+import { all, exec, get, run } from '../database/sqlite-utils'
 import type { TorrentAiCacheValue } from './types'
 
 const LEGACY_VALUE = 'legacy'
@@ -15,6 +15,14 @@ const logger = getLogger('[torrent-ai-db]')
 
 type SaveOptions = {
   limit?: number | null
+}
+
+type MetadataRow = {
+  key: string
+  metadata: string
+  provider: string
+  model: string
+  createdAt: number
 }
 
 export class TorrentAiDatabase {
@@ -39,13 +47,7 @@ export class TorrentAiDatabase {
     await this.ready
 
     try {
-      const row = await get<{
-        key: string
-        metadata: string
-        provider: string
-        model: string
-        createdAt: number
-      }>(
+      const row = await get<MetadataRow>(
         this.sqlite,
         `SELECT key, metadata, provider, model, created_at as createdAt
          FROM ${TORRENT_AI_METADATA_TABLE_NAME}
@@ -54,56 +56,43 @@ export class TorrentAiDatabase {
         [key],
       )
 
-      if (!row) {
-        return undefined
-      }
-
-      const parsedRow = TorrentAiMetadataRowSchema.safeParse(row)
-      if (!parsedRow.success) {
-        logger.warn('Invalid torrent AI metadata row encountered, deleting', {
-          key,
-          issues: parsedRow.error.issues.map((issue) => ({
-            path: issue.path.join('.'),
-            message: issue.message,
-            code: issue.code,
-          })),
-        })
-        await this.delete(key)
-        return undefined
-      }
-
-      const { metadata, createdAt, provider, model } = parsedRow.data
-
-      try {
-        const parsedMetadata = JSON.parse(
-          metadata,
-        ) as TorrentAiCacheValue['metadata']
-
-        if (!parsedMetadata.provider || parsedMetadata.provider.trim() === '') {
-          parsedMetadata.provider = provider
-        }
-
-        if (!parsedMetadata.model || parsedMetadata.model.trim() === '') {
-          parsedMetadata.model = model
-        }
-
-        return {
-          metadata: parsedMetadata,
-          createdAt,
-        }
-      } catch (error) {
-        logger.warn(
-          'Failed to parse cached torrent AI metadata, deleting entry',
-          {
-            key,
-            error,
-          },
-        )
-        await this.delete(key)
-        return undefined
-      }
-    } catch (error) {
+      return await this.parseRow(row)
+    }
+    catch (error) {
       logger.error('Failed to read torrent AI metadata from database', error)
+      return undefined
+    }
+  }
+
+  async findLatestByRawName(
+    rawName: string,
+  ): Promise<TorrentAiCacheValue | undefined> {
+    await this.ready
+
+    const needle = `"rawName":${JSON.stringify(rawName)}`
+
+    try {
+      const rows = await all<MetadataRow>(
+        this.sqlite,
+        `SELECT key, metadata, provider, model, created_at as createdAt
+         FROM ${TORRENT_AI_METADATA_TABLE_NAME}
+         WHERE metadata LIKE ?
+         ORDER BY created_at DESC
+         LIMIT 8`,
+        [`%${needle}%`],
+      )
+
+      for (const row of rows) {
+        const parsed = await this.parseRow(row)
+        if (parsed?.metadata.rawName === rawName) {
+          return parsed
+        }
+      }
+
+      return undefined
+    }
+    catch (error) {
+      logger.error('Failed to look up torrent AI metadata by name', error)
       return undefined
     }
   }
@@ -144,7 +133,8 @@ export class TorrentAiDatabase {
           created_at = excluded.created_at`,
         [key, JSON.stringify(metadataToStore), provider, model, createdAt],
       )
-    } catch (error) {
+    }
+    catch (error) {
       logger.error('Failed to persist torrent AI metadata', { key, error })
       return
     }
@@ -162,7 +152,8 @@ export class TorrentAiDatabase {
              )`,
           [limit],
         )
-      } catch (error) {
+      }
+      catch (error) {
         logger.warn(
           'Failed to trim torrent AI metadata entries to limit',
           error,
@@ -176,8 +167,63 @@ export class TorrentAiDatabase {
 
     try {
       await exec(this.sqlite, `DELETE FROM ${TORRENT_AI_METADATA_TABLE_NAME}`)
-    } catch (error) {
+    }
+    catch (error) {
       logger.error('Failed to clear torrent AI metadata table', error)
+    }
+  }
+
+  private async parseRow(
+    row: MetadataRow | undefined,
+  ): Promise<TorrentAiCacheValue | undefined> {
+    if (!row) {
+      return undefined
+    }
+
+    const parsedRow = TorrentAiMetadataRowSchema.safeParse(row)
+    if (!parsedRow.success) {
+      logger.warn('Invalid torrent AI metadata row encountered, deleting', {
+        key: row.key,
+        issues: parsedRow.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+          code: issue.code,
+        })),
+      })
+      await this.delete(row.key)
+      return undefined
+    }
+
+    const { metadata, createdAt, provider, model } = parsedRow.data
+
+    try {
+      const parsedMetadata = JSON.parse(
+        metadata,
+      ) as TorrentAiCacheValue['metadata']
+
+      if (!parsedMetadata.provider || parsedMetadata.provider.trim() === '') {
+        parsedMetadata.provider = provider
+      }
+
+      if (!parsedMetadata.model || parsedMetadata.model.trim() === '') {
+        parsedMetadata.model = model
+      }
+
+      return {
+        metadata: parsedMetadata,
+        createdAt,
+      }
+    }
+    catch (error) {
+      logger.warn(
+        'Failed to parse cached torrent AI metadata, deleting entry',
+        {
+          key: row.key,
+          error,
+        },
+      )
+      await this.delete(row.key)
+      return undefined
     }
   }
 
@@ -190,7 +236,8 @@ export class TorrentAiDatabase {
         `DELETE FROM ${TORRENT_AI_METADATA_TABLE_NAME} WHERE key = ?`,
         [key],
       )
-    } catch (error) {
+    }
+    catch (error) {
       logger.error('Failed to delete torrent AI metadata entry', { key, error })
     }
   }

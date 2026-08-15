@@ -31,6 +31,66 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
     })
   }
 
+  const lookupMetadata = async (
+    options: EnsureMetadataOptions,
+  ): Promise<TorrentAiActionResult<TorrentAiEnrichmentResult>> => {
+    const trimmedName = options.rawName.trim()
+    if (!trimmedName) {
+      return { ok: false, error: 'ai.invalidRawName' }
+    }
+
+    if (!getAiIntegrationEnabled()) {
+      return { ok: false, error: 'ai.disabled' }
+    }
+
+    const existing = context.getState().entries[options.hash]
+    if (existing?.status === 'ready' && existing.metadata) {
+      return {
+        ok: true,
+        data: { ok: true, metadata: existing.metadata },
+      }
+    }
+    if (existing?.status === 'loading') {
+      return { ok: false, error: 'ai.inProgress', transient: true }
+    }
+
+    const torrentAiService = ipcServices?.torrentAi
+    if (!isElectron || !torrentAiService) {
+      return { ok: false, error: 'ai.notSupported' }
+    }
+
+    try {
+      const result = await torrentAiService.lookupCached({
+        rawName: trimmedName,
+        hash: options.hash,
+      })
+      if (!result.ok || !result.metadata) {
+        return { ok: false, error: result.error ?? 'ai.cache.miss' }
+      }
+
+      const current = context.getState().entries[options.hash]
+      if (current?.status === 'loading' || current?.status === 'ready') {
+        return {
+          ok: true,
+          data: { ok: true, metadata: current.metadata ?? result.metadata },
+        }
+      }
+
+      ensureEntry(options.hash, trimmedName)
+      updateEntry(options.hash, (draft) => {
+        draft.status = 'ready'
+        draft.metadata = result.metadata ?? null
+        draft.error = null
+        draft.updatedAt = Date.now()
+        draft.retries = 0
+      })
+      return { ok: true, data: result }
+    }
+    catch {
+      return { ok: false, error: 'ai.cache.miss' }
+    }
+  }
+
   const ensureMetadata = async (
     options: EnsureMetadataOptions,
   ): Promise<TorrentAiActionResult<TorrentAiEnrichmentResult>> => {
@@ -90,8 +150,7 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
       try {
         const filesKey = QueryKeys.torrentDetails.files(options.hash)
         let files = queryClient.getQueryData(filesKey) as
-          | TorrentFile[]
-          | undefined
+          TorrentFile[] | undefined
 
         if (!files) {
           files = await queryClient.fetchQuery({
@@ -180,6 +239,7 @@ export const createFetchSlice = (context: TorrentAiActionContext) => {
 
   return {
     ensureMetadata,
+    lookupMetadata,
     invalidateEntry,
   }
 }

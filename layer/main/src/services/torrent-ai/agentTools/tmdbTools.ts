@@ -4,13 +4,24 @@ import { Type } from '@earendil-works/pi-ai'
 import { getLogger } from '~/config/log-config'
 import { i18n } from '~/utils/i18n'
 
-import type { TmdbClient } from '../tmdb-client'
+import type { TmdbClient, TmdbSearchResult } from '../tmdb-client'
 
 const textResult = (
   value: unknown,
 ): AgentToolResult<Record<string, never>> => ({
   content: [{ type: 'text', text: JSON.stringify(value) }],
   details: {},
+})
+
+const projectSearchCandidate = (item: TmdbSearchResult) => ({
+  id: item.id,
+  mediaType: item.mediaType,
+  title: item.title,
+  originalTitle: item.originalTitle,
+  releaseDate: item.releaseDate,
+  rating: item.rating,
+  votes: item.votes,
+  language: item.language,
 })
 
 const tmdbSearchSchema = Type.Object({
@@ -36,7 +47,7 @@ export function buildTmdbTools(tmdbClient: TmdbClient): AgentTool[] {
     name: 'tmdbSearch',
     label: 'TMDB Search',
     description:
-      'Search TMDB for candidates using the inferred original title. Use this to validate year, localized titles, and poster URLs.',
+      'Search TMDB for candidate id, titles, year, and rating. Call tmdbDetails for overview, poster, and runtime.',
     parameters: tmdbSearchSchema,
     execute: async (_id, { query, year, mediaType, language }) => {
       const result = await tmdbClient.search({
@@ -54,7 +65,7 @@ export function buildTmdbTools(tmdbClient: TmdbClient): AgentTool[] {
       logger.info('tmdb search result', { result })
       return textResult({
         ok: true,
-        results: result.data?.results ?? [],
+        results: (result.data?.results ?? []).map(projectSearchCandidate),
       })
     },
   }

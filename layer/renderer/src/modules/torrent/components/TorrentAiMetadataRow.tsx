@@ -78,7 +78,7 @@ const ERROR_MESSAGE_KEY: Record<string, I18nKeys> = {
   'ai.openrouter.requestFailed': 'torrent.ai.status.error.requestFailed',
   'ai.openrouter.invalidResponse': 'torrent.ai.status.error.invalidResponse',
   'ai.openrouter.unexpectedError': 'torrent.ai.status.error.unexpected',
-  'ai.codex.missingApiKey': 'torrent.ai.status.error.missingApiKey',
+  'ai.codex.missingApiKey': 'torrent.ai.status.error.codexMissingLogin',
   'ai.codex.requestFailed': 'torrent.ai.status.error.requestFailed',
   'ai.codex.invalidResponse': 'torrent.ai.status.error.invalidResponse',
   'ai.codex.unexpectedError': 'torrent.ai.status.error.unexpected',
@@ -171,6 +171,16 @@ export const TorrentAiMetadataRow = ({
     },
     [hash, trimmedName],
   )
+
+  useEffect(() => {
+    if (aiAvailable !== true || !hash || !trimmedName) {
+      return
+    }
+    void TorrentAiActions.shared.lookupMetadata({
+      hash,
+      rawName: trimmedName,
+    })
+  }, [aiAvailable, hash, trimmedName])
   const technicalBadges = useMemo(
     () => buildTechnicalBadges(entry?.metadata?.technical ?? {}),
     [entry?.metadata?.technical],

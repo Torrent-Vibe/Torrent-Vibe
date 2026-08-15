@@ -1,8 +1,10 @@
+import type { AiTraceEvent } from '@torrent-vibe/shared'
+
 import type { UpdaterUiStatus } from '~/updater/status'
 
 export interface BridgeEventMap {
-  // Updater status push (Sparkle on macOS, electron-updater on win/linux)
   'updater:status': UpdaterUiStatus
+  'torrent-ai:trace': AiTraceEvent
 
   // File open events (OS-level association)
   'file:open-torrents': {

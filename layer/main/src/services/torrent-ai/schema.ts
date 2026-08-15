@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+const nullableStringList = z
+  .union([
+    z.string().transform((value) => {
+      const trimmed = value.trim()
+      return trimmed ? [trimmed] : null
+    }),
+    z.array(z.string().trim()),
+    z.null(),
+  ])
+  .default(null)
+
 export const TorrentAiMediaTypeSchema = z
   .enum(['movie', 'tv', 'anime', 'music', 'other'])
   .default('other')
@@ -16,7 +27,7 @@ export const TorrentAiTitleSchema = z.object({
     .nullable()
     .default(null),
   episodeTitle: z.string().trim().nullable().default(null),
-  extraInfo: z.array(z.string().trim()).nullable().default(null),
+  extraInfo: nullableStringList,
   languageOfLocalizedTitle: z.string().trim().nullable().default(null),
 })
 
@@ -37,10 +48,10 @@ export const TorrentAiSeriesSchema = z.object({
 export const TorrentAiTechnicalSchema = z.object({
   resolution: z.string().trim().nullable().default(null),
   videoCodec: z.string().trim().nullable().default(null),
-  audio: z.array(z.string().trim()).nullable().default(null),
+  audio: nullableStringList,
   source: z.string().trim().nullable().default(null),
   edition: z.string().trim().nullable().default(null),
-  otherTags: z.array(z.string().trim()).nullable().default(null),
+  otherTags: nullableStringList,
 })
 
 export const TorrentAiTmdbSchema = z.object({
@@ -77,8 +88,7 @@ export const TorrentAiMetadataSchema = z.object({
   normalizedName: z.string().trim().default(''),
   mediaType: TorrentAiMediaTypeSchema,
   title: TorrentAiTitleSchema,
-  series: TorrentAiSeriesSchema.nullable(),
-  // Default technical fields to explicit nulls to satisfy strict required schema
+  series: TorrentAiSeriesSchema.nullable().default(null),
   technical: TorrentAiTechnicalSchema.default({
     resolution: null,
     videoCodec: null,
@@ -87,12 +97,11 @@ export const TorrentAiMetadataSchema = z.object({
     edition: null,
     otherTags: null,
   }),
-  // Ensure OpenAI strict schema has present-but-null fields for absent values
   synopsis: z.string().trim().nullable().default(null),
-  keywords: z.array(z.string().trim()).nullable().default(null),
+  keywords: nullableStringList,
   explanations: z.array(TorrentAiExplanationSchema).nullable().default(null),
   previewImageUrl: z.string().trim().nullable().default(null),
-  tmdb: TorrentAiTmdbSchema.nullable(),
+  tmdb: TorrentAiTmdbSchema.nullable().default(null),
   confidence: TorrentAiConfidenceSchema,
   mayBeTitle: z.string().trim().nullable().default(null),
 })
