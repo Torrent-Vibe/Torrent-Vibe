@@ -1,0 +1,51 @@
+name: TorrentVibe
+
+options:
+  bundleIdPrefix: com.innei
+  deploymentTarget:
+    iOS: "18.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_LANGUAGE: zh-Hans
+    MARKETING_VERSION: 0.1.0
+    PRODUCT_NAME: Torrent Vibe
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_VERSION: 6.0
+    TARGETED_DEVICE_FAMILY: 1,2
+
+targets:
+  TorrentVibe:
+    type: application
+    platform: iOS
+    info:
+      path: Support/Info.plist
+      properties:
+        CFBundleDisplayName: Torrent Vibe
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.utilities
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        UILaunchScreen: {}
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.innei.TorrentVibe
+
+schemes:
+  TorrentVibe:
+    build:
+      targets:
+        TorrentVibe: all
+    run:
+      config: Debug
+    archive:
+      config: Release
