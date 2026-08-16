@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
@@ -28,6 +29,18 @@ func TestLoadPairingMigratesLegacyTokenUnbound(t *testing.T) {
 	raw, _ := os.ReadFile(filepath.Join(dir, "pairing.json"))
 	if !bytes.Contains(raw, []byte("legacy-token")) {
 		t.Fatalf("%s", raw)
+	}
+}
+
+func TestGeneratePairingCode(t *testing.T) {
+	code, err := store.GeneratePairingCode()
+	if err != nil || len(code) != 6 {
+		t.Fatalf("%q %v", code, err)
+	}
+	for _, r := range code {
+		if !strings.ContainsRune("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r) {
+			t.Fatalf("%q", code)
+		}
 	}
 }
 
