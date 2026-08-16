@@ -7,11 +7,11 @@ import (
 )
 
 type RssEpisode struct {
-	EpisodeID   string
-	Title       string
-	TorrentURL  string
-	PublishedAt string
-	SizeBytes   int64
+	EpisodeID   string `json:"episodeId"`
+	Title       string `json:"title"`
+	TorrentURL  string `json:"torrentUrl"`
+	PublishedAt string `json:"publishedAt,omitempty"`
+	SizeBytes   int64  `json:"sizeBytes,omitempty"`
 }
 
 var (
