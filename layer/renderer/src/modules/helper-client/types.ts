@@ -57,3 +57,21 @@ export interface ServerHelperTarget {
   host: string
   paired: boolean
 }
+
+export interface HelperConfigPublic {
+  libraryRoot: string
+  category: string
+  qbitUrl: string
+  qbitUser: string
+  hasQbitPass: boolean
+  pollIntervalMs: number
+}
+
+export type HelperConfigPatch = Partial<{
+  libraryRoot: string
+  category: string
+  qbitUrl: string
+  qbitUser: string
+  qbitPass: string
+  pollIntervalMs: number
+}>

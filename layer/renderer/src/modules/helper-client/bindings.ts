@@ -60,11 +60,32 @@ export const saveHelperBindings = (
 export const getHelperBinding = (serverId: string): HelperBinding | null =>
   loadHelperBindings()[serverId] ?? null
 
+export const ownerOfHelperUrl = (
+  url: string,
+  bindings: Record<string, HelperBinding>,
+  exceptServerId?: string,
+): string | null => {
+  const normalized = url.trim().replace(/\/+$/, '')
+  for (const [id, binding] of Object.entries(bindings)) {
+    if (exceptServerId && id === exceptServerId) {
+      continue
+    }
+    if (binding.url.trim().replace(/\/+$/, '') === normalized) {
+      return id
+    }
+  }
+  return null
+}
+
 export const setHelperBinding = (
   serverId: string,
   binding: HelperBinding,
 ): void => {
   const next = { ...loadHelperBindings() }
+  const owner = ownerOfHelperUrl(binding.url, next, serverId)
+  if (owner) {
+    throw new Error('helperUrlInUse')
+  }
   next[serverId] = {
     url: binding.url.trim().replace(/\/+$/, ''),
     token: binding.token,

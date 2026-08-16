@@ -2,6 +2,8 @@ import type { HelperReplica } from '@torrent-vibe/helper-protocol'
 
 import type {
   HelperBackfillInput,
+  HelperConfigPatch,
+  HelperConfigPublic,
   HelperDiscoverInfo,
   HelperEpisodeStatus,
   HelperJobStatus,
@@ -269,3 +271,65 @@ export const isHelperAuthError = (error: unknown): boolean => {
   const status = (error as { status?: number } | null)?.status
   return status === 401 || status === 403
 }
+
+export const unpairHelper = async (
+  baseUrl: string,
+  token: string,
+): Promise<void> => {
+  await request(baseUrl, '/unpair', { method: 'POST' }, token)
+}
+
+export const getHelperConfig = async (
+  baseUrl: string,
+  token: string,
+): Promise<HelperConfigPublic> => {
+  const body = await request(baseUrl, '/config', { method: 'GET' }, token)
+  if (!body || typeof body !== 'object') {
+    throw new Error('invalid config payload')
+  }
+  const record = body as Record<string, unknown>
+  return {
+    libraryRoot:
+      typeof record.libraryRoot === 'string' ? record.libraryRoot : '',
+    category: typeof record.category === 'string' ? record.category : 'Bangumi',
+    qbitUrl: typeof record.qbitUrl === 'string' ? record.qbitUrl : '',
+    qbitUser: typeof record.qbitUser === 'string' ? record.qbitUser : '',
+    hasQbitPass: record.hasQbitPass === true,
+    pollIntervalMs:
+      typeof record.pollIntervalMs === 'number'
+        ? record.pollIntervalMs
+        : 600_000,
+  }
+}
+
+export const putHelperConfig = async (
+  baseUrl: string,
+  token: string,
+  patch: HelperConfigPatch,
+): Promise<HelperConfigPublic> => {
+  await request(
+    baseUrl,
+    '/config',
+    { method: 'PUT', body: JSON.stringify(patch) },
+    token,
+  )
+  return getHelperConfig(baseUrl, token)
+}
+
+export const retryHelperEpisode = async (
+  baseUrl: string,
+  token: string,
+  input: {
+    bangumiId: string
+    subgroupId: string
+    episodeId: string
+    title?: string
+    torrentUrl?: string
+  },
+): Promise<unknown> =>
+  request(
+    baseUrl,
+    '/retry',
+    { method: 'POST', body: JSON.stringify(input) },
+    token,
+  )

@@ -333,4 +333,101 @@ describe('subscription actions', () => {
     expect(subscriptionStore.getState().items).toEqual([])
     expect(persist.snapshot().items).toEqual([])
   })
+
+  it('unbindHelper unpairs and keeps subscription targets', async () => {
+    setHelperBinding('srv-a', { url: 'http://nas:17890', token: 'tok' })
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const unpaired: string[] = []
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'sub-1',
+      unpair: async (serverId) => {
+        unpaired.push(serverId)
+      },
+    })
+    await actions.subscribe({
+      bangumiId: 'bgm-1',
+      title: 'Frieren',
+      subgroupId: 'sg-1',
+      subgroupName: 'ANi',
+      rssUrl: 'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-1&subgroupid=sg-1',
+      targetServerIds: ['srv-a'],
+    })
+    const result = await actions.unbindHelper('srv-a')
+    expect(result.ok).toBe(true)
+    expect(unpaired).toEqual(['srv-a'])
+    expect(getHelperBinding('srv-a')).toBeNull()
+    expect(subscriptionStore.getState().items[0]?.targetServerIds).toEqual([
+      'srv-a',
+    ])
+  })
+
+  it('unbindHelper still clears a local binding when unpair fails', async () => {
+    setHelperBinding('srv-a', { url: 'http://nas:17890', token: 'tok' })
+    const actions = createSubscriptionActions({
+      persist: createMemoryPersist(),
+      helper: createFakeHelper(),
+      now: () => stamp,
+      id: () => 'sub-1',
+      unpair: async () => {
+        throw new Error('down')
+      },
+    })
+    const result = await actions.unbindHelper('srv-a')
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('unreachable')
+    expect(getHelperBinding('srv-a')).toBeNull()
+  })
+
+  it('forgetServer unpairs then strips targets', async () => {
+    setHelperBinding('srv-a', { url: 'http://nas:17890', token: 'tok' })
+    const unpaired: string[] = []
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'sub-1',
+      unpair: async (serverId) => {
+        unpaired.push(serverId)
+      },
+    })
+    await actions.subscribe({
+      bangumiId: 'bgm-1',
+      title: 'Frieren',
+      subgroupId: 'sg-1',
+      subgroupName: 'ANi',
+      rssUrl: 'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-1&subgroupid=sg-1',
+      targetServerIds: ['srv-a', 'srv-b'],
+    })
+    await actions.forgetServer('srv-a')
+    expect(unpaired).toEqual(['srv-a'])
+    expect(subscriptionStore.getState().items[0]?.targetServerIds).toEqual([
+      'srv-b',
+    ])
+  })
+
+  it('retryEpisode posts and refreshes', async () => {
+    const retried: string[] = []
+    const actions = createSubscriptionActions({
+      persist: createMemoryPersist(),
+      helper: createFakeHelper(),
+      now: () => stamp,
+      retry: async (input) => {
+        retried.push(input.episodeId)
+      },
+    })
+    const result = await actions.retryEpisode({
+      serverId: 'srv-a',
+      bangumiId: '3141',
+      subgroupId: '583',
+      episodeId: 'ep-1',
+    })
+    expect(result.ok).toBe(true)
+    expect(retried).toEqual(['ep-1'])
+  })
 })

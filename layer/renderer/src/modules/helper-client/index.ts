@@ -1,13 +1,17 @@
 export {
   backfillHelper,
   discoverHelper,
+  getHelperConfig,
   getHelperStatus,
   getHelperSubscriptions,
   isHelperAuthError,
   normalizeHelperBaseUrl,
   pairHelper,
+  putHelperConfig,
   putHelperSubscriptions,
+  retryHelperEpisode,
   sameHostDiscoverUrl,
+  unpairHelper,
 } from './api'
 export {
   clearHelperBinding,
@@ -17,6 +21,7 @@ export {
   isHelperPaired,
   listServerHelperTargets,
   loadHelperBindings,
+  ownerOfHelperUrl,
   resolveCurrentServerId,
   setHelperBinding,
   useHelperBindingsStore,
@@ -28,9 +33,12 @@ export {
   useHelperBindings,
   useServerHelperTargets,
 } from './hooks'
+export { helperInstallCommand } from './install-command'
 export type {
   HelperBackfillInput,
   HelperBinding,
+  HelperConfigPatch,
+  HelperConfigPublic,
   HelperDiscoverInfo,
   HelperEpisodeStatus,
   HelperJobStatus,

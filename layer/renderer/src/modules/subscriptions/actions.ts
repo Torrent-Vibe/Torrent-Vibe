@@ -15,6 +15,8 @@ import {
   listServerHelperTargets,
   putHelperSubscriptions,
   resolveCurrentServerId,
+  retryHelperEpisode,
+  unpairHelper,
 } from '../helper-client'
 import { desiredReplicasForServer } from './desired-set'
 import type { SubscriptionPersist } from './persist'
@@ -51,12 +53,52 @@ export interface SubscriptionActionDeps {
   helper: HelperSyncClient
   now?: () => string
   id?: () => string
+  unpair?: (serverId: string) => Promise<void>
+  retry?: (input: {
+    serverId: string
+    bangumiId: string
+    subgroupId: string
+    episodeId: string
+    title?: string
+    torrentUrl?: string
+  }) => Promise<void>
 }
 
 const unique = (ids: string[]) => [...new Set(ids.filter(Boolean))]
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
+
+const liveUnpair = async (serverId: string) => {
+  const binding = getHelperBinding(serverId)
+  if (!binding) {
+    return
+  }
+  try {
+    await unpairHelper(binding.url, binding.token)
+  }
+  catch (error) {
+    if (isHelperAuthError(error)) {
+      return
+    }
+    throw error
+  }
+}
+
+const liveRetry = async (input: {
+  serverId: string
+  bangumiId: string
+  subgroupId: string
+  episodeId: string
+  title?: string
+  torrentUrl?: string
+}) => {
+  const binding = getHelperBinding(input.serverId)
+  if (!binding) {
+    throw new Error('unbound')
+  }
+  await retryHelperEpisode(binding.url, binding.token, input)
+}
 
 const liveHelperClient: HelperSyncClient = {
   async getSubscriptions(serverId) {
@@ -426,7 +468,54 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           item.bangumiId === bangumiId && item.subgroupId === subgroupId,
       ) ?? null
 
+  const unbindHelper = async (serverId: string): Promise<ActionResult> => {
+    let unreachable = false
+    if (deps.unpair) {
+      try {
+        await deps.unpair(serverId)
+      }
+      catch {
+        unreachable = true
+      }
+    }
+    clearHelperBinding(serverId)
+    subscriptionStore.setState((draft) => {
+      delete draft.statusByServer[serverId]
+    })
+    return unreachable ? { ok: false, error: 'unreachable' } : { ok: true }
+  }
+
+  const retryEpisode = async (input: {
+    serverId: string
+    bangumiId: string
+    subgroupId: string
+    episodeId: string
+    title?: string
+    torrentUrl?: string
+  }): Promise<ActionResult> => {
+    if (!deps.retry) {
+      return { ok: false, error: 'noHelper' }
+    }
+    try {
+      await deps.retry(input)
+      await refreshStatus([input.serverId])
+      return { ok: true }
+    }
+    catch (error) {
+      if (isHelperAuthError(error)) {
+        clearHelperBinding(input.serverId)
+      }
+      return { ok: false, error: errorMessage(error) }
+    }
+  }
+
   const forgetServer = async (serverId: string): Promise<ActionResult> => {
+    if (deps.unpair) {
+      try {
+        await deps.unpair(serverId)
+      }
+      catch {}
+    }
     clearHelperBinding(serverId)
     const stamp = now()
     const remaining: SubscriptionRecord[] = []
@@ -466,6 +555,8 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     backfill,
     findByBangumiSubgroup,
     forgetServer,
+    unbindHelper,
+    retryEpisode,
   }
 }
 
@@ -473,5 +564,7 @@ export const SubscriptionActions = {
   shared: createSubscriptionActions({
     persist: localSubscriptionPersist,
     helper: liveHelperClient,
+    unpair: liveUnpair,
+    retry: liveRetry,
   }),
 }
