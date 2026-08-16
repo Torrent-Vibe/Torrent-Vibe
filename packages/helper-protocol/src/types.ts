@@ -6,6 +6,7 @@ export type HelperEpisodeState
     | 'done'
     | 'failed'
     | 'needs-manual'
+    | 'skipped'
 
 export interface SubscriptionRecord {
   id: string
@@ -41,5 +42,4 @@ export interface HelperReplica {
 }
 
 export type DesiredStateOp
-  = | { type: 'add', replica: HelperReplica }
-    | { type: 'remove', id: string }
+  = { type: 'add', replica: HelperReplica } | { type: 'remove', id: string }

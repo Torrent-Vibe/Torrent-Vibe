@@ -29,3 +29,16 @@ Build from `apps/helper-go`:
 ```bash
 docker build -t torrent-vibe-helper .
 ```
+
+## Dev sync (local Linux amd64 → download host)
+
+From the repo root, with Docker running:
+
+```bash
+HELPER_SSH=user@nas pnpm helper:sync
+```
+
+This builds `linux/amd64` in `golang:1.25-bookworm`, copies it to
+`$HOME/.local/bin/torrent-vibe-helper` over SSH, restarts the user systemd
+unit, and checks `GET :17890/discover`. Data dir and pairing stay on the host.
+

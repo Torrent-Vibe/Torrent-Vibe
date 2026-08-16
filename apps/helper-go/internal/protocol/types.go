@@ -10,6 +10,7 @@ const (
 	StateDone        EpisodeState = "done"
 	StateFailed      EpisodeState = "failed"
 	StateNeedsManual EpisodeState = "needs-manual"
+	StateSkipped     EpisodeState = "skipped"
 )
 
 type Replica struct {

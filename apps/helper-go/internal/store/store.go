@@ -19,6 +19,8 @@ type Episode struct {
 	Title     string                `json:"title"`
 	Season    *int                  `json:"season"`
 	Episode   *int                  `json:"episode"`
+	Series    string                `json:"series,omitempty"`
+	Kind      string                `json:"kind,omitempty"`
 	State     protocol.EpisodeState `json:"state"`
 	LastError string                `json:"lastError,omitempty"`
 }

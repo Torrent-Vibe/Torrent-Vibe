@@ -1,6 +1,6 @@
 # Helper Identity Scrape — Design Spec
 
-2026-08-17 · Status: drafted for review
+2026-08-17 · Status: approved
 
 Extends helper ingest in
 `2026-08-15-mikan-discover-design.md`,

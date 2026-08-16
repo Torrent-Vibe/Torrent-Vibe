@@ -20,6 +20,7 @@ type File struct {
 }
 
 type AddRequest struct {
+	Torrent  []byte
 	URLs     string
 	SavePath string
 	Category string

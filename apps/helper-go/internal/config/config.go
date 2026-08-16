@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 )
 
 type File struct {
@@ -16,6 +18,9 @@ type File struct {
 	QbitUser       string `json:"qbitUser"`
 	QbitPass       string `json:"qbitPass"`
 	PollIntervalMs int    `json:"pollIntervalMs"`
+	ProxyURL       string `json:"proxyUrl"`
+	VariantPrefer  string `json:"variantPrefer"`
+	TmdbAPIKey     string `json:"tmdbApiKey"`
 }
 
 type Public struct {
@@ -25,6 +30,9 @@ type Public struct {
 	QbitUser       string `json:"qbitUser"`
 	HasQbitPass    bool   `json:"hasQbitPass"`
 	PollIntervalMs int    `json:"pollIntervalMs"`
+	ProxyURL       string `json:"proxyUrl"`
+	VariantPrefer  string `json:"variantPrefer"`
+	HasTmdbAPIKey  bool   `json:"hasTmdbApiKey"`
 }
 
 func (f File) Public() Public {
@@ -35,6 +43,9 @@ func (f File) Public() Public {
 		QbitUser:       f.QbitUser,
 		HasQbitPass:    f.QbitPass != "",
 		PollIntervalMs: f.PollIntervalMs,
+		ProxyURL:       f.ProxyURL,
+		VariantPrefer:  mikan.EffectiveVariantPrefer(f.VariantPrefer),
+		HasTmdbAPIKey:  f.TmdbAPIKey != "",
 	}
 }
 
@@ -53,6 +64,15 @@ func DefaultsFromEnv(env map[string]string) File {
 			poll = n
 		}
 	}
+	proxy := firstNonEmpty(
+		get("PROXY", ""),
+		get("HTTP_PROXY", ""),
+		get("HTTPS_PROXY", ""),
+		get("ALL_PROXY", ""),
+		get("http_proxy", ""),
+		get("https_proxy", ""),
+		get("all_proxy", ""),
+	)
 	return File{
 		LibraryRoot:    get("LIBRARY_ROOT", ""),
 		Category:       "Bangumi",
@@ -60,7 +80,17 @@ func DefaultsFromEnv(env map[string]string) File {
 		QbitUser:       get("QBIT_USER", "admin"),
 		QbitPass:       get("QBIT_PASS", ""),
 		PollIntervalMs: poll,
+		ProxyURL:       proxy,
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func Load(dataDir string, base File) (File, error) {

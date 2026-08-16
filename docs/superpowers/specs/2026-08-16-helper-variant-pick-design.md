@@ -1,6 +1,6 @@
 # Helper Language / Resolution Variant Pick — Design Spec
 
-2026-08-16 · Status: drafted for review
+2026-08-16 · Status: approved
 
 Extends the helper ingest loop in
 `2026-08-15-mikan-discover-design.md` and

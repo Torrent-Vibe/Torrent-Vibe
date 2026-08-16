@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.23-alpine AS build
+FROM golang:1.25-bookworm AS build
 WORKDIR /src
 COPY . ./
-RUN CGO_ENABLED=0 go build -o /torrent-vibe-helper ./cmd/torrent-vibe-helper
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /torrent-vibe-helper ./cmd/torrent-vibe-helper
 
 FROM scratch
 COPY --from=build /torrent-vibe-helper /torrent-vibe-helper

@@ -1,21 +1,23 @@
 package qb
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
 type HTTPClient struct {
-	base     string
-	user     string
-	pass     string
-	client   *http.Client
-	cookie   string
+	base   string
+	user   string
+	pass   string
+	client *http.Client
+	cookie string
 }
 
 func NewClient(baseURL, user, pass string, httpClient *http.Client) *HTTPClient {
@@ -120,8 +122,14 @@ func (c *HTTPClient) ListTorrents() ([]Torrent, error) {
 }
 
 func (c *HTTPClient) AddTorrent(add AddRequest) (string, error) {
-	body, contentType := encodeForm(add)
-	res, err := c.request(http.MethodPost, "/api/v2/torrents/add", strings.NewReader(body), contentType, true)
+	if len(add.Torrent) == 0 {
+		return "", errors.New("qBittorrent add failed: empty torrent")
+	}
+	body, contentType, err := encodeTorrentForm(add)
+	if err != nil {
+		return "", err
+	}
+	res, err := c.request(http.MethodPost, "/api/v2/torrents/add", bytes.NewReader(body), contentType, true)
 	if err != nil {
 		return "", err
 	}
@@ -145,19 +153,13 @@ func (c *HTTPClient) AddTorrent(add AddRequest) (string, error) {
 				return fromURL, nil
 			}
 		}
-		if text == "Ok." {
-			return fromURL, nil
-		}
 	}
 	for _, item := range torrents {
 		if item.Name == add.Rename && strings.Contains(item.Tags, add.Tags) {
 			return item.Hash, nil
 		}
 	}
-	if text == "Ok." {
-		return "", errors.New("qBittorrent add succeeded but hash is unknown")
-	}
-	return "", errors.New("qBittorrent add failed")
+	return "", errors.New("qBittorrent add succeeded but torrent is missing")
 }
 
 func (c *HTTPClient) ListFiles(hash string) ([]File, error) {
@@ -196,22 +198,40 @@ func (c *HTTPClient) RenameFile(hash, oldPath, newPath string) error {
 	return nil
 }
 
-func encodeForm(add AddRequest) (string, string) {
-	var b strings.Builder
-	boundary := "----torrentvibehelper"
-	write := func(name, value string) {
-		b.WriteString("--" + boundary + "\r\n")
-		b.WriteString(`Content-Disposition: form-data; name="` + name + `"` + "\r\n\r\n")
-		b.WriteString(value + "\r\n")
+func encodeTorrentForm(add AddRequest) ([]byte, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	file, err := writer.CreateFormFile("torrents", torrentFilename(add.URLs))
+	if err != nil {
+		return nil, "", err
 	}
-	write("urls", add.URLs)
-	write("savepath", add.SavePath)
-	write("category", add.Category)
-	write("tags", add.Tags)
-	write("rename", add.Rename)
-	write("autoTMM", "false")
-	b.WriteString("--" + boundary + "--\r\n")
-	return b.String(), "multipart/form-data; boundary=" + boundary
+	if _, err := file.Write(add.Torrent); err != nil {
+		return nil, "", err
+	}
+	fields := [][2]string{
+		{"savepath", add.SavePath},
+		{"category", add.Category},
+		{"tags", add.Tags},
+		{"rename", add.Rename},
+		{"autoTMM", "false"},
+	}
+	for _, field := range fields {
+		if err := writer.WriteField(field[0], field[1]); err != nil {
+			return nil, "", err
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return body.Bytes(), writer.FormDataContentType(), nil
+}
+
+func torrentFilename(rawURL string) string {
+	hash := ExtractTorrentInfohash(rawURL)
+	if hash == "" {
+		return "file.torrent"
+	}
+	return hash + ".torrent"
 }
 
 func orUnknown(text string) string {

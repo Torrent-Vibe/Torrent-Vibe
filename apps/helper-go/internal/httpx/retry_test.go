@@ -92,3 +92,26 @@ func TestRetryWithoutURLDeletesRow(t *testing.T) {
 		t.Fatalf("%+v", maps)
 	}
 }
+
+func TestRetrySkippedRejected(t *testing.T) {
+	srv := start(t, func(rt *httpx.Runtime) {
+		season, ep := 1, 48
+		_ = rt.Store.SaveEpisodes(map[string][]store.Episode{
+			store.EpisodeKey("3141", "583"): {{
+				EpisodeID: "e1", Title: "t", Season: &season, Episode: &ep,
+				State: protocol.StateSkipped, LastError: "skipped-language",
+			}},
+		})
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/retry", bytes.NewBufferString(`{"bangumiId":"3141","subgroupId":"583","episodeId":"e1"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 400 {
+		t.Fatal(res.Status)
+	}
+	res.Body.Close()
+}

@@ -35,7 +35,47 @@ func TestPublicOmitsPassword(t *testing.T) {
 
 func TestDefaults(t *testing.T) {
 	got := config.DefaultsFromEnv(map[string]string{})
-	if got.QbitURL != "http://127.0.0.1:8080" || got.QbitUser != "admin" || got.Category != "Bangumi" || got.PollIntervalMs != 600000 {
+	if got.QbitURL != "http://127.0.0.1:8080" || got.QbitUser != "admin" || got.Category != "Bangumi" || got.PollIntervalMs != 600000 || got.ProxyURL != "" {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestDefaultsProxyPrefersPROXYThenHTTPProxy(t *testing.T) {
+	got := config.DefaultsFromEnv(map[string]string{
+		"HTTP_PROXY": "http://env-http:1",
+		"PROXY":      "socks5://127.0.0.1:7891",
+	})
+	if got.ProxyURL != "socks5://127.0.0.1:7891" {
+		t.Fatalf("%+v", got)
+	}
+	got = config.DefaultsFromEnv(map[string]string{"HTTPS_PROXY": "http://only-https:1"})
+	if got.ProxyURL != "http://only-https:1" {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestPublicVariantPreferDefaults(t *testing.T) {
+	p := config.File{}.Public()
+	if p.VariantPrefer != "internal,sc,tc" {
+		t.Fatalf("%+v", p)
+	}
+	p = config.File{VariantPrefer: "tc,sc,internal"}.Public()
+	if p.VariantPrefer != "tc,sc,internal" {
+		t.Fatalf("%+v", p)
+	}
+	p = config.File{VariantPrefer: "sc"}.Public()
+	if p.VariantPrefer != "internal,sc,tc" {
+		t.Fatalf("%+v", p)
+	}
+}
+
+func TestPublicTmdbKeyHidden(t *testing.T) {
+	p := config.File{TmdbAPIKey: "secret-key"}.Public()
+	if !p.HasTmdbAPIKey {
+		t.Fatalf("%+v", p)
+	}
+	raw, _ := json.Marshal(p)
+	if bytes.Contains(raw, []byte("secret-key")) || bytes.Contains(raw, []byte("tmdbApiKey")) {
+		t.Fatalf("%s", raw)
 	}
 }

@@ -118,3 +118,127 @@ func TestPutEmptyPasswordKeepsPrevious(t *testing.T) {
 		t.Fatalf("%+v", body)
 	}
 }
+
+func TestPutProxyURLPersists(t *testing.T) {
+	var applied config.File
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi", PollIntervalMs: 600000}
+		rt.ApplyConfig = func(file config.File) { applied = file }
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"proxyUrl":"socks5://127.0.0.1:7891"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	body := decode(t, res)
+	if body["proxyUrl"] != "socks5://127.0.0.1:7891" || applied.ProxyURL != "socks5://127.0.0.1:7891" {
+		t.Fatalf("%+v applied=%+v", body, applied)
+	}
+}
+
+func TestPutBadProxyURLRejected(t *testing.T) {
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi"}
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"proxyUrl":"ftp://127.0.0.1:21"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 400 {
+		t.Fatal(res.Status)
+	}
+	res.Body.Close()
+}
+
+func TestPutVariantPreferPersists(t *testing.T) {
+	var applied config.File
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi", PollIntervalMs: 600000}
+		rt.ApplyConfig = func(file config.File) { applied = file }
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"variantPrefer":"tc,sc,internal"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	body := decode(t, res)
+	if body["variantPrefer"] != "tc,sc,internal" || applied.VariantPrefer != "tc,sc,internal" {
+		t.Fatalf("%+v applied=%+v", body, applied)
+	}
+}
+
+func TestPutTmdbAPIKeyPersistsHidden(t *testing.T) {
+	var applied config.File
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi", PollIntervalMs: 600000}
+		rt.ApplyConfig = func(file config.File) { applied = file }
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"tmdbApiKey":"k"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	body := decode(t, res)
+	if body["hasTmdbApiKey"] != true || body["tmdbApiKey"] != nil || applied.TmdbAPIKey != "k" {
+		t.Fatalf("%+v applied=%+v", body, applied)
+	}
+}
+
+func TestPutEmptyTmdbAPIKeyClears(t *testing.T) {
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi", TmdbAPIKey: "k"}
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"tmdbApiKey":""}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	body := decode(t, res)
+	if body["hasTmdbApiKey"] != false {
+		t.Fatalf("%+v", body)
+	}
+}
+
+func TestPutPartialVariantPreferRejected(t *testing.T) {
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi"}
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"variantPrefer":"sc"}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 400 {
+		t.Fatal(res.Status)
+	}
+	res.Body.Close()
+}

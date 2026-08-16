@@ -1,6 +1,7 @@
 package loop
 
 import (
+	"errors"
 	"net/url"
 	"regexp"
 	"strings"
@@ -15,9 +16,9 @@ import (
 )
 
 const (
-	BangumiCategory          = "Bangumi"
-	DefaultPollInterval      = 10 * time.Minute
-	DefaultPollIntervalMs    = 600000
+	BangumiCategory       = "Bangumi"
+	DefaultPollInterval   = 10 * time.Minute
+	DefaultPollIntervalMs = 600000
 )
 
 var completeState = regexp.MustCompile(`^(uploading|pausedUP|stoppedUP|stalledUP|queuedUP|forcedUP|checkingUP)$`)
@@ -27,12 +28,15 @@ func MikanTag(subscriptionID string) string {
 }
 
 type Deps struct {
-	Store        *store.Store
-	FetchRSS     func(url string) (string, error)
-	QB           qb.Client
-	LibraryRoot  string
-	Category     string
-	ResolveTitle func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle
+	Store         *store.Store
+	FetchRSS      func(url string) (string, error)
+	FetchTorrent  func(url string) ([]byte, error)
+	QB            qb.Client
+	LibraryRoot   string
+	Category      string
+	ResolveTitle  func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle
+	ResolveSeason func(ident mikan.Identity) *int
+	VariantPrefer []mikan.Language
 }
 
 var workMu sync.Map
@@ -175,6 +179,7 @@ func ingestEpisodes(
 			byHash[strings.ToLower(item.Infohash)] = struct{}{}
 		}
 	}
+	var candidates []*variantCandidate
 	for _, item := range incoming {
 		if _, ok := byID[item.EpisodeID]; ok {
 			continue
@@ -188,30 +193,82 @@ func ingestEpisodes(
 				continue
 			}
 		}
-		parsed := mikan.ParseMikanTitle(item.Title)
-		if deps.ResolveTitle != nil {
-			parsed = deps.ResolveTitle(replica, item, parsed)
+		ident := mikan.Identify(identifySource(replica), item.Title)
+		if deps.ResolveSeason != nil && ident.SeasonAmbiguous && ident.Season == nil && ident.Kind == mikan.KindEpisode {
+			if resolved := deps.ResolveSeason(ident); resolved != nil {
+				ident.Season = resolved
+				ident.SeasonAmbiguous = false
+			}
 		}
-		if parsed.Episode == nil {
-			record := baseEpisode(item, infohash, parsed.Season, nil)
+		if ident.Episode == nil && deps.ResolveTitle != nil {
+			parsed := mikan.ParsedTitle{Title: ident.Series, Season: ident.Season, Episode: ident.Episode}
+			parsed = deps.ResolveTitle(replica, item, parsed)
+			ident.Episode = parsed.Episode
+		}
+		next := &variantCandidate{item: item, infohash: infohash, series: ident.Series, kind: ident.Kind}
+		if ident.Kind == mikan.KindCollection || ident.Episode == nil {
+			if ident.Season != nil {
+				next.season = *ident.Season
+			}
+			next.manual = true
+			candidates = append(candidates, next)
+			continue
+		}
+		season := 1
+		if ident.Kind == mikan.KindSpecial {
+			season = 0
+		} else if ident.Season != nil {
+			season = *ident.Season
+		}
+		res, okRes := mikan.ClassifyResolution(item.Title)
+		next.season = season
+		next.episode = *ident.Episode
+		next.lang = mikan.ClassifyLanguage(item.Title)
+		next.res = res
+		next.okRes = okRes
+		candidates = append(candidates, next)
+	}
+	applyVariantPick(candidates, episodes, deps.VariantPrefer)
+	for _, candidate := range candidates {
+		if candidate.manual {
+			var season *int
+			if candidate.season != 0 || candidate.kind == mikan.KindSpecial {
+				season = intPtr(candidate.season)
+			}
+			record := stampIdentity(baseEpisode(candidate.item, candidate.infohash, season, nil), candidate)
 			record.State = protocol.StateNeedsManual
 			episodes = append(episodes, record)
 			remember(byID, byHash, record)
 			continue
 		}
-		season := 1
-		if parsed.Season != nil {
-			season = *parsed.Season
+		if candidate.skip {
+			record := stampIdentity(baseEpisode(candidate.item, "", intPtr(candidate.season), intPtr(candidate.episode)), candidate)
+			record.State = protocol.StateSkipped
+			record.LastError = candidate.reason
+			episodes = append(episodes, record)
+			remember(byID, byHash, record)
+			continue
 		}
+		raw, err := fetchTorrent(deps, candidate.item.TorrentURL)
+		if err != nil {
+			record := stampIdentity(baseEpisode(candidate.item, candidate.infohash, intPtr(candidate.season), intPtr(candidate.episode)), candidate)
+			record.State = protocol.StateFailed
+			record.LastError = err.Error()
+			episodes = append(episodes, record)
+			remember(byID, byHash, record)
+			continue
+		}
+		show := showTitle(candidate.series, replica.Title)
 		hash, err := deps.QB.AddTorrent(qb.AddRequest{
-			URLs:     item.TorrentURL,
-			SavePath: rename.FormatSavePath(deps.LibraryRoot, replica.Title, season),
+			Torrent:  raw,
+			URLs:     candidate.item.TorrentURL,
+			SavePath: rename.FormatSavePath(deps.LibraryRoot, show, candidate.season),
 			Category: categoryOf(deps),
 			Tags:     MikanTag(replica.ID),
-			Rename:   rename.FormatEpisodeName(replica.Title, season, *parsed.Episode),
+			Rename:   rename.FormatEpisodeName(show, candidate.season, candidate.episode),
 		})
 		if err != nil {
-			record := baseEpisode(item, infohash, intPtr(season), parsed.Episode)
+			record := stampIdentity(baseEpisode(candidate.item, candidate.infohash, intPtr(candidate.season), intPtr(candidate.episode)), candidate)
 			record.State = protocol.StateFailed
 			record.LastError = err.Error()
 			episodes = append(episodes, record)
@@ -219,7 +276,7 @@ func ingestEpisodes(
 			continue
 		}
 		hash = strings.ToLower(hash)
-		record := baseEpisode(item, hash, intPtr(season), parsed.Episode)
+		record := stampIdentity(baseEpisode(candidate.item, hash, intPtr(candidate.season), intPtr(candidate.episode)), candidate)
 		record.State = protocol.StateAdded
 		episodes = append(episodes, record)
 		remember(byID, byHash, record)
@@ -239,7 +296,7 @@ func syncCompleted(
 	next := append([]store.Episode(nil), episodes...)
 	for i := range next {
 		episode := next[i]
-		if episode.State == protocol.StateNeedsManual || episode.State == protocol.StateDone || episode.Episode == nil || episode.Season == nil {
+		if episode.State == protocol.StateNeedsManual || episode.State == protocol.StateDone || episode.State == protocol.StateSkipped || episode.Episode == nil || episode.Season == nil {
 			continue
 		}
 		var torrent *qb.Torrent
@@ -274,7 +331,7 @@ func syncCompleted(
 		if len(files) == 0 {
 			continue
 		}
-		plans := rename.PlanEpisodeRenames(rename.FormatEpisodeName(replica.Title, *episode.Season, *episode.Episode), files)
+		plans := rename.PlanEpisodeRenames(rename.FormatEpisodeName(showTitle(episode.Series, replica.Title), *episode.Season, *episode.Episode), files)
 		failed := false
 		for _, plan := range plans {
 			if err := deps.QB.RenameFile(torrent.Hash, plan.From, plan.To); err != nil {
@@ -314,6 +371,13 @@ func remember(byID, byHash map[string]struct{}, record store.Episode) {
 	if record.Infohash != "" {
 		byHash[strings.ToLower(record.Infohash)] = struct{}{}
 	}
+}
+
+func fetchTorrent(deps Deps, rawURL string) ([]byte, error) {
+	if deps.FetchTorrent == nil {
+		return nil, errors.New("torrent fetch is not configured")
+	}
+	return deps.FetchTorrent(rawURL)
 }
 
 func hashesOf(torrents []qb.Torrent) map[string]struct{} {
@@ -375,6 +439,28 @@ func rssBase(rssURL string) string {
 		return rssURL
 	}
 	return parsed.Scheme + "://" + parsed.Host
+}
+
+func identifySource(replica protocol.Replica) string {
+	if replica.Title == "" || replica.Title == replica.BangumiID {
+		return ""
+	}
+	return replica.Title
+}
+
+func showTitle(series, fallback string) string {
+	if series != "" {
+		return series
+	}
+	return fallback
+}
+
+func stampIdentity(record store.Episode, candidate *variantCandidate) store.Episode {
+	record.Series = candidate.series
+	if candidate.kind != "" {
+		record.Kind = string(candidate.kind)
+	}
+	return record
 }
 
 func intPtr(v int) *int {
