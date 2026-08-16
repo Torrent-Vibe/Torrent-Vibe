@@ -40,6 +40,7 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("POST /unpair", rt.authed(rt.unpair))
 	mux.HandleFunc("GET /config", rt.authed(rt.getConfig))
 	mux.HandleFunc("PUT /config", rt.authed(rt.putConfig))
+	mux.HandleFunc("POST /retry", rt.authed(rt.retry))
 	return mux
 }
 

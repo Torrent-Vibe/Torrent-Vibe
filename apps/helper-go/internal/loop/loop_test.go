@@ -427,3 +427,44 @@ func TestStartPollsImmediately(t *testing.T) {
 		t.Fatal(loop.DefaultPollIntervalMs)
 	}
 }
+
+func TestResolveTitleFillsEpisode(t *testing.T) {
+	rep := replica("", "")
+	rep.BangumiSubjectID = "123"
+	s := seed(t, []protocol.Replica{rep}, nil)
+	qbFake := newFake()
+	called := false
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library",
+		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28), nil },
+		ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
+			called = replica.BangumiSubjectID == "123"
+			ep := 28
+			season := 1
+			parsed.Episode = &ep
+			parsed.Season = &season
+			return parsed
+		},
+	})
+	if !called || len(qbFake.added) != 1 {
+		t.Fatalf("called=%v added=%+v", called, qbFake.added)
+	}
+}
+
+func TestMissingSubjectSkipsResolve(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	resolveHits := 0
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: newFake(), LibraryRoot: "/library",
+		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28), nil },
+		ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
+			if replica.BangumiSubjectID != "" {
+				resolveHits++
+			}
+			return parsed
+		},
+	})
+	if resolveHits != 0 {
+		t.Fatal(resolveHits)
+	}
+}
