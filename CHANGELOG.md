@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.4
+
+- Added a download-host helper you can install as a single Linux binary. Pair
+  it from Settings, then Mikan subscriptions keep adding and renaming episodes
+  after Torrent Vibe quits.
+- Helper settings (library root, category, local qBittorrent URL) can be
+  edited from the app after pairing. Unbinding stops that helper.
+- The pairing panel can list helpers on the local network and copy an install
+  command. Failed or unparseable episodes can be retried.
+
 ## 1.0.3
 
 - Fixed uneven padding and mismatched corner radius on the segmented tab
