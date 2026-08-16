@@ -7,14 +7,18 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label/Label'
 
 import {
-  clearHelperBinding,
   discoverHelper,
+  listServerHelperTargets,
   normalizeHelperBaseUrl,
+  ownerOfHelperUrl,
   pairHelper,
   sameHostDiscoverUrl,
   setHelperBinding,
   useHelperBindingsStore,
 } from '.'
+import { HelperConfigForm } from './HelperConfigForm'
+import { HelperInstallSnippet } from './HelperInstallSnippet'
+import { HelperMdnsList } from './HelperMdnsList'
 import type { HelperDiscoverInfo } from './types'
 
 export const HelperPairingPanel = ({
@@ -34,6 +38,7 @@ export const HelperPairingPanel = ({
   const [code, setCode] = useState('')
   const [discover, setDiscover] = useState<HelperDiscoverInfo | null>(null)
   const [busy, setBusy] = useState<'probe' | 'pair' | 'unbind' | null>(null)
+  const electron = typeof ELECTRON !== 'undefined' && ELECTRON
 
   const handleProbe = async (url: string) => {
     setBusy('probe')
@@ -56,6 +61,14 @@ export const HelperPairingPanel = ({
     if (!url || !code.trim()) {
       return
     }
+    const owner = ownerOfHelperUrl(url, bindings, serverId)
+    if (owner) {
+      const ownerName
+        = listServerHelperTargets().find(target => target.id === owner)?.name
+          ?? owner
+      toast.error(t('servers.helper.urlInUse', { name: ownerName }))
+      return
+    }
     setBusy('pair')
     try {
       const { token } = await pairHelper(url, code.trim())
@@ -66,17 +79,26 @@ export const HelperPairingPanel = ({
       })
       toast.success(t('servers.helper.pairOk'))
     }
-    catch {
-      toast.error(t('servers.helper.pairFailed'))
+    catch (error) {
+      if (error instanceof Error && error.message === 'helperUrlInUse') {
+        toast.error(t('servers.helper.urlInUse', { name: url }))
+      }
+      else {
+        toast.error(t('servers.helper.pairFailed'))
+      }
     }
     finally {
       setBusy(null)
     }
   }
 
-  const handleUnbind = () => {
+  const handleUnbind = async () => {
     setBusy('unbind')
-    clearHelperBinding(serverId)
+    const { SubscriptionActions } = await import('../subscriptions')
+    const result = await SubscriptionActions.shared.unbindHelper(serverId)
+    if (result.error === 'unreachable') {
+      toast.error(t('servers.helper.unbindLocalOnly'))
+    }
     setDiscover(null)
     setBusy(null)
   }
@@ -96,13 +118,17 @@ export const HelperPairingPanel = ({
           <Button
             size="sm"
             variant="ghost"
-            onClick={handleUnbind}
+            onClick={() => {
+              void handleUnbind()
+            }}
             disabled={busy !== null}
           >
             {t('servers.helper.unbind')}
           </Button>
         )}
       </div>
+
+      {!binding && electron && <HelperInstallSnippet />}
 
       <p className="text-xs text-text-secondary">
         {t('servers.helper.probeHint', { url: probeUrl })}
@@ -123,6 +149,15 @@ export const HelperPairingPanel = ({
           {t('servers.helper.probe')}
         </Button>
       </div>
+
+      {electron && (
+        <HelperMdnsList
+          serverId={serverId}
+          onSelect={(url) => {
+            setManualUrl(url)
+          }}
+        />
+      )}
 
       <div className="space-y-1">
         <Label variant="form">{t('servers.helper.manualUrl')}</Label>
@@ -176,6 +211,8 @@ export const HelperPairingPanel = ({
           </Button>
         </div>
       </div>
+
+      {binding && <HelperConfigForm serverId={serverId} />}
     </div>
   )
 }

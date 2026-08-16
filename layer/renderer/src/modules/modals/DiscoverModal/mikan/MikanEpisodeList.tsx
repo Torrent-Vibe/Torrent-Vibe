@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { formatBytesSmart } from '~/lib/format'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
+import { useCurrentServerId } from '~/modules/helper-client/hooks'
+import { SubscriptionActions } from '~/modules/subscriptions'
 import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
 
 import { episodeStateLabelKey } from './episode-state'
@@ -24,6 +26,7 @@ export const MikanEpisodeList = ({
   statusByServer: Record<string, HelperStatusSnapshot>
 }) => {
   const { t } = useTranslation('app')
+  const serverId = useCurrentServerId()
 
   return (
     <ul className="divide-y divide-border rounded-lg border border-border bg-background">
@@ -54,16 +57,36 @@ export const MikanEpisodeList = ({
                 {state && <span>{t(episodeStateLabelKey(state))}</span>}
               </div>
             </div>
-            <Button
-              size="sm"
-              disabled={importing}
-              onClick={() => onImport(episode.episodeId)}
-            >
-              {importing && (
-                <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
+            <div className="flex shrink-0 flex-wrap gap-1.5">
+              {(state === 'failed' || state === 'needs-manual') && serverId && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    void SubscriptionActions.shared.retryEpisode({
+                      serverId,
+                      bangumiId,
+                      subgroupId: subgroupId ?? '',
+                      episodeId: episode.episodeId,
+                      title: episode.title,
+                      torrentUrl: episode.torrentUrl,
+                    })
+                  }}
+                >
+                  {t('discover.modal.mikan.retryEpisode')}
+                </Button>
               )}
-              {t('discover.modal.mikan.importEpisode')}
-            </Button>
+              <Button
+                size="sm"
+                disabled={importing}
+                onClick={() => onImport(episode.episodeId)}
+              >
+                {importing && (
+                  <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
+                )}
+                {t('discover.modal.mikan.importEpisode')}
+              </Button>
+            </div>
           </li>
         )
       })}

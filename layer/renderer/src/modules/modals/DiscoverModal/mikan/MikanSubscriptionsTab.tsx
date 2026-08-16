@@ -131,6 +131,32 @@ export const MikanSubscriptionsTab = () => {
                     : ''}
                 </p>
               )}
+              {latest
+                && (latest.state === 'failed'
+                  || latest.state === 'needs-manual') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const serverId = item.targetServerIds.find(id =>
+                      targets.some(
+                        target => target.id === id && target.paired,
+                      ))
+                    if (!serverId) {
+                      return
+                    }
+                    void SubscriptionActions.shared.retryEpisode({
+                      serverId,
+                      bangumiId: item.bangumiId,
+                      subgroupId: item.subgroupId,
+                      episodeId: latest.episodeId,
+                      title: latest.title,
+                    })
+                  }}
+                >
+                  {t('discover.modal.mikan.retryEpisode')}
+                </Button>
+              )}
 
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <Button
