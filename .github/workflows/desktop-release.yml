@@ -219,14 +219,31 @@ jobs:
           ZIP_PATH="$PWD/$(echo release/*.zip)"
           DMG_PATH="$PWD/$(echo release/*.dmg)"
 
+          find_app() {
+            find "$1" -name '*.app' -type d -print -quit
+          }
+
           ZIP_EXTRACT_DIR="$(mktemp -d)"
           ditto -x -k "$ZIP_PATH" "$ZIP_EXTRACT_DIR"
-          verify_app "$ZIP_EXTRACT_DIR"/*.app
+          ZIP_APP="$(find_app "$ZIP_EXTRACT_DIR")"
+          if [ -z "$ZIP_APP" ]; then
+            echo "::error::no .app inside $ZIP_PATH"
+            find "$ZIP_EXTRACT_DIR" -maxdepth 3
+            exit 1
+          fi
+          verify_app "$ZIP_APP"
           rm -rf "$ZIP_EXTRACT_DIR"
 
           DMG_MOUNT_DIR="$(mktemp -d)"
           hdiutil attach "$DMG_PATH" -mountpoint "$DMG_MOUNT_DIR" -nobrowse -quiet
-          verify_app "$DMG_MOUNT_DIR"/*.app
+          DMG_APP="$(find_app "$DMG_MOUNT_DIR")"
+          if [ -z "$DMG_APP" ]; then
+            echo "::error::no .app inside $DMG_PATH"
+            find "$DMG_MOUNT_DIR" -maxdepth 3
+            hdiutil detach "$DMG_MOUNT_DIR" -quiet || true
+            exit 1
+          fi
+          verify_app "$DMG_APP"
           hdiutil detach "$DMG_MOUNT_DIR" -quiet
 
       - name: prepare release archive dir
