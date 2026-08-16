@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label/Label'
+import { SettingInputField } from '~/modules/modals/SettingsModal/tabs/components'
 
 import { getHelperConfig, putHelperConfig } from './api'
 import { getHelperBinding } from './bindings'
@@ -16,6 +15,7 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
   const [qbitUrl, setQbitUrl] = useState('')
   const [qbitUser, setQbitUser] = useState('')
   const [qbitPass, setQbitPass] = useState('')
+  const [proxyUrl, setProxyUrl] = useState('')
   const [pollIntervalMs, setPollIntervalMs] = useState('600000')
   const [busy, setBusy] = useState(false)
 
@@ -30,6 +30,7 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
         setCategory(config.category)
         setQbitUrl(config.qbitUrl)
         setQbitUser(config.qbitUser)
+        setProxyUrl(config.proxyUrl)
         setPollIntervalMs(String(config.pollIntervalMs))
       })
       .catch(() => {
@@ -38,70 +39,90 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
   }, [serverId, t])
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-text">
-        {t('servers.helper.configTitle')}
-      </p>
-      <Label variant="form">{t('servers.helper.libraryRoot')}</Label>
-      <Input
+    <div className="space-y-3">
+      <SettingInputField
+        dense
+        id="helper-library-root"
+        label={t('servers.helper.libraryRoot')}
+        description={t('servers.helper.libraryRootHint')}
         value={libraryRoot}
-        onChange={event => setLibraryRoot(event.target.value)}
+        onChange={setLibraryRoot}
       />
-      <p className="text-xs text-text-tertiary">
-        {t('servers.helper.libraryRootHint')}
-      </p>
-      <Label variant="form">{t('servers.helper.category')}</Label>
-      <Input
+      <SettingInputField
+        dense
+        id="helper-category"
+        label={t('servers.helper.category')}
         value={category}
-        onChange={event => setCategory(event.target.value)}
+        onChange={setCategory}
       />
-      <Label variant="form">{t('servers.helper.qbitUrl')}</Label>
-      <Input
+      <SettingInputField
+        dense
+        id="helper-qbit-url"
+        label={t('servers.helper.qbitUrl')}
         value={qbitUrl}
-        onChange={event => setQbitUrl(event.target.value)}
+        onChange={setQbitUrl}
+        placeholder="http://127.0.0.1:8080"
       />
-      <Label variant="form">{t('servers.helper.qbitUser')}</Label>
-      <Input
+      <SettingInputField
+        dense
+        id="helper-qbit-user"
+        label={t('servers.helper.qbitUser')}
         value={qbitUser}
-        onChange={event => setQbitUser(event.target.value)}
+        onChange={setQbitUser}
       />
-      <Label variant="form">{t('servers.helper.qbitPass')}</Label>
-      <Input
+      <SettingInputField
+        dense
+        id="helper-qbit-pass"
+        label={t('servers.helper.qbitPass')}
+        description={t('servers.helper.qbitPassHint')}
         type="password"
         value={qbitPass}
-        onChange={event => setQbitPass(event.target.value)}
+        onChange={setQbitPass}
       />
-      <Button
-        size="sm"
-        disabled={busy}
-        onClick={() => {
-          const binding = getHelperBinding(serverId)
-          if (!binding) {
-            return
-          }
-          setBusy(true)
-          void putHelperConfig(binding.url, binding.token, {
-            libraryRoot,
-            category,
-            qbitUrl,
-            qbitUser,
-            pollIntervalMs: Number(pollIntervalMs) || 600_000,
-            ...(qbitPass ? { qbitPass } : {}),
-          })
-            .then(() => {
-              toast.success(t('servers.helper.configSaved'))
-              setQbitPass('')
+      <SettingInputField
+        dense
+        id="helper-proxy-url"
+        label={t('servers.helper.proxyUrl')}
+        description={t('servers.helper.proxyUrlHint')}
+        value={proxyUrl}
+        onChange={setProxyUrl}
+        placeholder="socks5://127.0.0.1:7891"
+      />
+
+      <div className="flex justify-end border-t border-border/60 pt-3">
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() => {
+            const binding = getHelperBinding(serverId)
+            if (!binding) {
+              return
+            }
+            setBusy(true)
+            void putHelperConfig(binding.url, binding.token, {
+              libraryRoot,
+              category,
+              qbitUrl,
+              qbitUser,
+              pollIntervalMs: Number(pollIntervalMs) || 600_000,
+              proxyUrl,
+              ...(qbitPass ? { qbitPass } : {}),
             })
-            .catch(() => {
-              toast.error(t('servers.helper.configSaveFailed'))
-            })
-            .finally(() => {
-              setBusy(false)
-            })
-        }}
-      >
-        {t('servers.helper.saveConfig')}
-      </Button>
+              .then(() => {
+                toast.success(t('servers.helper.configSaved'))
+                setQbitPass('')
+              })
+              .catch(() => {
+                toast.error(t('servers.helper.configSaveFailed'))
+              })
+              .finally(() => {
+                setBusy(false)
+              })
+          }}
+        >
+          {t('servers.helper.saveConfig')}
+        </Button>
+      </div>
     </div>
   )
 }

@@ -233,7 +233,7 @@
   "general.connection.buttons.save": "Save",
   "general.connection.buttons.saving": "Saving...",
   "general.connection.buttons.validating": "Validating connection...",
-  "general.connection.helper.title": "Mikan helper",
+  "general.connection.helper.title": "Helper",
   "general.connection.host.label": "Host",
   "general.connection.host.placeholder": "10.0.0.32",
   "general.connection.password.label": "Password",

@@ -10,6 +10,7 @@ export interface SettingFieldProps extends PropsWithChildren {
   htmlFor?: string
   controlAlign?: 'start' | 'end'
   controlClassName?: string
+  dense?: boolean
 }
 
 export const SettingField = ({
@@ -20,21 +21,34 @@ export const SettingField = ({
   children,
   controlAlign = 'end',
   controlClassName,
+  dense = false,
 }: SettingFieldProps) => {
   return (
-    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div
+      className={cn(
+        'flex flex-col md:flex-row md:items-center md:justify-between',
+        dense ? 'gap-1.5' : 'gap-2',
+      )}
+    >
       <div>
-        <Label htmlFor={htmlFor} className="text-text">
+        <Label
+          htmlFor={htmlFor}
+          className={cn('text-text', dense && 'text-[13px]')}
+        >
           {label}
         </Label>
-        {description ? (
-          <div className="mt-1 text-xs text-text-secondary flex items-center gap-2">
-            <div className="min-w-0">{description}</div>
-            {descriptionTrailing ? (
-              <div className="ml-auto shrink-0">{descriptionTrailing}</div>
-            ) : null}
-          </div>
-        ) : null}
+        {description
+          ? (
+              <div className="mt-1 text-xs text-text-secondary flex items-center gap-2">
+                <div className="min-w-0">{description}</div>
+                {descriptionTrailing
+                  ? (
+                      <div className="ml-auto shrink-0">{descriptionTrailing}</div>
+                    )
+                  : null}
+              </div>
+            )
+          : null}
       </div>
       <div
         className={cn(

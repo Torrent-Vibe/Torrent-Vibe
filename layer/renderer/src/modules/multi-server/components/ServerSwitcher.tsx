@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import { Button } from '~/components/ui/button'
 import {
@@ -29,53 +29,62 @@ interface ServerSwitcherProps {
 }
 
 export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
-  // Initialize from storage on first mount
-  useEffect(() => {
-    if (!ELECTRON) return
-    // Load existing or migrate legacy
-    const ms = loadMultiServerConfig()
+  const persistReadyRef = useRef(false)
 
+  useEffect(() => {
+    if (!ELECTRON) {
+      return
+    }
+    const ms = loadMultiServerConfig()
     const cfg = ms.servers.length > 0 ? ms : migrateToMultiServer()
     multiServerStoreSetters.replaceAll(cfg)
+    persistReadyRef.current = true
   }, [])
 
   const { switchTo } = useServerSwitching()
 
-  const { order, servers, activeServerId } = useMultiServerStore((s) => ({
+  const { order, servers, activeServerId } = useMultiServerStore(s => ({
     order: s.order,
     servers: s.servers,
     activeServerId: s.activeServerId,
   }))
 
-  // persist on change (lightweight debounce not necessary for minimal v1)
   useEffect(() => {
-    if (!ELECTRON) return
-    const data = {
-      servers: order.map((id) => servers[id]).filter(Boolean),
-      activeServerId,
+    if (!ELECTRON || !persistReadyRef.current) {
+      return
     }
-    saveMultiServerConfig(data)
+    saveMultiServerConfig({
+      servers: order.map(id => servers[id]).filter(Boolean),
+      activeServerId,
+    })
   }, [order, servers, activeServerId])
 
   const activeName = useMemo(() => {
-    if (!activeServerId) return 'No Server'
+    if (!activeServerId) {
+      return 'No Server'
+    }
     return servers[activeServerId]?.name ?? 'Unknown'
   }, [activeServerId, servers])
 
-  const health = useServerHealthStore((s) =>
-    activeServerId ? s.results[activeServerId] : undefined,
-  )
+  const health = useServerHealthStore(s =>
+    activeServerId ? s.results[activeServerId] : undefined)
 
-  if (!ELECTRON) return null
+  if (!ELECTRON) {
+    return null
+  }
 
   // Helper functions are now encapsulated in composable components
 
   // For 2 servers: simple toggle behavior
   const handleToggle = async () => {
-    if (order.length !== 2) return
+    if (order.length !== 2) {
+      return
+    }
     const idx = activeServerId ? order.indexOf(activeServerId) : -1
     const nextId = order[(idx + 1) % order.length]
-    if (nextId && nextId !== activeServerId) await switchTo(nextId)
+    if (nextId && nextId !== activeServerId) {
+      await switchTo(nextId)
+    }
   }
 
   // For 3+ servers: use dropdown menu
@@ -106,7 +115,9 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
           >
             {order.map((serverId) => {
               const server = servers[serverId]
-              if (!server) return null
+              if (!server) {
+                return null
+              }
 
               return (
                 <DropdownMenuRadioItem key={serverId} value={serverId}>

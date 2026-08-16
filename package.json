@@ -19,6 +19,7 @@
     "dev": "vite",
     "predev:electron": "pnpm build:native",
     "dev:electron": "node scripts/dev-electron.mjs",
+    "helper:sync": "bash scripts/dev-helper-sync.sh",
     "electron:build": "vite build --config vite.config.electron.ts && tsdown",
     "electron:make": "electron-builder --publish never",
     "electron:make:darwin": "pnpm build:native && electron-builder --mac dmg zip --arm64 --publish never",

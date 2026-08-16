@@ -55,7 +55,7 @@ process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
 function startElectron() {
-  electron = spawn(electronBin, ['.'], {
+  electron = spawn(electronBin, ['.', '--remote-debugging-port=9222'], {
     cwd: projectRoot,
     stdio: 'inherit',
     env: { ...process.env, NODE_ENV: 'development', ELECTRON_DEV: '1' },

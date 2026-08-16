@@ -231,7 +231,7 @@
   "general.connection.buttons.save": "保存",
   "general.connection.buttons.saving": "保存中...",
   "general.connection.buttons.validating": "正在验证连接...",
-  "general.connection.helper.title": "Mikan Helper",
+  "general.connection.helper.title": "Helper",
   "general.connection.host.label": "主机",
   "general.connection.host.placeholder": "10.0.0.32",
   "general.connection.password.label": "密码",

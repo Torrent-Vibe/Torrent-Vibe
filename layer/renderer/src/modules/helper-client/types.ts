@@ -65,6 +65,9 @@ export interface HelperConfigPublic {
   qbitUser: string
   hasQbitPass: boolean
   pollIntervalMs: number
+  proxyUrl: string
+  variantPrefer: string
+  hasTmdbApiKey: boolean
 }
 
 export type HelperConfigPatch = Partial<{
@@ -74,4 +77,7 @@ export type HelperConfigPatch = Partial<{
   qbitUser: string
   qbitPass: string
   pollIntervalMs: number
+  proxyUrl: string
+  variantPrefer: string
+  tmdbApiKey: string
 }>

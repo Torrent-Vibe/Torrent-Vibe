@@ -299,6 +299,12 @@ export const getHelperConfig = async (
       typeof record.pollIntervalMs === 'number'
         ? record.pollIntervalMs
         : 600_000,
+    proxyUrl: typeof record.proxyUrl === 'string' ? record.proxyUrl : '',
+    variantPrefer:
+      typeof record.variantPrefer === 'string' && record.variantPrefer !== ''
+        ? record.variantPrefer
+        : 'internal,sc,tc',
+    hasTmdbApiKey: record.hasTmdbApiKey === true,
   }
 }
 

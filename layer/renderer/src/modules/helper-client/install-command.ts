@@ -8,10 +8,10 @@ export const helperInstallCommand = (input: {
   const asset = `torrent-vibe-helper_linux_${input.arch}`
   const url = `https://github.com/${repo}/releases/latest/download/${asset}`
   return [
-    `curl -fsSL -o torrent-vibe-helper \\`,
+    `mkdir -p "$HOME/.local/bin"`,
+    `curl -fsSL -o "$HOME/.local/bin/torrent-vibe-helper" \\`,
     `  "${url}"`,
-    `chmod +x torrent-vibe-helper`,
-    `sudo mv torrent-vibe-helper /usr/local/bin/torrent-vibe-helper`,
-    `torrent-vibe-helper`,
+    `chmod +x "$HOME/.local/bin/torrent-vibe-helper"`,
+    `"$HOME/.local/bin/torrent-vibe-helper" install`,
   ].join('\n')
 }

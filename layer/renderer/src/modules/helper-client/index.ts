@@ -26,6 +26,7 @@ export {
   setHelperBinding,
   useHelperBindingsStore,
 } from './bindings'
+export { connectHelper, helperOwnerName } from './connect'
 export {
   useCurrentHelperPaired,
   useCurrentHelperTarget,
