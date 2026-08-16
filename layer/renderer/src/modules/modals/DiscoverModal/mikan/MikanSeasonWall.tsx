@@ -98,7 +98,7 @@ export const MikanSeasonWall = () => {
               <MikanBangumiCard
                 key={item.id}
                 item={item}
-                onSelect={mikan.openBangumi}
+                onSelect={mikan.pushBangumi}
               />
             ))}
           </div>

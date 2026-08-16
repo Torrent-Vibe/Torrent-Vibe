@@ -1,5 +1,6 @@
 import type { DiscoverProviderId } from '~/atoms/settings/discover'
 
+import { emptyMikanBrowseScroll } from '../../mikan/stack'
 import type { DiscoverActionContext } from '../context'
 import { writeLastProvider } from '../lastProviderPersist'
 import type { ConfigureProviderOptions } from '../types'
@@ -36,7 +37,8 @@ export const createProviderSlice = (context: DiscoverActionContext) => {
       draft.importing = false
       draft.totalPages = 0
       draft.total = null
-      draft.mikanTab = 'season'
+      draft.mikanStack = []
+      draft.mikanBrowseScroll = emptyMikanBrowseScroll()
       draft.mikanBangumiId = null
       draft.mikanDetail = null
       draft.mikanDetailLoading = false

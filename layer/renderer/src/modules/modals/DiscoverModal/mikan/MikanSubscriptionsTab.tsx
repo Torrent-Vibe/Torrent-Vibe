@@ -75,7 +75,7 @@ export const MikanSubscriptionsTab = () => {
                     ],
                   },
                 }
-                mikan.openBangumi(discoverItem)
+                mikan.pushBangumi(discoverItem)
               }}
             >
               {cover

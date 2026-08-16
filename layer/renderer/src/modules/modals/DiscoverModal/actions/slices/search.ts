@@ -127,6 +127,13 @@ export const createSearchSlice = (
       return { ok: false, error: 'providerNotReady' }
     }
 
+    if (
+      snapshot.activeProviderId === 'mikan'
+      && snapshot.mikanStack.length > 0
+    ) {
+      return { ok: false, error: 'stackActive' }
+    }
+
     const committed = buildCommittedSearch()
     recordSearchKeyword(committed.keyword)
     const resetItems = shouldResetMikanItems(

@@ -11,6 +11,8 @@ import type {
 } from '~/modules/discover'
 
 import { readLastProvider } from './actions/lastProviderPersist'
+import type { MikanStackFrame } from './mikan/stack'
+import { emptyMikanBrowseScroll } from './mikan/stack'
 import type { DiscoverCommittedSearchState, DiscoverFilterState } from './types'
 
 export interface DiscoverModalState {
@@ -36,7 +38,8 @@ export interface DiscoverModalState {
   isPreviewLoading: boolean
   previewError: string | null
   importing: boolean
-  mikanTab: 'season' | 'subscriptions'
+  mikanStack: MikanStackFrame[]
+  mikanBrowseScroll: { wall: number, search: number }
   mikanBangumiId: string | null
   mikanDetail: DiscoverItemDetail | null
   mikanDetailLoading: boolean
@@ -67,7 +70,8 @@ const createInitialState = (): DiscoverModalState => ({
   isPreviewLoading: false,
   previewError: null,
   importing: false,
-  mikanTab: 'season',
+  mikanStack: [],
+  mikanBrowseScroll: emptyMikanBrowseScroll(),
   mikanBangumiId: null,
   mikanDetail: null,
   mikanDetailLoading: false,

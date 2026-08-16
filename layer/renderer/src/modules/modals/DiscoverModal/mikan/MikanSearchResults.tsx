@@ -20,7 +20,7 @@ export const MikanSearchResults = () => {
           <MikanBangumiCard
             key={item.id}
             item={item}
-            onSelect={mikan.openBangumi}
+            onSelect={mikan.pushBangumi}
           />
         ))}
       </div>

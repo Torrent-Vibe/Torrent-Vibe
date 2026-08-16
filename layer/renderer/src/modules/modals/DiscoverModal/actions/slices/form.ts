@@ -1,3 +1,4 @@
+import { emptyMikanBrowseScroll } from '../../mikan/stack'
 import type { DiscoverFilterState } from '../../types'
 import type { DiscoverActionContext } from '../context'
 
@@ -49,6 +50,8 @@ export const createFormSlice = (context: DiscoverActionContext) => {
       draft.importing = false
       draft.totalPages = 0
       draft.total = 0
+      draft.mikanStack = []
+      draft.mikanBrowseScroll = emptyMikanBrowseScroll()
       draft.mikanBangumiId = null
       draft.mikanDetail = null
       draft.mikanDetailLoading = false

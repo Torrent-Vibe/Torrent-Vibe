@@ -1,6 +1,6 @@
 # Bangumi Discover UI — Design Spec
 
-2026-08-16 · Status: drafted for review
+2026-08-16 · Status: approved
 
 Supersedes the chrome, tabs, and view-stack sections of
 `2026-08-15-mikan-discover-design.md`. Helper pairing, subscriptions as

@@ -2,6 +2,13 @@ import type { DiscoverItem } from '~/modules/discover'
 import { asMikanBangumiExtra } from '~/modules/discover/providers/mikan/utils'
 import { DiscoverService } from '~/modules/discover/service'
 
+import {
+  mikanBrowseBody,
+  mikanDetailBangumiId,
+  nextStackAfterBangumi,
+  nextStackAfterSubscriptions,
+  popMikanStack,
+} from '../../mikan/stack'
 import type { DiscoverActionContext } from '../context'
 import {
   readLastMikanSubgroup,
@@ -22,6 +29,27 @@ const pickSubgroupId = (
     return remembered
   }
   return subgroups[0]?.id ?? null
+}
+
+const applyDetailPointer = (
+  draft: {
+    mikanStack: Parameters<typeof mikanDetailBangumiId>[0]
+    mikanBangumiId: string | null
+    mikanDetail: DiscoverItem | null
+    mikanDetailLoading: boolean
+    mikanDetailError: string | null
+    mikanSubgroupId: string | null
+  },
+  previousBangumiId: string | null,
+) => {
+  const nextId = mikanDetailBangumiId(draft.mikanStack)
+  draft.mikanBangumiId = nextId
+  if (nextId !== previousBangumiId && nextId === null) {
+    draft.mikanDetail = null
+    draft.mikanDetailLoading = false
+    draft.mikanDetailError = null
+    draft.mikanSubgroupId = null
+  }
 }
 
 export const createMikanSlice = (context: DiscoverActionContext) => {
@@ -84,32 +112,49 @@ export const createMikanSlice = (context: DiscoverActionContext) => {
     }
   }
 
-  const openBangumi = (item: DiscoverItem) => {
+  const saveBrowseScroll = (scrollTop: number) => {
     context.setState((draft) => {
-      draft.mikanBangumiId = item.id
+      if (draft.mikanStack.length > 0) {
+        return
+      }
+      const key = mikanBrowseBody(draft.committedSearch?.keyword)
+      draft.mikanBrowseScroll[key] = scrollTop
+    })
+  }
+
+  const pushSubscriptions = () => {
+    context.setState((draft) => {
+      const previous = draft.mikanBangumiId
+      draft.mikanStack = nextStackAfterSubscriptions(draft.mikanStack)
+      applyDetailPointer(draft, previous)
+    })
+  }
+
+  const pushBangumi = (item: DiscoverItem) => {
+    const previous = context.getState().mikanBangumiId
+    context.setState((draft) => {
+      draft.mikanStack = nextStackAfterBangumi(draft.mikanStack, item.id)
+      applyDetailPointer(draft, previous)
+      if (draft.mikanBangumiId !== item.id) {
+        return
+      }
       draft.mikanDetail = item
       draft.mikanDetailLoading = true
       draft.mikanDetailError = null
       draft.mikanSubgroupId = readLastMikanSubgroup(item.id)
     })
 
-    void loadBangumiDetail(item.id)
+    if (context.getState().mikanBangumiId === item.id) {
+      void loadBangumiDetail(item.id)
+    }
   }
 
-  const closeBangumi = () => {
+  const popStack = () => {
     context.mikan.invalidate()
     context.setState((draft) => {
-      draft.mikanBangumiId = null
-      draft.mikanDetail = null
-      draft.mikanDetailLoading = false
-      draft.mikanDetailError = null
-      draft.mikanSubgroupId = null
-    })
-  }
-
-  const setMikanTab = (tab: 'season' | 'subscriptions') => {
-    context.setState((draft) => {
-      draft.mikanTab = tab
+      const previous = draft.mikanBangumiId
+      draft.mikanStack = popMikanStack(draft.mikanStack)
+      applyDetailPointer(draft, previous)
     })
   }
 
@@ -135,9 +180,10 @@ export const createMikanSlice = (context: DiscoverActionContext) => {
   }
 
   return {
-    openBangumi,
-    closeBangumi,
-    setMikanTab,
+    saveBrowseScroll,
+    pushSubscriptions,
+    pushBangumi,
+    popStack,
     selectSubgroup,
     retryBangumiDetail,
   }
