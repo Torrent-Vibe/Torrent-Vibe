@@ -192,11 +192,16 @@ jobs:
 
       # dmg/zip from package embed the pre-staple app; rebuild both from the
       # stapled bundle. --prepackaged skips pack/sign; only re-runs dmg/zip.
+      # Pass the .app itself — pointing at mac-arm64 wraps that folder as
+      # Torrent Vibe.app/Torrent Vibe.app (outer shell has no Contents) and
+      # zips mac-arm64/Torrent Vibe.app instead of Torrent Vibe.app/.
       - name: repackage dmg + zip from the stapled app
         if: steps.signing.outputs.enabled == 'true'
         run: |
           rm -f release/*.dmg release/*.zip
-          pnpm exec electron-builder --prepackaged release/mac-arm64 --mac dmg zip --arm64 --publish never
+          pnpm exec electron-builder \
+            --prepackaged "release/mac-arm64/Torrent Vibe.app" \
+            --mac dmg zip --arm64 --publish never
 
       - name: verify signature (dmg + zip both embed the already-signed app)
         env:
