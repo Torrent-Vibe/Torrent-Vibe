@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
@@ -20,8 +21,11 @@ type Runtime struct {
 	Bound          bool
 	Store          *store.Store
 	DataDir        string
+	Config         config.File
 	OnBackfill     func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
 	OnUnpair       func() error
+	ProbeQbit      func(url, user, pass string) error
+	ApplyConfig    func(config.File)
 	mu             sync.Mutex
 }
 
@@ -34,6 +38,8 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("GET /status", rt.authed(rt.status))
 	mux.HandleFunc("POST /backfill", rt.authed(rt.backfill))
 	mux.HandleFunc("POST /unpair", rt.authed(rt.unpair))
+	mux.HandleFunc("GET /config", rt.authed(rt.getConfig))
+	mux.HandleFunc("PUT /config", rt.authed(rt.putConfig))
 	return mux
 }
 
