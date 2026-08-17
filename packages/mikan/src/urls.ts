@@ -2,15 +2,44 @@ function withTrailingSlash(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
 }
 
-export function joinMikanUrl(baseUrl: string, path: string): string {
-  const base = withTrailingSlash(baseUrl)
-  if (/^https?:\/\//i.test(path) || path.startsWith('//')) {
-    const absolute = path.startsWith('//') ? `https:${path}` : path
-    const remote = new URL(absolute)
-    return new URL(`${remote.pathname}${remote.search}${remote.hash}`, base)
-      .href
+interface HttpBase {
+  directory: string
+  origin: string
+}
+
+function parseHttpBase(baseUrl: string): HttpBase {
+  const match = baseUrl
+    .trim()
+    .match(/^(https?):\/\/([^#/?]+)(\/[^#?]*)?(?:\?[^#]*)?(?:#.*)?$/i)
+  if (!match) {
+    throw new TypeError(`Invalid Mikan base URL: ${baseUrl}`)
   }
-  return new URL(path, base).href
+
+  return {
+    origin: `${match[1].toLowerCase()}://${match[2]}`,
+    directory: withTrailingSlash(match[3] || '/'),
+  }
+}
+
+function pathFromAbsoluteUrl(value: string): string | undefined {
+  const match = value.match(
+    /^(?:https?:)?\/\/[^#/?]+(\/[^#?]*)?(\?[^#]*)?(#.*)?$/i,
+  )
+  if (!match) {
+    return undefined
+  }
+  return `${match[1] || '/'}${match[2] || ''}${match[3] || ''}`
+}
+
+export function joinMikanUrl(baseUrl: string, path: string): string {
+  const base = parseHttpBase(baseUrl)
+  const remotePath = pathFromAbsoluteUrl(path)
+  const normalizedPath = remotePath ?? path
+
+  if (normalizedPath.startsWith('/')) {
+    return `${base.origin}${normalizedPath}`
+  }
+  return `${base.origin}${base.directory}${normalizedPath}`
 }
 
 export function bangumiRssUrl(
@@ -18,10 +47,8 @@ export function bangumiRssUrl(
   bangumiId: string,
   subgroupId: string,
 ): string {
-  const url = new URL('RSS/Bangumi', withTrailingSlash(baseUrl))
-  url.searchParams.set('bangumiId', bangumiId)
-  url.searchParams.set('subgroupid', subgroupId)
-  return url.href
+  const url = joinMikanUrl(baseUrl, 'RSS/Bangumi')
+  return `${url}?bangumiId=${encodeURIComponent(bangumiId)}&subgroupid=${encodeURIComponent(subgroupId)}`
 }
 
 export function torrentDownloadUrl(baseUrl: string, href: string): string {
