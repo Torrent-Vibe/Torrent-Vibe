@@ -130,6 +130,12 @@ func run() error {
 			mu.Unlock()
 			return loop.Backfill(deps, bangumiID, subgroupID, episodes)
 		},
+		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
+			mu.Lock()
+			cfg := rt.Config
+			mu.Unlock()
+			return qb.NewClient(cfg.QbitURL, cfg.QbitUser, cfg.QbitPass, nil).DeleteTorrents(hashes, deleteFiles)
+		},
 		ProbeQbit: func(rawURL, user, pass string) error {
 			client := qb.NewClient(rawURL, user, pass, nil)
 			_, err := client.ListTorrents()

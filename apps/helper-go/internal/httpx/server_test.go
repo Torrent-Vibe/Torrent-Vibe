@@ -3,6 +3,7 @@ package httpx_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -275,5 +276,169 @@ func TestUnpairRotatesTokenAndClearsStore(t *testing.T) {
 	body = decode(t, res)
 	if body["token"] == token || body["token"] == "" {
 		t.Fatalf("expected rotated token, got %+v", body)
+	}
+}
+
+func keepReplica() protocol.Replica {
+	item := replica("2")
+	item.BangumiID = "bgm-keep"
+	item.SubgroupID = "sg-keep"
+	return item
+}
+
+func putSubscriptions(t *testing.T, srv *httptest.Server, payload []byte) map[string]any {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	return decode(t, res)
+}
+
+func TestPutRemoveTorrentsDeletesHashes(t *testing.T) {
+	var gotHashes []string
+	var gotDelete bool
+	dir := t.TempDir()
+	st := store.New(dir)
+	drop := replica("1")
+	keep := keepReplica()
+	if err := st.SaveReplicas([]protocol.Replica{drop, keep}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveEpisodes(map[string][]store.Episode{
+		store.EpisodeKey("bgm-1", "sg-1"): {
+			{EpisodeID: "e1", Title: "e1", Infohash: "aaa", State: protocol.StateDone},
+			{EpisodeID: "e2", Title: "e2", State: protocol.StatePending},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rt := &httpx.Runtime{
+		Token: token, Store: st, DataDir: dir,
+		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
+			gotHashes = append([]string(nil), hashes...)
+			gotDelete = deleteFiles
+			return nil
+		},
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	payload, _ := json.Marshal(map[string]any{
+		"replicas":       []protocol.Replica{keep},
+		"removeTorrents": true,
+		"deleteFiles":    true,
+	})
+	body := putSubscriptions(t, srv, payload)
+	raw, _ := json.Marshal(body["replicas"])
+	var got []protocol.Replica
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "2" {
+		t.Fatalf("%+v", got)
+	}
+	if len(gotHashes) != 1 || gotHashes[0] != "aaa" {
+		t.Fatalf("%+v", gotHashes)
+	}
+	if !gotDelete {
+		t.Fatal("deleteFiles")
+	}
+	episodes, err := st.LoadEpisodes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := episodes[store.EpisodeKey("bgm-1", "sg-1")]; ok {
+		t.Fatalf("%+v", episodes)
+	}
+}
+
+func TestPutWithoutRemoveTorrentsKeepsEpisodes(t *testing.T) {
+	called := false
+	dir := t.TempDir()
+	st := store.New(dir)
+	drop := replica("1")
+	keep := keepReplica()
+	if err := st.SaveReplicas([]protocol.Replica{drop, keep}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveEpisodes(map[string][]store.Episode{
+		store.EpisodeKey("bgm-1", "sg-1"): {
+			{EpisodeID: "e1", Title: "e1", Infohash: "aaa", State: protocol.StateDone},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rt := &httpx.Runtime{
+		Token: token, Store: st, DataDir: dir,
+		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
+			called = true
+			return nil
+		},
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	payload, _ := json.Marshal(map[string]any{"replicas": []protocol.Replica{keep}})
+	putSubscriptions(t, srv, payload)
+	if called {
+		t.Fatal("OnDeleteTorrents")
+	}
+	episodes, err := st.LoadEpisodes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := episodes[store.EpisodeKey("bgm-1", "sg-1")]; !ok {
+		t.Fatalf("%+v", episodes)
+	}
+}
+
+func TestPutRemoveTorrentsKeepsMapOnDeleteError(t *testing.T) {
+	dir := t.TempDir()
+	st := store.New(dir)
+	drop := replica("1")
+	keep := keepReplica()
+	if err := st.SaveReplicas([]protocol.Replica{drop, keep}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveEpisodes(map[string][]store.Episode{
+		store.EpisodeKey("bgm-1", "sg-1"): {
+			{EpisodeID: "e1", Title: "e1", Infohash: "aaa", State: protocol.StateDone},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rt := &httpx.Runtime{
+		Token: token, Store: st, DataDir: dir,
+		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
+			return errors.New("qb down")
+		},
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	payload, _ := json.Marshal(map[string]any{
+		"replicas":       []protocol.Replica{keep},
+		"removeTorrents": true,
+		"deleteFiles":    false,
+	})
+	body := putSubscriptions(t, srv, payload)
+	raw, _ := json.Marshal(body["replicas"])
+	var got []protocol.Replica
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "2" {
+		t.Fatalf("%+v", got)
+	}
+	episodes, err := st.LoadEpisodes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := episodes[store.EpisodeKey("bgm-1", "sg-1")]; !ok {
+		t.Fatalf("%+v", episodes)
 	}
 }

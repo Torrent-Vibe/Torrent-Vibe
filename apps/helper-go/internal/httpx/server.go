@@ -13,20 +13,21 @@ import (
 )
 
 type Runtime struct {
-	Version        string
-	Port           int
-	AdvertisedQbit string
-	PairingCode    string
-	Token          string
-	Bound          bool
-	Store          *store.Store
-	DataDir        string
-	Config         config.File
-	OnBackfill     func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
-	OnUnpair       func() error
-	ProbeQbit      func(url, user, pass string) error
-	ApplyConfig    func(config.File)
-	mu             sync.Mutex
+	Version          string
+	Port             int
+	AdvertisedQbit   string
+	PairingCode      string
+	Token            string
+	Bound            bool
+	Store            *store.Store
+	DataDir          string
+	Config           config.File
+	OnBackfill       func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
+	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
+	OnUnpair         func() error
+	ProbeQbit        func(url, user, pass string) error
+	ApplyConfig      func(config.File)
+	mu               sync.Mutex
 }
 
 func New(rt *Runtime) http.Handler {
@@ -106,7 +107,9 @@ func (rt *Runtime) getSubscriptions(w http.ResponseWriter, _ *http.Request) {
 
 func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Replicas []protocol.Replica `json:"replicas"`
+		Replicas       []protocol.Replica `json:"replicas"`
+		RemoveTorrents bool               `json:"removeTorrents"`
+		DeleteFiles    bool               `json:"deleteFiles"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Replicas == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
@@ -117,12 +120,64 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	if body.RemoveTorrents {
+		if err := rt.dropRemovedTorrents(current, body.Replicas, body.DeleteFiles); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+			return
+		}
+	}
 	next := applyDesired(current, body.Replicas)
 	if err := rt.Store.SaveReplicas(next); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"replicas": next})
+}
+
+func (rt *Runtime) dropRemovedTorrents(current, desired []protocol.Replica, deleteFiles bool) error {
+	episodes, err := rt.Store.LoadEpisodes()
+	if err != nil {
+		return err
+	}
+	currentByID := make(map[string]protocol.Replica, len(current))
+	for _, replica := range current {
+		currentByID[replica.ID] = replica
+	}
+	changed := false
+	for _, op := range protocol.DesiredStateDiff(desired, current) {
+		if op.Type != protocol.OpRemove {
+			continue
+		}
+		replica, ok := currentByID[op.ID]
+		if !ok {
+			continue
+		}
+		key := store.EpisodeKey(replica.BangumiID, replica.SubgroupID)
+		list := episodes[key]
+		hashes := make([]string, 0, len(list))
+		for _, episode := range list {
+			if episode.Infohash != "" {
+				hashes = append(hashes, episode.Infohash)
+			}
+		}
+		if len(hashes) == 0 {
+			delete(episodes, key)
+			changed = true
+			continue
+		}
+		if rt.OnDeleteTorrents == nil {
+			continue
+		}
+		if err := rt.OnDeleteTorrents(hashes, deleteFiles); err != nil {
+			continue
+		}
+		delete(episodes, key)
+		changed = true
+	}
+	if !changed {
+		return nil
+	}
+	return rt.Store.SaveEpisodes(episodes)
 }
 
 func applyDesired(current, desired []protocol.Replica) []protocol.Replica {
@@ -190,8 +245,8 @@ func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 
 func (rt *Runtime) backfill(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		BangumiID  string            `json:"bangumiId"`
-		SubgroupID string            `json:"subgroupId"`
+		BangumiID  string             `json:"bangumiId"`
+		SubgroupID string             `json:"subgroupId"`
 		Episodes   []mikan.RssEpisode `json:"episodes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.BangumiID == "" || body.SubgroupID == "" || body.Episodes == nil {

@@ -5,23 +5,26 @@ import type {
 import { desiredStateDiff } from '@torrent-vibe/helper-protocol'
 import type { RssEpisode } from '@torrent-vibe/mikan'
 
+import type { HelperStatusResponse } from '../helper-client'
 import {
   backfillHelper,
   clearHelperBinding,
   getHelperBinding,
   getHelperStatus,
-  getHelperSubscriptions,
   isHelperAuthError,
   listServerHelperTargets,
-  putHelperSubscriptions,
   resolveCurrentServerId,
-  retryHelperEpisode,
-  unpairHelper,
 } from '../helper-client'
 import { desiredReplicasForServer } from './desired-set'
+import { liveHelperClient, liveRetry, liveUnpair } from './live-client'
 import type { SubscriptionPersist } from './persist'
 import { localSubscriptionPersist } from './persist'
 import { subscriptionStore } from './store'
+import {
+  dropLeftoverTorrents,
+  liveDeleteTorrents,
+  liveLoadHelperStatus,
+} from './unsubscribe-cleanup'
 
 export interface ActionResult<T = void> {
   data?: T
@@ -40,17 +43,29 @@ export interface SubscribeInput {
   title: string
 }
 
+export interface SubscriptionPushOptions {
+  deleteFiles?: boolean
+  removeTorrents?: boolean
+}
+
 export interface HelperSyncClient {
   getSubscriptions: (serverId: string) => Promise<HelperReplica[]>
   putSubscriptions: (
     serverId: string,
     replicas: HelperReplica[],
+    options?: SubscriptionPushOptions,
   ) => Promise<void>
 }
 
 export interface SubscriptionActionDeps {
+  deleteTorrents?: (input: {
+    deleteFiles: boolean
+    hashes: string[]
+    serverId: string
+  }) => Promise<void>
   helper: HelperSyncClient
   id?: () => string
+  loadHelperStatus?: (serverId: string) => Promise<HelperStatusResponse | null>
   now?: () => string
   persist: SubscriptionPersist
   retry?: (input: {
@@ -68,67 +83,6 @@ const unique = (ids: string[]) => [...new Set(ids.filter(Boolean))]
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
-
-const liveUnpair = async (serverId: string) => {
-  const binding = getHelperBinding(serverId)
-  if (!binding) {
-    return
-  }
-  try {
-    await unpairHelper(binding.url, binding.token)
-  } catch (error) {
-    if (isHelperAuthError(error)) {
-      return
-    }
-    throw error
-  }
-}
-
-const liveRetry = async (input: {
-  serverId: string
-  bangumiId: string
-  subgroupId: string
-  episodeId: string
-  title?: string
-  torrentUrl?: string
-}) => {
-  const binding = getHelperBinding(input.serverId)
-  if (!binding) {
-    throw new Error('unbound')
-  }
-  await retryHelperEpisode(binding.url, binding.token, input)
-}
-
-const liveHelperClient: HelperSyncClient = {
-  async getSubscriptions(serverId) {
-    const binding = getHelperBinding(serverId)
-    if (!binding) {
-      throw new Error('unbound')
-    }
-    try {
-      return await getHelperSubscriptions(binding.url, binding.token)
-    } catch (error) {
-      if (isHelperAuthError(error)) {
-        clearHelperBinding(serverId)
-      }
-      throw error
-    }
-  },
-  async putSubscriptions(serverId, replicas) {
-    const binding = getHelperBinding(serverId)
-    if (!binding) {
-      throw new Error('unbound')
-    }
-    try {
-      await putHelperSubscriptions(binding.url, binding.token, replicas)
-    } catch (error) {
-      if (isHelperAuthError(error)) {
-        clearHelperBinding(serverId)
-      }
-      throw error
-    }
-  },
-}
 
 const writeItems = (
   persist: SubscriptionPersist,
@@ -175,7 +129,10 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     writeItems(deps.persist, items)
   }
 
-  const pushServers = async (serverIds: string[]): Promise<boolean> => {
+  const pushServers = async (
+    serverIds: string[],
+    options?: SubscriptionPushOptions,
+  ): Promise<boolean> => {
     const ids = unique(serverIds)
     if (ids.length === 0) {
       return true
@@ -197,7 +154,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           const current = await deps.helper.getSubscriptions(serverId)
           const ops = desiredStateDiff(desired, current)
           if (ops.length > 0) {
-            await deps.helper.putSubscriptions(serverId, desired)
+            await deps.helper.putSubscriptions(serverId, desired, options)
           }
           persistItems(
             applySyncPatch(
@@ -298,7 +255,10 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
       : { ok: false, error: 'partialSync', data: saved ?? nextItem }
   }
 
-  const unsubscribe = async (id: string): Promise<ActionResult> => {
+  const unsubscribe = async (
+    id: string,
+    options?: { deleteFiles?: boolean },
+  ): Promise<ActionResult> => {
     const current = subscriptionStore
       .getState()
       .items.find((item) => item.id === id)
@@ -308,7 +268,24 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     persistItems(
       subscriptionStore.getState().items.filter((item) => item.id !== id),
     )
-    const ok = await pushServers(current.targetServerIds)
+    const deleteFiles = options?.deleteFiles === true
+    let ok = await pushServers(current.targetServerIds, {
+      removeTorrents: true,
+      deleteFiles,
+    })
+    if (deps.loadHelperStatus && deps.deleteTorrents) {
+      const leftoverOk = await dropLeftoverTorrents({
+        serverIds: current.targetServerIds,
+        bangumiId: current.bangumiId,
+        subgroupId: current.subgroupId,
+        deleteFiles,
+        loadHelperStatus: deps.loadHelperStatus,
+        deleteTorrents: deps.deleteTorrents,
+      })
+      if (!leftoverOk) {
+        ok = false
+      }
+    }
     return ok ? { ok: true } : { ok: false, error: 'partialSync' }
   }
 
@@ -547,5 +524,7 @@ export const SubscriptionActions = {
     helper: liveHelperClient,
     unpair: liveUnpair,
     retry: liveRetry,
+    loadHelperStatus: liveLoadHelperStatus,
+    deleteTorrents: liveDeleteTorrents,
   }),
 }

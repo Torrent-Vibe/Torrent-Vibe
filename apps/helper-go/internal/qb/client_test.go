@@ -139,3 +139,59 @@ func TestAddTorrentEmptyBodyFails(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func clientWithDelete(inspect func(*http.Request)) *qb.HTTPClient {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/api/v2/auth/login"):
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("Ok.")),
+				Header:     http.Header{"Set-Cookie": []string{"SID=test-sid; Path=/"}},
+				Request:    r,
+			}, nil
+		case strings.Contains(r.URL.Path, "/api/v2/torrents/delete"):
+			if inspect != nil {
+				inspect(r)
+			}
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("Ok.")),
+				Header:     make(http.Header),
+				Request:    r,
+			}, nil
+		default:
+			return nil, io.EOF
+		}
+	})
+	return qb.NewClient("http://127.0.0.1:8080", "admin", "pass", &http.Client{Transport: transport})
+}
+
+func TestDeleteTorrentsSendsHashesAndFlag(t *testing.T) {
+	var gotPath, gotBody string
+	client := clientWithDelete(func(r *http.Request) {
+		gotPath = r.URL.Path
+		raw, _ := io.ReadAll(r.Body)
+		gotBody = string(raw)
+	})
+	if err := client.DeleteTorrents([]string{"aaa", "BBB"}, true); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(gotPath, "/api/v2/torrents/delete") {
+		t.Fatal(gotPath)
+	}
+	if gotBody != "deleteFiles=true&hashes=aaa%7Cbbb" && gotBody != "hashes=aaa%7Cbbb&deleteFiles=true" {
+		t.Fatal(gotBody)
+	}
+}
+
+func TestDeleteTorrentsEmptyIsNoop(t *testing.T) {
+	called := false
+	client := clientWithDelete(func(*http.Request) { called = true })
+	if err := client.DeleteTorrents(nil, false); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("unexpected delete request")
+	}
+}
