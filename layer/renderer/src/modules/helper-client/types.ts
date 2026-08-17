@@ -10,12 +10,14 @@ export const WEB_SERVER_ID = 'web'
 export interface HelperDiscoverInfo {
   advertisedQbitUrl: string
   bindState: 'bound' | 'unbound' | string
-  pairingCode: string
+  clientCount: number
   port: number
+  requiresPairingCode: boolean
   version: string
 }
 
 export interface HelperBinding {
+  clientId?: string
   token: string
   url: string
 }

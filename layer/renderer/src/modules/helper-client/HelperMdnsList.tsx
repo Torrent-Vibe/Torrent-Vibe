@@ -21,12 +21,13 @@ export const HelperMdnsList = ({
   const [rows, setRows] = useState<MdnsRow[]>([])
 
   useEffect(() => {
-    if (!ipcServices?.helperMdns) {
+    const helperMdns = ipcServices?.helperMdns
+    if (!helperMdns) {
       return
     }
-    ipcServices.helperMdns.startBrowse()
+    helperMdns.startBrowse()
     const tick = () => {
-      void ipcServices.helperMdns?.list().then((next) => {
+      void helperMdns.list().then((next) => {
         setRows(next ?? [])
       })
     }
@@ -34,7 +35,7 @@ export const HelperMdnsList = ({
     const id = window.setInterval(tick, 2000)
     return () => {
       window.clearInterval(id)
-      ipcServices.helperMdns?.stopBrowse()
+      helperMdns.stopBrowse()
     }
   }, [])
 

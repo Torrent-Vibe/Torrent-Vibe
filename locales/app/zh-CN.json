@@ -516,6 +516,8 @@
   "servers.helper.pairFailed": "无法连接该 Helper。",
   "servers.helper.pairOk": "Helper 已连接。",
   "servers.helper.paired": "已连接 · {{url}}",
+  "servers.helper.pairingCode": "6 位配对码",
+  "servers.helper.pairingCodeHint": "配对码仅显示在 Helper 主机的启动输出中，不会通过局域网自动读取。",
   "servers.helper.proxyUrl": "出站代理",
   "servers.helper.proxyUrlHint": "给 Mikan 和 Bangumi 用的 HTTP 或 SOCKS5 地址。留空则直连。",
   "servers.helper.qbitPass": "qBittorrent 密码",

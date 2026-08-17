@@ -1,4 +1,7 @@
-import type { HelperReplica } from '@torrent-vibe/helper-protocol'
+import type {
+  HelperReplica,
+  HelperSubscriptionSnapshot,
+} from '@torrent-vibe/helper-protocol'
 
 import type {
   HelperBackfillInput,
@@ -77,19 +80,22 @@ export const discoverHelper = async (
       typeof record.advertisedQbitUrl === 'string'
         ? record.advertisedQbitUrl
         : '',
-    pairingCode:
-      typeof record.pairingCode === 'string' ? record.pairingCode : '',
+    clientCount:
+      typeof record.clientCount === 'number' ? record.clientCount : 0,
     port: typeof record.port === 'number' ? record.port : 17890,
+    requiresPairingCode: record.requiresPairingCode !== false,
   }
 }
 
 export const pairHelper = async (
   baseUrl: string,
   code: string,
-): Promise<{ token: string }> => {
+  clientId: string,
+  clientName: string,
+): Promise<{ clientId: string; token: string }> => {
   const body = await request(baseUrl, '/pair', {
     method: 'POST',
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ clientId, clientName, code }),
   })
   if (
     !body ||
@@ -98,35 +104,52 @@ export const pairHelper = async (
   ) {
     throw new Error('invalid pair payload')
   }
-  return { token: (body as { token: string }).token }
+  return {
+    clientId:
+      typeof (body as { clientId?: unknown }).clientId === 'string'
+        ? (body as { clientId: string }).clientId
+        : clientId,
+    token: (body as { token: string }).token,
+  }
+}
+
+const parseSubscriptionSnapshot = (
+  body: unknown,
+): HelperSubscriptionSnapshot => {
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    typeof (body as { revision?: unknown }).revision !== 'number' ||
+    !Array.isArray((body as { replicas?: unknown }).replicas)
+  ) {
+    throw new Error('invalid subscriptions payload')
+  }
+  return {
+    revision: (body as { revision: number }).revision,
+    replicas: (body as { replicas: HelperReplica[] }).replicas,
+  }
 }
 
 export const getHelperSubscriptions = async (
   baseUrl: string,
   token: string,
-): Promise<HelperReplica[]> => {
+): Promise<HelperSubscriptionSnapshot> => {
   const body = await request(
     baseUrl,
     '/subscriptions',
     { method: 'GET' },
     token,
   )
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    !Array.isArray((body as { replicas?: unknown }).replicas)
-  ) {
-    throw new Error('invalid subscriptions payload')
-  }
-  return (body as { replicas: HelperReplica[] }).replicas
+  return parseSubscriptionSnapshot(body)
 }
 
 export const putHelperSubscriptions = async (
   baseUrl: string,
   token: string,
   replicas: HelperReplica[],
+  revision: number,
   options?: { deleteFiles?: boolean; removeTorrents?: boolean },
-): Promise<HelperReplica[]> => {
+): Promise<HelperSubscriptionSnapshot> => {
   const body = await request(
     baseUrl,
     '/subscriptions',
@@ -136,22 +159,16 @@ export const putHelperSubscriptions = async (
         options?.removeTorrents
           ? {
               replicas,
+              revision,
               removeTorrents: true,
               deleteFiles: options.deleteFiles === true,
             }
-          : { replicas },
+          : { replicas, revision },
       ),
     },
     token,
   )
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    !Array.isArray((body as { replicas?: unknown }).replicas)
-  ) {
-    throw new Error('invalid subscriptions payload')
-  }
-  return (body as { replicas: HelperReplica[] }).replicas
+  return parseSubscriptionSnapshot(body)
 }
 
 const parseEpisodes = (value: unknown): HelperEpisodeStatus[] => {

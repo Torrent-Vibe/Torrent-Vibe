@@ -1,5 +1,6 @@
 import type {
   HelperReplica,
+  HelperSubscriptionSnapshot,
   SubscriptionRecord,
 } from '@torrent-vibe/helper-protocol'
 import { desiredStateDiff } from '@torrent-vibe/helper-protocol'
@@ -49,10 +50,11 @@ export interface SubscriptionPushOptions {
 }
 
 export interface HelperSyncClient {
-  getSubscriptions: (serverId: string) => Promise<HelperReplica[]>
+  getSubscriptions: (serverId: string) => Promise<HelperSubscriptionSnapshot>
   putSubscriptions: (
     serverId: string,
     replicas: HelperReplica[],
+    expectedRevision: number,
     options?: SubscriptionPushOptions,
   ) => Promise<void>
 }
@@ -152,9 +154,14 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         )
         try {
           const current = await deps.helper.getSubscriptions(serverId)
-          const ops = desiredStateDiff(desired, current)
+          const ops = desiredStateDiff(desired, current.replicas)
           if (ops.length > 0) {
-            await deps.helper.putSubscriptions(serverId, desired, options)
+            await deps.helper.putSubscriptions(
+              serverId,
+              desired,
+              current.revision,
+              options,
+            )
           }
           persistItems(
             applySyncPatch(
@@ -472,7 +479,9 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     if (deps.unpair) {
       try {
         await deps.unpair(serverId)
-      } catch {}
+      } catch {
+        // Local cleanup must continue when the remote Helper is unavailable.
+      }
     }
     clearHelperBinding(serverId)
     const stamp = now()

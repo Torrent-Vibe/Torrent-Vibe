@@ -10,25 +10,88 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
-func TestLoadPairingGeneratesTokenUnbound(t *testing.T) {
-	p, err := store.LoadPairing(t.TempDir())
-	if err != nil || p.Bound || len(p.Token) < 32 {
-		t.Fatalf("%+v %v", p, err)
+func TestPairingStorePairsIndependentClients(t *testing.T) {
+	dir := t.TempDir()
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	desktopToken, err := pairings.Pair("desktop", "Desktop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	iosToken, err := pairings.Pair("ios", "iPhone")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pairings.ClientCount() != 2 {
+		t.Fatalf("clients=%d", pairings.ClientCount())
+	}
+	if client, ok := pairings.Authenticate(desktopToken); !ok || client.ID != "desktop" {
+		t.Fatalf("desktop=%+v ok=%v", client, ok)
+	}
+	if client, ok := pairings.Authenticate(iosToken); !ok || client.ID != "ios" {
+		t.Fatalf("ios=%+v ok=%v", client, ok)
+	}
+	if err := pairings.Revoke("ios"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := pairings.Authenticate(iosToken); ok {
+		t.Fatal("revoked token still authenticates")
+	}
+	if _, ok := pairings.Authenticate(desktopToken); !ok {
+		t.Fatal("desktop token was revoked with iOS")
 	}
 }
 
-func TestLoadPairingMigratesLegacyTokenUnbound(t *testing.T) {
+func TestPairingStoreMigratesBoundLegacyTokenAsHashedClient(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "token"), []byte("legacy-token\n"), 0o600); err != nil {
+	legacyToken := "legacy-token"
+	if err := os.WriteFile(
+		filepath.Join(dir, "pairing.json"),
+		[]byte(`{"bound":true,"token":"legacy-token"}`),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
-	p, err := store.LoadPairing(dir)
-	if err != nil || p.Bound || p.Token != "legacy-token" {
-		t.Fatalf("%+v %v", p, err)
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	raw, _ := os.ReadFile(filepath.Join(dir, "pairing.json"))
-	if !bytes.Contains(raw, []byte("legacy-token")) {
-		t.Fatalf("%s", raw)
+	client, ok := pairings.Authenticate(legacyToken)
+	if !ok || client.ID == "" {
+		t.Fatalf("client=%+v ok=%v", client, ok)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "pairing.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(raw, []byte(legacyToken)) || bytes.Contains(raw, []byte(`"token"`)) {
+		t.Fatalf("plaintext token survived migration: %s", raw)
+	}
+	if !bytes.Contains(raw, []byte(`"version": 2`)) || !bytes.Contains(raw, []byte(`"tokenHash"`)) {
+		t.Fatalf("invalid v2 pairing: %s", raw)
+	}
+}
+
+func TestPairingStoreDoesNotAuthorizeLegacyUnboundToken(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(
+		filepath.Join(dir, "pairing.json"),
+		[]byte(`{"bound":false,"token":"unused-token"}`),
+		0o600,
+	); err != nil {
+		t.Fatal(err)
+	}
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pairings.ClientCount() != 0 {
+		t.Fatalf("clients=%d", pairings.ClientCount())
+	}
+	if _, ok := pairings.Authenticate("unused-token"); ok {
+		t.Fatal("unbound legacy token was authorized")
 	}
 }
 
@@ -41,15 +104,5 @@ func TestGeneratePairingCode(t *testing.T) {
 		if !strings.ContainsRune("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r) {
 			t.Fatalf("%q", code)
 		}
-	}
-}
-
-func TestRotateTokenClearsBound(t *testing.T) {
-	dir := t.TempDir()
-	first, _ := store.LoadPairing(dir)
-	_ = store.SavePairing(dir, store.Pairing{Bound: true, Token: first.Token})
-	next, err := store.RotateToken(dir)
-	if err != nil || next.Bound || next.Token == first.Token {
-		t.Fatalf("%+v %v", next, err)
 	}
 }

@@ -41,5 +41,10 @@ export interface HelperReplica {
   title: string
 }
 
+export interface HelperSubscriptionSnapshot {
+  replicas: HelperReplica[]
+  revision: number
+}
+
 export type DesiredStateOp =
   { type: 'add'; replica: HelperReplica } | { type: 'remove'; id: string }

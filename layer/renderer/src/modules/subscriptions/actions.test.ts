@@ -37,6 +37,7 @@ function createFakeHelper(options?: {
   }>
 } {
   const current = { ...options?.current }
+  const revisions: Record<string, number> = {}
   const fail = options?.fail ?? new Set<string>()
   const puts: Array<{
     options?: SubscriptionPushOptions
@@ -49,11 +50,17 @@ function createFakeHelper(options?: {
       if (fail.has(`get:${serverId}`)) {
         throw new Error(`get failed ${serverId}`)
       }
-      return current[serverId] ?? []
+      return {
+        replicas: current[serverId] ?? [],
+        revision: revisions[serverId] ?? 0,
+      }
     },
-    async putSubscriptions(serverId, replicas, putOptions) {
+    async putSubscriptions(serverId, replicas, expectedRevision, putOptions) {
       if (fail.has(serverId)) {
         throw new Error(`put failed ${serverId}`)
+      }
+      if ((revisions[serverId] ?? 0) !== expectedRevision) {
+        throw new Error(`revision conflict ${serverId}`)
       }
       puts.push({
         serverId,
@@ -61,6 +68,7 @@ function createFakeHelper(options?: {
         options: putOptions,
       })
       current[serverId] = structuredClone(replicas)
+      revisions[serverId] = expectedRevision + 1
     },
   }
 }

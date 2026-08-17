@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
@@ -32,9 +33,24 @@ func TestStoreRoundTrip(t *testing.T) {
 
 func TestStoreMissingFileIsEmpty(t *testing.T) {
 	s := store.New(t.TempDir())
-	reps, err := s.LoadReplicas()
-	if err != nil || len(reps) != 0 {
-		t.Fatalf("%v %+v", err, reps)
+	snapshot, err := s.LoadReplicaSnapshot()
+	if err != nil || len(snapshot.Replicas) != 0 || snapshot.Revision != 0 {
+		t.Fatalf("%v %+v", err, snapshot)
+	}
+}
+
+func TestSaveReplicasRejectsStaleRevision(t *testing.T) {
+	s := store.New(t.TempDir())
+	first, err := s.SaveReplicasIfRevision([]protocol.Replica{{ID: "1"}}, 0)
+	if err != nil || first.Revision != 1 {
+		t.Fatalf("first=%+v err=%v", first, err)
+	}
+	conflict, err := s.SaveReplicasIfRevision([]protocol.Replica{{ID: "2"}}, 0)
+	if !errors.Is(err, store.ErrRevisionConflict) {
+		t.Fatalf("conflict=%+v err=%v", conflict, err)
+	}
+	if conflict.Revision != 1 || len(conflict.Replicas) != 1 || conflict.Replicas[0].ID != "1" {
+		t.Fatalf("%+v", conflict)
 	}
 }
 

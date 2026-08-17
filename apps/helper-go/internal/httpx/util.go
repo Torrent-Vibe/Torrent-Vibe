@@ -47,18 +47,16 @@ func bytesTrim(raw []byte) []byte {
 	return []byte(strings.TrimSpace(string(raw)))
 }
 
-func authorize(r *http.Request, token string) bool {
+func bearerToken(r *http.Request) (string, bool) {
 	header := r.Header.Get("authorization")
 	if !strings.HasPrefix(header, "Bearer ") {
-		return false
+		return "", false
 	}
-	got := header[len("Bearer "):]
-	a := []byte(got)
-	b := []byte(token)
-	if len(a) != len(b) {
-		return false
+	token := strings.TrimSpace(header[len("Bearer "):])
+	if token == "" {
+		return "", false
 	}
-	return subtle.ConstantTimeCompare(a, b) == 1
+	return token, true
 }
 
 func safeEqual(left, right string) bool {

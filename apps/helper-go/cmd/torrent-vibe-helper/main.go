@@ -51,7 +51,7 @@ func run() error {
 	pollMs := flag.Int("poll-interval", atoiDefault(os.Getenv("POLL_INTERVAL_MS"), 600000), "")
 	flag.Parse()
 
-	pairing, err := store.LoadPairing(*dataDir)
+	pairings, err := store.OpenPairingStore(*dataDir)
 	if err != nil {
 		return err
 	}
@@ -119,8 +119,7 @@ func run() error {
 		Port:           *port,
 		AdvertisedQbit: cfg.QbitURL,
 		PairingCode:    code,
-		Token:          pairing.Token,
-		Bound:          pairing.Bound,
+		Pairings:       pairings,
 		Store:          st,
 		DataDir:        *dataDir,
 		Config:         cfg,

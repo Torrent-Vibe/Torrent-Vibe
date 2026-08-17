@@ -517,6 +517,8 @@
   "servers.helper.pairFailed": "Could not connect to that helper.",
   "servers.helper.pairOk": "Helper connected.",
   "servers.helper.paired": "Connected · {{url}}",
+  "servers.helper.pairingCode": "6-character code",
+  "servers.helper.pairingCodeHint": "The code appears only in the helper host's startup output and is not read automatically over the LAN.",
   "servers.helper.proxyUrl": "Outbound proxy",
   "servers.helper.proxyUrlHint": "HTTP or SOCKS5 URL for Mikan and Bangumi. Leave empty for a direct connection.",
   "servers.helper.qbitPass": "qBittorrent password",

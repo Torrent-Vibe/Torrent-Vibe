@@ -1,7 +1,9 @@
 package httpx
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,18 +19,19 @@ type Runtime struct {
 	Port             int
 	AdvertisedQbit   string
 	PairingCode      string
-	Token            string
-	Bound            bool
+	Pairings         *store.PairingStore
 	Store            *store.Store
 	DataDir          string
 	Config           config.File
 	OnBackfill       func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
 	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
-	OnUnpair         func() error
 	ProbeQbit        func(url, user, pass string) error
 	ApplyConfig      func(config.File)
 	mu               sync.Mutex
+	subscriptionsMu  sync.Mutex
 }
+
+type clientContextKey struct{}
 
 func New(rt *Runtime) http.Handler {
 	mux := http.NewServeMux()
@@ -47,31 +50,37 @@ func New(rt *Runtime) http.Handler {
 
 func (rt *Runtime) authed(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rt.mu.Lock()
-		token := rt.Token
-		rt.mu.Unlock()
-		if !authorize(r, token) {
+		token, ok := bearerToken(r)
+		if !ok || rt.Pairings == nil {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
-		next(w, r)
+		client, ok := rt.Pairings.Authenticate(token)
+		if !ok {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			return
+		}
+		ctx := context.WithValue(r.Context(), clientContextKey{}, client.ID)
+		next(w, r.WithContext(ctx))
 	}
 }
 
 func (rt *Runtime) discover(w http.ResponseWriter, _ *http.Request) {
-	rt.mu.Lock()
-	bound := rt.Bound
-	rt.mu.Unlock()
+	clientCount := 0
+	if rt.Pairings != nil {
+		clientCount = rt.Pairings.ClientCount()
+	}
 	state := "unbound"
-	if bound {
+	if clientCount > 0 {
 		state = "bound"
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"version":           rt.Version,
-		"bindState":         state,
-		"advertisedQbitUrl": rt.AdvertisedQbit,
-		"pairingCode":       rt.PairingCode,
-		"port":              rt.Port,
+		"version":             rt.Version,
+		"bindState":           state,
+		"advertisedQbitUrl":   rt.AdvertisedQbit,
+		"clientCount":         clientCount,
+		"requiresPairingCode": true,
+		"port":                rt.Port,
 	})
 }
 
@@ -85,28 +94,32 @@ func (rt *Runtime) pair(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 		return
 	}
-	rt.mu.Lock()
-	token := rt.Token
-	rt.Bound = true
-	rt.mu.Unlock()
-	if err := store.SavePairing(rt.DataDir, store.Pairing{Bound: true, Token: token}); err != nil {
+	clientID, _ := body["clientId"].(string)
+	clientName, _ := body["clientName"].(string)
+	if rt.Pairings == nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	token, err := rt.Pairings.Pair(clientID, clientName)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid client"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"clientId": strings.TrimSpace(clientID), "token": token})
 }
 
 func (rt *Runtime) getSubscriptions(w http.ResponseWriter, _ *http.Request) {
-	replicas, err := rt.Store.LoadReplicas()
+	snapshot, err := rt.Store.LoadReplicaSnapshot()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"replicas": replicas})
+	writeJSON(w, http.StatusOK, map[string]any{"revision": snapshot.Revision, "replicas": snapshot.Replicas})
 }
 
 func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 	var body struct {
+		Revision       *uint64            `json:"revision"`
 		Replicas       []protocol.Replica `json:"replicas"`
 		RemoveTorrents bool               `json:"removeTorrents"`
 		DeleteFiles    bool               `json:"deleteFiles"`
@@ -115,23 +128,43 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	current, err := rt.Store.LoadReplicas()
+	if body.Revision == nil {
+		writeJSON(w, http.StatusPreconditionRequired, map[string]string{"error": "revision required"})
+		return
+	}
+
+	rt.subscriptionsMu.Lock()
+	defer rt.subscriptionsMu.Unlock()
+	snapshot, err := rt.Store.LoadReplicaSnapshot()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	if snapshot.Revision != *body.Revision {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"error": "revision conflict", "revision": snapshot.Revision, "replicas": snapshot.Replicas,
+		})
+		return
+	}
 	if body.RemoveTorrents {
-		if err := rt.dropRemovedTorrents(current, body.Replicas, body.DeleteFiles); err != nil {
+		if err := rt.dropRemovedTorrents(snapshot.Replicas, body.Replicas, body.DeleteFiles); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 			return
 		}
 	}
-	next := applyDesired(current, body.Replicas)
-	if err := rt.Store.SaveReplicas(next); err != nil {
+	next := applyDesired(snapshot.Replicas, body.Replicas)
+	saved, err := rt.Store.SaveReplicasIfRevision(next, *body.Revision)
+	if errors.Is(err, store.ErrRevisionConflict) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"error": "revision conflict", "revision": saved.Revision, "replicas": saved.Replicas,
+		})
+		return
+	}
+	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"replicas": next})
+	writeJSON(w, http.StatusOK, map[string]any{"revision": saved.Revision, "replicas": saved.Replicas})
 }
 
 func (rt *Runtime) dropRemovedTorrents(current, desired []protocol.Replica, deleteFiles bool) error {
@@ -265,26 +298,15 @@ func (rt *Runtime) backfill(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"episodes": episodes})
 }
 
-func (rt *Runtime) unpair(w http.ResponseWriter, _ *http.Request) {
-	if rt.OnUnpair != nil {
-		if err := rt.OnUnpair(); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
-			return
-		}
-	} else {
-		next, err := store.RotateToken(rt.DataDir)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
-			return
-		}
-		if err := rt.Store.ClearAll(); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
-			return
-		}
-		rt.mu.Lock()
-		rt.Token = next.Token
-		rt.Bound = false
-		rt.mu.Unlock()
+func (rt *Runtime) unpair(w http.ResponseWriter, r *http.Request) {
+	clientID, _ := r.Context().Value(clientContextKey{}).(string)
+	if clientID == "" || rt.Pairings == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	if err := rt.Pairings.Revoke(clientID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

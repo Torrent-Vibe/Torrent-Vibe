@@ -1,3 +1,5 @@
+import { storage, STORAGE_KEYS } from '~/lib/storage-keys'
+
 import { discoverHelper, normalizeHelperBaseUrl, pairHelper } from './api'
 import {
   listServerHelperTargets,
@@ -8,16 +10,30 @@ import {
 
 export type ConnectHelperError = 'urlInUse' | 'discoverFailed' | 'pairFailed'
 
-export type ConnectHelperResult
-  = | { ok: true, url: string }
-    | { ok: false, error: ConnectHelperError, owner?: string }
+export type ConnectHelperResult =
+  | { ok: true; url: string }
+  | { ok: false; error: ConnectHelperError; owner?: string }
+
+export const getHelperClientIdentity = (): { id: string; name: string } => {
+  let id = storage.getItem(STORAGE_KEYS.HELPER_CLIENT_ID)
+  if (!id) {
+    id =
+      globalThis.crypto?.randomUUID?.() ??
+      `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    storage.setItem(STORAGE_KEYS.HELPER_CLIENT_ID, id)
+  }
+  const electron = typeof ELECTRON !== 'undefined' && ELECTRON
+  return { id, name: electron ? 'Torrent Vibe Desktop' : 'Torrent Vibe Web' }
+}
 
 export const connectHelper = async (
   serverId: string,
   url: string,
+  pairingCode: string,
 ): Promise<ConnectHelperResult> => {
   const normalized = normalizeHelperBaseUrl(url)
-  if (!normalized) {
+  const code = pairingCode.trim().toUpperCase()
+  if (!normalized || !code) {
     return { ok: false, error: 'discoverFailed' }
   }
 
@@ -30,20 +46,24 @@ export const connectHelper = async (
   let info
   try {
     info = await discoverHelper(normalized)
-  }
-  catch {
+  } catch {
     return { ok: false, error: 'discoverFailed' }
   }
 
-  if (!info.pairingCode) {
+  if (!info.requiresPairingCode) {
     return { ok: false, error: 'pairFailed' }
   }
 
   try {
-    const { token } = await pairHelper(normalized, info.pairingCode)
-    setHelperBinding(serverId, { url: normalized, token })
-  }
-  catch (error) {
+    const identity = getHelperClientIdentity()
+    const { clientId, token } = await pairHelper(
+      normalized,
+      code,
+      identity.id,
+      identity.name,
+    )
+    setHelperBinding(serverId, { clientId, url: normalized, token })
+  } catch (error) {
     if (error instanceof Error && error.message === 'helperUrlInUse') {
       return { ok: false, error: 'urlInUse', owner: normalized }
     }
@@ -58,7 +78,7 @@ export const helperOwnerName = (owner?: string): string => {
     return ''
   }
   return (
-    listServerHelperTargets().find(target => target.id === owner)?.name
-    ?? owner
+    listServerHelperTargets().find((target) => target.id === owner)?.name ??
+    owner
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -25,34 +25,27 @@ export const HelperPairingPanel = ({
   const binding = useHelperBindingsStore((state) => state.bindings[serverId])
   const probeUrl = useMemo(() => sameHostDiscoverUrl(host), [host])
   const [manualUrl, setManualUrl] = useState(binding?.url ?? probeUrl)
+  const [pairingCode, setPairingCode] = useState('')
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
-  const connectRef = useRef<(url: string, silent?: boolean) => Promise<void>>(
-    async () => {},
-  )
-  const autoKeyRef = useRef<string | null>(null)
   const electron = typeof ELECTRON !== 'undefined' && ELECTRON
 
-  const connect = async (url: string, silent = false) => {
+  const connect = async (url: string, code: string) => {
     if (busyRef.current) {
       return
     }
     busyRef.current = true
     setBusy(true)
     try {
-      const result = await connectHelper(serverId, url)
+      const result = await connectHelper(serverId, url, code)
       if (result.ok) {
         setManualUrl(result.url)
+        setPairingCode('')
         const { SubscriptionActions } = await import('../subscriptions')
         void SubscriptionActions.shared.syncServers([serverId]).then(() => {
           void SubscriptionActions.shared.refreshStatus([serverId])
         })
-        if (!silent) {
-          toast.success(t('servers.helper.pairOk'))
-        }
-        return
-      }
-      if (silent) {
+        toast.success(t('servers.helper.pairOk'))
         return
       }
       if (result.error === 'urlInUse') {
@@ -73,22 +66,6 @@ export const HelperPairingPanel = ({
       setBusy(false)
     }
   }
-
-  useEffect(() => {
-    connectRef.current = connect
-  })
-
-  useEffect(() => {
-    if (binding) {
-      return
-    }
-    const key = `${serverId}:${probeUrl}`
-    if (autoKeyRef.current === key) {
-      return
-    }
-    autoKeyRef.current = key
-    void connectRef.current(probeUrl, true)
-  }, [binding, probeUrl, serverId])
 
   const handleUnbind = async () => {
     if (busyRef.current) {
@@ -147,23 +124,36 @@ export const HelperPairingPanel = ({
               serverId={serverId}
               onSelect={(url) => {
                 setManualUrl(url)
-                void connect(url)
               }}
             />
           )}
 
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
             <Input
               aria-label={t('servers.helper.manualUrl')}
               placeholder={probeUrl}
               value={manualUrl}
               onChange={(event) => setManualUrl(event.target.value)}
             />
+            <Input
+              aria-label={t('servers.helper.pairingCode')}
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder={t('servers.helper.pairingCode')}
+              value={pairingCode}
+              onChange={(event) => {
+                setPairingCode(
+                  event.target.value.toUpperCase().replaceAll(/[^\dA-Z]/g, ''),
+                )
+              }}
+            />
             <Button
-              disabled={busy || !manualUrl.trim()}
               size="sm"
+              disabled={
+                busy || !manualUrl.trim() || pairingCode.trim().length !== 6
+              }
               onClick={() => {
-                void connect(manualUrl)
+                void connect(manualUrl, pairingCode)
               }}
             >
               {busy && (
@@ -174,6 +164,9 @@ export const HelperPairingPanel = ({
                 : t('servers.helper.connect')}
             </Button>
           </div>
+          <p className="text-xs text-text-tertiary">
+            {t('servers.helper.pairingCodeHint')}
+          </p>
 
           {electron && <HelperInstallSnippet />}
         </>

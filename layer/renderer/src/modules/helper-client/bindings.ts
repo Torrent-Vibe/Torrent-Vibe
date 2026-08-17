@@ -21,7 +21,14 @@ const parseBinding = (value: unknown): HelperBinding | null => {
   if (!value.url.trim() || !value.token.trim()) {
     return null
   }
-  return { url: value.url.trim(), token: value.token }
+  return {
+    clientId:
+      typeof value.clientId === 'string' && value.clientId.trim()
+        ? value.clientId.trim()
+        : 'legacy-desktop',
+    url: value.url.trim(),
+    token: value.token,
+  }
 }
 
 const loadHelperBindingsFromStorage = (): Record<string, HelperBinding> => {
@@ -87,6 +94,7 @@ export const setHelperBinding = (
     throw new Error('helperUrlInUse')
   }
   next[serverId] = {
+    clientId: binding.clientId ?? 'legacy-desktop',
     url: binding.url.trim().replace(/\/+$/, ''),
     token: binding.token,
   }
@@ -155,7 +163,7 @@ export const currentServerHelperTarget = (): ServerHelperTarget | null => {
     return null
   }
   return (
-    listServerHelperTargets().find(target => target.id === currentId) ?? null
+    listServerHelperTargets().find((target) => target.id === currentId) ?? null
   )
 }
 

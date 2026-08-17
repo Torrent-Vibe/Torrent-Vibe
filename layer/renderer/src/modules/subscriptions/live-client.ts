@@ -54,7 +54,7 @@ export const liveHelperClient: HelperSyncClient = {
       throw error
     }
   },
-  async putSubscriptions(serverId, replicas, options) {
+  async putSubscriptions(serverId, replicas, expectedRevision, options) {
     const binding = getHelperBinding(serverId)
     if (!binding) {
       throw new Error('unbound')
@@ -64,6 +64,7 @@ export const liveHelperClient: HelperSyncClient = {
         binding.url,
         binding.token,
         replicas,
+        expectedRevision,
         options,
       )
     } catch (error) {

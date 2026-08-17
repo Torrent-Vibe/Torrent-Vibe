@@ -3,5 +3,6 @@ export type {
   DesiredStateOp,
   HelperEpisodeState,
   HelperReplica,
+  HelperSubscriptionSnapshot,
   SubscriptionRecord,
 } from './types'

@@ -30,9 +30,17 @@ func EpisodeKey(bangumiID, subgroupID string) string {
 }
 
 type persisted struct {
-	Replicas []protocol.Replica    `json:"replicas"`
-	Episodes map[string][]Episode  `json:"episodes"`
+	Revision uint64               `json:"revision"`
+	Replicas []protocol.Replica   `json:"replicas"`
+	Episodes map[string][]Episode `json:"episodes"`
 }
+
+type ReplicaSnapshot struct {
+	Revision uint64
+	Replicas []protocol.Replica
+}
+
+var ErrRevisionConflict = errors.New("replica revision conflict")
 
 type Store struct {
 	dataDir string
@@ -48,11 +56,22 @@ func (s *Store) file() string {
 }
 
 func (s *Store) LoadReplicas() ([]protocol.Replica, error) {
-	data, err := s.read()
+	snapshot, err := s.LoadReplicaSnapshot()
 	if err != nil {
 		return nil, err
 	}
-	return data.Replicas, nil
+	return snapshot.Replicas, nil
+}
+
+func (s *Store) LoadReplicaSnapshot() (ReplicaSnapshot, error) {
+	data, err := s.read()
+	if err != nil {
+		return ReplicaSnapshot{}, err
+	}
+	return ReplicaSnapshot{
+		Revision: data.Revision,
+		Replicas: append([]protocol.Replica(nil), data.Replicas...),
+	}, nil
 }
 
 func (s *Store) SaveReplicas(replicas []protocol.Replica) error {
@@ -62,8 +81,33 @@ func (s *Store) SaveReplicas(replicas []protocol.Replica) error {
 	if err != nil {
 		return err
 	}
+	data.Revision++
 	data.Replicas = replicas
 	return s.write(data)
+}
+
+func (s *Store) SaveReplicasIfRevision(replicas []protocol.Replica, expected uint64) (ReplicaSnapshot, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, err := s.read()
+	if err != nil {
+		return ReplicaSnapshot{}, err
+	}
+	if data.Revision != expected {
+		return ReplicaSnapshot{
+			Revision: data.Revision,
+			Replicas: append([]protocol.Replica(nil), data.Replicas...),
+		}, ErrRevisionConflict
+	}
+	data.Revision++
+	data.Replicas = append([]protocol.Replica(nil), replicas...)
+	if err := s.write(data); err != nil {
+		return ReplicaSnapshot{}, err
+	}
+	return ReplicaSnapshot{
+		Revision: data.Revision,
+		Replicas: append([]protocol.Replica(nil), data.Replicas...),
+	}, nil
 }
 
 func (s *Store) LoadEpisodes() (map[string][]Episode, error) {
@@ -91,7 +135,14 @@ func (s *Store) SaveEpisodes(episodes map[string][]Episode) error {
 func (s *Store) ClearAll() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.write(persisted{Replicas: []protocol.Replica{}, Episodes: map[string][]Episode{}})
+	data, err := s.read()
+	if err != nil {
+		return err
+	}
+	data.Revision++
+	data.Replicas = []protocol.Replica{}
+	data.Episodes = map[string][]Episode{}
+	return s.write(data)
 }
 
 func (s *Store) read() (persisted, error) {

@@ -52,6 +52,7 @@ export const STORAGE_KEYS = {
     'discover-mikan-last-subgroup',
   ),
   SUBSCRIPTIONS: createStorageKey(APP_PREFIX, 'subscriptions'),
+  HELPER_CLIENT_ID: createStorageKey(APP_PREFIX, 'helper-client-id'),
   HELPER_BINDINGS: createStorageKey(APP_PREFIX, 'helper-bindings'),
   DISCOVER_SEARCH_HISTORY: createStorageKey(
     APP_PREFIX,
@@ -83,8 +84,7 @@ export const storage = {
   getItem: (key: string): string | null => {
     try {
       return localStorage.getItem(key)
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Failed to get localStorage item with key: ${key}`, error)
       return null
     }
@@ -97,8 +97,7 @@ export const storage = {
     try {
       localStorage.setItem(key, value)
       return true
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Failed to set localStorage item with key: ${key}`, error)
       return false
     }
@@ -111,8 +110,7 @@ export const storage = {
     try {
       localStorage.removeItem(key)
       return true
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Failed to remove localStorage item with key: ${key}`, error)
       return false
     }
@@ -125,8 +123,7 @@ export const storage = {
     try {
       const value = storage.getItem(key)
       return value ? JSON.parse(value) : null
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Failed to parse JSON from localStorage key: ${key}`, error)
       return null
     }
@@ -138,8 +135,7 @@ export const storage = {
   setJSON: <T>(key: string, value: T): boolean => {
     try {
       return storage.setItem(key, JSON.stringify(value))
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(
         `Failed to stringify and set JSON in localStorage key: ${key}`,
         error,
@@ -159,8 +155,7 @@ export const storage = {
           localStorage.removeItem(key)
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('Failed to clear app storage', error)
     }
   },
@@ -176,8 +171,7 @@ export const storage = {
           localStorage.removeItem(key)
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.warn(`Failed to clear storage with prefix: ${prefix}`, error)
     }
   },

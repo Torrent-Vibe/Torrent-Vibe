@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
@@ -35,13 +37,13 @@ func start(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server {
 	t.Helper()
 	dir := t.TempDir()
 	st := store.New(dir)
+	pairings := pairingStoreWithToken(t, dir, token)
 	rt := &httpx.Runtime{
 		Version:        "0.0.1-test",
 		Port:           17890,
 		AdvertisedQbit: "http://127.0.0.1:8080",
 		PairingCode:    pairingCode,
-		Token:          token,
-		Bound:          false,
+		Pairings:       pairings,
 		Store:          st,
 		DataDir:        dir,
 	}
@@ -49,6 +51,44 @@ func start(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server {
 		opt(rt)
 	}
 	return httptest.NewServer(httpx.New(rt))
+}
+
+func startUnpaired(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server {
+	t.Helper()
+	dir := t.TempDir()
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &httpx.Runtime{
+		Version:        "0.0.1-test",
+		Port:           17890,
+		AdvertisedQbit: "http://127.0.0.1:8080",
+		PairingCode:    pairingCode,
+		Pairings:       pairings,
+		Store:          store.New(dir),
+		DataDir:        dir,
+	}
+	for _, opt := range opts {
+		opt(rt)
+	}
+	return httptest.NewServer(httpx.New(rt))
+}
+
+func pairingStoreWithToken(t *testing.T, dir, rawToken string) *store.PairingStore {
+	t.Helper()
+	if err := os.WriteFile(
+		filepath.Join(dir, "pairing.json"),
+		[]byte(`{"bound":true,"token":"`+rawToken+`"}`),
+		0o600,
+	); err != nil {
+		t.Fatal(err)
+	}
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pairings
 }
 
 func decode(t *testing.T, res *http.Response) map[string]any {
@@ -62,7 +102,7 @@ func decode(t *testing.T, res *http.Response) map[string]any {
 }
 
 func TestDiscoverUnauthenticated(t *testing.T) {
-	srv := start(t)
+	srv := startUnpaired(t)
 	defer srv.Close()
 	res, err := http.Get(srv.URL + "/discover")
 	if err != nil {
@@ -74,13 +114,14 @@ func TestDiscoverUnauthenticated(t *testing.T) {
 	body := decode(t, res)
 	if body["version"] != "0.0.1-test" || body["bindState"] != "unbound" ||
 		body["advertisedQbitUrl"] != "http://127.0.0.1:8080" ||
-		body["pairingCode"] != pairingCode || body["port"] != float64(17890) {
+		body["clientCount"] != float64(0) || body["requiresPairingCode"] != true ||
+		body["pairingCode"] != nil || body["port"] != float64(17890) {
 		t.Fatalf("%+v", body)
 	}
 }
 
 func TestPairRejectsWrongCode(t *testing.T) {
-	srv := start(t)
+	srv := startUnpaired(t)
 	defer srv.Close()
 	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ZZZZZZ"}`))
 	if err != nil {
@@ -100,10 +141,10 @@ func TestPairRejectsWrongCode(t *testing.T) {
 	res.Body.Close()
 }
 
-func TestPairReturnsTokenAndBinds(t *testing.T) {
-	srv := start(t)
+func TestPairReturnsIndependentClientTokens(t *testing.T) {
+	srv := startUnpaired(t)
 	defer srv.Close()
-	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234"}`))
+	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234","clientId":"desktop","clientName":"Desktop"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,10 +152,11 @@ func TestPairReturnsTokenAndBinds(t *testing.T) {
 		t.Fatal(res.Status)
 	}
 	body := decode(t, res)
-	if body["token"] != token {
+	desktopToken, _ := body["token"].(string)
+	if desktopToken == "" || body["clientId"] != "desktop" {
 		t.Fatalf("%+v", body)
 	}
-	res, err = http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234"}`))
+	res, err = http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234","clientId":"ios","clientName":"iPhone"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +164,8 @@ func TestPairReturnsTokenAndBinds(t *testing.T) {
 		t.Fatal(res.Status)
 	}
 	body = decode(t, res)
-	if body["token"] != token {
+	iosToken, _ := body["token"].(string)
+	if iosToken == "" || iosToken == desktopToken || body["clientId"] != "ios" {
 		t.Fatalf("%+v", body)
 	}
 	res, err = http.Get(srv.URL + "/discover")
@@ -130,7 +173,7 @@ func TestPairReturnsTokenAndBinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	body = decode(t, res)
-	if body["bindState"] != "bound" {
+	if body["bindState"] != "bound" || body["clientCount"] != float64(2) {
 		t.Fatalf("%+v", body)
 	}
 }
@@ -151,7 +194,7 @@ func TestSubscriptionsRequiresBearer(t *testing.T) {
 func TestPutSubscriptionsAppliesDiff(t *testing.T) {
 	srv := start(t)
 	defer srv.Close()
-	payload, _ := json.Marshal(map[string]any{"replicas": []protocol.Replica{replica("1"), replica("2")}})
+	payload, _ := json.Marshal(map[string]any{"revision": 0, "replicas": []protocol.Replica{replica("1"), replica("2")}})
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
 	req.Header.Set("authorization", "Bearer "+token)
 	req.Header.Set("content-type", "application/json")
@@ -162,9 +205,12 @@ func TestPutSubscriptionsAppliesDiff(t *testing.T) {
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
-	decode(t, res)
+	body := decode(t, res)
+	if body["revision"] != float64(1) {
+		t.Fatalf("%+v", body)
+	}
 
-	payload, _ = json.Marshal(map[string]any{"replicas": []protocol.Replica{replica("2")}})
+	payload, _ = json.Marshal(map[string]any{"revision": 1, "replicas": []protocol.Replica{replica("2")}})
 	req, _ = http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
 	req.Header.Set("authorization", "Bearer "+token)
 	req.Header.Set("content-type", "application/json")
@@ -172,7 +218,7 @@ func TestPutSubscriptionsAppliesDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := decode(t, res)
+	body = decode(t, res)
 	raw, _ := json.Marshal(body["replicas"])
 	var got []protocol.Replica
 	if err := json.Unmarshal(raw, &got); err != nil {
@@ -194,7 +240,7 @@ func TestStatusIncludesJobs(t *testing.T) {
 	})
 	rt := &httpx.Runtime{
 		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
-		PairingCode: pairingCode, Token: token, Store: st, DataDir: dir,
+		PairingCode: pairingCode, Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
 	}
 	srv := httptest.NewServer(httpx.New(rt))
 	defer srv.Close()
@@ -235,18 +281,38 @@ func TestBackfillInvokesCallback(t *testing.T) {
 	res.Body.Close()
 }
 
-func TestUnpairRotatesTokenAndClearsStore(t *testing.T) {
+func TestUnpairRevokesOnlyCurrentClientAndKeepsStore(t *testing.T) {
 	srv := start(t)
 	defer srv.Close()
-	payload, _ := json.Marshal(map[string]any{"replicas": []protocol.Replica{replica("1")}})
+	pairResponse, err := http.Post(
+		srv.URL+"/pair",
+		"application/json",
+		bytes.NewBufferString(`{"code":"ABC234","clientId":"ios","clientName":"iPhone"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pairResponse.StatusCode != http.StatusOK {
+		t.Fatalf("pair status=%v", pairResponse.Status)
+	}
+	iosBody := decode(t, pairResponse)
+	iosToken, _ := iosBody["token"].(string)
+	if iosToken == "" {
+		t.Fatalf("%+v", iosBody)
+	}
+
+	payload, _ := json.Marshal(map[string]any{"revision": 0, "replicas": []protocol.Replica{replica("1")}})
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
 	req.Header.Set("authorization", "Bearer "+token)
 	res, _ := http.DefaultClient.Do(req)
+	if res.StatusCode != http.StatusOK {
+		t.Fatal(res.Status)
+	}
 	res.Body.Close()
 
 	req, _ = http.NewRequest(http.MethodPost, srv.URL+"/unpair", nil)
-	req.Header.Set("authorization", "Bearer "+token)
-	res, err := http.DefaultClient.Do(req)
+	req.Header.Set("authorization", "Bearer "+iosToken)
+	res, err = http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,23 +325,87 @@ func TestUnpairRotatesTokenAndClearsStore(t *testing.T) {
 	}
 
 	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/subscriptions", nil)
-	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("authorization", "Bearer "+iosToken)
 	res, _ = http.DefaultClient.Do(req)
 	if res.StatusCode != 401 {
 		t.Fatal(res.Status)
 	}
 	res.Body.Close()
 
-	res, _ = http.Get(srv.URL + "/discover")
+	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/subscriptions", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, _ = http.DefaultClient.Do(req)
+	if res.StatusCode != http.StatusOK {
+		t.Fatal(res.Status)
+	}
 	body = decode(t, res)
-	if body["bindState"] != "unbound" {
+	replicas, _ := body["replicas"].([]any)
+	if len(replicas) != 1 {
 		t.Fatalf("%+v", body)
 	}
 
-	res, _ = http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234"}`))
+	res, _ = http.Get(srv.URL + "/discover")
 	body = decode(t, res)
-	if body["token"] == token || body["token"] == "" {
-		t.Fatalf("expected rotated token, got %+v", body)
+	if body["bindState"] != "bound" || body["clientCount"] != float64(1) {
+		t.Fatalf("%+v", body)
+	}
+}
+
+func TestPutSubscriptionsRejectsStaleClientRevision(t *testing.T) {
+	srv := start(t)
+	defer srv.Close()
+	pairResponse, err := http.Post(
+		srv.URL+"/pair",
+		"application/json",
+		bytes.NewBufferString(`{"code":"ABC234","clientId":"ios","clientName":"iPhone"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iosBody := decode(t, pairResponse)
+	iosToken, _ := iosBody["token"].(string)
+
+	write := func(rawToken string, revision uint64, items []protocol.Replica) (*http.Response, map[string]any) {
+		payload, _ := json.Marshal(map[string]any{"revision": revision, "replicas": items})
+		req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
+		req.Header.Set("authorization", "Bearer "+rawToken)
+		req.Header.Set("content-type", "application/json")
+		res, requestErr := http.DefaultClient.Do(req)
+		if requestErr != nil {
+			t.Fatal(requestErr)
+		}
+		return res, decode(t, res)
+	}
+
+	desktopReplica := replica("desktop")
+	res, body := write(token, 0, []protocol.Replica{desktopReplica})
+	if res.StatusCode != http.StatusOK || body["revision"] != float64(1) {
+		t.Fatalf("status=%s body=%+v", res.Status, body)
+	}
+	iosReplica := replica("ios")
+	res, body = write(iosToken, 0, []protocol.Replica{iosReplica})
+	if res.StatusCode != http.StatusConflict || body["revision"] != float64(1) {
+		t.Fatalf("status=%s body=%+v", res.Status, body)
+	}
+	replicas, _ := body["replicas"].([]any)
+	if len(replicas) != 1 || replicas[0].(map[string]any)["id"] != "desktop" {
+		t.Fatalf("%+v", body)
+	}
+}
+
+func TestPutSubscriptionsRequiresRevision(t *testing.T) {
+	srv := start(t)
+	defer srv.Close()
+	payload, _ := json.Marshal(map[string]any{"replicas": []protocol.Replica{replica("1")}})
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusPreconditionRequired {
+		t.Fatal(res.Status)
 	}
 }
 
@@ -288,6 +418,19 @@ func keepReplica() protocol.Replica {
 
 func putSubscriptions(t *testing.T, srv *httptest.Server, payload []byte) map[string]any {
 	t.Helper()
+	get, _ := http.NewRequest(http.MethodGet, srv.URL+"/subscriptions", nil)
+	get.Header.Set("authorization", "Bearer "+token)
+	getResponse, err := http.DefaultClient.Do(get)
+	if err != nil || getResponse.StatusCode != http.StatusOK {
+		t.Fatalf("get status=%v err=%v", getResponse.Status, err)
+	}
+	snapshot := decode(t, getResponse)
+	var body map[string]any
+	if err := json.Unmarshal(payload, &body); err != nil {
+		t.Fatal(err)
+	}
+	body["revision"] = snapshot["revision"]
+	payload, _ = json.Marshal(body)
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/subscriptions", bytes.NewReader(payload))
 	req.Header.Set("authorization", "Bearer "+token)
 	req.Header.Set("content-type", "application/json")
@@ -320,7 +463,7 @@ func TestPutRemoveTorrentsDeletesHashes(t *testing.T) {
 		t.Fatal(err)
 	}
 	rt := &httpx.Runtime{
-		Token: token, Store: st, DataDir: dir,
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
 		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
 			gotHashes = append([]string(nil), hashes...)
 			gotDelete = deleteFiles
@@ -375,7 +518,7 @@ func TestPutWithoutRemoveTorrentsKeepsEpisodes(t *testing.T) {
 		t.Fatal(err)
 	}
 	rt := &httpx.Runtime{
-		Token: token, Store: st, DataDir: dir,
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
 		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
 			called = true
 			return nil
@@ -413,7 +556,7 @@ func TestPutRemoveTorrentsKeepsMapOnDeleteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	rt := &httpx.Runtime{
-		Token: token, Store: st, DataDir: dir,
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
 		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
 			return errors.New("qb down")
 		},

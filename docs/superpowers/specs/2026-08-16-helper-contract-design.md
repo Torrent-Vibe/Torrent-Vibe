@@ -2,6 +2,8 @@
 
 2026-08-16 · Status: drafted for review
 
+> 2026-08-18 修订：本文第 5—6 节的单 Token、自动取得配对码、全局解绑和无 revision 订阅写入已由 [iOS Helper 集成边界](ios-app/helper-integration.md) 的多客户端 v2 契约取代；其余部署、配置和执行器边界继续有效。
+
 Closes gaps in the shipped helper against
 `2026-08-15-mikan-discover-design.md`, and replaces the TypeScript daemon
 with a Go binary so a download host can install it without Node or a
@@ -33,23 +35,23 @@ client that is not Electron.
 
 ## 2. Decisions
 
-| Topic | Choice |
-| --- | --- |
-| Helper language | Go. Electron, `helper-protocol`, and `@torrent-vibe/mikan` HTML stay TS |
-| Dual daemon | No. Delete the TS helper after the Go binary matches the contract |
-| Approach | Expand the helper HTTP contract; Electron is only a client |
-| Install default | Download a release binary onto the qBittorrent host |
-| Docker | Optional `FROM scratch` image of that binary, not the install default |
-| Ported Mikan surface | RSS + title parse only. Wall / search / detail stay in TS |
-| Cardinality | One Torrent-Vibe ↔ N qBittorrent servers; one server profile ↔ 0 or 1 helper; one helper ↔ one local qBittorrent |
-| Helper uniqueness | One helper URL may be bound to at most one server profile in this Torrent-Vibe |
-| Token sharing | Not a product. Rebind of the *same* profile keeps the token. Unpair rotates it |
-| Unbind vs delete server | Unbind keeps subscription `targetServerIds`. Delete server (`forgetServer`) unpairs then strips that target |
-| Config persistence | `$DATA_DIR/config.json` overlays flags/env. Flags/env are first-boot defaults only |
-| mDNS browse | Electron main-process IPC only. Web stays same-host probe + manual URL |
-| Auto-bind | Never |
-| Bangumi fallback | Only when Mikan parse lacks season/episode *and* a unique Bangumi match exists |
-| Failed add | Still skipped by RSS. Cleared only via `POST /retry` |
+| Topic                   | Choice                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Helper language         | Go. Electron, `helper-protocol`, and `@torrent-vibe/mikan` HTML stay TS                                          |
+| Dual daemon             | No. Delete the TS helper after the Go binary matches the contract                                                |
+| Approach                | Expand the helper HTTP contract; Electron is only a client                                                       |
+| Install default         | Download a release binary onto the qBittorrent host                                                              |
+| Docker                  | Optional `FROM scratch` image of that binary, not the install default                                            |
+| Ported Mikan surface    | RSS + title parse only. Wall / search / detail stay in TS                                                        |
+| Cardinality             | One Torrent-Vibe ↔ N qBittorrent servers; one server profile ↔ 0 or 1 helper; one helper ↔ one local qBittorrent |
+| Helper uniqueness       | One helper URL may be bound to at most one server profile in this Torrent-Vibe                                   |
+| Token sharing           | Not a product. Rebind of the _same_ profile keeps the token. Unpair rotates it                                   |
+| Unbind vs delete server | Unbind keeps subscription `targetServerIds`. Delete server (`forgetServer`) unpairs then strips that target      |
+| Config persistence      | `$DATA_DIR/config.json` overlays flags/env. Flags/env are first-boot defaults only                               |
+| mDNS browse             | Electron main-process IPC only. Web stays same-host probe + manual URL                                           |
+| Auto-bind               | Never                                                                                                            |
+| Bangumi fallback        | Only when Mikan parse lacks season/episode _and_ a unique Bangumi match exists                                   |
+| Failed add              | Still skipped by RSS. Cleared only via `POST /retry`                                                             |
 
 ## 3. Out of scope
 
@@ -90,15 +92,15 @@ same routes as today plus `/unpair`, `/config`, `/retry`.
 
 Flags and env (env wins over default, overlay file wins over both):
 
-| Flag / env | Default |
-| --- | --- |
-| `-port` / `PORT` | `17890` |
-| `-data-dir` / `DATA_DIR` | `./data` |
-| `-library-root` / `LIBRARY_ROOT` | empty |
-| `-qbit-url` / `QBIT_URL` | `http://127.0.0.1:8080` |
-| `-qbit-user` / `QBIT_USER` | `admin` |
-| `-qbit-pass` / `QBIT_PASS` | empty |
-| `-poll-interval` / `POLL_INTERVAL_MS` | `600000` |
+| Flag / env                            | Default                 |
+| ------------------------------------- | ----------------------- |
+| `-port` / `PORT`                      | `17890`                 |
+| `-data-dir` / `DATA_DIR`              | `./data`                |
+| `-library-root` / `LIBRARY_ROOT`      | empty                   |
+| `-qbit-url` / `QBIT_URL`              | `http://127.0.0.1:8080` |
+| `-qbit-user` / `QBIT_USER`            | `admin`                 |
+| `-qbit-pass` / `QBIT_PASS`            | empty                   |
+| `-poll-interval` / `POLL_INTERVAL_MS` | `600000`                |
 
 Pairing code is printed to stdout at boot. `GET /discover` still returns
 it; the pairing panel still requires the user to type it (proof they can
@@ -238,14 +240,14 @@ writes only the overlay. Install flags and Docker env are not rewritten.
 
 ### 7.2 Fields
 
-| Field | GET | PUT | Notes |
-| --- | --- | --- | --- |
-| `libraryRoot` | yes | yes | New adds only. Do not move existing files |
-| `category` | yes | yes | Default `Bangumi`. New adds only. Empty string is `400` |
-| `qbitUrl` | yes | yes | Helper-local qBittorrent |
-| `qbitUser` | yes | yes | |
-| `qbitPass` | no; `hasQbitPass` instead | omit or empty = keep | |
-| `pollIntervalMs` | yes | yes | Restart the loop timer |
+| Field            | GET                       | PUT                  | Notes                                                   |
+| ---------------- | ------------------------- | -------------------- | ------------------------------------------------------- |
+| `libraryRoot`    | yes                       | yes                  | New adds only. Do not move existing files               |
+| `category`       | yes                       | yes                  | Default `Bangumi`. New adds only. Empty string is `400` |
+| `qbitUrl`        | yes                       | yes                  | Helper-local qBittorrent                                |
+| `qbitUser`       | yes                       | yes                  |                                                         |
+| `qbitPass`       | no; `hasQbitPass` instead | omit or empty = keep |                                                         |
+| `pollIntervalMs` | yes                       | yes                  | Restart the loop timer                                  |
 
 Not writable over HTTP: `PORT`, `DATA_DIR`, token, pairing code.
 
@@ -292,7 +294,7 @@ Selecting a list row fills the URL. Pairing still requires the code.
 Never auto-bind.
 
 A URL already bound to another profile is disabled in the list and names
-that server. A URL bound to the *current* profile may rebind (same token).
+that server. A URL bound to the _current_ profile may rebind (same token).
 
 Browse failure (permissions, firewall, timeout) is a quiet empty list.
 Probe and manual URL stay available.
@@ -341,18 +343,18 @@ RSS continues to skip episode ids already recorded as `failed`.
 
 ## 10. Error handling
 
-| Failure | Behavior |
-| --- | --- |
-| Wrong pairing code | `403`, binding unchanged |
-| `/unpair` while helper down | Local bind cleared; helper may still run; toast |
-| Pair URL already used by another server | Electron rejects; helper untouched |
-| `PUT /config` bad qBit login | `400`, overlay unchanged |
-| `PUT /config` helper down | Electron error; disk config unchanged |
-| mDNS empty or blocked | Empty list; probe / manual still work |
-| Bangumi fetch fails | That item `needs-manual`; subscription stays |
-| `/retry` on `done` / `added` / `downloading` | `400` |
-| Authenticated call `401` / `403` | Clear local binding only |
-| Unknown GOARCH in install snippet | User picks amd64/arm64; no auto-detect on the NAS |
+| Failure                                      | Behavior                                          |
+| -------------------------------------------- | ------------------------------------------------- |
+| Wrong pairing code                           | `403`, binding unchanged                          |
+| `/unpair` while helper down                  | Local bind cleared; helper may still run; toast   |
+| Pair URL already used by another server      | Electron rejects; helper untouched                |
+| `PUT /config` bad qBit login                 | `400`, overlay unchanged                          |
+| `PUT /config` helper down                    | Electron error; disk config unchanged             |
+| mDNS empty or blocked                        | Empty list; probe / manual still work             |
+| Bangumi fetch fails                          | That item `needs-manual`; subscription stays      |
+| `/retry` on `done` / `added` / `downloading` | `400`                                             |
+| Authenticated call `401` / `403`             | Clear local binding only                          |
+| Unknown GOARCH in install snippet            | User picks amd64/arm64; no auto-detect on the NAS |
 
 ## 11. Testing
 
