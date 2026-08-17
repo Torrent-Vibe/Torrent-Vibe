@@ -30,11 +30,11 @@ function createFakeHelper(options?: {
   current?: Record<string, HelperReplica[]>
   fail?: Set<string>
 }): HelperSyncClient & {
-  puts: Array<{ serverId: string, replicas: HelperReplica[] }>
+  puts: Array<{ serverId: string; replicas: HelperReplica[] }>
 } {
-  const current = { ...(options?.current ?? {}) }
+  const current = { ...options?.current }
   const fail = options?.fail ?? new Set<string>()
-  const puts: Array<{ serverId: string, replicas: HelperReplica[] }> = []
+  const puts: Array<{ serverId: string; replicas: HelperReplica[] }> = []
   return {
     puts,
     async getSubscriptions(serverId) {
@@ -145,7 +145,7 @@ describe('subscription actions', () => {
     helper.puts.length = 0
     const result = await remove.unsubscribe('drop')
     expect(result.ok).toBe(true)
-    expect(subscriptionStore.getState().items.map(item => item.id)).toEqual([
+    expect(subscriptionStore.getState().items.map((item) => item.id)).toEqual([
       'keep',
     ])
     expect(helper.puts).toEqual([
@@ -157,7 +157,7 @@ describe('subscription actions', () => {
         ),
       },
     ])
-    expect(persist.snapshot().items.map(item => item.id)).toEqual(['keep'])
+    expect(persist.snapshot().items.map((item) => item.id)).toEqual(['keep'])
   })
 
   it('retargets by pushing every gained and lost helper', async () => {
@@ -185,7 +185,7 @@ describe('subscription actions', () => {
 
     const items = subscriptionStore.getState().items
     expect(items[0]?.targetServerIds).toEqual(['srv-b', 'srv-c'])
-    const pushed = new Set(helper.puts.map(entry => entry.serverId))
+    const pushed = new Set(helper.puts.map((entry) => entry.serverId))
     expect(pushed).toEqual(new Set(['srv-a', 'srv-c']))
     for (const entry of helper.puts) {
       expect(entry.replicas).toEqual(
@@ -223,7 +223,7 @@ describe('subscription actions', () => {
       status: 'error',
       lastError: 'put failed srv-b',
     })
-    expect(helper.puts.map(entry => entry.serverId)).toEqual(['srv-a'])
+    expect(helper.puts.map((entry) => entry.serverId)).toEqual(['srv-a'])
     expect(persist.snapshot().items[0]?.syncByServer['srv-b']?.status).toBe(
       'error',
     )

@@ -11,27 +11,25 @@ export const HelperBindingSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('servers.helper.title')}
       description={t('servers.helper.description')}
+      title={t('servers.helper.title')}
     >
-      {targets.length === 0
-        ? (
-            <p className="text-sm text-text-secondary">
-              {t('servers.noServersConfigured')}
-            </p>
-          )
-        : (
-            <div className="space-y-3">
-              {targets.map(target => (
-                <HelperPairingPanel
-                  key={target.id}
-                  serverId={target.id}
-                  host={target.host}
-                  name={target.name}
-                />
-              ))}
-            </div>
-          )}
+      {targets.length === 0 ? (
+        <p className="text-sm text-text-secondary">
+          {t('servers.noServersConfigured')}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {targets.map((target) => (
+            <HelperPairingPanel
+              host={target.host}
+              key={target.id}
+              name={target.name}
+              serverId={target.id}
+            />
+          ))}
+        </div>
+      )}
     </SettingSectionCard>
   )
 }

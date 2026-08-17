@@ -15,35 +15,34 @@ interface LoadImdbOptions {
 }
 
 interface OMDbData {
-  Title?: string
-  Year?: string
-  Rated?: string
-  Released?: string
-  Runtime?: string
-  Genre?: string
-  Director?: string
-  Writer?: string
   Actors?: string
-  Plot?: string
-  Language?: string
-  Country?: string
   Awards?: string
-  Poster?: string
-  Ratings?: unknown[]
-  Metascore?: string
+  Country?: string
+  Director?: string
+  Error?: string
+  Genre?: string
+  imdbID?: string
   imdbRating?: string
   imdbVotes?: string
-  imdbID?: string
-  Type?: string
-  totalSeasons?: string
+  Language?: string
+  Metascore?: string
+  Plot?: string
+  Poster?: string
+  Rated?: string
+  Ratings?: unknown[]
+  Released?: string
   Response: string
-  Error?: string
+  Runtime?: string
+  Title?: string
+  totalSeasons?: string
+  Type?: string
+  Writer?: string
+  Year?: string
 }
 
 const OMDB_BASE_URL = 'https://www.omdbapi.com/'
 const FALLBACK_OMDB_API_KEY = import.meta.env.VITE_OMDB_API_KEY as
-  | string
-  | undefined
+  string | undefined
 
 const isElectronEnvironment = typeof ELECTRON !== 'undefined' && ELECTRON
 

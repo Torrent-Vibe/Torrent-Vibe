@@ -34,11 +34,11 @@ import type { TorrentInfo } from '~/types/torrent'
 import { OverflowMenuButton } from './MobileToolbarOverflowMenu'
 
 interface FilterStat {
-  key: TorrentFilterState
-  label: string
+  color: string
   count: number
   icon: string
-  color: string
+  key: TorrentFilterState
+  label: string
 }
 
 interface MobileToolbarProps {
@@ -292,9 +292,9 @@ export const MobileToolbar = ({
                 <SelectLabel>Status</SelectLabel>
                 {statusFilters.map((filter) => (
                   <SelectItem
+                    disabled={filter.count === 0 && filter.key !== 'all'}
                     key={filter.key as string}
                     value={filter.key as string}
-                    disabled={filter.count === 0 && filter.key !== 'all'}
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
@@ -317,9 +317,9 @@ export const MobileToolbar = ({
                     <SelectLabel>Categories</SelectLabel>
                     {categories.map((category) => (
                       <SelectItem
+                        disabled={category.count === 0}
                         key={category.name}
                         value={`category:${category.name}`}
-                        disabled={category.count === 0}
                       >
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-2">
@@ -344,9 +344,9 @@ export const MobileToolbar = ({
                     <SelectLabel>Tags</SelectLabel>
                     {tags.map((tag) => (
                       <SelectItem
+                        disabled={tag.count === 0}
                         key={tag.name}
                         value={`tag:${tag.name}`}
-                        disabled={tag.count === 0}
                       >
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-2">
@@ -370,21 +370,21 @@ export const MobileToolbar = ({
         <OverflowMenuButton
           compact={compact}
           sortState={sortState}
-          onSortFieldChange={handleSortFieldChange}
           onSortDirectionToggle={handleSortDirectionToggle}
+          onSortFieldChange={handleSortFieldChange}
         />
 
         {/* Clear Filter Button - Only show when filter is active */}
         {(typeof filterState === 'object' || filterState !== 'all') && (
           <Button
-            variant="ghost"
             size="sm"
-            onClick={() => setFilter('all')}
+            title="Clear filter"
+            variant="ghost"
             className={cn(
               'shrink-0 text-text-tertiary hover:text-text',
               compact ? 'px-1.5 py-1 h-7' : 'px-2 py-1.5 h-9',
             )}
-            title="Clear filter"
+            onClick={() => setFilter('all')}
           >
             <i
               className={cn(

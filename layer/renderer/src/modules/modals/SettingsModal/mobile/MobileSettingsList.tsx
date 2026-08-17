@@ -7,49 +7,49 @@ import { cn } from '~/lib/cn'
 
 // Base cell interface
 interface BaseMobileSettingsCell {
-  id: string
-  title: string
-  subtitle?: string
+  className?: string
+  disabled?: boolean
   icon?: string
   iconColor?: string
-  disabled?: boolean
-  className?: string
+  id: string
+  subtitle?: string
+  title: string
 }
 
 // Cell type definitions
 export interface MobileSettingsCellButton extends BaseMobileSettingsCell {
-  type: 'button'
   onPress: () => void
-  showDisclosure?: boolean
   rightContent?: React.ReactNode
+  showDisclosure?: boolean
+  type: 'button'
 }
 
 export interface MobileSettingsCellSwitch extends BaseMobileSettingsCell {
+  onChange: (value: boolean) => void
   type: 'switch'
   value: boolean
-  onChange: (value: boolean) => void
 }
 
 export interface MobileSettingsCellInput extends BaseMobileSettingsCell {
+  inputType?: 'text' | 'number' | 'password' | 'email'
+  onChange: (value: string) => void
+  placeholder?: string
+  rightContent?: React.ReactNode
   type: 'input'
   value: string
-  placeholder?: string
-  onChange: (value: string) => void
-  inputType?: 'text' | 'number' | 'password' | 'email'
-  rightContent?: React.ReactNode
 }
 
 export interface MobileSettingsCellValue extends BaseMobileSettingsCell {
-  type: 'value'
-  value: string
   onPress?: () => void
   showDisclosure?: boolean
+  type: 'value'
+  value: string
 }
 
 export interface MobileSettingsCellCustom extends BaseMobileSettingsCell {
-  type: 'custom'
   children: React.ReactNode
   onPress?: () => void
+  type: 'custom'
 }
 
 export type MobileSettingsCell =
@@ -61,16 +61,16 @@ export type MobileSettingsCell =
 
 // Section interface
 export interface MobileSettingsSection {
+  cells: MobileSettingsCell[]
+  description?: string
   id: string
   title?: string
-  description?: string
-  cells: MobileSettingsCell[]
 }
 
 // Main list component props
 interface MobileSettingsListProps {
-  sections: MobileSettingsSection[]
   className?: string
+  sections: MobileSettingsSection[]
 }
 
 export const MobileSettingsList: React.FC<MobileSettingsListProps> = ({
@@ -81,10 +81,10 @@ export const MobileSettingsList: React.FC<MobileSettingsListProps> = ({
     <div className={cn('space-y-8', className)}>
       {sections.map((section, sectionIndex) => (
         <MobileSettingsSection
-          key={section.id}
-          section={section}
           isFirst={sectionIndex === 0}
           isLast={sectionIndex === sections.length - 1}
+          key={section.id}
+          section={section}
         />
       ))}
     </div>
@@ -93,9 +93,9 @@ export const MobileSettingsList: React.FC<MobileSettingsListProps> = ({
 
 // Section component
 interface MobileSettingsSectionProps {
-  section: MobileSettingsSection
   isFirst: boolean
   isLast: boolean
+  section: MobileSettingsSection
 }
 
 const MobileSettingsSection: React.FC<MobileSettingsSectionProps> = ({
@@ -118,10 +118,10 @@ const MobileSettingsSection: React.FC<MobileSettingsSectionProps> = ({
       <div className="bg-material-ultra-thin rounded-xl overflow-hidden">
         {section.cells.map((cell, cellIndex) => (
           <MobileSettingsCell
-            key={cell.id}
             cell={cell}
             isFirst={cellIndex === 0}
             isLast={cellIndex === section.cells.length - 1}
+            key={cell.id}
           />
         ))}
       </div>
@@ -184,6 +184,7 @@ const MobileSettingsCell: React.FC<MobileSettingsCellProps> = ({
       case 'button': {
         return (
           <Button
+            disabled={cell.disabled}
             variant="ghost"
             className={cn(
               baseClasses,
@@ -191,7 +192,6 @@ const MobileSettingsCell: React.FC<MobileSettingsCellProps> = ({
               !cell.disabled && 'cursor-pointer',
             )}
             onClick={cell.onPress}
-            disabled={cell.disabled}
           >
             {renderIcon()}
             <div className="flex-1 min-w-0">
@@ -234,8 +234,8 @@ const MobileSettingsCell: React.FC<MobileSettingsCellProps> = ({
             <div className="ml-3 flex-shrink-0">
               <Switch
                 checked={cell.value}
-                onCheckedChange={cell.onChange}
                 disabled={cell.disabled}
+                onCheckedChange={cell.onChange}
               />
             </div>
           </div>
@@ -259,12 +259,12 @@ const MobileSettingsCell: React.FC<MobileSettingsCellProps> = ({
               </div>
               <div className="flex-1 min-w-0">
                 <Input
-                  value={cell.value}
-                  onChange={(e) => cell.onChange(e.target.value)}
+                  className="border-none bg-transparent px-0 text-right"
+                  disabled={cell.disabled}
                   placeholder={cell.placeholder}
                   type={cell.inputType || 'text'}
-                  disabled={cell.disabled}
-                  className="border-none bg-transparent px-0 text-right"
+                  value={cell.value}
+                  onChange={(e) => cell.onChange(e.target.value)}
                 />
               </div>
               {cell.rightContent && (

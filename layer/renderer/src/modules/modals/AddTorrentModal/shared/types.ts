@@ -6,13 +6,13 @@ export interface AddTorrentModalProps {
 }
 
 export interface AddTorrentModalSharedProps {
-  formData: TorrentFormData
-  setFormData: React.Dispatch<React.SetStateAction<TorrentFormData>>
-  resetFormData: () => void
-  isFormValid: boolean
   categories: Record<string, any> | undefined | null
-  isLoading: boolean
-  setIsLoading: (loading: boolean) => void
-  handleSubmit: (e: React.FormEvent) => Promise<void>
+  formData: TorrentFormData
   handlers: TorrentFormHandlers
+  handleSubmit: (e: React.FormEvent) => Promise<void>
+  isFormValid: boolean
+  isLoading: boolean
+  resetFormData: () => void
+  setFormData: React.Dispatch<React.SetStateAction<TorrentFormData>>
+  setIsLoading: (loading: boolean) => void
 }

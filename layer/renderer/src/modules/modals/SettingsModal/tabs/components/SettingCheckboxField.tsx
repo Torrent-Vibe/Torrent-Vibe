@@ -6,11 +6,11 @@ import { Label } from '~/components/ui/label/Label'
 import { SettingField } from './SettingField'
 
 interface SettingCheckboxFieldProps {
+  checked: boolean
+  description?: ReactNode
+  disabled?: boolean
   id?: string
   label: ReactNode
-  description?: ReactNode
-  checked: boolean
-  disabled?: boolean
   onCheckedChange: (checked: boolean) => void
 }
 
@@ -23,15 +23,15 @@ export const SettingCheckboxField = ({
   onCheckedChange,
 }: SettingCheckboxFieldProps) => {
   return (
-    <SettingField label={label} description={description}>
+    <SettingField description={description} label={label}>
       <div className="flex items-center gap-2 justify-end w-full">
         <Checkbox
-          id={id}
           checked={checked}
           disabled={disabled}
+          id={id}
           onCheckedChange={(v) => onCheckedChange(Boolean(v))}
         />
-        {id ? <Label htmlFor={id} className="text-xs text-text" /> : null}
+        {id ? <Label className="text-xs text-text" htmlFor={id} /> : null}
       </div>
     </SettingField>
   )

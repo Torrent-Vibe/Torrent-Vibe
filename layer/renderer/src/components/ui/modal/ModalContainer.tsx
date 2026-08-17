@@ -21,7 +21,7 @@ export const ModalContainer = () => {
     <div id="global-modal-container">
       <AnimatePresence initial={false}>
         {items.map((item) => (
-          <ModalWrapper key={item.id} item={item} />
+          <ModalWrapper item={item} key={item.id} />
         ))}
       </AnimatePresence>
     </div>
@@ -122,23 +122,23 @@ const ModalWrapper = ({ item }: { item: ModalItem }) => {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        ref={modalRef}
-        onInteractOutside={(e) => {
-          if (disableOverlayClickToClose) e.preventDefault()
-        }}
+        className={cn('w-full max-w-md', contentClassName)}
+        disableOverlayClickToClose={disableOverlayClickToClose}
+        disableTransition={disableTransition}
+        drag={!disableDrag}
+        dragConstraints={getDragConstraints()}
+        dragControls={dragControls}
         dragElastic={0}
         dragListener={false}
         dragMomentum={false}
-        className={cn('w-full max-w-md', contentClassName)}
+        ref={modalRef}
+        showCloseButton={showCloseButton}
         transition={Spring.smooth(0.2, 0.1)}
         onAnimationComplete={handleAnimationComplete}
-        drag={!disableDrag}
-        dragControls={dragControls}
-        dragConstraints={getDragConstraints()}
         onDragStart={handleDragStart}
-        showCloseButton={showCloseButton}
-        disableOverlayClickToClose={disableOverlayClickToClose}
-        disableTransition={disableTransition}
+        onInteractOutside={(e) => {
+          if (disableOverlayClickToClose) e.preventDefault()
+        }}
         {...contentProps}
         {...item.modalContent}
       >
@@ -148,8 +148,8 @@ const ModalWrapper = ({ item }: { item: ModalItem }) => {
             onPointerDownCapture={handleDrag}
           />
           <Component
-            modalId={item.id}
             dismiss={dismiss}
+            modalId={item.id}
             {...(item.props as any)}
           />
         </ModalContext>

@@ -23,8 +23,8 @@ export const BitTorrentTab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.bittorrentSaved"
       saveErrorI18nKey="messages.bittorrentSaveFailed"
+      saveSuccessI18nKey="messages.bittorrentSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">

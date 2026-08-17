@@ -2,45 +2,45 @@ import type { AiProviderId } from '@torrent-vibe/shared'
 import { API_TOKENS } from '@torrent-vibe/shared'
 
 export type ApiTokenGroupId = 'discover' | 'ai' | 'metadata'
-export type ApiTokenSlotId
-  = | 'discover.omdb.apiKey'
-    | 'ai.openai.apiKey'
-    | 'ai.openai.baseUrl'
-    | 'ai.openai.model'
-    | 'ai.openrouter.apiKey'
-    | 'ai.openrouter.model'
-    | 'ai.codex.model'
-    | 'metadata.tmdb.apiKey'
+export type ApiTokenSlotId =
+  | 'discover.omdb.apiKey'
+  | 'ai.openai.apiKey'
+  | 'ai.openai.baseUrl'
+  | 'ai.openai.model'
+  | 'ai.openrouter.apiKey'
+  | 'ai.openrouter.model'
+  | 'ai.codex.model'
+  | 'metadata.tmdb.apiKey'
 
 export interface ApiTokenSlotDefinition {
-  id: ApiTokenSlotId
-  groupId: ApiTokenGroupId
-  providerId: string
-  field: string
-  icon: string
-  labelKey: I18nKeysForSettings
   descriptionKey: I18nKeysForSettings
-  placeholderKey?: I18nKeysForSettings
   docsUrl?: string
-  required?: boolean
+  field: string
+  groupId: ApiTokenGroupId
+  icon: string
+  id: ApiTokenSlotId
   inputType?: 'password' | 'text' | 'url'
+  labelKey: I18nKeysForSettings
+  placeholderKey?: I18nKeysForSettings
+  providerId: string
+  required?: boolean
 }
 
 export interface ApiTokenGroupDefinition {
-  id: ApiTokenGroupId
-  icon: string
-  labelKey: I18nKeysForSettings
   descriptionKey: I18nKeysForSettings
-  slots: readonly ApiTokenSlotDefinition[]
   emptyStateKey?: I18nKeysForSettings
+  icon: string
+  id: ApiTokenGroupId
+  labelKey: I18nKeysForSettings
+  slots: readonly ApiTokenSlotDefinition[]
 }
 
 export interface AiProviderDefinition {
+  descriptionKey?: I18nKeysForSettings
   id: AiProviderId
   labelKey: I18nKeysForSettings
-  descriptionKey?: I18nKeysForSettings
-  slots: readonly ApiTokenSlotDefinition[]
   requiredSlotIds: readonly ApiTokenSlotId[]
+  slots: readonly ApiTokenSlotDefinition[]
 }
 
 const DISCOVER_SLOTS: readonly ApiTokenSlotDefinition[] = [
@@ -160,8 +160,8 @@ export const AI_PROVIDER_DEFINITIONS: readonly AiProviderDefinition[] = [
   },
 ] as const
 
-const AI_SLOTS: readonly ApiTokenSlotDefinition[]
-  = AI_PROVIDER_DEFINITIONS.flatMap(provider => provider.slots)
+const AI_SLOTS: readonly ApiTokenSlotDefinition[] =
+  AI_PROVIDER_DEFINITIONS.flatMap((provider) => provider.slots)
 
 const METADATA_SLOTS: readonly ApiTokenSlotDefinition[] = [
   {
@@ -202,5 +202,5 @@ export const API_TOKEN_GROUPS: readonly ApiTokenGroupDefinition[] = [
   },
 ] as const
 
-export const API_TOKEN_SLOTS: readonly ApiTokenSlotDefinition[]
-  = API_TOKEN_GROUPS.flatMap(group => group.slots)
+export const API_TOKEN_SLOTS: readonly ApiTokenSlotDefinition[] =
+  API_TOKEN_GROUPS.flatMap((group) => group.slots)

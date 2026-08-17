@@ -7,7 +7,7 @@ export const MobileSettingsModal: ModalComponent<{ tab?: SettingsSection }> = ({
   dismiss,
   tab,
 }) => {
-  return <MobileSettingsContainer onClose={dismiss} initialTab={tab} />
+  return <MobileSettingsContainer initialTab={tab} onClose={dismiss} />
 }
 
 // Mobile settings should take full screen

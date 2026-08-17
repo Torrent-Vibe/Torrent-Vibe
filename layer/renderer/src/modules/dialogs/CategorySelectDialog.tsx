@@ -12,8 +12,8 @@ import {
 } from '../../components/ui/dialog/Dialog'
 
 interface CategorySelectDialogProps {
-  onConfirm: (category: string) => void
   currentCategory?: string
+  onConfirm: (category: string) => void
   title?: string
 }
 
@@ -46,12 +46,12 @@ export const CategorySelectDialog: ModalComponent<
 
       <div className="space-y-4">
         <ComboboxSelect
-          value={selectedCategory}
-          onValueChange={handleConfirm}
-          options={categoryOptions}
-          placeholder={t('dialogs.category.placeholder')}
           allowCustom={true}
           label={t('dialogs.category.label')}
+          options={categoryOptions}
+          placeholder={t('dialogs.category.placeholder')}
+          value={selectedCategory}
+          onValueChange={handleConfirm}
         />
 
         <div className="text-sm text-text-secondary">

@@ -51,8 +51,8 @@ export const WebConnectionSection = () => {
     try {
       const resolvedHost = useCurrentPath ? window.location.hostname : host
       const resolvedPort = useCurrentPath
-        ? Number(window.location.port)
-        || (window.location.protocol === 'https:' ? 443 : 80)
+        ? Number(window.location.port) ||
+          (window.location.protocol === 'https:' ? 443 : 80)
         : Number(port)
 
       const configData = {
@@ -81,11 +81,9 @@ export const WebConnectionSection = () => {
       await QBittorrentClient.shared.login()
 
       await qbQueryManager.scenarios.onConnectionChange()
-    }
-    catch {
+    } catch {
       setValidating(false)
-    }
-    finally {
+    } finally {
       setSaving(false)
     }
   }
@@ -98,31 +96,31 @@ export const WebConnectionSection = () => {
 
       <div className="space-y-3">
         <SettingSwitchField
+          checked={useCurrentPath}
           id="useCurrentPath"
           label={t('general.connection.useCurrentPath.label')}
-          checked={useCurrentPath}
-          onCheckedChange={v => setUseCurrentPath(Boolean(v))}
+          onCheckedChange={(v) => setUseCurrentPath(Boolean(v))}
         />
 
         <SettingInputField
+          disabled={useCurrentPath}
           id="host"
           label={t('general.connection.host.label')}
           placeholder={t('general.connection.host.placeholder')}
-          value={host}
-          onChange={v => setHost(v)}
-          disabled={useCurrentPath}
           required={!useCurrentPath}
+          value={host}
+          onChange={(v) => setHost(v)}
         />
 
         <SettingInputField
+          disabled={useCurrentPath}
           id="port"
+          inputMode="numeric"
           label={t('general.connection.port.label')}
           placeholder={t('general.connection.port.placeholder')}
-          value={port}
-          inputMode="numeric"
-          onChange={v => setPort(v ? Number(v) : '')}
-          disabled={useCurrentPath}
           required={!useCurrentPath}
+          value={port}
+          onChange={(v) => setPort(v ? Number(v) : '')}
         />
 
         <SettingInputField
@@ -130,7 +128,7 @@ export const WebConnectionSection = () => {
           label={t('general.connection.username.label')}
           placeholder={t('general.connection.username.placeholder')}
           value={username}
-          onChange={v => setUsername(v)}
+          onChange={(v) => setUsername(v)}
         />
 
         <SettingInputField
@@ -139,24 +137,24 @@ export const WebConnectionSection = () => {
           placeholder={t('general.connection.password.placeholder')}
           type="password"
           value={password}
-          onChange={v => setPassword(v)}
+          onChange={(v) => setPassword(v)}
         />
 
         <SettingSwitchField
+          disabled={window.location.protocol === 'https:' || useCurrentPath}
           id="https"
           label={t('general.connection.useHttps.label')}
           checked={
             window.location.protocol === 'https:' || useHttps || useCurrentPath
           }
-          disabled={window.location.protocol === 'https:' || useCurrentPath}
-          onCheckedChange={v => setUseHttps(Boolean(v))}
+          onCheckedChange={(v) => setUseHttps(Boolean(v))}
         />
 
         <SettingSwitchField
+          checked={rememberPassword}
           id="remember"
           label={t('general.connection.rememberPassword.label')}
-          checked={rememberPassword}
-          onCheckedChange={v => setRememberPassword(Boolean(v))}
+          onCheckedChange={(v) => setRememberPassword(Boolean(v))}
         />
 
         <div className="pt-2">
@@ -164,14 +162,14 @@ export const WebConnectionSection = () => {
             {t('general.connection.helper.title')}
           </h3>
           <HelperPairingPanel
-            serverId={WEB_SERVER_ID}
             host={useCurrentPath ? window.location.hostname : host}
             name={t('general.connection.helper.title')}
+            serverId={WEB_SERVER_ID}
           />
         </div>
 
         <div className="pt-4 flex justify-end">
-          <Button onClick={onSave} disabled={!canSave || saving} size="sm">
+          <Button disabled={!canSave || saving} size="sm" onClick={onSave}>
             {saving && validating && (
               <i className="i-mingcute-loading-3-line mr-2 animate-spin text-sm" />
             )}

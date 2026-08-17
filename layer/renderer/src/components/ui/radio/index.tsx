@@ -18,8 +18,8 @@ const RadioGroup = ({
 }) => {
   return (
     <RadioGroupPrimitives.Root
-      ref={forwardedRef}
       className={cx('grid gap-2', className)}
+      ref={forwardedRef}
       tremor-id="tremor-raw"
       {...props}
     />
@@ -39,12 +39,15 @@ const RadioGroupIndicator = ({
 }) => {
   return (
     <RadioGroupPrimitives.Indicator
-      ref={forwardedRef}
       className={cx('flex items-center justify-center', className)}
+      ref={forwardedRef}
       {...props}
       asChild
     >
       <motion.div
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0, opacity: 0 }}
+        initial={{ scale: 0, opacity: 0 }}
         className={cx(
           // base
           'size-1.5 shrink-0 rounded-full',
@@ -53,9 +56,6 @@ const RadioGroupIndicator = ({
           // disabled
           'group-data-disabled:bg-disabled-control',
         )}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0, opacity: 0 }}
         transition={{
           type: 'spring',
           stiffness: 300,
@@ -90,8 +90,8 @@ const RadioGroupItem = ({
       asChild
     >
       <motion.button
-        whileTap={{ scale: 0.95 }}
         whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         transition={{
           type: 'spring',
           stiffness: 400,
@@ -99,6 +99,9 @@ const RadioGroupItem = ({
         }}
       >
         <motion.div
+          animate={{
+            scale: props.checked ? 1.1 : 1,
+          }}
           className={cx(
             // base
             'flex size-4 shrink-0 items-center justify-center rounded-full border shadow-xs transition-colors duration-200',
@@ -114,9 +117,6 @@ const RadioGroupItem = ({
             // focus
             focusRing,
           )}
-          animate={{
-            scale: props.checked ? 1.1 : 1,
-          }}
           transition={{
             type: 'spring',
             stiffness: 300,

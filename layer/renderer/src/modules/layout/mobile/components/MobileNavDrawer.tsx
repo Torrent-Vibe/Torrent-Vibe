@@ -45,10 +45,10 @@ export const MobileNavDrawer = ({ className }: MobileNavDrawerProps) => {
 
   return (
     <Drawer.Root
-      open={drawerOpen}
-      onOpenChange={handleOpenChange}
       direction="left"
       modal={true}
+      open={drawerOpen}
+      onOpenChange={handleOpenChange}
     >
       <Drawer.Portal>
         {/* Overlay */}
@@ -212,8 +212,8 @@ const MobileNavDrawerContent = () => {
             </h2>
 
             <Button
-              variant="primary"
               className="w-full justify-start"
+              variant="primary"
               onClick={() => {
                 Modal.present(AddTorrentModal)
               }}
@@ -226,10 +226,10 @@ const MobileNavDrawerContent = () => {
           {/* Selection Toolbar */}
           {showToolbar && (
             <m.div
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              className="space-y-2"
               exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: 20 }}
               transition={Spring.presets.smooth}
             >
               <div className="flex items-center justify-between">
@@ -237,10 +237,10 @@ const MobileNavDrawerContent = () => {
                   Selection
                 </h2>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={exitMultiSelectMode}
                   className="text-text-tertiary hover:text-text-secondary"
+                  size="sm"
+                  variant="ghost"
+                  onClick={exitMultiSelectMode}
                 >
                   <i className="i-mingcute-close-line mr-1" />
                   Cancel
@@ -283,45 +283,45 @@ const MobileNavDrawerContent = () => {
 
               <div className="grid grid-cols-1 gap-2">
                 <Button
-                  variant="ghost"
                   disabled={!canInteract}
-                  onClick={() => handleTorrentAction('resume')}
+                  variant="ghost"
                   className={cn(
                     'justify-start',
                     canInteract
                       ? 'hover:bg-green/10 hover:text-green text-green/80'
                       : 'text-text-tertiary',
                   )}
+                  onClick={() => handleTorrentAction('resume')}
                 >
                   <i className="i-mingcute-play-fill mr-3 text-lg" />
                   Resume
                 </Button>
 
                 <Button
-                  variant="ghost"
                   disabled={!canInteract}
-                  onClick={() => handleTorrentAction('pause')}
+                  variant="ghost"
                   className={cn(
                     'justify-start',
                     canInteract
                       ? 'hover:bg-orange/10 hover:text-orange text-orange/80'
                       : 'text-text-tertiary',
                   )}
+                  onClick={() => handleTorrentAction('pause')}
                 >
                   <i className="i-mingcute-pause-fill mr-3 text-lg" />
                   Pause
                 </Button>
 
                 <Button
-                  variant="ghost"
                   disabled={!canInteract}
-                  onClick={() => handleTorrentAction('delete')}
+                  variant="ghost"
                   className={cn(
                     'justify-start',
                     canInteract
                       ? 'hover:bg-red/10 hover:text-red text-red/80'
                       : 'text-text-tertiary',
                   )}
+                  onClick={() => handleTorrentAction('delete')}
                 >
                   <i className="i-mingcute-delete-2-line mr-3 text-lg" />
                   Delete
@@ -339,8 +339,8 @@ const MobileNavDrawerContent = () => {
             </h2>
 
             <Button
-              variant="ghost"
               className="w-full justify-start"
+              variant="ghost"
               onClick={() => {
                 presentSettingsModal({ tab: 'appearance' })
               }}
@@ -350,8 +350,8 @@ const MobileNavDrawerContent = () => {
             </Button>
 
             <Button
-              variant="ghost"
               className="w-full justify-start"
+              variant="ghost"
               onClick={toggleTheme}
             >
               <i

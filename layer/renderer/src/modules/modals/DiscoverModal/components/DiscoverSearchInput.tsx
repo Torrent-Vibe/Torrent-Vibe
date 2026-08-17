@@ -20,10 +20,10 @@ export const DiscoverSearchInput = ({
   // 原 props 下沉：状态、动作、i18n、历史、禁用/搜索中标记
   const actions = DiscoverModalActions.shared
   const { form, search: searchSlice, history: historySlice } = actions.slices
-  const keyword = useDiscoverModalStore(s => s.keyword)
-  const searchHistory = useDiscoverModalStore(s => s.searchHistory)
-  const providerReady = useDiscoverModalStore(s => s.providerReady)
-  const isSearching = useDiscoverModalStore(s => s.isSearching)
+  const keyword = useDiscoverModalStore((s) => s.keyword)
+  const searchHistory = useDiscoverModalStore((s) => s.searchHistory)
+  const providerReady = useDiscoverModalStore((s) => s.providerReady)
+  const isSearching = useDiscoverModalStore((s) => s.isSearching)
   const { t } = useTranslation('app')
 
   const disabled = !providerReady
@@ -87,7 +87,7 @@ export const DiscoverSearchInput = ({
     if (!fuse) {
       return uniqueHistory
     }
-    return fuse.search(value.trim()).map(r => r.item)
+    return fuse.search(value.trim()).map((r) => r.item)
   }, [value, fuse, uniqueHistory])
 
   const hasData = filteredHistory.length > 0
@@ -95,8 +95,7 @@ export const DiscoverSearchInput = ({
   useEffect(() => {
     if (!hasData) {
       setActiveIndex(-1)
-    }
-    else if (activeIndex >= filteredHistory.length) {
+    } else if (activeIndex >= filteredHistory.length) {
       setActiveIndex(filteredHistory.length - 1)
     }
   }, [filteredHistory, hasData, activeIndex])
@@ -123,8 +122,8 @@ export const DiscoverSearchInput = ({
     }
     const handler = (e: MouseEvent) => {
       if (
-        panelRef.current?.contains(e.target as Node)
-        || inputRef.current?.contains(e.target as Node)
+        panelRef.current?.contains(e.target as Node) ||
+        inputRef.current?.contains(e.target as Node)
       ) {
         return
       }
@@ -149,8 +148,7 @@ export const DiscoverSearchInput = ({
         if (!open) {
           openPanel()
           setActiveIndex(0)
-        }
-        else if (hasData) {
+        } else if (hasData) {
           setActiveIndex((prev) => {
             const next = prev + 1
             return next >= filteredHistory.length ? 0 : next
@@ -174,11 +172,9 @@ export const DiscoverSearchInput = ({
           e.preventDefault()
           onSelect(filteredHistory[activeIndex])
           closePanel()
-        }
-        else if (!open) {
+        } else if (!open) {
           onSubmit()
-        }
-        else if (activeIndex === -1) {
+        } else if (activeIndex === -1) {
           onSubmit()
         }
         break
@@ -203,37 +199,36 @@ export const DiscoverSearchInput = ({
   return (
     <div className="relative flex-1">
       <Input
+        autoComplete="off"
+        disabled={disabled}
         id={id}
+        placeholder={placeholder}
         ref={inputRef}
         value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        autoComplete="off"
-        onFocus={() => {
-          if (hasData) {
-            openPanel()
-          }
-        }}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         onChange={(e) => {
           onChange(e.target.value)
           // 输入过程中动态展开/收起
           if (!open && e.target.value && filteredHistory.length > 0) {
             openPanel()
-          }
-          else if (open && !hasData) {
+          } else if (open && !hasData) {
             closePanel()
           }
         }}
-        onKeyDown={handleKeyDown}
+        onFocus={() => {
+          if (hasData) {
+            openPanel()
+          }
+        }}
       />
 
       {open && hasData && (
         <div
-          ref={panelRef}
-          role="listbox"
           aria-label={i18n.recent}
           className="bg-material-medium backdrop-blur-background absolute top-full z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border p-1 shadow-context-menu"
+          ref={panelRef}
+          role="listbox"
           onMouseDown={() => setPanelMouseDown(true)}
           onMouseUp={() => setPanelMouseDown(false)}
         >
@@ -242,13 +237,13 @@ export const DiscoverSearchInput = ({
               {i18n.recent}
             </span>
             <button
-              type="button"
               className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-text-secondary transition hover:bg-background-secondary hover:text-text"
+              disabled={searching}
+              type="button"
               onClick={() => {
                 clearHistory()
                 closePanel()
               }}
-              disabled={searching}
             >
               <i className="i-mingcute-delete-2-line size-3" />
               {i18n.clear}
@@ -259,11 +254,11 @@ export const DiscoverSearchInput = ({
             const active = idx === activeIndex
             return (
               <button
-                key={h}
-                type="button"
-                role="option"
                 aria-selected={active}
                 data-active={active || undefined}
+                key={h}
+                role="option"
+                type="button"
                 className={clsxm(
                   'text-left text-sm w-full rounded-[5px] px-2 py-1 transition flex items-center',
                   'cursor-menu',

@@ -3,41 +3,41 @@
 import { formatBytes, formatEta, formatSpeedWithStatus } from '~/lib/format'
 
 export interface MobileCellField {
+  category?: 'primary' | 'details' | 'speeds' | 'dates' | 'advanced'
+  description?: string
+  formatter?: (value: any, torrent: TorrentData) => string
+  icon?: string
   id: string
-  label: string
   key: keyof TorrentData | 'custom'
-  visible: boolean
+  label: string
   primary?: boolean // For main title
   secondary?: boolean // For subtitle
   trailing?: boolean // For right side info
-  formatter?: (value: any, torrent: TorrentData) => string
-  icon?: string
-  category?: 'primary' | 'details' | 'speeds' | 'dates' | 'advanced'
-  description?: string
+  visible: boolean
 }
 
 export interface TorrentData {
+  addedOn: number
+  category: string
+  completed: number
+  completedOn: number
+  dlspeed: number
+  eta: number
   hash: string
   name: string
-  size: number
-  completed: number
-  progress: number
-  state: string
-  category: string
-  tags: string
-  dlspeed: number
-  upspeed: number
-  eta: number
-  ratio: number
-  priority: number
-  addedOn: number
-  completedOn: number
-  seeds: number
   peers: number
-  uploaded?: number
+  priority: number
+  progress: number
+  ratio: number
+  savePath?: string
+  seeds: number
+  size: number
+  state: string
+  tags: string
   timeActive?: number
   tracker?: string
-  savePath?: string
+  uploaded?: number
+  upspeed: number
 }
 
 export interface MobileCellConfig {

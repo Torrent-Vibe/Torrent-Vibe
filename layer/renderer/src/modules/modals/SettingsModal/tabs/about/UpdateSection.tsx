@@ -48,11 +48,11 @@ export const UpdateSection = () => {
     <div className="space-y-2 text-sm">
       <div className="flex items-center gap-3">
         <Button
-          variant="primary"
-          size="sm"
-          onClick={onCheck}
-          disabled={checking}
           className="h-7 px-3 text-xs"
+          disabled={checking}
+          size="sm"
+          variant="primary"
+          onClick={onCheck}
         >
           {checking ? t('about.update.checking') : t('about.update.check')}
         </Button>
@@ -62,9 +62,9 @@ export const UpdateSection = () => {
             <i className="i-mingcute-check-circle-line" />
             {t('about.update.ready', { version: status.version })}
             <Button
-              variant="ghost"
-              size="sm"
               className="h-6 px-2 text-xs"
+              size="sm"
+              variant="ghost"
               onClick={() => ipcServices?.app.openUrl(status.htmlUrl)}
             >
               {t('about.update.downloadLatest')}

@@ -7,22 +7,22 @@ const LONG_PRESS_DURATION = 500 // Duration in ms for long press
 const TAP_MAX_DURATION = 200 // Maximum duration for tap vs long press
 
 interface MobileGestureOptions {
-  onTap?: (data: { target: HTMLElement; timestamp: number }) => void
+  disableLongPress?: boolean
+  disableSwipe?: boolean
+  // Disable specific gestures
+  disableTap?: boolean
+  longPressDuration?: number
   onLongPress?: (data: { target: HTMLElement; timestamp: number }) => void
+  onSwipeDown?: (data: { target: HTMLElement; distance: number }) => void
+
   onSwipeLeft?: (data: { target: HTMLElement; distance: number }) => void
   onSwipeRight?: (data: { target: HTMLElement; distance: number }) => void
   onSwipeUp?: (data: { target: HTMLElement; distance: number }) => void
-  onSwipeDown?: (data: { target: HTMLElement; distance: number }) => void
 
+  onTap?: (data: { target: HTMLElement; timestamp: number }) => void
   // Gesture thresholds (optional overrides)
   swipeThreshold?: number
-  longPressDuration?: number
   tapMaxDuration?: number
-
-  // Disable specific gestures
-  disableTap?: boolean
-  disableLongPress?: boolean
-  disableSwipe?: boolean
 }
 
 export const useMobileGestures = (options: MobileGestureOptions = {}) => {

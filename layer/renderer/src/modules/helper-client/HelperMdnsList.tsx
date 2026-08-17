@@ -43,7 +43,7 @@ export const HelperMdnsList = ({
   }
 
   const names = Object.fromEntries(
-    targets.map(target => [target.id, target.name]),
+    targets.map((target) => [target.id, target.name]),
   )
   const decorated = decorateMdnsRows(rows, bindings, serverId, names)
 
@@ -57,19 +57,17 @@ export const HelperMdnsList = ({
           {t('servers.helper.mdnsEmpty')}
         </p>
       )}
-      {decorated.map(row => (
+      {decorated.map((row) => (
         <Button
+          className="w-full justify-start"
+          disabled={row.disabled}
           key={`${row.host}:${row.port}`}
           size="sm"
           variant="secondary"
-          disabled={row.disabled}
-          className="w-full justify-start"
           onClick={() => onSelect(row.url)}
         >
           <span className="truncate">
-            {row.host}
-            :
-            {row.port}
+            {row.host}:{row.port}
             {row.disabled && row.ownerName
               ? ` · ${t('servers.helper.mdnsBoundOther', { name: row.ownerName })}`
               : ''}

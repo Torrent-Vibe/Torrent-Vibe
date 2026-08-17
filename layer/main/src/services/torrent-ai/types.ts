@@ -5,20 +5,20 @@ import type {
 } from '@torrent-vibe/shared'
 
 export interface AnalyzeTorrentNameOptions {
-  rawName: string
-  hash?: string
-  forceRefresh?: boolean
   /**
    * Optional simplified file list for additional context in AI analysis.
    * Provide relative paths (as shown in client) and sizes in bytes when available.
    */
-  fileList?: Array<{ path: string, size?: number }>
+  fileList?: Array<{ path: string; size?: number }>
+  forceRefresh?: boolean
+  hash?: string
+  rawName: string
 }
 
 export interface OpenAIProviderConfig {
   apiKey: string | null
-  model: string
   baseUrl: string | null
+  model: string
 }
 
 export interface OpenRouterProviderConfig {
@@ -31,12 +31,12 @@ export interface CodexProviderConfig {
 }
 
 export interface ProviderConfig {
+  preferredProviders: AiProviderId[]
   providers: {
     openai: OpenAIProviderConfig
     openrouter: OpenRouterProviderConfig
     codex: CodexProviderConfig
   }
-  preferredProviders: AiProviderId[]
   tmdbApiKey: string | null
 }
 
@@ -44,11 +44,11 @@ export interface TorrentAiEngineContract {
   analyzeName: (
     options: AnalyzeTorrentNameOptions,
   ) => Promise<TorrentAIEnrichmentResult>
+  clearCache: () => Promise<void>
   lookupCached: (options: {
     rawName: string
     hash?: string
   }) => Promise<TorrentAIEnrichmentResult>
-  clearCache: () => Promise<void>
 }
 
 export type TorrentAiCacheValue = {

@@ -14,9 +14,8 @@ const computeTanStackState = (persistentState: TorrentTablePersistentState) => {
   const { visibleColumns, orderedColumns, resizeColumns } = persistentState
 
   // Create column visibility mapping
-  const columnVisibility: Record<string, boolean> = {}
+  const columnVisibility: Record<string, boolean> = { select: true }
   // Select column is always visible
-  columnVisibility.select = true
   // Get all column IDs dynamically (we'll handle translation at component level)
   const allColumnIds = [
     'select',
@@ -64,90 +63,91 @@ const computeTanStackState = (persistentState: TorrentTablePersistentState) => {
 
 // State interfaces
 export interface TorrentTableSortState {
-  sortKey: string | null
   sortDirection: 'asc' | 'desc'
+  sortKey: string | null
 }
 
 export interface TorrentTableDragState {
-  isDragging: boolean
   draggedColumnId: string | null
-  dropZoneColumnId: string | null
   dragOffset: { x: number; y: number }
+  dropZoneColumnId: string | null
+  isDragging: boolean
 }
 
 export interface TorrentTablePersistentState {
-  visibleColumns: string[]
   orderedColumns: string[]
   resizeColumns: Record<string, number>
   sortState: TorrentTableSortState
+  visibleColumns: string[]
 }
 
 export interface TorrentTableSessionState {
-  dragState: TorrentTableDragState
-  // TanStack Table states (non-persistent)
-  columnOrder: string[]
-  columnVisibility: Record<string, boolean>
-  columnSizing: Record<string, number>
   // Active torrent for detail view
   activeTorrentHash: string | null
+  // TanStack Table states (non-persistent)
+  columnOrder: string[]
+  columnSizing: Record<string, number>
+  columnVisibility: Record<string, boolean>
+  dragState: TorrentTableDragState
 }
 
 // Actions interface
 export interface TorrentTableActions {
-  // Persistent state actions
-  setVisibleColumns: (columns: string[]) => void
   addVisibleColumn: (columnId: string) => void
+  endDrag: () => void
   removeVisibleColumn: (columnId: string) => void
-  toggleVisibleColumn: (columnId: string) => void
-
-  setOrderedColumns: (columns: string[]) => void
   reorderColumns: (
     fromIndex: number,
     toIndex: string,
     newOrder: string[],
   ) => void
 
-  setResizeColumns: (columns: Record<string, number>) => void
+  // Utility actions
+  resetToDefaults: () => void
+  // Active torrent actions
+  setActiveTorrentHash: (hash: string | null) => void
+
+  setColumnOrder: (order: string[]) => void
   setColumnSize: (columnId: string, size: number) => void
 
-  setSortState: (state: Partial<TorrentTableSortState>) => void
-  updateSort: (sortKey: string, sortDirection: 'asc' | 'desc') => void
+  setColumnSizing: (sizing: Record<string, number>) => void
+  setColumnVisibility: (visibility: Record<string, boolean>) => void
 
   // Session state actions
   setDragState: (state: Partial<TorrentTableDragState>) => void
-  startDrag: (columnId: string) => void
-  endDrag: () => void
+  setOrderedColumns: (columns: string[]) => void
+  setResizeColumns: (columns: Record<string, number>) => void
 
-  setColumnOrder: (order: string[]) => void
+  setSortState: (state: Partial<TorrentTableSortState>) => void
+  // Persistent state actions
+  setVisibleColumns: (columns: string[]) => void
+
+  startDrag: (columnId: string) => void
+  syncTanStackState: () => void
+
+  toggleVisibleColumn: (columnId: string) => void
   updateColumnOrder: (
     updater: string[] | ((prev: string[]) => string[]),
   ) => void
 
-  setColumnVisibility: (visibility: Record<string, boolean>) => void
-  updateColumnVisibility: (
-    updater:
-      | Record<string, boolean>
-      | ((prev: Record<string, boolean>) => Record<string, boolean>),
-  ) => void
-
-  setColumnSizing: (sizing: Record<string, number>) => void
   updateColumnSizing: (
     updater:
       | Record<string, number>
       | ((prev: Record<string, number>) => Record<string, number>),
   ) => void
 
-  // Active torrent actions
-  setActiveTorrentHash: (hash: string | null) => void
-
-  // Utility actions
-  resetToDefaults: () => void
-  syncTanStackState: () => void
+  updateColumnVisibility: (
+    updater:
+      | Record<string, boolean>
+      | ((prev: Record<string, boolean>) => Record<string, boolean>),
+  ) => void
+  updateSort: (sortKey: string, sortDirection: 'asc' | 'desc') => void
 }
 
 // Complete store interface
 export interface TorrentTableStore
-  extends TorrentTablePersistentState,
+  extends
+    TorrentTablePersistentState,
     TorrentTableSessionState,
     TorrentTableActions {}
 

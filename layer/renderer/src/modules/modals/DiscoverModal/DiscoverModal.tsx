@@ -1,37 +1,19 @@
-import { useEffect, useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 
 import type { DiscoverProviderId } from '~/atoms/settings/discover'
-import { Button } from '~/components/ui/button'
-import type { ModalComponent } from '~/components/ui/modal'
-import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
 import type { DiscoverFilterDefinition } from '~/modules/discover'
 import { useDiscoverProviders } from '~/modules/discover/hooks/useDiscoverProviders'
-import { ResizableLayout } from '~/modules/layout'
-import type { ResizablePanelConfig } from '~/modules/layout/desktop/components/ResizableLayout'
 
-import { presentSettingsModal } from '../SettingsModal'
 import { DiscoverModalActions } from './actions'
-import { resolveLastProvider } from './actions/lastProvider'
-import {
-  readLastProvider,
-  writeLastProvider,
-} from './actions/lastProviderPersist'
-import {
-  DiscoverEmptyState,
-  DiscoverFilterBar,
-  DiscoverModalHeader,
-  DiscoverMTeamHeaderStart,
-  DiscoverPreviewPanel,
-  DiscoverResultsList,
-  DiscoverResultsToolbar,
-} from './components'
-import { MikanWorkspace } from './mikan'
+import { DiscoverModalHeader } from './components'
+import { isDiscoverProviderId } from './open'
 import { useDiscoverModalStore } from './store'
 
-const actions = DiscoverModalActions.shared
-const { provider: providerActions, search: searchActions } = actions.slices
+const { provider: providerActions } = DiscoverModalActions.shared.slices
 
 const buildInitialFilters = (definitions: DiscoverFilterDefinition[]) => {
   return definitions.reduce<Record<string, unknown>>((acc, definition) => {
@@ -55,64 +37,27 @@ const computeDefinitionsSignature = (
     definitions,
   })
 
-export const DiscoverModal: ModalComponent = ({ dismiss }) => {
+export const DiscoverModal = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation('app')
+  const navigate = useNavigate()
+  const { type } = useParams()
   const providers = useDiscoverProviders()
-
-  const activeProviderId = useDiscoverModalStore(
-    state => state.activeProviderId,
-  )
-  const providerReady = useDiscoverModalStore(state => state.providerReady)
-  const committedSearch = useDiscoverModalStore(
-    state => state.committedSearch,
-  )
-  const isSearching = useDiscoverModalStore(state => state.isSearching)
-  const items = useDiscoverModalStore(state => state.items)
-  const hasMore = useDiscoverModalStore(state => state.hasMore)
-  const searchError = useDiscoverModalStore(state => state.searchError)
-
+  const searchError = useDiscoverModalStore((state) => state.searchError)
   const lastConfiguredSignatureRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (providers.length === 0) {
+    if (!isDiscoverProviderId(type) || providers.length === 0) {
       return
     }
 
-    const readyIds = providers
-      .filter(provider => provider.ready)
-      .map(provider => provider.id)
-    const remembered = readLastProvider()
-    const resolved = resolveLastProvider(remembered, readyIds)
-
-    if (resolved) {
-      if (resolved !== activeProviderId) {
-        providerActions.setActiveProviderId(resolved)
-      }
-      else if (remembered !== resolved) {
-        writeLastProvider(resolved)
-      }
-      return
-    }
-
-    if (!providers.some(provider => provider.id === activeProviderId)) {
-      providerActions.setActiveProviderId(providers[0]!.id)
-    }
-  }, [providers, activeProviderId])
-
-  useEffect(() => {
-    if (providers.length === 0) {
-      return
-    }
-
-    const provider
-      = providers.find(item => item.id === activeProviderId) ?? providers[0]
+    const provider = providers.find((item) => item.id === type)
 
     if (!provider) {
       return
     }
 
-    const filterDefinitions
-      = provider.implementation.getFilterDefinitions?.(
+    const filterDefinitions =
+      provider.implementation.getFilterDefinitions?.(
         provider.config as never,
       ) ?? []
 
@@ -144,7 +89,7 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
       descriptionRenderer:
         provider.implementation.previewDescriptionRenderer ?? 'markdown',
     })
-  }, [providers, activeProviderId])
+  }, [providers, type])
 
   useEffect(() => {
     if (searchError === 'requestFailed') {
@@ -152,144 +97,15 @@ export const DiscoverModal: ModalComponent = ({ dismiss }) => {
     }
   }, [searchError, t])
 
-  const activeProvider = providers.find(
-    provider => provider.id === activeProviderId,
-  )
-
-  const hasReadyProviders = providers.some(provider => provider.ready)
-
-  const showPagination = Boolean(
-    committedSearch && (hasMore || (committedSearch?.page ?? 1) > 1),
-  )
-  const disablePrev = Boolean(
-    !committedSearch || isSearching || (committedSearch.page ?? 1) <= 1,
-  )
-
-  const previewId = useDiscoverModalStore(state => state.previewId)
-  const disableNext = Boolean(!committedSearch || isSearching || !hasMore)
-  const showLoading = Boolean(isSearching && committedSearch)
-  const resizablePanel = useMemo<ResizablePanelConfig | undefined>(() => {
-    return {
-      isVisible: !!previewId,
-      width: 400,
-      minWidth: 280,
-      maxWidth: 600,
-
-      render: ({ width }) => <DiscoverPreviewPanel style={{ width }} />,
-    }
-  }, [previewId])
+  if (!isDiscoverProviderId(type)) {
+    return <div className="h-screen bg-background" />
+  }
 
   return (
-    <div className="flex h-full w-full flex-col bg-background text-text">
-      {activeProviderId === 'mikan'
-        ? (
-            <MikanWorkspace onClose={dismiss} />
-          )
-        : (
-            <>
-              <DiscoverModalHeader
-                start={<DiscoverMTeamHeaderStart />}
-                settings
-                onClose={dismiss}
-              />
-              <DiscoverFilterBar />
-              <div className="flex flex-1 gap-3 h-0 relative">
-                <div className="flex min-w-0 flex-1 flex-row grow overflow-hidden absolute inset-0 bg-background-secondary/30">
-                  <ResizableLayout
-                    mainContent={(
-                      <div className="flex-1 flex flex-col h-0">
-                        <DiscoverResultsToolbar />
-                        <ScrollArea
-                          rootClassName="flex-1 h-0"
-                          viewportClassName="bg-background"
-                        >
-                          {(!hasReadyProviders
-                            || !providerReady
-                            || !activeProvider) && (
-                            <DiscoverEmptyState
-                              icon="i-mingcute-settings-4-line"
-                              title={t('discover.modal.noProviderTitle')}
-                              description={t(
-                                'discover.modal.noProviderDescription',
-                              )}
-                              actionLabel={t('discover.modal.configureProviders')}
-                              onAction={() =>
-                                presentSettingsModal({ tab: 'discover' })}
-                            />
-                          )}
-
-                          {hasReadyProviders
-                            && providerReady
-                            && committedSearch === null
-                            && items.length === 0 && (
-                            <DiscoverEmptyState
-                              icon="i-mingcute-search-2-line"
-                              title={t('discover.modal.waitingTitle')}
-                              description={t('discover.modal.waitingDescription')}
-                            />
-                          )}
-
-                          {showLoading && (
-                            <div className="flex items-center justify-center py-10 text-text-tertiary gap-1.5">
-                              <i className="i-mingcute-loading-3-line animate-spin text-lg" />
-                              <span>{t('discover.modal.loading')}</span>
-                            </div>
-                          )}
-
-                          {items.length > 0 && <DiscoverResultsList />}
-                        </ScrollArea>
-
-                        {showPagination && (
-                          <div className="flex items-center sticky bottom-0 justify-end border-t border-border bg-background px-4 py-2.5 text-sm text-text-secondary">
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={disablePrev}
-                                onClick={() => {
-                                  if (!committedSearch) {
-                                    return
-                                  }
-                                  void searchActions.goToPage(
-                                    Math.max(1, committedSearch.page - 1),
-                                  )
-                                }}
-                              >
-                                <i className="i-mingcute-arrow-left-line mr-1" />
-                                <span>{t('discover.modal.prev')}</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={disableNext}
-                                onClick={() => {
-                                  if (!committedSearch) {
-                                    return
-                                  }
-                                  void searchActions.goToPage(
-                                    committedSearch.page + 1,
-                                  )
-                                }}
-                              >
-                                <span>{t('discover.modal.next')}</span>
-                                <i className="i-mingcute-arrow-right-line ml-1" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    resizablePanel={resizablePanel}
-                  />
-                </div>
-              </div>
-            </>
-          )}
+    <div className="flex h-screen w-full flex-col bg-background text-text">
+      {ELECTRON && <div className="fixed inset-x-0 top-0 h-10 drag-region" />}
+      <DiscoverModalHeader onClose={() => navigate('/')} />
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   )
 }
-
-DiscoverModal.contentClassName
-  = 'w-full h-full max-w-none max-h-none p-0 rounded-none'
-DiscoverModal.showCloseButton = false
-DiscoverModal.disableDrag = true

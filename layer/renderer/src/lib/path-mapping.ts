@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { PathMappingEntry } from '~/atoms/settings/path-mappings'
 import { getPathMappings } from '~/atoms/settings/path-mappings'
 
-const PROTOCOL_REGEX = /^([a-z][a-z0-9+.-]*:\/\/)(.*)$/i
+const PROTOCOL_REGEX = /^([a-z][\d+.a-z-]*:\/\/)(.*)$/i
 
 const isUrl = (value: string) => PROTOCOL_REGEX.test(value.trim())
 
@@ -84,8 +84,8 @@ const joinLocalPath = (base: string, rest: string): string => {
     return `${trimmedBase}/${sanitizedRest.replaceAll('\\', '/')}`
   }
 
-  if (base.startsWith('\\\\') || /^[A-Z]:/i.test(base) || base.includes('\\')) {
-    const normalizedBase = path.win32.normalize(base).replaceAll(/[\\/]+$/g, '')
+  if (base.startsWith('\\\\') || /^[a-z]:/i.test(base) || base.includes('\\')) {
+    const normalizedBase = path.win32.normalize(base).replaceAll(/[/\\]+$/g, '')
     const normalizedRest = path.win32.normalize(
       sanitizedRest.replaceAll('/', '\\'),
     )

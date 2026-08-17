@@ -31,8 +31,8 @@ export const MikanEpisodeList = ({
   return (
     <ul className="divide-y divide-border rounded-lg border border-border bg-background">
       {episodes.map((episode) => {
-        const state
-          = bangumiId && subgroupId
+        const state =
+          bangumiId && subgroupId
             ? episodeStateFor(
                 bangumiId,
                 subgroupId,
@@ -42,8 +42,8 @@ export const MikanEpisodeList = ({
             : null
         return (
           <li
-            key={episode.episodeId}
             className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+            key={episode.episodeId}
           >
             <div className="min-w-0 flex-1">
               <p className="text-sm text-text">{episode.title}</p>
@@ -77,8 +77,8 @@ export const MikanEpisodeList = ({
                 </Button>
               )}
               <Button
-                size="sm"
                 disabled={importing}
+                size="sm"
                 onClick={() => onImport(episode.episodeId)}
               >
                 {importing && (

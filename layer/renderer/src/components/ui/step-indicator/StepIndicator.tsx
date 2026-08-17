@@ -1,15 +1,15 @@
 import { cx } from '~/lib/cn'
 
 interface Step {
+  description?: string
   id: string
   title: string
-  description?: string
 }
 
 interface StepIndicatorProps {
-  steps: Step[]
-  currentStep: number
   className?: string
+  currentStep: number
+  steps: Step[]
 }
 
 export const StepIndicator = ({
@@ -27,7 +27,7 @@ export const StepIndicator = ({
         const isLast = index === steps.length - 1
 
         return (
-          <div key={step.id} className="flex items-center">
+          <div className="flex items-center" key={step.id}>
             {/* Step Circle */}
             <div className="flex flex-col items-center">
               <div

@@ -5,26 +5,26 @@ import type { MobileCellConfig } from '../types'
 
 // Mobile layout state for managing mobile-specific UI interactions
 export interface MobileLayoutState {
-  // Navigation drawer state (hamburger menu)
-  drawerOpen: boolean
-
-  // Search expansion state in mobile toolbar
-  searchExpanded: boolean
-
   // Bottom sheet state for torrent details
   bottomSheetOpen: boolean
 
-  // Currently selected card hash for detail view
-  selectedCard: string | null
+  // Navigation drawer state (hamburger menu)
+  drawerOpen: boolean
 
   // Set of expanded card hashes for collapsible card sections
   expandedCards: Set<string>
 
+  // Gesture interaction state
+  gestureInteractionActive: boolean
+
   // Multi-select mode state (activated by long press)
   multiSelectMode: boolean
 
-  // Gesture interaction state
-  gestureInteractionActive: boolean
+  // Search expansion state in mobile toolbar
+  searchExpanded: boolean
+
+  // Currently selected card hash for detail view
+  selectedCard: string | null
 }
 
 // Main mobile layout atom

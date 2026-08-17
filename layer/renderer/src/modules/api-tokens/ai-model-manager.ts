@@ -17,7 +17,9 @@ export class AiModelManager {
   private static instance: AiModelManager | null = null
 
   static getInstance(): AiModelManager {
-    if (!this.instance) { this.instance = new AiModelManager() }
+    if (!this.instance) {
+      this.instance = new AiModelManager()
+    }
     return this.instance
   }
 
@@ -55,15 +57,17 @@ export class AiModelManager {
     ])
 
     const key = (apiKey ?? '').trim()
-    if (!key) { return [] }
+    if (!key) {
+      return []
+    }
 
-    const normalizedBaseUrl
-      = (baseUrl ?? '').trim() || 'https://api.openai.com/v1'
+    const normalizedBaseUrl =
+      (baseUrl ?? '').trim() || 'https://api.openai.com/v1'
     const url = `${normalizedBaseUrl.replaceAll(/\/+$/g, '')}/models`
 
     const res = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${key.replace(/^Bearer\s+/i, '')}`,
+        Authorization: `Bearer ${key.replace(/^bearer\s+/i, '')}`,
         Accept: 'application/json',
       },
       signal,
@@ -78,8 +82,7 @@ export class AiModelManager {
     const json = (await res.json()) as OpenAIModelList
     const ids: string[] = Array.isArray(json?.data)
       ? (json!
-          .data!
-          .map(m => (m && typeof m.id === 'string' ? m.id : null))
+          .data!.map((m) => (m && typeof m.id === 'string' ? m.id : null))
           .filter(Boolean) as string[])
       : []
     ids.sort((a, b) => a?.localeCompare(b ?? '') ?? 0)
@@ -93,12 +96,14 @@ export class AiModelManager {
       API_TOKENS.ai.openrouter.apiKey,
     )
     const key = (apiKey ?? '').trim()
-    if (!key) { return [] }
+    if (!key) {
+      return []
+    }
 
     const res = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
-        'Authorization': `Bearer ${key.replace(/^Bearer\s+/i, '')}`,
-        'Accept': 'application/json',
+        Authorization: `Bearer ${key.replace(/^bearer\s+/i, '')}`,
+        Accept: 'application/json',
         'HTTP-Referer': 'https://torrent-vibe.app',
         'X-Title': 'Torrent Vibe',
       },
@@ -112,8 +117,7 @@ export class AiModelManager {
     const json = (await res.json()) as OpenRouterModelList
     const ids: string[] = Array.isArray(json?.data)
       ? (json!
-          .data!
-          .map(m => (m && typeof m.id === 'string' ? m.id : null))
+          .data!.map((m) => (m && typeof m.id === 'string' ? m.id : null))
           .filter(Boolean) as string[])
       : []
     ids.sort((a, b) => a?.localeCompare(b ?? '') ?? 0)

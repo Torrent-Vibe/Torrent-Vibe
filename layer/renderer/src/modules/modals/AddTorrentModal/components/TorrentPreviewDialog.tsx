@@ -57,13 +57,13 @@ export const TorrentPreviewDialog: ModalComponent<
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
         <TorrentContentPreview
-          state={state}
-          selectedFileIndices={selectedFileIndices}
-          onToggleFile={onToggleFile}
-          onToggleAll={onToggleAll}
-          onReload={onReload}
-          onClear={onClear}
           isLoading={isLoading}
+          selectedFileIndices={selectedFileIndices}
+          state={state}
+          onClear={onClear}
+          onReload={onReload}
+          onToggleAll={onToggleAll}
+          onToggleFile={onToggleFile}
         />
 
         {state.source === 'file' && state.status !== 'error' && (

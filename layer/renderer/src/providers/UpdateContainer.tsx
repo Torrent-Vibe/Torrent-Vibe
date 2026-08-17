@@ -45,10 +45,10 @@ export const UpdateContainer = () => {
   return (
     <FloatingUpdatePill
       updateState={updateInfo}
+      onDismiss={handleDismiss}
       onInstall={handleInstall}
       onLater={handleLater}
       onRetry={handleRetry}
-      onDismiss={handleDismiss}
     />
   )
 }

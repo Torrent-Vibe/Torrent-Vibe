@@ -9,13 +9,13 @@ export const Toaster = ({ ...props }: ToasterProps) => {
 
   return (
     <Sonner
-      theme={theme}
-      richColors
-      expand
       closeButton
+      expand
+      richColors
+      className="toaster group"
       duration={3500}
       offset="16px"
-      className="toaster group"
+      theme={theme}
       toastOptions={{
         classNames: {
           // Card shell - using material colors for glass morphism effect

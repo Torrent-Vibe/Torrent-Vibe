@@ -7,8 +7,8 @@ import { formatBytesSmart, formatSpeed } from '~/lib/format'
 import type { TorrentPeer } from '~/types/torrent'
 
 interface PeersTabProps {
-  peers?: Record<string, TorrentPeer>
   isLoading?: boolean
+  peers?: Record<string, TorrentPeer>
 }
 
 const countryCodeToFlag = (code?: string) => {
@@ -22,8 +22,8 @@ const countryCodeToFlag = (code?: string) => {
   const OFFSET = 0x1F1E6
   const A = 'A'.codePointAt(0)!
   return (
-    String.fromCodePoint(OFFSET + (cc.charCodeAt(0) - A))
-    + String.fromCodePoint(OFFSET + (cc.charCodeAt(1) - A))
+    String.fromCodePoint(OFFSET + (cc.charCodeAt(0) - A)) +
+    String.fromCodePoint(OFFSET + (cc.charCodeAt(1) - A))
   )
 }
 
@@ -35,15 +35,15 @@ export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
     return (
       <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 hover:bg-fill-secondary/30 transition-colors border border-transparent hover:border-separator">
         <m.div
+          animate={{
+            scale: peer.dl_speed > 0 || peer.up_speed > 0 ? [1, 1.2, 1] : 1,
+          }}
           className={cn(
             'w-2.5 h-2.5 rounded-full shadow-sm',
             peer.dl_speed > 0 || peer.up_speed > 0
               ? 'bg-green'
               : 'bg-fill-quaternary',
           )}
-          animate={{
-            scale: peer.dl_speed > 0 || peer.up_speed > 0 ? [1, 1.2, 1] : 1,
-          }}
           transition={{
             duration: 2,
             repeat: peer.dl_speed > 0 || peer.up_speed > 0 ? Infinity : 0,
@@ -56,15 +56,13 @@ export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
             title={`${peer.ip}:${peer.port}`}
           >
             <span
+              aria-label={peer.country}
               className="mr-1"
               title={peer.country}
-              aria-label={peer.country}
             >
               {countryCodeToFlag(peer.country_code) || '🌐'}
             </span>
-            {peer.ip}
-            :
-            {peer.port}
+            {peer.ip}:{peer.port}
           </div>
           <div className="text-xs text-text-secondary truncate">
             {peer.client}
@@ -111,12 +109,12 @@ export const PeersTab = ({ peers, isLoading }: PeersTabProps) => {
   return (
     <div className="-mx-4 -my-4 flex-1 min-h-0">
       <VirtualList<[string, TorrentPeer]>
-        data={entries}
-        renderItem={renderItem}
-        getItemKey={([key]) => key}
-        estimateSize={58}
         className="px-4 pb-4"
+        data={entries}
+        estimateSize={58}
+        getItemKey={([key]) => key}
         itemClassName="pb-0.5 last:pb-0"
+        renderItem={renderItem}
       />
     </div>
   )

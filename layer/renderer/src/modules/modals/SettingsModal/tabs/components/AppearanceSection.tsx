@@ -132,22 +132,22 @@ export const AppearanceSection = () => {
     <div className="space-y-4">
       <SettingSectionCard title={t('general.appearance.title')}>
         <SettingField
-          label={t('general.appearance.theme.label')}
           controlClassName="md:max-w-[320px]"
+          label={t('general.appearance.theme.label')}
         >
           <SegmentTab
-            size="md"
-            variant="compact"
             items={appearanceItems}
+            size="md"
             value={theme as ThemeMode}
+            variant="compact"
             onChange={(mode) => setTheme(mode)}
           />
         </SettingField>
 
         <SettingField
-          label={t('general.appearance.accent.label')}
-          description={t('general.appearance.accent.description')}
           controlClassName="md:max-w-none md:justify-end"
+          description={t('general.appearance.accent.description')}
+          label={t('general.appearance.accent.label')}
         >
           <div className="flex flex-wrap gap-3 md:justify-end">
             {ACCENT_COLOR_PRESETS.map((preset) => {
@@ -160,7 +160,10 @@ export const AppearanceSection = () => {
 
               return (
                 <button
+                  aria-pressed={isSelected}
                   key={preset.id}
+                  style={{ background: gradient }}
+                  title={t(preset.labelKey)}
                   type="button"
                   className={cn(
                     'relative size-7 rounded-full border border-border shadow-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-accent',
@@ -168,10 +171,7 @@ export const AppearanceSection = () => {
                     isSelected &&
                       'ring-2 ring-offset-2 ring-accent scale-105 border-transparent',
                   )}
-                  style={{ background: gradient }}
                   onClick={() => setAccentColor(preset.id)}
-                  aria-pressed={isSelected}
-                  title={t(preset.labelKey)}
                 >
                   <span className="sr-only">{t(preset.labelKey)}</span>
                   {isSelected ? (
@@ -189,19 +189,19 @@ export const AppearanceSection = () => {
         </SettingField>
 
         <SettingField
-          label={t('general.appearance.colorStyle.label')}
-          description={t('general.appearance.colorStyle.description')}
           controlClassName="md:max-w-[320px]"
+          description={t('general.appearance.colorStyle.description')}
+          label={t('general.appearance.colorStyle.label')}
         >
           <div className="w-full space-y-2 text-left md:text-right">
             <SegmentTab
-              size="md"
-              variant="compact"
-              items={colorStyleItems}
-              value={colorStyle}
-              onChange={(style) => setColorStyle(style)}
-              containerClassName="w-full"
               className="shadow-sm"
+              containerClassName="w-full"
+              items={colorStyleItems}
+              size="md"
+              value={colorStyle}
+              variant="compact"
+              onChange={(style) => setColorStyle(style)}
             />
             {selectedColorStyle ? (
               <p className="text-xs text-text-secondary">
@@ -214,9 +214,6 @@ export const AppearanceSection = () => {
         <SettingSelectField
           label={t('general.appearance.language.label')}
           value={currentLanguage}
-          onValueChange={(language) =>
-            changeLanguage(language as MainSupportedLanguages)
-          }
           renderItems={() =>
             supportedLanguages.map((lang) => (
               <SelectItem key={lang} value={lang}>
@@ -225,6 +222,9 @@ export const AppearanceSection = () => {
                 </div>
               </SelectItem>
             ))
+          }
+          onValueChange={(language) =>
+            changeLanguage(language as MainSupportedLanguages)
           }
         />
       </SettingSectionCard>

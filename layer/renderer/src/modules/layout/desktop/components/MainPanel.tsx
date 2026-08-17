@@ -9,11 +9,11 @@ export const MainPanel = ({
 }: MainPanelProps & { style?: React.CSSProperties }) => {
   return (
     <main
+      style={style}
       className={cn(
         'flex flex-1 basis-0 flex-col bg-background min-w-[400px] overflow-hidden',
         className,
       )}
-      style={style}
     >
       {children}
     </main>

@@ -134,6 +134,7 @@ const ContextMenuCheckboxItem = ({
   hasIcon?: boolean
 }) => (
   <ContextMenuPrimitive.CheckboxItem
+    checked={checked}
     ref={ref}
     className={clsxm(
       'cursor-checkbox focus:bg-accent focus:text-white text-sm text-foreground relative flex select-none items-center rounded-[5px] py-1.5 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
@@ -142,7 +143,6 @@ const ContextMenuCheckboxItem = ({
       props.hasIcon ? 'px-8 pr-8' : 'px-8',
       className,
     )}
-    checked={checked}
     {...props}
   >
     <span
@@ -192,8 +192,8 @@ const ContextMenuSeparator = ({
   > | null>
 }) => (
   <ContextMenuPrimitive.Separator
-    className="mx-2 my-1 h-px backdrop-blur-background"
     asChild
+    className="mx-2 my-1 h-px backdrop-blur-background"
     ref={ref}
     {...props}
   >

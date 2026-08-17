@@ -12,9 +12,9 @@ import { MobileSettingsTabWrapper } from './MobileSettingsTabWrapper'
 import { MobileStackNavigator } from './MobileStackNavigator'
 
 interface MobileSettingsLayoutProps {
-  onClose?: () => void
   className?: string
   initialTab?: import('../configs').SettingsSection
+  onClose?: () => void
 }
 
 /**
@@ -111,8 +111,8 @@ export const MobileSettingsLayout: React.FC<MobileSettingsLayoutProps> = ({
         {/* Content Area */}
         <div className="flex-1 overflow-hidden">
           <MobileStackNavigator
-            renderScreen={renderScreen}
             className="h-full"
+            renderScreen={renderScreen}
           />
         </div>
       </MobileNavigationProvider>
@@ -124,13 +124,13 @@ export const MobileSettingsLayout: React.FC<MobileSettingsLayoutProps> = ({
 const MobileSettingsRootContent: React.FC<{ onClose?: () => void }> = ({
   onClose,
 }) => {
-  return <MobileSettingsRoot onClose={onClose} hideHeader />
+  return <MobileSettingsRoot hideHeader onClose={onClose} />
 }
 
 const MobileSettingsTabContent: React.FC<{ settingKey: string }> = ({
   settingKey,
 }) => {
-  return <MobileSettingsTabWrapper settingKey={settingKey as any} hideHeader />
+  return <MobileSettingsTabWrapper hideHeader settingKey={settingKey as any} />
 }
 
 export default MobileSettingsLayout

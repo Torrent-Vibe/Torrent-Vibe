@@ -46,14 +46,14 @@ export function ErrorElement() {
               <svg
                 className="w-8 h-8 text-red"
                 fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
                 stroke="currentColor"
+                strokeWidth={1.5}
+                viewBox="0 0 24 24"
               >
                 <path
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
                 />
               </svg>
             </div>
@@ -86,14 +86,14 @@ export function ErrorElement() {
           {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <Button
-              onClick={() => (window.location.href = '/')}
               className="flex-1 bg-material-opaque text-text-vibrant hover:bg-control-enabled/90 border-0 h-10 font-medium transition-colors"
+              onClick={() => (window.location.href = '/')}
             >
               Reload Application
             </Button>
             <Button
-              onClick={() => window.history.back()}
               className="flex-1 bg-material-thin text-text border border-fill-tertiary hover:bg-fill-tertiary h-10 font-medium transition-colors"
+              onClick={() => window.history.back()}
             >
               Go Back
             </Button>
@@ -105,6 +105,9 @@ export function ErrorElement() {
               If this problem persists, please report it to our team.
             </p>
             <a
+              className="inline-flex items-center text-sm text-text-secondary hover:text-text transition-colors"
+              rel="noreferrer"
+              target="_blank"
               href={`${repository.url}/issues/new?title=${encodeURIComponent(
                 `Error: ${message}`,
               )}&body=${encodeURIComponent(
@@ -122,9 +125,6 @@ export function ErrorElement() {
                   e.preventDefault()
                 }
               }}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center text-sm text-text-secondary hover:text-text transition-colors"
             >
               <svg
                 className="w-4 h-4 mr-2"

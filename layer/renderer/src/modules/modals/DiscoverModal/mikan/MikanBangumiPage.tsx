@@ -16,48 +16,46 @@ export const MikanBangumiPage = () => {
   const actions = DiscoverModalActions.shared
   const { mikan, importing } = actions.slices
 
-  const items = useDiscoverModalStore(state => state.items)
-  const bangumiId = useDiscoverModalStore(state => state.mikanBangumiId)
-  const detail = useDiscoverModalStore(state => state.mikanDetail)
-  const loading = useDiscoverModalStore(state => state.mikanDetailLoading)
-  const error = useDiscoverModalStore(state => state.mikanDetailError)
-  const subgroupId = useDiscoverModalStore(state => state.mikanSubgroupId)
-  const importingFlag = useDiscoverModalStore(state => state.importing)
-  const subscriptions = useSubscriptionsStore(state => state.items)
-  const statusByServer = useSubscriptionsStore(state => state.statusByServer)
+  const items = useDiscoverModalStore((state) => state.items)
+  const bangumiId = useDiscoverModalStore((state) => state.mikanBangumiId)
+  const detail = useDiscoverModalStore((state) => state.mikanDetail)
+  const loading = useDiscoverModalStore((state) => state.mikanDetailLoading)
+  const error = useDiscoverModalStore((state) => state.mikanDetailError)
+  const subgroupId = useDiscoverModalStore((state) => state.mikanSubgroupId)
+  const importingFlag = useDiscoverModalStore((state) => state.importing)
+  const subscriptions = useSubscriptionsStore((state) => state.items)
+  const statusByServer = useSubscriptionsStore((state) => state.statusByServer)
 
-  const item = detail ?? items.find(entry => entry.id === bangumiId) ?? null
+  const item = detail ?? items.find((entry) => entry.id === bangumiId) ?? null
   const extra = asMikanBangumiExtra(item?.extra)
   const cover = resolveMikanCoverUrl(extra?.coverUrl)
   const subgroups = extra?.subgroups ?? []
   const subscription = subscriptions.find(
-    entry =>
-      entry.bangumiId === bangumiId
-      && entry.subgroupId === (subgroupId ?? entry.subgroupId),
+    (entry) =>
+      entry.bangumiId === bangumiId &&
+      entry.subgroupId === (subgroupId ?? entry.subgroupId),
   )
 
   const allEpisodes = extra?.episodes ?? []
   const episodes = subgroupId
-    ? allEpisodes.filter(episode => episode.subgroupId === subgroupId)
+    ? allEpisodes.filter((episode) => episode.subgroupId === subgroupId)
     : allEpisodes
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="h-48 w-36 shrink-0 overflow-hidden rounded-lg bg-fill-secondary sm:h-56 sm:w-40">
-          {cover
-            ? (
-                <img
-                  src={cover}
-                  alt={item?.title ?? ''}
-                  className="size-full object-cover"
-                />
-              )
-            : (
-                <div className="flex size-full items-center justify-center text-text-tertiary">
-                  <i className="i-mingcute-movie-line text-3xl" />
-                </div>
-              )}
+          {cover ? (
+            <img
+              alt={item?.title ?? ''}
+              className="size-full object-cover"
+              src={cover}
+            />
+          ) : (
+            <div className="flex size-full items-center justify-center text-text-tertiary">
+              <i className="i-mingcute-movie-line text-3xl" />
+            </div>
+          )}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -71,10 +69,10 @@ export const MikanBangumiPage = () => {
               )}
               {extra?.bangumiSubjectId && (
                 <a
-                  href={`https://bgm.tv/subject/${extra.bangumiSubjectId}`}
-                  target="_blank"
-                  rel="noreferrer"
                   className="text-accent hover:underline"
+                  href={`https://bgm.tv/subject/${extra.bangumiSubjectId}`}
+                  rel="noreferrer"
+                  target="_blank"
                 >
                   {t('discover.modal.mikan.bangumiTv')}
                 </a>
@@ -82,33 +80,31 @@ export const MikanBangumiPage = () => {
             </div>
           </div>
 
-          {subgroups.length > 0
-            ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {subgroups.map(group => (
-                    <button
-                      key={group.id}
-                      type="button"
-                      onClick={() => mikan.selectSubgroup(group.id)}
-                      className={cn(
-                        'rounded-full px-2.5 py-1 text-xs transition',
-                        subgroupId === group.id
-                          ? 'bg-accent text-white'
-                          : 'bg-fill-secondary text-text-secondary hover:bg-fill-tertiary hover:text-text',
-                      )}
-                    >
-                      {group.name || group.id}
-                    </button>
-                  ))}
-                </div>
-              )
-            : (
-                !loading && (
-                  <p className="text-sm text-text-tertiary">
-                    {t('discover.modal.mikan.noSubgroups')}
-                  </p>
-                )
-              )}
+          {subgroups.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {subgroups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  className={cn(
+                    'rounded-full px-2.5 py-1 text-xs transition',
+                    subgroupId === group.id
+                      ? 'bg-accent text-white'
+                      : 'bg-fill-secondary text-text-secondary hover:bg-fill-tertiary hover:text-text',
+                  )}
+                  onClick={() => mikan.selectSubgroup(group.id)}
+                >
+                  {group.name || group.id}
+                </button>
+              ))}
+            </div>
+          ) : (
+            !loading && (
+              <p className="text-sm text-text-tertiary">
+                {t('discover.modal.mikan.noSubgroups')}
+              </p>
+            )
+          )}
 
           {subscription && (
             <div>
@@ -119,7 +115,8 @@ export const MikanBangumiPage = () => {
                   presentBangumiUnsubscribe(
                     subscription,
                     item?.title ?? subscription.title,
-                  )}
+                  )
+                }
               >
                 {t('discover.modal.mikan.unsubscribe')}
               </Button>
@@ -157,10 +154,10 @@ export const MikanBangumiPage = () => {
       {episodes.length > 0 && bangumiId && (
         <MikanEpisodeList
           bangumiId={bangumiId}
-          subgroupId={subgroupId}
           episodes={episodes}
           importing={importingFlag}
           statusByServer={statusByServer}
+          subgroupId={subgroupId}
           onImport={(episodeId) => {
             void importing.importMikanEpisode(episodeId)
           }}

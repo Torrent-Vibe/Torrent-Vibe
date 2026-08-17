@@ -9,10 +9,10 @@ import { useDiscoverProvidersConfig } from '~/atoms/settings/discover'
 import { getDiscoverProvider } from '../providers'
 
 export interface DiscoverProviderEntry {
-  id: DiscoverProviderId
   config: DiscoverProviderConfigMap[DiscoverProviderId]
-  ready: boolean
+  id: DiscoverProviderId
   implementation: NonNullable<ReturnType<typeof getDiscoverProvider>>
+  ready: boolean
 }
 
 export const useDiscoverProviders = () => {

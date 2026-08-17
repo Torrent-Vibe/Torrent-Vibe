@@ -20,14 +20,14 @@ export const NotFound = () => {
               <svg
                 className="w-8 h-8 text-blue"
                 fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
                 stroke="currentColor"
+                strokeWidth={1.5}
+                viewBox="0 0 24 24"
               >
                 <path
+                  d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
                 />
               </svg>
             </div>
@@ -46,14 +46,14 @@ export const NotFound = () => {
               <svg
                 className="w-5 h-5 text-text-tertiary mt-0.5 flex-shrink-0"
                 fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
                 stroke="currentColor"
+                strokeWidth={1.5}
+                viewBox="0 0 24 24"
               >
                 <path
+                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
                 />
               </svg>
               <div className="min-w-0 flex-1">
@@ -70,14 +70,14 @@ export const NotFound = () => {
           {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <Button
-              onClick={() => navigate('/')}
               className="flex-1 bg-material-opaque text-text-vibrant hover:bg-control-enabled/90 border-0 h-10 font-medium transition-colors"
+              onClick={() => navigate('/')}
             >
               Go Home
             </Button>
             <Button
-              onClick={() => navigate(-1)}
               className="flex-1 bg-material-thin text-text border border-fill-tertiary hover:bg-fill-tertiary h-10 font-medium transition-colors"
+              onClick={() => navigate(-1)}
             >
               Go Back
             </Button>

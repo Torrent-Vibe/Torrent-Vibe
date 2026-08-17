@@ -25,7 +25,7 @@ import { UpdateContainer } from './UpdateContainer'
 
 export const RootProviders: FC<PropsWithChildren> = ({ children }) => {
   return (
-    <LazyMotion features={domMax} strict>
+    <LazyMotion strict features={domMax}>
       <MotionConfig transition={Spring.presets.smooth}>
         <QueryClientProvider client={queryClient}>
           {/* <ReactQueryDevtools initialIsOpen={false} /> */}

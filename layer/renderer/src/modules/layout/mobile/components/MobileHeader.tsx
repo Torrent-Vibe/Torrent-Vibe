@@ -4,12 +4,11 @@ import { useTranslation } from 'react-i18next'
 
 import { Logo } from '~/components/app/logo'
 import { Button } from '~/components/ui/button/Button'
-import { Modal } from '~/components/ui/modal/ModalManager'
 import { cn } from '~/lib/cn'
 import { formatSpeedWithStatus } from '~/lib/format'
 import { useGlobalSpeeds } from '~/modules/torrent/hooks/use-torrent-computed'
 
-import { DiscoverModal } from '../../../modals/DiscoverModal'
+import { openDiscover } from '../../../modals/DiscoverModal'
 import { drawerOpenAtom, searchExpandedAtom } from '../atoms/mobile-layout'
 import { MobileSearchInput } from './MobileSearchInput'
 
@@ -47,10 +46,10 @@ export const MobileHeader = ({ className }: MobileHeaderProps) => {
         {/* Left side - Hamburger menu */}
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            className="p-2"
-            onClick={handleToggleDrawer}
             aria-label={t('mobile.nav.openMenu')}
+            className="p-2"
+            variant="ghost"
+            onClick={handleToggleDrawer}
           >
             <i
               className={cn(
@@ -102,23 +101,23 @@ export const MobileHeader = ({ className }: MobileHeaderProps) => {
           <div className="h-4 w-px bg-border mx-1" />
 
           <Button
-            variant="ghost"
-            className="p-2"
-            onClick={() => Modal.present(DiscoverModal)}
             aria-label={t('buttons.discover')}
+            className="p-2"
+            variant="ghost"
+            onClick={() => openDiscover()}
           >
             <i className="i-mingcute-safari-line text-base" />
           </Button>
 
           {/* Search toggle */}
           <Button
+            aria-label={t('mobile.nav.toggleSearch')}
             variant="ghost"
             className={cn(
               'p-2 transition-colors',
               searchExpanded && 'bg-accent/10 text-accent',
             )}
             onClick={handleToggleSearch}
-            aria-label={t('mobile.nav.toggleSearch')}
           >
             <i className="i-mingcute-search-line text-base" />
           </Button>

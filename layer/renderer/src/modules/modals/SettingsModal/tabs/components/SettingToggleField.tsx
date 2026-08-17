@@ -6,11 +6,11 @@ import { cn } from '~/lib/cn'
 import { SettingField } from './SettingField'
 
 interface SettingToggleFieldProps extends PropsWithChildren {
-  label: ReactNode
+  contentClassName?: string
   description?: ReactNode
   enabled: boolean
+  label: ReactNode
   onEnabledChange: (enabled: boolean) => void
-  contentClassName?: string
 }
 
 // A row with left label, right content area and a switch pinned to the far right
@@ -23,7 +23,7 @@ export const SettingToggleField = ({
   contentClassName,
 }: SettingToggleFieldProps) => {
   return (
-    <SettingField label={label} description={description}>
+    <SettingField description={description} label={label}>
       <div className="flex items-center justify-between w-full">
         <div
           className={cn(

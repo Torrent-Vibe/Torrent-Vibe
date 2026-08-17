@@ -73,12 +73,12 @@ export const AddTorrentModalMobile = ({
     if (currentStep === 0) {
       return (
         <m.div
-          key="step-0"
-          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={Spring.presets.smooth}
           className="flex flex-col gap-5 min-w-0"
+          exit={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: -20 }}
+          key="step-0"
+          transition={Spring.presets.smooth}
         >
           <InputSourceSection formData={formData} handlers={handlers} />
         </m.div>
@@ -88,22 +88,22 @@ export const AddTorrentModalMobile = ({
     if (currentStep === 1) {
       return (
         <m.div
-          key="step-1"
-          initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={Spring.presets.smooth}
           className="flex-1 relative"
+          exit={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: 20 }}
+          key="step-1"
+          transition={Spring.presets.smooth}
         >
           <ScrollArea
-            rootClassName="flex-1 h-[50vh] -mr-6"
             flex
+            rootClassName="flex-1 h-[50vh] -mr-6"
             viewportClassName="pr-6"
           >
             <SettingsSection
+              categories={categories}
               formData={formData}
               handlers={handlers}
-              categories={categories}
               showScrollArea={false}
             />
           </ScrollArea>
@@ -121,20 +121,20 @@ export const AddTorrentModalMobile = ({
         <>
           <DialogClose asChild>
             <Button
-              variant="ghost"
-              size="sm"
               className="h-full inline-block"
               disabled={isLoading}
+              size="sm"
+              variant="ghost"
             >
               Cancel
             </Button>
           </DialogClose>
           <Button
+            className="min-w-[100px]"
+            disabled={!isStep1Valid}
             size="sm"
             variant="primary"
             onClick={goToNextStep}
-            disabled={!isStep1Valid}
-            className="min-w-[100px]"
           >
             Next
             <i className="i-mingcute-arrow-right-line ml-1" />
@@ -147,23 +147,23 @@ export const AddTorrentModalMobile = ({
       return (
         <>
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={goToPrevStep}
             disabled={isLoading}
+            size="sm"
+            variant="ghost"
+            onClick={goToPrevStep}
           >
             <i className="i-mingcute-arrow-left-line mr-1" />
             Back
           </Button>
           <Button
+            className="min-w-[100px]"
+            disabled={!isFormValid}
+            isLoading={isLoading}
+            loadingText="Adding..."
             size="sm"
             type="submit"
             variant="primary"
             onClick={handleSubmit}
-            disabled={!isFormValid}
-            isLoading={isLoading}
-            loadingText="Adding..."
-            className="min-w-[100px]"
           >
             Add Torrents
           </Button>
@@ -189,18 +189,18 @@ export const AddTorrentModalMobile = ({
 
       {/* Step Indicator */}
       <div className="px-6 pb-4 -mx-4">
-        <StepIndicator steps={steps} currentStep={currentStep} />
+        <StepIndicator currentStep={currentStep} steps={steps} />
       </div>
 
       <form
-        onSubmit={handleSubmit}
         className="min-w-0 pt-2 flex-1 flex flex-col min-h-0"
+        onSubmit={handleSubmit}
       >
         <m.div
-          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={Spring.presets.smooth}
           className="min-w-0 flex-1 flex flex-col min-h-0 relative"
+          initial={{ opacity: 0, y: 10 }}
+          transition={Spring.presets.smooth}
         >
           {renderStepContent()}
         </m.div>

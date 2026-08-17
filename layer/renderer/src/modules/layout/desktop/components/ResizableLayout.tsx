@@ -4,24 +4,24 @@ import { useEffect, useRef, useState } from 'react'
 import { MainPanel } from './MainPanel'
 
 export interface ResizablePanelRenderContext {
-  width: number
   isDragging: boolean
+  width: number
 }
 
 export interface ResizablePanelConfig {
   isVisible: boolean
-  width: number
-  minWidth?: number
   maxWidth?: number
-  onResizeStart?: () => void
+  minWidth?: number
   onResize?: (width: number) => void
   onResizeEnd?: (width: number) => void
+  onResizeStart?: () => void
   render: (context: ResizablePanelRenderContext) => React.ReactNode
+  width: number
 }
 
 export interface ResizableLayoutProps {
-  mainContent: React.ReactNode
   className?: string
+  mainContent: React.ReactNode
   resizablePanel?: ResizablePanelConfig
   rightRail?: React.ReactNode
 }
@@ -95,7 +95,7 @@ export const ResizableLayout = ({
 
       {/* Resizer - only show in fixed mode */}
       {resizablePanel?.isVisible && (
-        <div className="relative h-full w-0 shrink-0" data-hide-in-print>
+        <div data-hide-in-print className="relative h-full w-0 shrink-0">
           <div
             tabIndex={-1}
             className={`

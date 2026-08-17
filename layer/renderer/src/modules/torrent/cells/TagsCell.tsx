@@ -101,12 +101,12 @@ export const TagsCell = ({ rowIndex }: TagsCellProps) => {
           {tagList.map((tag) => (
             <Tag
               key={tag}
-              tag={tag}
-              variant="primary"
-              type="tag"
               showContextMenu={true}
-              onModify={handleModifyTag}
+              tag={tag}
+              type="tag"
+              variant="primary"
               onDelete={handleDeleteTag}
+              onModify={handleModifyTag}
             />
           ))}
         </div>

@@ -268,7 +268,7 @@ async function checkAboutTabIntegration() {
     const aboutTabContent = fs.readFileSync(ABOUT_TAB_PATH, 'utf8')
 
     // Check if the renderer license data import exists (allow any default import name)
-    const importPattern = /import\s+\w+\s+from\s+['"](.*app-licenses\.json)['"]/
+    const importPattern = /import\s+\w+\s+from\s+["'](.*app-licenses\.json)["']/
     const importMatch = aboutTabContent.match(importPattern)
 
     if (!importMatch) {

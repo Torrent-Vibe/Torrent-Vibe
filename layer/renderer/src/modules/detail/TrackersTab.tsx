@@ -6,8 +6,8 @@ import { Spring } from '~/lib/spring'
 import type { TorrentTracker } from '~/types/torrent'
 
 interface TrackersTabProps {
-  trackers?: TorrentTracker[]
   isLoading?: boolean
+  trackers?: TorrentTracker[]
 }
 
 const getTrackerStatus = (status: number) => {
@@ -58,19 +58,19 @@ export const TrackersTab = ({ trackers, isLoading }: TrackersTabProps) => {
         const statusInfo = getTrackerStatus(tracker.status)
         return (
           <m.div
-            key={tracker.url}
+            animate={{ opacity: 1, x: 0 }}
             className="flex items-center justify-between p-3 rounded-lg hover:bg-fill-secondary/30 transition-colors border border-transparent hover:border-separator"
             initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
+            key={tracker.url}
             transition={Spring.smooth(0.4, i * 0.05)}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <m.div
+                animate={{ scale: tracker.status === 2 ? [1, 1.2, 1] : 1 }}
                 className={cn(
                   'w-3 h-3 rounded-full shadow-sm',
                   statusInfo.bgColor,
                 )}
-                animate={{ scale: tracker.status === 2 ? [1, 1.2, 1] : 1 }}
                 transition={{
                   duration: 2,
                   repeat: tracker.status === 2 ? Infinity : 0,

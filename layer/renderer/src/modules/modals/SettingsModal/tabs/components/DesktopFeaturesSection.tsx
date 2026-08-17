@@ -12,13 +12,13 @@ export const DesktopFeaturesSection = () => {
   return (
     <SettingSectionCard title={t('desktop.features.title')}>
       <SettingField
-        label={t('desktop.fileAssociation.label')}
-        description={t('desktop.fileAssociation.description')}
         controlAlign="end"
+        description={t('desktop.fileAssociation.description')}
+        label={t('desktop.fileAssociation.label')}
       >
         <Button
-          variant="secondary"
           size="sm"
+          variant="secondary"
           onClick={async () => {
             try {
               const res = await ipcServices?.fileAssociation.repair()

@@ -22,8 +22,8 @@ export const DataManagementSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('general.dataManagement.title')}
       description={t('general.dataManagement.description')}
+      title={t('general.dataManagement.title')}
       headerAction={
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={handleImport}>

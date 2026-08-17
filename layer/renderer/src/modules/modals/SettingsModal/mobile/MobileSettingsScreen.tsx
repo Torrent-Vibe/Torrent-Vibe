@@ -12,25 +12,25 @@ interface MobileSettingsScreenProps {
   children: React.ReactNode
   className?: string
 
-  // Header props
-  title?: string
-  showBackButton?: boolean
+  // Custom header component
+  customHeader?: React.ReactNode
+  fullHeight?: boolean
   headerRightContent?: React.ReactNode
+  hideHeader?: boolean
+
   onBackPress?: () => void
+  onClose?: () => void
+
+  paddingX?: boolean
+  paddingY?: boolean
+  // Layout options
+  scrollable?: boolean
+  showBackButton?: boolean
 
   // Close button (for root screens)
   showCloseButton?: boolean
-  onClose?: () => void
-
-  // Layout options
-  scrollable?: boolean
-  fullHeight?: boolean
-  paddingX?: boolean
-  paddingY?: boolean
-
-  // Custom header component
-  customHeader?: React.ReactNode
-  hideHeader?: boolean
+  // Header props
+  title?: string
 }
 
 export const MobileSettingsScreen: React.FC<MobileSettingsScreenProps> = ({
@@ -62,10 +62,10 @@ export const MobileSettingsScreen: React.FC<MobileSettingsScreenProps> = ({
     if (hasCloseButton) {
       return (
         <MobileSettingsHeaderWithClose
-          title={title}
           showBackButton={showBackButton}
-          onBackPress={onBackPress}
           showCloseButton={showCloseButton}
+          title={title}
+          onBackPress={onBackPress}
           onClose={onClose}
         />
       )
@@ -73,9 +73,9 @@ export const MobileSettingsScreen: React.FC<MobileSettingsScreenProps> = ({
 
     return (
       <MobileSettingsHeader
-        title={title}
-        showBackButton={showBackButton}
         rightContent={headerRightContent}
+        showBackButton={showBackButton}
+        title={title}
         onBackPress={onBackPress}
       />
     )

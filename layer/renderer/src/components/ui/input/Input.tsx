@@ -63,9 +63,9 @@ const inputStyles = tv({
 })
 
 interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
+  extends
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
     VariantProps<typeof inputStyles> {
-  inputClassName?: string
   /**
    * Optional node to render at the end (right side) of the input.
    * Useful for inline actions like Save/Clear.
@@ -77,6 +77,7 @@ interface InputProps
    * - 'always': always visible
    */
   endAdornmentVisibility?: 'focus' | 'always'
+  inputClassName?: string
 }
 
 const Input = ({
@@ -153,7 +154,9 @@ const Input = ({
   return (
     <div className={clsxm('relative w-full', className)} tremor-id="tremor-raw">
       <input
+        disabled={disabled}
         ref={forwardedRef}
+        style={computedStyle}
         type={isPassword ? typeState : type}
         className={clsxm(
           inputStyles({ hasError, enableStepper, size }),
@@ -162,16 +165,14 @@ const Input = ({
           },
           inputClassName,
         )}
-        disabled={disabled}
-        style={computedStyle}
         {...props}
-        onFocus={(e) => {
-          setFocused(true)
-          onFocus?.(e)
-        }}
         onBlur={(e) => {
           setFocused(false)
           onBlur?.(e)
+        }}
+        onFocus={(e) => {
+          setFocused(true)
+          onFocus?.(e)
         }}
         {...inputProps}
       />
@@ -185,18 +186,18 @@ const Input = ({
           )}
         >
           <i
-            className="size-[1.125rem] shrink-0 i-mingcute-search-line"
             aria-hidden="true"
+            className="size-[1.125rem] shrink-0 i-mingcute-search-line"
           />
         </div>
       )}
 
       {(isPassword || showEndAdornment) && (
         <div
+          ref={rightControlsRef}
           className={clsxm(
             'absolute inset-y-0 right-0 flex items-center gap-1 px-2',
           )}
-          ref={rightControlsRef}
         >
           {/* Inline actions / custom adornment */}
           {showEndAdornment ? (
@@ -209,6 +210,7 @@ const Input = ({
           {isPassword && (
             <button
               aria-label="Change password visibility"
+              type="button"
               className={clsxm(
                 // base
                 'h-full items-center flex w-fit rounded-xs outline-hidden transition-all',
@@ -218,7 +220,6 @@ const Input = ({
                 'hover:text-text',
                 focusRing,
               )}
-              type="button"
               onClick={() => {
                 setTypeState(typeState === 'password' ? 'text' : 'password')
               }}
@@ -228,13 +229,13 @@ const Input = ({
               </span>
               {typeState === 'password' ? (
                 <i
-                  className="size-5 shrink-0 i-mingcute-eye-line"
                   aria-hidden="true"
+                  className="size-5 shrink-0 i-mingcute-eye-line"
                 />
               ) : (
                 <i
-                  className="size-5 shrink-0 i-mingcute-eye-close-line"
                   aria-hidden="true"
+                  className="size-5 shrink-0 i-mingcute-eye-close-line"
                 />
               )}
             </button>

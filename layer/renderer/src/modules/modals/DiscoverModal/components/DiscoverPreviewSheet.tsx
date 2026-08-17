@@ -25,14 +25,14 @@ export const DiscoverPreviewSheet = () => {
 
   return (
     <Drawer.Root
+      modal
+      shouldScaleBackground
       open={open}
       onOpenChange={(value) => {
         if (!value) {
           preview.closePreview()
         }
       }}
-      modal
-      shouldScaleBackground
     >
       <Drawer.Portal>
         <Drawer.Overlay
@@ -66,11 +66,11 @@ export const DiscoverPreviewSheet = () => {
                   ) : null}
                 </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  onClick={() => preview.closePreview()}
                   aria-label={t('discover.modal.close')}
+                  className="h-8 w-8"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => preview.closePreview()}
                 >
                   <i className="i-mingcute-close-line" />
                 </Button>

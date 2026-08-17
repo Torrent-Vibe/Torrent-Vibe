@@ -13,9 +13,9 @@ import {
 } from '../../components/ui/dialog/Dialog'
 
 interface TagsSelectDialogProps {
+  currentTags?: string[]
   onClose: () => void
   onConfirm: (tags: string[]) => void
-  currentTags?: string[]
   title?: string
 }
 
@@ -70,14 +70,14 @@ export const TagsSelectDialog: ModalComponent<TagsSelectDialogProps> = ({
             <div className="mb-1.5 flex flex-wrap gap-1">
               {selectedTags.map((tag) => (
                 <span
-                  key={tag}
                   className="bg-fill text-text border border-border inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+                  key={tag}
                 >
                   {tag}
                   <button
+                    className="text-text-secondary hover:text-text ml-1 inline-flex size-3 items-center justify-center rounded-full hover:bg-fill-secondary"
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="text-text-secondary hover:text-text ml-1 inline-flex size-3 items-center justify-center rounded-full hover:bg-fill-secondary"
                   >
                     <i className="i-mingcute-close-line size-2.5" />
                   </button>
@@ -87,11 +87,11 @@ export const TagsSelectDialog: ModalComponent<TagsSelectDialogProps> = ({
           )}
 
           <MultiSelect
-            value={selectedTags}
-            onChange={setSelectedTags}
+            allowCustom={true}
             options={tagOptions}
             placeholder={t('dialogs.tags.placeholder')}
-            allowCustom={true}
+            value={selectedTags}
+            onChange={setSelectedTags}
           />
         </div>
 

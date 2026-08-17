@@ -79,8 +79,8 @@ export function formatSpeed(bytesPerSecond: number): string {
  * Speed color classification levels for UI styling
  */
 export interface SpeedColorConfig {
-  text: string
   colorClass: string
+  text: string
 }
 
 /**

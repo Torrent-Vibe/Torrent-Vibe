@@ -24,7 +24,7 @@ const mapTorrentToTorrentInfo = (torrent: Torrent): TorrentInfo => ({
   seq_dl: torrent.seq_dl || false,
   super_seeding: false,
   time_active: 0,
-  // eslint-disable-next-line unicorn/explicit-length-check
+
   total_size: torrent.total_size || torrent.size,
   tracker: '',
   isPrivate: false,

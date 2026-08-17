@@ -13,16 +13,17 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
   onConfirm: (serverIds: string[]) => void | Promise<void>
 }> = ({ dismiss, title, initialIds, onConfirm }) => {
   const { t } = useTranslation('app')
-  const targets = useServerHelperTargets().filter(target => target.paired)
+  const targets = useServerHelperTargets().filter((target) => target.paired)
   const [selected, setSelected] = useState<string[]>(() =>
-    initialIds.filter(id => targets.some(target => target.id === id)))
+    initialIds.filter((id) => targets.some((target) => target.id === id)),
+  )
   const [submitting, setSubmitting] = useState(false)
   const selectedSet = useMemo(() => new Set(selected), [selected])
 
   const toggle = (id: string) => {
     setSelected((current) => {
       if (current.includes(id)) {
-        return current.filter(item => item !== id)
+        return current.filter((item) => item !== id)
       }
       return [...current, id]
     })
@@ -39,14 +40,14 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
         {t('discover.modal.mikan.selectTargetsDescription')}
       </p>
       <div className="space-y-2">
-        {targets.map(target => (
+        {targets.map((target) => (
           <label
-            key={target.id}
             className="flex items-center gap-2 rounded-md px-1 py-1.5 text-sm text-text"
+            key={target.id}
           >
             <Checkbox
-              size="sm"
               checked={selectedSet.has(target.id)}
+              size="sm"
               onCheckedChange={() => toggle(target.id)}
             />
             <span>{target.name}</span>
@@ -54,7 +55,7 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
         ))}
       </div>
       <DialogFooter className="mt-4">
-        <Button variant="ghost" onClick={dismiss} disabled={submitting}>
+        <Button disabled={submitting} variant="ghost" onClick={dismiss}>
           {t('common.cancel')}
         </Button>
         <Button
@@ -64,8 +65,7 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
             try {
               await onConfirm(selected)
               dismiss()
-            }
-            finally {
+            } finally {
               setSubmitting(false)
             }
           }}

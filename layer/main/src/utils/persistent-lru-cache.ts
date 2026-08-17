@@ -28,16 +28,16 @@ type PersistedCacheFile<V> = {
 }
 
 export interface PersistentLRUCacheOptions<V> {
-  /** File name to write (e.g., 'torrent-ai-cache.json') */
-  fileName: string
-  /** Logical namespace to validate file ownership */
-  namespace: string
-  /** Max number of entries to retain */
-  limit: number
-  /** TTL in milliseconds; if null/undefined, entries never expire */
-  ttlMs?: number | null
   /** Return creation timestamp (ms) for a value to evaluate TTL */
   createdAtSelector?: (value: V) => number
+  /** File name to write (e.g., 'torrent-ai-cache.json') */
+  fileName: string
+  /** Max number of entries to retain */
+  limit: number
+  /** Logical namespace to validate file ownership */
+  namespace: string
+  /** TTL in milliseconds; if null/undefined, entries never expire */
+  ttlMs?: number | null
 }
 
 /**

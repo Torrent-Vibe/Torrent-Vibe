@@ -1,9 +1,9 @@
 import { session } from 'electron'
 
 interface SessionInitOptions {
-  isDevelopment: boolean
   devServerHost: string
   devServerPort: number
+  isDevelopment: boolean
 }
 
 export class SessionManager {

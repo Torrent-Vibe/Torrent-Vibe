@@ -46,30 +46,30 @@ function Switch({
   return (
     <SwitchPrimitives.Root
       {...props}
-      onCheckedChange={handleCheckedChange}
       asChild
+      onCheckedChange={handleCheckedChange}
     >
       <motion.button
         data-slot="switch"
+        initial={false}
+        whileTap="tap"
         className={cn(
           'relative flex p-[3px] h-6 w-10 shrink-0 cursor-switch items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-accent data-[state=unchecked]:bg-fill-secondary justify-start',
           className,
         )}
-        whileTap="tap"
-        initial={false}
-        onTapStart={() => setIsTapped(true)}
-        onTapCancel={() => setIsTapped(false)}
         onTap={() => setIsTapped(false)}
+        onTapCancel={() => setIsTapped(false)}
+        onTapStart={() => setIsTapped(true)}
         {...props}
       >
         {leftIcon && (
           <motion.div
+            className="absolute [&_svg]:size-3 left-1 top-1/2 -translate-y-1/2 text-text-secondary"
             data-slot="switch-left-icon"
+            transition={{ type: 'spring', bounce: 0 }}
             animate={
               isChecked ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }
             }
-            transition={{ type: 'spring', bounce: 0 }}
-            className="absolute [&_svg]:size-3 left-1 top-1/2 -translate-y-1/2 text-text-secondary"
           >
             {typeof leftIcon !== 'string' ? leftIcon : null}
           </motion.div>
@@ -77,12 +77,12 @@ function Switch({
 
         {rightIcon && (
           <motion.div
+            className="absolute [&_svg]:size-3 right-1 top-1/2 -translate-y-1/2 text-text-secondary"
             data-slot="switch-right-icon"
+            transition={{ type: 'spring', bounce: 0 }}
             animate={
               isChecked ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }
             }
-            transition={{ type: 'spring', bounce: 0 }}
-            className="absolute [&_svg]:size-3 right-1 top-1/2 -translate-y-1/2 text-text-secondary"
           >
             {typeof rightIcon !== 'string' ? rightIcon : null}
           </motion.div>
@@ -90,23 +90,23 @@ function Switch({
 
         <SwitchPrimitives.Thumb asChild>
           <motion.div
+            initial
             data-slot="switch-thumb"
             whileTap="tab"
+            animate={{
+              x: isChecked ? CHECKED_X : 0,
+              width: isTapped ? 21 : THUMB_SIZE,
+            }}
             className={
               'relative z-[1] [&_svg]:size-3 flex items-center justify-center rounded-full bg-background shadow-lg ring-0 text-text-secondary'
             }
-            transition={{
-              x: { type: 'spring', stiffness: 300, damping: 25 },
-              width: { duration: 0.1 },
-            }}
             style={{
               width: THUMB_SIZE,
               height: THUMB_SIZE,
             }}
-            initial
-            animate={{
-              x: isChecked ? CHECKED_X : 0,
-              width: isTapped ? 21 : THUMB_SIZE,
+            transition={{
+              x: { type: 'spring', stiffness: 300, damping: 25 },
+              width: { duration: 0.1 },
             }}
           >
             {thumbIcon && typeof thumbIcon !== 'string' ? thumbIcon : null}

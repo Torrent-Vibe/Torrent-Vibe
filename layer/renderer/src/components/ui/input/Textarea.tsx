@@ -5,8 +5,7 @@ import * as React from 'react'
 import { useInputComposition } from '~/hooks/common'
 import { cx, focusInput, hasErrorInput } from '~/lib/cn'
 
-interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   hasError?: boolean
 }
 
@@ -20,6 +19,7 @@ const Textarea = ({
   return (
     <textarea
       ref={forwardedRef}
+      tremor-id="tremor-raw"
       className={cx(
         // base
         'flex min-h-[4rem] w-full rounded-md border px-3 py-1.5 shadow-xs outline-hidden transition-colors sm:text-sm',
@@ -41,7 +41,6 @@ const Textarea = ({
         // "dark:aria-invalid:ring-red-400/20 aria-invalid:ring-2 aria-invalid:ring-red-200 aria-invalid:border-red-500 invalid:ring-2 invalid:ring-red-200 invalid:border-red-500"
         className,
       )}
-      tremor-id="tremor-raw"
       {...props}
       {...inputProps}
     />

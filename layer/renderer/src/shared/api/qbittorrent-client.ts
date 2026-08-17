@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-static-only-class */
 // In web builds, use the HTTP client directly.
 // In Electron builds, calls must go through IPC to the main process.
 

@@ -187,9 +187,9 @@ export const AdvancedFilters = () => {
     <>
       {/* Advanced filters toggle */}
       <Button
+        className="ml-2 text-xs px-2 h-[30px]"
         variant="ghost"
         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-        className="ml-2 text-xs px-2 h-[30px]"
       >
         <i
           className={`mr-1.5 transition-transform ${showAdvancedFilters ? 'i-mingcute-up-line' : 'i-mingcute-down-line'}`}
@@ -210,12 +210,12 @@ export const AdvancedFilters = () => {
       >
         {showAdvancedFilters && (
           <m.div
-            key="advanced-filters"
-            initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={Spring.presets.smooth}
             className="overflow-hidden col-span-full"
+            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            key="advanced-filters"
+            transition={Spring.presets.smooth}
             onAnimationComplete={() => {
               window.dispatchEvent(new Event('resize'))
             }}
@@ -240,8 +240,9 @@ export const AdvancedFilters = () => {
                       const isEmpty = category.count === 0
 
                       return (
-                        <div key={category.name} className="relative">
+                        <div className="relative" key={category.name}>
                           <button
+                            disabled={isEmpty}
                             type="button"
                             className={`
                             px-2 py-1 rounded text-xs font-medium transition-all border border-transparent
@@ -283,7 +284,6 @@ export const AdvancedFilters = () => {
                               e.preventDefault()
                               handleCategoryContextMenu(e, category.name)
                             }}
-                            disabled={isEmpty}
                           >
                             <span>{category.name}</span>
                             <span className="ml-1 opacity-70">
@@ -324,8 +324,12 @@ export const AdvancedFilters = () => {
                       const isEmpty = tag.count === 0
 
                       return (
-                        <div key={tag.name} className="relative">
+                        <div className="relative" key={tag.name}>
                           <m.button
+                            disabled={isEmpty}
+                            transition={Spring.presets.snappy}
+                            whileHover={!isEmpty ? { scale: 1.05 } : undefined}
+                            whileTap={!isEmpty ? { scale: 0.95 } : undefined}
                             className={`
                             px-2 py-1 rounded text-xs font-medium transition-all
                             ${
@@ -364,10 +368,6 @@ export const AdvancedFilters = () => {
                               e.preventDefault()
                               handleTagContextMenu(e, tag.name)
                             }}
-                            disabled={isEmpty}
-                            whileHover={!isEmpty ? { scale: 1.05 } : undefined}
-                            whileTap={!isEmpty ? { scale: 0.95 } : undefined}
-                            transition={Spring.presets.snappy}
                           >
                             <span>#{tag.name}</span>
                             <span className="ml-1 opacity-70">
@@ -393,9 +393,9 @@ export const AdvancedFilters = () => {
               {(typeof filterState === 'object' || filterState !== 'all') && (
                 <div className="absolute top-1 right-0">
                   <Button
+                    className="text-xs text-text-tertiary hover:text-text"
                     variant="ghost"
                     onClick={() => setFilter('all')}
-                    className="text-xs text-text-tertiary hover:text-text"
                   >
                     <i className="i-mingcute-close-line mr-1" />
                     {t('torrent.advanced.clearFilters')}

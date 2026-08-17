@@ -78,37 +78,37 @@ function Checkbox({
   return (
     <CheckboxPrimitive.Root
       {...props}
-      onCheckedChange={handleCheckedChange}
       asChild
+      onCheckedChange={handleCheckedChange}
     >
       <motion.button
         data-slot="checkbox"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         className={clsxm(
           checkboxStyles({ size }),
           indeterminate && 'bg-accent text-white',
           className,
         )}
-        whileTap={{ scale: 0.95 }}
-        whileHover={{ scale: 1.05 }}
         {...props}
       >
-        <CheckboxPrimitive.Indicator forceMount asChild>
+        <CheckboxPrimitive.Indicator asChild forceMount>
           <motion.svg
-            data-slot="checkbox-indicator"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="3.5"
-            stroke="currentColor"
-            className={checkboxIndicatorStyles({ size })}
-            initial={checkboxState}
             animate={checkboxState}
+            className={checkboxIndicatorStyles({ size })}
+            data-slot="checkbox-indicator"
+            fill="none"
+            initial={checkboxState}
+            stroke="currentColor"
+            strokeWidth="3.5"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
           >
             {/* Checkmark path */}
             <motion.path
+              d="M4.5 12.75l6 6 9-13.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M4.5 12.75l6 6 9-13.5"
               variants={{
                 checked: {
                   pathLength: 1,
@@ -136,9 +136,9 @@ function Checkbox({
             />
             {/* Indeterminate line */}
             <motion.path
+              d="M6 12h12"
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M6 12h12"
               variants={{
                 checked: {
                   pathLength: 0,

@@ -3,14 +3,14 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useIsDark } from '~/hooks/common'
 
 export interface PieceBarCanvasProps {
-  totalPieces?: number
-  havePieces?: number
-  states?: number[]
   availability?: number[]
   className?: string
+  havePieces?: number
   height?: number
-  radius?: number
   progress?: number // Overall progress percentage (0-1)
+  radius?: number
+  states?: number[]
+  totalPieces?: number
 }
 
 function getBgColorFromClass(className: string): string {

@@ -4,12 +4,12 @@ import type {
 } from '../../types'
 
 export enum MTeamFilterType {
-  TV = 'tvshow',
-
-  MUSIC = 'music',
   ADULT = 'adult',
-  NORMAL = 'normal',
+
   MOVIE = 'movie',
+  MUSIC = 'music',
+  NORMAL = 'normal',
+  TV = 'tvshow',
 }
 
 export const MTEAM_FILTER_DEFINITIONS_MODES: DiscoverFilterOption[] = [

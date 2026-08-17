@@ -19,9 +19,9 @@ import { getStatusColor, getStatusConfig } from '~/modules/torrent/utils/status'
 import type { TorrentInfo, TorrentProperties } from '~/types/torrent'
 
 interface GeneralTabProps {
-  torrent: TorrentInfo
-  properties?: TorrentProperties
   pieceStates?: number[]
+  properties?: TorrentProperties
+  torrent: TorrentInfo
 }
 
 // status color moved to shared util
@@ -47,15 +47,14 @@ export const GeneralTab = ({
                 {t('detail.progress')}
               </span>
               <span className="text-sm font-bold text-text">
-                {(torrent.progress * 100).toFixed(1)}
-                %
+                {(torrent.progress * 100).toFixed(1)}%
               </span>
             </div>
             <div className="relative h-2 bg-fill-tertiary rounded-full overflow-hidden">
               <m.div
+                animate={{ width: `${torrent.progress * 100}%` }}
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent to-accent rounded-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${torrent.progress * 100}%` }}
                 transition={Spring.presets.smooth}
               />
             </div>
@@ -65,11 +64,11 @@ export const GeneralTab = ({
               </div>
               <div className="rounded-sm border border-separator/50 p-1">
                 <PieceBarCanvas
-                  totalPieces={properties?.pieces_num}
                   havePieces={properties?.pieces_have}
-                  states={pieceStates}
                   height={8}
                   progress={torrent.progress}
+                  states={pieceStates}
+                  totalPieces={properties?.pieces_num}
                 />
               </div>
             </div>
@@ -122,20 +121,12 @@ export const GeneralTab = ({
               </SettingField>
               <SettingField label={t('detail.seeds')}>
                 <span className="text-sm font-semibold text-text">
-                  {torrent.num_seeds}
-                  {' '}
-                  (
-                  {torrent.num_complete}
-                  )
+                  {torrent.num_seeds} ({torrent.num_complete})
                 </span>
               </SettingField>
               <SettingField label={t('detail.peers')}>
                 <span className="text-sm font-semibold text-text">
-                  {torrent.num_leechs}
-                  {' '}
-                  (
-                  {torrent.num_incomplete}
-                  )
+                  {torrent.num_leechs} ({torrent.num_incomplete})
                 </span>
               </SettingField>
             </div>
@@ -207,16 +198,16 @@ export const GeneralTab = ({
             <div className="space-y-2">
               <SettingField label={t('detail.dlLimit')}>
                 <span className="text-xs font-medium text-text">
-                  {typeof properties?.dl_limit === 'number'
-                    && (properties!.dl_limit as number) > 0
+                  {typeof properties?.dl_limit === 'number' &&
+                  (properties!.dl_limit as number) > 0
                     ? `${formatBytes(properties!.dl_limit as number)}/s`
                     : t('detail.unlimited')}
                 </span>
               </SettingField>
               <SettingField label={t('detail.ulLimit')}>
                 <span className="text-xs font-medium text-text">
-                  {typeof properties?.up_limit === 'number'
-                    && (properties!.up_limit as number) > 0
+                  {typeof properties?.up_limit === 'number' &&
+                  (properties!.up_limit as number) > 0
                     ? `${formatBytes(properties!.up_limit as number)}/s`
                     : t('detail.unlimited')}
                 </span>
@@ -230,8 +221,8 @@ export const GeneralTab = ({
               </SettingField>
               <SettingField label={t('detail.shareRatio')}>
                 <span className="text-xs font-medium text-text">
-                  {properties?.share_ratio?.toFixed?.(2)
-                    ?? torrent.ratio.toFixed(2)}
+                  {properties?.share_ratio?.toFixed?.(2) ??
+                    torrent.ratio.toFixed(2)}
                 </span>
               </SettingField>
             </div>

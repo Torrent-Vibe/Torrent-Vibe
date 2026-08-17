@@ -4,14 +4,14 @@ import { clsxm } from '~/lib/cn'
 import type { TorrentInfo } from '~/types/torrent'
 
 interface HeaderCellProps {
-  label: I18nKeys
-  sortable?: boolean
-  onSort?: (key: keyof TorrentInfo, direction: 'asc' | 'desc') => void
-  sortKey?: keyof TorrentInfo
-  sortDirection?: 'asc' | 'desc'
-  columnKey: keyof TorrentInfo | 'select'
   align?: 'left' | 'center' | 'right'
   cellClassName?: string
+  columnKey: keyof TorrentInfo | 'select'
+  label: I18nKeys
+  onSort?: (key: keyof TorrentInfo, direction: 'asc' | 'desc') => void
+  sortable?: boolean
+  sortDirection?: 'asc' | 'desc'
+  sortKey?: keyof TorrentInfo
 }
 
 export const HeaderCell = ({
@@ -61,9 +61,9 @@ export const HeaderCell = ({
     >
       {sortable && onSort ? (
         <button
+          className={`flex items-center w-full ${alignmentClass} gap-2 text-sm font-semibold text-text-secondary hover:text-accent transition-colors`}
           type="button"
           onClick={handleSort}
-          className={`flex items-center w-full ${alignmentClass} gap-2 text-sm font-semibold text-text-secondary hover:text-accent transition-colors`}
         >
           <span>{t(label)}</span>
           {getSortIcon()}

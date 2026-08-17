@@ -26,7 +26,7 @@ const $container = document.querySelector('#root') as HTMLElement
 void initializeI18nLanguage().then(() => {
   createRoot($container).render(
     <React.StrictMode>
-      <LazyMotion features={domMax} strict>
+      <LazyMotion strict features={domMax}>
         <Provider store={jotaiStore}>
           <I18nProvider>
             <SettingSync />

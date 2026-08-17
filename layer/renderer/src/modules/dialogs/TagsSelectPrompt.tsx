@@ -4,9 +4,9 @@ import { TagsSelectDialog } from './TagsSelectDialog'
 
 export interface TagsSelectOptions {
   currentTags?: string[]
-  title?: string
-  onConfirm: (tags: string[]) => void | Promise<void>
   onCancel?: () => void | Promise<void>
+  onConfirm: (tags: string[]) => void | Promise<void>
+  title?: string
 }
 
 export const TagsSelectPrompt = {

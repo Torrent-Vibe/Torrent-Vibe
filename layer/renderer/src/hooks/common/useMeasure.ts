@@ -17,15 +17,15 @@ declare class ResizeObserver {
 }
 
 export interface RectReadOnly {
+  [key: string]: number
+  readonly bottom: number
+  readonly height: number
+  readonly left: number
+  readonly right: number
+  readonly top: number
+  readonly width: number
   readonly x: number
   readonly y: number
-  readonly width: number
-  readonly height: number
-  readonly top: number
-  readonly right: number
-  readonly bottom: number
-  readonly left: number
-  [key: string]: number
 }
 
 type HTMLOrSVGElement = HTMLElement | SVGElement

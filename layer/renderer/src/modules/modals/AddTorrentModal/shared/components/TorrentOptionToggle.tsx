@@ -3,10 +3,10 @@ import type { ReactNode } from 'react'
 import { Checkbox } from '~/components/ui/checkbox'
 
 interface TorrentOptionToggleProps {
-  id: string
   checked: boolean
-  onChange: (checked: boolean) => void
+  id: string
   label: ReactNode
+  onChange: (checked: boolean) => void
 }
 
 export const TorrentOptionToggle = ({
@@ -18,11 +18,11 @@ export const TorrentOptionToggle = ({
   return (
     <div className="flex items-center">
       <Checkbox
-        id={id}
         checked={checked}
+        id={id}
         onCheckedChange={(value) => onChange(Boolean(value))}
       />
-      <label htmlFor={id} className="text-sm ml-3">
+      <label className="text-sm ml-3" htmlFor={id}>
         {label}
       </label>
     </div>

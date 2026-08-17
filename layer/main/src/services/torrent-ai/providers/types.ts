@@ -8,18 +8,18 @@ import type { AiProviderId } from '@torrent-vibe/shared'
 import type { ProviderConfig } from '../types'
 
 export interface AiProviderRuntime {
+  apiKey?: string
+  errorNamespace: `ai.${string}`
   id: AiProviderId
   model: Model<string>
   modelId: string
   models: Models
-  apiKey?: string
   sessionAffinityFormat: SessionAffinityFormat
-  errorNamespace: `ai.${string}`
 }
 
 export interface AiProviderAdapter {
   readonly id: AiProviderId
-  readonly missingCredentialError: string
   isConfigured: (config: ProviderConfig) => boolean
+  readonly missingCredentialError: string
   resolve: (config: ProviderConfig) => AiProviderRuntime | null
 }

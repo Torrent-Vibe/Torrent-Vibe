@@ -9,10 +9,10 @@ import type {
 } from '../helper-client/types'
 
 export interface HelperStatusSnapshot {
-  replicas: HelperReplicaStatus[]
-  jobs: HelperJobStatus[]
-  fetchedAt: string
   error?: string
+  fetchedAt: string
+  jobs: HelperJobStatus[]
+  replicas: HelperReplicaStatus[]
 }
 
 export interface SubscriptionsState {
@@ -40,12 +40,10 @@ export const subscriptionStore = {
     if (typeof updater === 'function') {
       if (replace) {
         useSubscriptionsStore.setState(updater, true)
-      }
-      else {
+      } else {
         useSubscriptionsStore.setState(updater)
       }
-    }
-    else {
+    } else {
       useSubscriptionsStore.setState(updater, true)
     }
   },

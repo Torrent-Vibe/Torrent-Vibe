@@ -49,7 +49,6 @@ type TooltipProviderProps = React.ComponentProps<
 >
 
 function TooltipProvider(props: TooltipProviderProps) {
-  // eslint-disable-next-line @eslint-react/no-context-provider
   return <TooltipPrimitive.Provider data-slot="tooltip-provider" {...props} />
 }
 
@@ -116,16 +115,16 @@ function TooltipContent({
         <TooltipPrimitive.Portal forceMount data-slot="tooltip-portal">
           <TooltipPrimitive.Content
             forceMount
-            sideOffset={sideOffset}
             className="z-50"
+            sideOffset={sideOffset}
             {...props}
           >
             <m.div
-              key="tooltip-content"
-              data-slot="tooltip-content"
-              initial={{ opacity: 0, scale: 0.96, ...initialPosition }}
               animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              data-slot="tooltip-content"
               exit={{ opacity: 0, scale: 0.96, ...initialPosition }}
+              initial={{ opacity: 0, scale: 0.96, ...initialPosition }}
+              key="tooltip-content"
               transition={transition}
               className={cn(
                 'relative bg-background text-foreground shadow-md w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-sm text-balance',
@@ -136,8 +135,8 @@ function TooltipContent({
 
               {arrow && (
                 <TooltipPrimitive.Arrow
-                  data-slot="tooltip-content-arrow"
                   className="bg-background fill-background z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]"
+                  data-slot="tooltip-content-arrow"
                 />
               )}
             </m.div>

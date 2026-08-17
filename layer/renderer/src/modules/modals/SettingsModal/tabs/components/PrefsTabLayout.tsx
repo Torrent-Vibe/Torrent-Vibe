@@ -32,19 +32,19 @@ export const PrefsTabLayout = ({
           {hasDirty && (
             // Panel
             <m.div
-              className="inline-flex items-center h-14 px-3 rounded-full backdrop-blur-background bg-background/50 absolute right-0 bottom-0"
-              initial={{ opacity: 0, translateY: 10 }}
               animate={{ opacity: 1, translateY: 0 }}
+              className="inline-flex items-center h-14 px-3 rounded-full backdrop-blur-background bg-background/50 absolute right-0 bottom-0"
               exit={{ opacity: 0, translateY: 10 }}
+              initial={{ opacity: 0, translateY: 10 }}
               transition={Spring.presets.smooth}
             >
               <div className="flex items-center gap-2">
                 {/* Reset button */}
                 <Button
+                  disabled={isLoading}
+                  isLoading={isSaving}
                   size="sm"
                   variant="secondary"
-                  isLoading={isSaving}
-                  disabled={isLoading}
                   onClick={reset}
                 >
                   <i className="i-mingcute-refresh-line" />
@@ -52,10 +52,10 @@ export const PrefsTabLayout = ({
                 </Button>
 
                 <Button
+                  disabled={isLoading}
+                  isLoading={isSaving}
                   size="sm"
                   variant="primary"
-                  isLoading={isSaving}
-                  disabled={isLoading}
                   onClick={async () => {
                     try {
                       await save()

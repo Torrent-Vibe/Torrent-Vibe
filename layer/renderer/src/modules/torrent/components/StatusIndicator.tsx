@@ -4,17 +4,17 @@ import { useTranslation } from 'react-i18next'
 import { Spring } from '~/lib/spring'
 
 interface FilterStat {
-  label: string
+  color: string
   count: number
   icon: string
-  color: string
+  label: string
 }
 
 interface StatusIndicatorProps {
-  isLoading: boolean
   currentFilterStat: FilterStat
-  totalStats: number
   isFilteredView: boolean
+  isLoading: boolean
+  totalStats: number
 }
 
 export const StatusIndicator = ({
@@ -27,8 +27,8 @@ export const StatusIndicator = ({
 
   return (
     <m.div
-      className="flex items-center gap-3 text-sm"
       layout
+      className="flex items-center gap-3 text-sm"
       transition={Spring.presets.smooth}
     >
       {isLoading ? (

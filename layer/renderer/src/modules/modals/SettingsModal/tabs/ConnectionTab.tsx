@@ -26,8 +26,8 @@ export const ConnectionTab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.connectionSaved"
       saveErrorI18nKey="messages.connectionSaveFailed"
+      saveSuccessI18nKey="messages.connectionSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">

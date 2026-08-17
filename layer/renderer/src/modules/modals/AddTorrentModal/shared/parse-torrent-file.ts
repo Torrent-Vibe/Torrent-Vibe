@@ -7,13 +7,13 @@ import type { BencodeDictionary } from './bencode'
 import { decodeBencode, encodeBencode } from './bencode'
 
 export interface ParsedTorrentFile {
-  infoHash: string
-  name: string
   files: Array<{
     index: number
     path: string
     size: number
   }>
+  infoHash: string
+  name: string
   totalSize: number
 }
 
@@ -24,7 +24,7 @@ const computeInfoHash = async (data: Uint8Array) => {
     throw new Error('Invalid torrent metadata')
   }
 
-  const {info} = (torrent as { info?: unknown })
+  const { info } = torrent as { info?: unknown }
   if (!info || typeof info !== 'object' || Array.isArray(info)) {
     throw new Error('Invalid torrent metadata')
   }

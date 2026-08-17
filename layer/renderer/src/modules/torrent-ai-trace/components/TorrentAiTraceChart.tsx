@@ -14,7 +14,7 @@ import { TorrentAiTraceCallRow } from './TorrentAiTraceCallRow'
 const groupCalls = (run: AiTraceRun) => {
   const groups = new Map<
     number,
-    { snapshot?: AiCallSnapshot, events: AiTraceEvent[] }
+    { snapshot?: AiCallSnapshot; events: AiTraceEvent[] }
   >()
   for (const event of run.events) {
     if (event.type === 'run_start' || event.type === 'run_end') {
@@ -23,8 +23,7 @@ const groupCalls = (run: AiTraceRun) => {
     const current = groups.get(event.callIndex) ?? { events: [] }
     if (event.type === 'call_compiled' || event.type === 'call_usage') {
       current.snapshot = event.snapshot
-    }
-    else {
+    } else {
       current.events.push(event)
     }
     groups.set(event.callIndex, current)
@@ -52,20 +51,19 @@ export const TorrentAiTraceChart = ({ run }: { run: AiTraceRun }) => {
   }, [calls])
   const windowTokens = Math.max(
     1,
-    ...calls.map(call =>
-      call.snapshot ? buildPrefixCacheLayout(call.snapshot).visualTokens : 0),
+    ...calls.map((call) =>
+      call.snapshot ? buildPrefixCacheLayout(call.snapshot).visualTokens : 0,
+    ),
   )
 
   if (calls.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center text-sm text-text-tertiary">
-        {run.ok == null
-          ? (
-              <div className="h-7 w-full animate-pulse rounded-md bg-fill-quaternary" />
-            )
-          : (
-              t('torrent.ai.trace.empty')
-            )}
+        {run.ok == null ? (
+          <div className="h-7 w-full animate-pulse rounded-md bg-fill-quaternary" />
+        ) : (
+          t('torrent.ai.trace.empty')
+        )}
       </div>
     )
   }
@@ -74,11 +72,11 @@ export const TorrentAiTraceChart = ({ run }: { run: AiTraceRun }) => {
     <div className="space-y-4">
       {calls.map((call, index) => (
         <TorrentAiTraceCallRow
-          key={call.callIndex}
           callIndex={call.callIndex}
-          snapshot={call.snapshot}
-          previous={index > 0 ? calls[index - 1]?.snapshot : undefined}
           events={call.events}
+          key={call.callIndex}
+          previous={index > 0 ? calls[index - 1]?.snapshot : undefined}
+          snapshot={call.snapshot}
           windowTokens={windowTokens}
           hoverToolCallId={
             hover?.callIndex === call.callIndex ? hover.toolCallId : null
@@ -91,9 +89,9 @@ export const TorrentAiTraceChart = ({ run }: { run: AiTraceRun }) => {
         />
       ))}
       <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border/60 pt-3 text-[11px] text-text-secondary">
-        {AI_CALL_SOURCES.filter(source => presentSources.has(source)).map(
-          source => (
-            <span key={source} className="inline-flex items-center gap-1.5">
+        {AI_CALL_SOURCES.filter((source) => presentSources.has(source)).map(
+          (source) => (
+            <span className="inline-flex items-center gap-1.5" key={source}>
               <span
                 className="size-2 rounded-[2px]"
                 style={{ backgroundColor: AI_CALL_SOURCE_COLORS[source] }}

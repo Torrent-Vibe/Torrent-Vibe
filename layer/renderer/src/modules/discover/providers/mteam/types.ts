@@ -1,90 +1,89 @@
 export interface MTeamStatus {
-  seeders?: number | string
-  leechers?: number | string
-  snatches?: number | string
-  timesCompleted?: number | string
+  [key: string]: unknown
   discount?: string | null
   discountEndTime?: string | null
-  [key: string]: unknown
+  leechers?: number | string
+  seeders?: number | string
+  snatches?: number | string
+  timesCompleted?: number | string
 }
 
 export interface Status {
-  id: string
+  banned: boolean
+  comments: string
   createdDate: string
-  lastModifiedDate: string
-  pickType: string
-  toppingLevel: string
-  toppingEndTime: null
   discount: string
   discountEndTime: null
-  timesCompleted: string
-  comments: string
-  lastAction: string
-  lastSeederAction: string
-  views: string
   hits: string
-  support: string
-  oppose: string
-  status: string
-  seeders: string
+  id: string
+  lastAction: string
+  lastModifiedDate: string
+  lastSeederAction: string
   leechers: string
-  banned: boolean
-  visible: boolean
-  promotionRule: null
   mallSingleFree: null
+  oppose: string
+  pickType: string
+  promotionRule: null
+  seeders: string
+  status: string
+  support: string
+  timesCompleted: string
+  toppingEndTime: null
+  toppingLevel: string
+  views: string
+  visible: boolean
 }
 
 export interface MTeamSearchItem {
-  id: string
+  anonymous: boolean
+  audioCodec: string
+  author: null
+  canVote: boolean
+  category: string
+  collection: boolean
+  countries: string[]
   createdDate: string
-  lastModifiedDate: string
-  name: string
-  smallDescr: string
-  imdb: string
-  imdbRating: string
+  dmmCode: string
+  dmmInfo: null
   douban: string
   doubanRating: string
-  dmmCode: string
-  author: null
-  category: string
-  source: null
-  medium: null
-  standard: string
-  videoCodec: string
-  audioCodec: string
-  team: string
-  processing: null
-  countries: string[]
-  numfiles: string
-  size: string
+  editDate: null
+  editedBy: null
+  id: string
+  imageList: string[]
+  imdb: string
+  imdbRating: string
+  infoHash: null
+  inRss: boolean
   labels: string
   labelsNew: string[]
+  lastModifiedDate: string
+  medium: null
   msUp: string
-  anonymous: boolean
-  infoHash: null
-  status: Status
-  dmmInfo: null
-  editedBy: null
-  editDate: null
-  collection: boolean
-  inRss: boolean
-  canVote: boolean
-  imageList: string[]
+  name: string
+  numfiles: string
+  processing: null
   resetBox: null
+  size: string
+  smallDescr: string
+  source: null
+  standard: string
+  status: Status
+  team: string
+  videoCodec: string
 }
 
 export interface MTeamSearchPayload {
-  keyword?: string
   categories?: Array<number | string>
+  discount?: string
+  keyword?: string
+  mode?: string
   pageNumber: number
   pageSize: number
-  mode?: string
-  discount?: string
   visible?: number
 }
 
 export interface MTeamSearchResponseBody {
-  message: string
   data: {
     data: MTeamSearchItem[]
     total: number
@@ -92,10 +91,11 @@ export interface MTeamSearchResponseBody {
     pageSize: number
     totalPages: number
   }
+  message: string
 }
 
 export interface MTeamDetailResponseBody {
-  message?: string
+  [key: string]: unknown
   data?: {
     id: number | string
     title?: string
@@ -119,5 +119,5 @@ export interface MTeamDetailResponseBody {
     screenshotUrls?: string[]
     [key: string]: unknown
   }
-  [key: string]: unknown
+  message?: string
 }

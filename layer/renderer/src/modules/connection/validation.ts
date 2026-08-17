@@ -1,22 +1,22 @@
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 
 export interface ConnectionConfig {
-  host: string
-  port: number
-  username: string
-  password: string
-  useHttps: boolean
   baseUrl?: string
+  host: string
+  password: string
+  port: number
+  useHttps: boolean
+  username: string
 }
 
 export interface ValidationError {
-  type: 'network' | 'auth' | 'unknown'
   message: string
+  type: 'network' | 'auth' | 'unknown'
 }
 
 export interface ValidationResult {
-  success: boolean
   error?: ValidationError
+  success: boolean
 }
 
 // Validation error configurations
@@ -92,8 +92,7 @@ export const validateConnection = async (
     return loginSuccess
       ? { success: true }
       : { success: false, error: VALIDATION_ERRORS.auth }
-  }
-  catch (error) {
+  } catch (error) {
     return {
       success: false,
       error:

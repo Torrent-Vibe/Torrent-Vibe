@@ -29,9 +29,9 @@ export const DiscoverResultsList = () => {
   const { t: settingT } = useTranslation('setting')
   const actions = DiscoverModalActions.shared
   const { selection, enrichment } = actions.slices
-  const items = useDiscoverModalStore(state => state.items)
-  const selectedIds = useDiscoverModalStore(state => state.selectedIds)
-  const previewId = useDiscoverModalStore(state => state.previewId)
+  const items = useDiscoverModalStore((state) => state.items)
+  const selectedIds = useDiscoverModalStore((state) => state.selectedIds)
+  const previewId = useDiscoverModalStore((state) => state.previewId)
   const scrollParent = useScrollViewElement()
 
   const formatDiscount = useCallback(
@@ -54,13 +54,13 @@ export const DiscoverResultsList = () => {
       const selected = selectedIds.has(item.id)
       return (
         <DiscoverResultRow
-          item={item}
-          selected={selected}
-          isPreviewed={previewId === item.id}
-          onToggle={toggleSelection}
           formatDiscount={formatDiscount}
-          scrollParent={scrollParent ?? undefined}
+          isPreviewed={previewId === item.id}
+          item={item}
           loadImdb={loadImdb}
+          scrollParent={scrollParent ?? undefined}
+          selected={selected}
+          onToggle={toggleSelection}
         />
       )
     },
@@ -74,31 +74,31 @@ export const DiscoverResultsList = () => {
     ],
   )
 
-  const customScrollParent
-    = scrollParent && scrollParent !== document.documentElement
+  const customScrollParent =
+    scrollParent && scrollParent !== document.documentElement
       ? scrollParent
       : undefined
 
   return (
     <VirtualList<DiscoverItem>
       data={items}
-      renderItem={renderItem}
-      getItemKey={item => item.id}
       estimateSize={140}
-      scrollElement={customScrollParent ?? null}
+      getItemKey={(item) => item.id}
       itemClassName="border-b border-border last:border-b-0"
+      renderItem={renderItem}
+      scrollElement={customScrollParent ?? null}
     />
   )
 }
 
 interface DiscoverResultRowProps {
-  item: DiscoverItem
-  selected: boolean
-  isPreviewed: boolean
-  onToggle: (id: string) => void
   formatDiscount: (discount?: string | null) => string
-  scrollParent?: Element
+  isPreviewed: boolean
+  item: DiscoverItem
   loadImdb: (id: string) => void
+  onToggle: (id: string) => void
+  scrollParent?: Element
+  selected: boolean
 }
 
 function DiscoverResultRow({
@@ -156,29 +156,29 @@ function DiscoverResultRow({
     <button
       ref={ref}
       type="button"
-      onClick={() => onToggle(item.id)}
       className={cn(
         'flex w-full items-start gap-3 px-5 py-3 text-left transition-colors border border-transparent',
         selected ? 'bg-accent/10 shadow-sm' : 'hover:bg-fill-secondary/40',
         isPreviewed && 'border-accent',
       )}
+      onClick={() => onToggle(item.id)}
     >
       <Checkbox
         checked={selected}
+        className="mt-0.5"
+        onClick={stopPropagation}
         onCheckedChange={(checked) => {
           if (Boolean(checked) !== selected) {
             onToggle(item.id)
           }
         }}
-        onClick={stopPropagation}
-        className="mt-0.5"
       />
       {posterUrl && (
         <img
-          src={posterUrl}
           alt={`${item.title} poster`}
-          loading="lazy"
           className="h-20 w-14 flex-shrink-0 rounded-md object-cover shadow-sm"
+          loading="lazy"
+          src={posterUrl}
         />
       )}
       <div className="grid flex-1 gap-2">
@@ -206,17 +206,13 @@ function DiscoverResultRow({
                 <span className="rounded-sm bg-amber-500/10 px-1.5 py-0.5 font-semibold text-amber-500">
                   IMDb
                 </span>
-                {imdbRating
-                  ? (
-                      <span className="font-medium text-text">{imdbRating}</span>
-                    )
-                  : imdbStatus === 'loading'
-                    ? (
-                        <i className="i-mingcute-loading-3-line animate-spin text-amber-500" />
-                      )
-                    : (
-                        <span className="text-text-tertiary">—</span>
-                      )}
+                {imdbRating ? (
+                  <span className="font-medium text-text">{imdbRating}</span>
+                ) : imdbStatus === 'loading' ? (
+                  <i className="i-mingcute-loading-3-line animate-spin text-amber-500" />
+                ) : (
+                  <span className="text-text-tertiary">—</span>
+                )}
                 {imdbStatus === 'error' && (
                   <i
                     className="i-mingcute-warning-line text-amber-600"
@@ -232,9 +228,7 @@ function DiscoverResultRow({
               )}
               {imdbVotes !== null && imdbVotes > 0 && (
                 <span className="text-[11px] text-text-tertiary">
-                  {appT('discover.modal.detailVotes')}
-                  :
-                  {' '}
+                  {appT('discover.modal.detailVotes')}:{' '}
                   {imdbVotes.toLocaleString()}
                 </span>
               )}
@@ -243,10 +237,10 @@ function DiscoverResultRow({
         </div>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1 text-[11px] text-text-tertiary">
-            {tags.map(tag => (
+            {tags.map((tag) => (
               <span
-                key={tag}
                 className="rounded-full bg-fill-secondary/70 px-2 py-0.5"
+                key={tag}
               >
                 {tag}
               </span>
@@ -281,11 +275,7 @@ function DiscoverResultRow({
           {imdbRuntime && imdbRuntime > 0 && (
             <span className="inline-flex items-center gap-1">
               <i className="i-mingcute-movie-line" />
-              <span>
-                {imdbRuntime}
-                {' '}
-                min
-              </span>
+              <span>{imdbRuntime} min</span>
             </span>
           )}
           {imdbLanguages.length > 0 && (

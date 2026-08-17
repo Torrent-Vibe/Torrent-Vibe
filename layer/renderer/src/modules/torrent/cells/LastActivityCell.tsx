@@ -6,6 +6,6 @@ interface LastActivityCellProps {
 
 export const LastActivityCell = ({ rowIndex }: LastActivityCellProps) => {
   return (
-    <DateTimeCell rowIndex={rowIndex} format="relative" field="last_activity" />
+    <DateTimeCell field="last_activity" format="relative" rowIndex={rowIndex} />
   )
 }

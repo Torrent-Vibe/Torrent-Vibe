@@ -1,8 +1,8 @@
 import type { TorrentState } from '~/types/torrent'
 
 export interface StatusConfig {
-  label: I18nKeys
   className: string
+  label: I18nKeys
 }
 
 export const getStatusConfig = (state: TorrentState): StatusConfig => {

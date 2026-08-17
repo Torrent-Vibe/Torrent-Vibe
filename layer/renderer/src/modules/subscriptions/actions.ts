@@ -24,20 +24,20 @@ import { localSubscriptionPersist } from './persist'
 import { subscriptionStore } from './store'
 
 export interface ActionResult<T = void> {
-  ok: boolean
   data?: T
   error?: string
+  ok: boolean
 }
 
 export interface SubscribeInput {
   bangumiId: string
-  title: string
-  coverUrl?: string
   bangumiSubjectId?: string
+  coverUrl?: string
+  rssUrl: string
   subgroupId: string
   subgroupName: string
-  rssUrl: string
   targetServerIds: string[]
+  title: string
 }
 
 export interface HelperSyncClient {
@@ -49,11 +49,10 @@ export interface HelperSyncClient {
 }
 
 export interface SubscriptionActionDeps {
-  persist: SubscriptionPersist
   helper: HelperSyncClient
-  now?: () => string
   id?: () => string
-  unpair?: (serverId: string) => Promise<void>
+  now?: () => string
+  persist: SubscriptionPersist
   retry?: (input: {
     serverId: string
     bangumiId: string
@@ -62,6 +61,7 @@ export interface SubscriptionActionDeps {
     title?: string
     torrentUrl?: string
   }) => Promise<void>
+  unpair?: (serverId: string) => Promise<void>
 }
 
 const unique = (ids: string[]) => [...new Set(ids.filter(Boolean))]
@@ -76,8 +76,7 @@ const liveUnpair = async (serverId: string) => {
   }
   try {
     await unpairHelper(binding.url, binding.token)
-  }
-  catch (error) {
+  } catch (error) {
     if (isHelperAuthError(error)) {
       return
     }
@@ -108,8 +107,7 @@ const liveHelperClient: HelperSyncClient = {
     }
     try {
       return await getHelperSubscriptions(binding.url, binding.token)
-    }
-    catch (error) {
+    } catch (error) {
       if (isHelperAuthError(error)) {
         clearHelperBinding(serverId)
       }
@@ -123,8 +121,7 @@ const liveHelperClient: HelperSyncClient = {
     }
     try {
       await putHelperSubscriptions(binding.url, binding.token, replicas)
-    }
-    catch (error) {
+    } catch (error) {
       if (isHelperAuthError(error)) {
         clearHelperBinding(serverId)
       }
@@ -151,8 +148,8 @@ const applySyncPatch = (
 ): SubscriptionRecord[] =>
   items.map((item) => {
     if (
-      !item.targetServerIds.includes(serverId)
-      && !(serverId in item.syncByServer)
+      !item.targetServerIds.includes(serverId) &&
+      !(serverId in item.syncByServer)
     ) {
       return item
     }
@@ -168,11 +165,11 @@ const applySyncPatch = (
 
 export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
   const now = deps.now ?? (() => new Date().toISOString())
-  const nextId
-    = deps.id
-      ?? (() =>
-        globalThis.crypto?.randomUUID?.()
-        ?? `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
+  const nextId =
+    deps.id ??
+    (() =>
+      globalThis.crypto?.randomUUID?.() ??
+      `sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
 
   const persistItems = (items: SubscriptionRecord[]) => {
     writeItems(deps.persist, items)
@@ -210,8 +207,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
               pushedAt,
             ),
           )
-        }
-        catch (error) {
+        } catch (error) {
           allOk = false
           persistItems(
             applySyncPatch(
@@ -223,8 +219,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           )
         }
       }
-    }
-    finally {
+    } finally {
       subscriptionStore.setState((draft) => {
         draft.syncing = false
       })
@@ -250,11 +245,10 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
 
     const existing = subscriptionStore
       .getState()
-      .items
-      .find(
-        item =>
-          item.bangumiId === input.bangumiId
-          && item.subgroupId === input.subgroupId,
+      .items.find(
+        (item) =>
+          item.bangumiId === input.bangumiId &&
+          item.subgroupId === input.subgroupId,
       )
     const stamp = now()
     const nextItem: SubscriptionRecord = existing
@@ -280,7 +274,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
           rssUrl: input.rssUrl,
           targetServerIds,
           syncByServer: Object.fromEntries(
-            targetServerIds.map(id => [id, { status: 'pending' as const }]),
+            targetServerIds.map((id) => [id, { status: 'pending' as const }]),
           ),
           createdAt: stamp,
           updatedAt: stamp,
@@ -291,16 +285,14 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
       existing
         ? subscriptionStore
             .getState()
-            .items
-            .map(item => (item.id === existing.id ? nextItem : item))
+            .items.map((item) => (item.id === existing.id ? nextItem : item))
         : [...subscriptionStore.getState().items, nextItem],
     )
 
     const ok = await pushServers([...previousTargets, ...targetServerIds])
     const saved = subscriptionStore
       .getState()
-      .items
-      .find(item => item.id === nextItem.id)
+      .items.find((item) => item.id === nextItem.id)
     return ok
       ? { ok: true, data: saved ?? nextItem }
       : { ok: false, error: 'partialSync', data: saved ?? nextItem }
@@ -309,13 +301,12 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
   const unsubscribe = async (id: string): Promise<ActionResult> => {
     const current = subscriptionStore
       .getState()
-      .items
-      .find(item => item.id === id)
+      .items.find((item) => item.id === id)
     if (!current) {
       return { ok: false, error: 'notFound' }
     }
     persistItems(
-      subscriptionStore.getState().items.filter(item => item.id !== id),
+      subscriptionStore.getState().items.filter((item) => item.id !== id),
     )
     const ok = await pushServers(current.targetServerIds)
     return ok ? { ok: true } : { ok: false, error: 'partialSync' }
@@ -328,8 +319,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     const nextTargets = unique(targetServerIds)
     const current = subscriptionStore
       .getState()
-      .items
-      .find(item => item.id === id)
+      .items.find((item) => item.id === id)
     if (!current) {
       return { ok: false, error: 'notFound' }
     }
@@ -346,13 +336,12 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     persistItems(
       subscriptionStore
         .getState()
-        .items.map(item => (item.id === id ? nextItem : item)),
+        .items.map((item) => (item.id === id ? nextItem : item)),
     )
     const ok = await pushServers([...current.targetServerIds, ...nextTargets])
     const saved = subscriptionStore
       .getState()
-      .items
-      .find(item => item.id === id)
+      .items.find((item) => item.id === id)
     return ok
       ? { ok: true, data: saved ?? nextItem }
       : { ok: false, error: 'partialSync', data: saved ?? nextItem }
@@ -365,27 +354,25 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
 
   const syncAll = async (): Promise<ActionResult> => {
     const paired = listServerHelperTargets()
-      .filter(target => target.paired)
-      .map(target => target.id)
+      .filter((target) => target.paired)
+      .map((target) => target.id)
     const targeted = subscriptionStore
       .getState()
-      .items
-      .flatMap(item => item.targetServerIds)
+      .items.flatMap((item) => item.targetServerIds)
     return syncServers([...paired, ...targeted])
   }
 
   const refreshStatus = async (serverIds?: string[]) => {
-    const ids
-      = serverIds
-        ?? unique([
-          ...listServerHelperTargets()
-            .filter(target => target.paired)
-            .map(target => target.id),
-          ...subscriptionStore
-            .getState()
-            .items
-            .flatMap(item => item.targetServerIds),
-        ])
+    const ids =
+      serverIds ??
+      unique([
+        ...listServerHelperTargets()
+          .filter((target) => target.paired)
+          .map((target) => target.id),
+        ...subscriptionStore
+          .getState()
+          .items.flatMap((item) => item.targetServerIds),
+      ])
     const fetchedAt = now()
     await Promise.all(
       ids.map(async (serverId) => {
@@ -410,8 +397,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
               fetchedAt,
             }
           })
-        }
-        catch (error) {
+        } catch (error) {
           if (isHelperAuthError(error)) {
             clearHelperBinding(serverId)
           }
@@ -450,8 +436,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
       })
       await refreshStatus([currentId])
       return { ok: true }
-    }
-    catch (error) {
+    } catch (error) {
       if (isHelperAuthError(error)) {
         clearHelperBinding(currentId)
       }
@@ -462,9 +447,8 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
   const findByBangumiSubgroup = (bangumiId: string, subgroupId: string) =>
     subscriptionStore
       .getState()
-      .items
-      .find(
-        item =>
+      .items.find(
+        (item) =>
           item.bangumiId === bangumiId && item.subgroupId === subgroupId,
       ) ?? null
 
@@ -473,8 +457,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     if (deps.unpair) {
       try {
         await deps.unpair(serverId)
-      }
-      catch {
+      } catch {
         unreachable = true
       }
     }
@@ -500,8 +483,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
       await deps.retry(input)
       await refreshStatus([input.serverId])
       return { ok: true }
-    }
-    catch (error) {
+    } catch (error) {
       if (isHelperAuthError(error)) {
         clearHelperBinding(input.serverId)
       }
@@ -513,8 +495,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     if (deps.unpair) {
       try {
         await deps.unpair(serverId)
-      }
-      catch {}
+      } catch {}
     }
     clearHelperBinding(serverId)
     const stamp = now()
@@ -524,7 +505,7 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         remaining.push(item)
         continue
       }
-      const nextTargets = item.targetServerIds.filter(id => id !== serverId)
+      const nextTargets = item.targetServerIds.filter((id) => id !== serverId)
       if (nextTargets.length === 0) {
         continue
       }

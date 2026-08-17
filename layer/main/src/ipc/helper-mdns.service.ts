@@ -2,8 +2,8 @@ import Bonjour from 'bonjour-service'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 export interface HelperMdnsServiceInfo {
-  name: string
   host: string
+  name: string
   port: number
   version: string
 }
@@ -47,7 +47,7 @@ export class HelperMdnsService extends IpcService {
         })
       },
     )
-    this.browser.on('down', (service: { name?: string, port?: number }) => {
+    this.browser.on('down', (service: { name?: string; port?: number }) => {
       if (!service.name || !service.port) {
         return
       }

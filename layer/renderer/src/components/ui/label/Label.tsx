@@ -4,8 +4,9 @@ import * as LabelPrimitives from '@radix-ui/react-label'
 import * as React from 'react'
 import { tv } from 'tailwind-variants'
 
-interface LabelProps
-  extends React.ComponentPropsWithoutRef<typeof LabelPrimitives.Root> {
+interface LabelProps extends React.ComponentPropsWithoutRef<
+  typeof LabelPrimitives.Root
+> {
   disabled?: boolean
 
   variant?: 'form' | 'default'
@@ -34,9 +35,9 @@ const Label = ({
   ref?: React.RefObject<React.ElementRef<typeof LabelPrimitives.Root> | null>
 }) => (
   <LabelPrimitives.Root
-    ref={forwardedRef}
-    className={styles({ variant, disabled, className })}
     aria-disabled={disabled}
+    className={styles({ variant, disabled, className })}
+    ref={forwardedRef}
     tremor-id="tremor-raw"
     {...props}
   />

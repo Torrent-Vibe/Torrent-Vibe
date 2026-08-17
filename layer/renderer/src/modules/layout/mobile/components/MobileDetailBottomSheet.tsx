@@ -46,9 +46,9 @@ const MobileDetailContent: BottomSheetComponent<MobileDetailContentProps> = ({
   if (!selectedCard) {
     return (
       <m.div
+        animate={{ opacity: 1, y: 0 }}
         className="flex-1 flex items-center justify-center p-8"
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
         transition={Spring.presets.smooth}
       >
         <div className="text-center text-text-secondary">

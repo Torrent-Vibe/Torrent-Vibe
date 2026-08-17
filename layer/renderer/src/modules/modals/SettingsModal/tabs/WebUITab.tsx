@@ -38,8 +38,8 @@ export const WebUITab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.webuiSaved"
       saveErrorI18nKey="messages.webuiSaveFailed"
+      saveSuccessI18nKey="messages.webuiSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">
@@ -54,25 +54,25 @@ export const WebUITab = () => {
           <SettingInputField
             id="web_ui_address"
             label="IP Address"
+            placeholder="*"
             value={prefs.web_ui_address || '*'}
             onChange={(v) => handlePrefsChange({ web_ui_address: v })}
-            placeholder="*"
           />
           <SettingInputField
             id="web_ui_port"
             label="Port"
+            placeholder="18888"
             type="number"
             value={String(prefs.web_ui_port || 18888)}
             onChange={(v) =>
               handlePrefsChange({ web_ui_port: Number.parseInt(v) || 18888 })
             }
-            placeholder="18888"
           />
         </div>
         <SettingSwitchField
+          checked={prefs.web_ui_upnp || false}
           id="web_ui_upnp"
           label="Use UPnP / NAT-PMP port forwarding from my router"
-          checked={prefs.web_ui_upnp || false}
           onCheckedChange={(checked) =>
             handlePrefsChange({ web_ui_upnp: !!checked })
           }
@@ -90,15 +90,15 @@ export const WebUITab = () => {
           />
           <SettingInputField
             label="Certificate path"
+            placeholder="/path/to/cert.pem"
             value={prefs.web_ui_https_cert_path || ''}
             onChange={(v) => handlePrefsChange({ web_ui_https_cert_path: v })}
-            placeholder="/path/to/cert.pem"
           />
           <SettingInputField
             label="Key path"
+            placeholder="/path/to/key.pem"
             value={prefs.web_ui_https_key_path || ''}
             onChange={(v) => handlePrefsChange({ web_ui_https_key_path: v })}
-            placeholder="/path/to/key.pem"
           />
         </SettingSectionCard>
       </SettingSectionCard>
@@ -109,33 +109,33 @@ export const WebUITab = () => {
           <SettingInputField
             id="web_ui_username"
             label="Username"
+            placeholder="admin"
             value={prefs.web_ui_username || 'admin'}
             onChange={(v) => handlePrefsChange({ web_ui_username: v })}
-            placeholder="admin"
           />
           <SettingInputField
             id="web_ui_password"
-            type="password"
             label="Password"
+            placeholder="Modify current password"
+            type="password"
             value={prefs.web_ui_password || ''}
             onChange={(v) => handlePrefsChange({ web_ui_password: v })}
-            placeholder="Modify current password"
           />
         </div>
 
         <SettingSwitchField
+          checked={prefs.bypass_local_auth || false}
           id="bypass_local_auth"
           label="Bypass authentication for clients on localhost"
-          checked={prefs.bypass_local_auth || false}
           onCheckedChange={(checked) =>
             handlePrefsChange({ bypass_local_auth: !!checked })
           }
         />
 
         <SettingSectionCard
-          title="Subnet Whitelist"
-          switchLabel="Bypass authentication for clients in whitelisted IP subnets"
           enabled={prefs.bypass_auth_subnet_whitelist_enabled || false}
+          switchLabel="Bypass authentication for clients in whitelisted IP subnets"
+          title="Subnet Whitelist"
           onToggleEnabled={(enabled) =>
             handlePrefsChange({
               bypass_auth_subnet_whitelist_enabled: !!enabled,
@@ -145,12 +145,12 @@ export const WebUITab = () => {
           <SettingTextareaField
             id="bypass_auth_subnet_whitelist"
             label="Whitelisted IP subnets"
+            placeholder="10.0.0.0/24"
+            rows={3}
             value={prefs.bypass_auth_subnet_whitelist || '10.0.0.0/24'}
             onChange={(v) =>
               handlePrefsChange({ bypass_auth_subnet_whitelist: v })
             }
-            placeholder="10.0.0.0/24"
-            rows={3}
           />
         </SettingSectionCard>
 
@@ -168,8 +168,8 @@ export const WebUITab = () => {
           <SettingField label={<span>Ban duration</span>}>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <input
-                type="number"
                 className="h-8 w-full sm:w-20 rounded border border-border bg-background px-2 text-xs"
+                type="number"
                 value={prefs.web_ui_ban_duration || 3600}
                 onChange={(e) =>
                   handlePrefsChange({
@@ -186,8 +186,8 @@ export const WebUITab = () => {
         <SettingField label={<span>Session timeout</span>}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <input
-              type="number"
               className="h-8 w-full sm:w-20 rounded border border-border bg-background px-2 text-xs"
+              type="number"
               value={prefs.web_ui_session_timeout || 3600}
               onChange={(e) =>
                 handlePrefsChange({
@@ -204,9 +204,9 @@ export const WebUITab = () => {
       {/* Security Section */}
       <SettingSectionCard title="Security">
         <SettingSwitchField
+          checked={prefs.web_ui_clickjacking_protection_enabled !== false}
           id="web_ui_clickjacking_protection_enabled"
           label="Enable clickjacking protection"
-          checked={prefs.web_ui_clickjacking_protection_enabled !== false}
           onCheckedChange={(checked) =>
             handlePrefsChange({
               web_ui_clickjacking_protection_enabled: !!checked,
@@ -214,17 +214,17 @@ export const WebUITab = () => {
           }
         />
         <SettingSwitchField
+          checked={prefs.web_ui_csrf_protection_enabled !== false}
           id="web_ui_csrf_protection_enabled"
           label="Enable Cross-Site Request Forgery (CSRF) protection"
-          checked={prefs.web_ui_csrf_protection_enabled !== false}
           onCheckedChange={(checked) =>
             handlePrefsChange({ web_ui_csrf_protection_enabled: !!checked })
           }
         />
         <SettingSwitchField
+          checked={prefs.web_ui_secure_cookie_enabled || false}
           id="web_ui_secure_cookie_enabled"
           label="Enable cookie Secure flag (requires HTTPS)"
-          checked={prefs.web_ui_secure_cookie_enabled || false}
           onCheckedChange={(checked) =>
             handlePrefsChange({ web_ui_secure_cookie_enabled: !!checked })
           }
@@ -239,8 +239,8 @@ export const WebUITab = () => {
           }
         >
           <SettingSwitchField
-            label="Enable Host header validation"
             checked={!!prefs.web_ui_host_header_validation_enabled}
+            label="Enable Host header validation"
             onCheckedChange={(enabled) =>
               handlePrefsChange({
                 web_ui_host_header_validation_enabled: !!enabled,
@@ -250,10 +250,10 @@ export const WebUITab = () => {
           <SettingTextareaField
             disabled={!prefs.web_ui_host_header_validation_enabled}
             label="Server domains"
-            value={prefs.web_ui_domain_list || '*'}
-            onChange={(v) => handlePrefsChange({ web_ui_domain_list: v })}
             placeholder="*"
             rows={3}
+            value={prefs.web_ui_domain_list || '*'}
+            onChange={(v) => handlePrefsChange({ web_ui_domain_list: v })}
           />
         </SettingSectionCard>
       </SettingSectionCard>
@@ -261,8 +261,8 @@ export const WebUITab = () => {
       {/* Custom HTTP headers Section */}
       <SettingSectionCard title="Custom HTTP headers">
         <SettingSwitchField
-          label="Add custom HTTP headers"
           checked={prefs.web_ui_use_custom_http_headers_enabled || false}
+          label="Add custom HTTP headers"
           onCheckedChange={(enabled) =>
             handlePrefsChange({
               web_ui_use_custom_http_headers_enabled: !!enabled,
@@ -270,22 +270,22 @@ export const WebUITab = () => {
           }
         />
         <SettingTextareaField
-          label="Headers"
           disabled={!prefs.web_ui_use_custom_http_headers_enabled}
+          label="Headers"
+          placeholder="Access-Control-Allow-Origin: *"
+          rows={4}
           value={
             prefs.web_ui_custom_http_headers || 'Access-Control-Allow-Origin: *'
           }
           onChange={(v) => handlePrefsChange({ web_ui_custom_http_headers: v })}
-          placeholder="Access-Control-Allow-Origin: *"
-          rows={4}
         />
       </SettingSectionCard>
 
       {/* Alternative Web UI Section */}
       <SettingSectionCard title="Alternative Web UI">
         <SettingSwitchField
-          label="Use alternative Web UI"
           checked={prefs.alternative_webui_enabled || false}
+          label="Use alternative Web UI"
           onCheckedChange={(enabled) =>
             handlePrefsChange({ alternative_webui_enabled: !!enabled })
           }
@@ -293,33 +293,33 @@ export const WebUITab = () => {
         <SettingInputField
           disabled={!prefs.alternative_webui_enabled}
           label="Files location"
+          placeholder="Path to alternative Web UI files"
           value={prefs.alternative_webui_path || ''}
           onChange={(v) => handlePrefsChange({ alternative_webui_path: v })}
-          placeholder="Path to alternative Web UI files"
         />
       </SettingSectionCard>
 
       {/* Update my dynamic domain name Section */}
       <SettingSectionCard title="Dynamic DNS">
         <SettingSwitchField
-          label="Update my dynamic domain name"
           checked={prefs.dyndns_enabled || false}
+          label="Update my dynamic domain name"
           onCheckedChange={(enabled) =>
             handlePrefsChange({ dyndns_enabled: !!enabled })
           }
         />
         <SettingSelectField
           label="Service"
+          options={[
+            { value: '0', label: 'DynDNS' },
+            { value: '1', label: 'No-IP' },
+          ]}
           value={String(
             typeof prefs.dyndns_service === 'number' ? prefs.dyndns_service : 0,
           )}
           onValueChange={(v) =>
             handlePrefsChange({ dyndns_service: Number(v) })
           }
-          options={[
-            { value: '0', label: 'DynDNS' },
-            { value: '1', label: 'No-IP' },
-          ]}
         />
         <SettingField label="Action">
           <Button size="sm" variant="secondary">

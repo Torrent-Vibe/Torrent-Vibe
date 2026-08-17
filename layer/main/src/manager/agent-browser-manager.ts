@@ -159,7 +159,7 @@ export class AgentBrowserManager {
       args.push('--json')
     }
 
-    let stdout = ''
+    let stdout: string
     try {
       const result = await execFileAsync(cli, args, {
         timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,

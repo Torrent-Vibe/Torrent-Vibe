@@ -24,7 +24,7 @@ export const attachOpenInEditor = (stack: string) => {
             key={line}
             onClick={openInEditor.bind(
               null,
-              realFsPath.replace(/\?v=[a-f0-9]+/, ''),
+              realFsPath.replace(/\?v=[\da-f]+/, ''),
             )}
           >
             {line}
@@ -35,7 +35,7 @@ export const attachOpenInEditor = (stack: string) => {
         const srcFsPath = o.split('/src')[1]
 
         if (srcFsPath) {
-          const fs = srcFsPath.replace(/\?t=[a-f0-9]+/, '')
+          const fs = srcFsPath.replace(/\?t=[\da-f]+/, '')
 
           return (
             <div

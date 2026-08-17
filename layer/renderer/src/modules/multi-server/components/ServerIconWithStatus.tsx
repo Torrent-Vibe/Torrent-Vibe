@@ -4,11 +4,11 @@ import type { StatusVariant } from '~/components/ui/status-dot'
 import { StatusDot } from '~/components/ui/status-dot'
 
 interface ServerIconWithStatusProps {
-  variant: StatusVariant
-  size?: 'sm' | 'md'
-  title?: string
   className?: string
   iconClassName?: string
+  size?: 'sm' | 'md'
+  title?: string
+  variant: StatusVariant
 }
 
 export const ServerIconWithStatus: React.FC<ServerIconWithStatusProps> = ({
@@ -30,7 +30,7 @@ export const ServerIconWithStatus: React.FC<ServerIconWithStatusProps> = ({
           .join(' ')}
       />
       <span className="absolute -right-0.5 -top-2">
-        <StatusDot variant={variant} size={size} title={title} />
+        <StatusDot size={size} title={title} variant={variant} />
       </span>
     </span>
   )

@@ -14,8 +14,8 @@ interface MobileGestureHandlerProps {
   children: React.ReactNode
   className?: string
   disabled?: boolean
-  swipeThreshold?: number
   onSwipeBack?: () => boolean // Return true if swipe was handled
+  swipeThreshold?: number
 }
 
 export const MobileGestureHandler: React.FC<MobileGestureHandlerProps> = ({
@@ -157,18 +157,18 @@ export const MobileGestureHandler: React.FC<MobileGestureHandlerProps> = ({
       onTouchStart={handleTouchStart}
     >
       <m.div
-        className="h-full w-full"
         animate={controls}
+        className="h-full w-full"
         drag={isGestureEnabled ? 'x' : false}
         dragConstraints={{ left: 0, right: window.innerWidth }}
         dragElastic={0.2}
         dragMomentum={false}
-        onDragStart={handleDragStart}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
         style={{
           touchAction: isGestureEnabled ? 'pan-y' : 'auto',
         }}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
       >
         {children}
       </m.div>
@@ -178,11 +178,11 @@ export const MobileGestureHandler: React.FC<MobileGestureHandlerProps> = ({
         <m.div
           className="absolute left-0 top-0 bottom-0 w-1 bg-accent/50 origin-top"
           initial={{ scaleY: 0 }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           animate={{
             scaleY: dragProgress,
             opacity: dragProgress > 0.3 ? 1 : 0.6,
           }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         />
       )}
 
@@ -191,10 +191,10 @@ export const MobileGestureHandler: React.FC<MobileGestureHandlerProps> = ({
         <m.div
           className="absolute inset-0 bg-black pointer-events-none"
           initial={{ opacity: 0 }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           animate={{
             opacity: dragProgress * 0.2,
           }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         />
       )}
     </div>

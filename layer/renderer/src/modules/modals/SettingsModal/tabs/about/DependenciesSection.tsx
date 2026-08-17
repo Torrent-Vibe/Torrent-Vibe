@@ -1,8 +1,8 @@
 import type { DependencyInfo } from './types'
 
 interface DependenciesSectionProps {
-  dependencies: DependencyInfo[]
   commandLabel?: string
+  dependencies: DependencyInfo[]
 }
 
 export const DependenciesSection: React.FC<DependenciesSectionProps> = ({
@@ -22,7 +22,7 @@ export const DependenciesSection: React.FC<DependenciesSectionProps> = ({
 
       <div className="space-y-1 mb-4">
         {dependencies.map((dep, index) => (
-          <div key={dep.name} className="flex items-center">
+          <div className="flex items-center" key={dep.name}>
             <span className="text-text-secondary mr-2">
               {index === dependencies.length - 1 ? '└──' : '├──'}
             </span>

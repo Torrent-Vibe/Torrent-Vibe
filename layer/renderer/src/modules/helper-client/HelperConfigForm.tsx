@@ -42,9 +42,9 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
     <div className="space-y-3">
       <SettingInputField
         dense
+        description={t('servers.helper.libraryRootHint')}
         id="helper-library-root"
         label={t('servers.helper.libraryRoot')}
-        description={t('servers.helper.libraryRootHint')}
         value={libraryRoot}
         onChange={setLibraryRoot}
       />
@@ -59,9 +59,9 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
         dense
         id="helper-qbit-url"
         label={t('servers.helper.qbitUrl')}
+        placeholder="http://127.0.0.1:8080"
         value={qbitUrl}
         onChange={setQbitUrl}
-        placeholder="http://127.0.0.1:8080"
       />
       <SettingInputField
         dense
@@ -72,27 +72,27 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
       />
       <SettingInputField
         dense
+        description={t('servers.helper.qbitPassHint')}
         id="helper-qbit-pass"
         label={t('servers.helper.qbitPass')}
-        description={t('servers.helper.qbitPassHint')}
         type="password"
         value={qbitPass}
         onChange={setQbitPass}
       />
       <SettingInputField
         dense
+        description={t('servers.helper.proxyUrlHint')}
         id="helper-proxy-url"
         label={t('servers.helper.proxyUrl')}
-        description={t('servers.helper.proxyUrlHint')}
+        placeholder="socks5://127.0.0.1:7891"
         value={proxyUrl}
         onChange={setProxyUrl}
-        placeholder="socks5://127.0.0.1:7891"
       />
 
       <div className="flex justify-end border-t border-border/60 pt-3">
         <Button
-          size="sm"
           disabled={busy}
+          size="sm"
           onClick={() => {
             const binding = getHelperBinding(serverId)
             if (!binding) {

@@ -5,14 +5,14 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '~/lib/cn'
 
 interface VirtualListProps<T> {
-  data: T[]
-  renderItem: (item: T, index: number) => ReactNode
-  getItemKey: (item: T, index: number) => string | number
-  estimateSize?: number
-  overscan?: number
-  scrollElement?: HTMLElement | null
   className?: string
+  data: T[]
+  estimateSize?: number
+  getItemKey: (item: T, index: number) => string | number
   itemClassName?: string
+  overscan?: number
+  renderItem: (item: T, index: number) => ReactNode
+  scrollElement?: HTMLElement | null
 }
 
 export function VirtualList<T>({
@@ -42,9 +42,9 @@ export function VirtualList<T>({
         return
       }
       setScrollMargin(
-        list.getBoundingClientRect().top
-        - scrollElement.getBoundingClientRect().top
-        + scrollElement.scrollTop,
+        list.getBoundingClientRect().top -
+          scrollElement.getBoundingClientRect().top +
+          scrollElement.scrollTop,
       )
     }
     measure()
@@ -58,23 +58,23 @@ export function VirtualList<T>({
     getScrollElement: () =>
       isExternal ? scrollElement : internalScrollRef.current,
     estimateSize: () => estimateSize,
-    getItemKey: index => getItemKey(data[index], index),
+    getItemKey: (index) => getItemKey(data[index], index),
     overscan,
     scrollMargin,
   })
 
   const sizer = (
     <div
-      ref={listRef}
       className="relative w-full"
+      ref={listRef}
       style={{ height: virtualizer.getTotalSize() }}
     >
-      {virtualizer.getVirtualItems().map(virtualItem => (
+      {virtualizer.getVirtualItems().map((virtualItem) => (
         <div
-          key={virtualItem.key}
-          data-index={virtualItem.index}
-          ref={virtualizer.measureElement}
           className={cn('absolute left-0 top-0 w-full', itemClassName)}
+          data-index={virtualItem.index}
+          key={virtualItem.key}
+          ref={virtualizer.measureElement}
           style={{
             transform: `translateY(${virtualItem.start - scrollMargin}px)`,
           }}
@@ -91,8 +91,8 @@ export function VirtualList<T>({
 
   return (
     <div
-      ref={internalScrollRef}
       className={cn('h-full overflow-y-auto', className)}
+      ref={internalScrollRef}
     >
       {sizer}
     </div>

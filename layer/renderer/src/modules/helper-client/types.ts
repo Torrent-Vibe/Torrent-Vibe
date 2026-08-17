@@ -8,26 +8,26 @@ export const DEFAULT_HELPER_PORT = 17890
 export const WEB_SERVER_ID = 'web'
 
 export interface HelperDiscoverInfo {
-  version: string
-  bindState: 'bound' | 'unbound' | string
   advertisedQbitUrl: string
+  bindState: 'bound' | 'unbound' | string
   pairingCode: string
   port: number
+  version: string
 }
 
 export interface HelperBinding {
-  url: string
   token: string
+  url: string
 }
 
 export interface HelperEpisodeStatus {
+  episode: number | null
   episodeId: string
   infohash?: string
-  title: string
-  season: number | null
-  episode: number | null
-  state: HelperEpisodeState
   lastError?: string
+  season: number | null
+  state: HelperEpisodeState
+  title: string
 }
 
 export interface HelperReplicaStatus extends HelperReplica {
@@ -36,38 +36,38 @@ export interface HelperReplicaStatus extends HelperReplica {
 
 export interface HelperJobStatus {
   bangumiId: string
-  subgroupId: string
   episodes: HelperEpisodeStatus[]
+  subgroupId: string
 }
 
 export interface HelperStatusResponse {
-  replicas: HelperReplicaStatus[]
   jobs: HelperJobStatus[]
+  replicas: HelperReplicaStatus[]
 }
 
 export interface HelperBackfillInput {
   bangumiId: string
-  subgroupId: string
   episodes: RssEpisode[]
+  subgroupId: string
 }
 
 export interface ServerHelperTarget {
+  host: string
   id: string
   name: string
-  host: string
   paired: boolean
 }
 
 export interface HelperConfigPublic {
-  libraryRoot: string
   category: string
-  qbitUrl: string
-  qbitUser: string
   hasQbitPass: boolean
+  hasTmdbApiKey: boolean
+  libraryRoot: string
   pollIntervalMs: number
   proxyUrl: string
+  qbitUrl: string
+  qbitUser: string
   variantPrefer: string
-  hasTmdbApiKey: boolean
 }
 
 export type HelperConfigPatch = Partial<{

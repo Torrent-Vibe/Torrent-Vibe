@@ -18,32 +18,32 @@ const FETCH_TIMEOUT_MS = 5_000
 // Mirrors the packaged Info.plist SUFeedURL/SUPublicEDKey — belt-and-braces path for
 // builds where Info.plist lacks those keys. CI injects the real EdDSA public key over
 // this placeholder at package time.
-const SPARKLE_APPCAST_URL
-  = 'https://github.com/Torrent-Vibe/Torrent-Vibe/releases/latest/download/appcast.xml'
+const SPARKLE_APPCAST_URL =
+  'https://github.com/Torrent-Vibe/Torrent-Vibe/releases/latest/download/appcast.xml'
 const SPARKLE_PUBLIC_ED_KEY_PLACEHOLDER = 'SPARKLE_ED_PUBLIC_KEY_PLACEHOLDER'
 
 export interface ReleaseInfo {
-  version: string
   htmlUrl: string
+  version: string
 }
 
-export type CheckForUpdateResult
-  = | { kind: 'throttled' }
-    | { kind: 'fetch-failed', message: string }
-    | { kind: 'no-release' }
-    | { kind: 'up-to-date', current: string, latest: string }
-    | { kind: 'available', release: ReleaseInfo }
+export type CheckForUpdateResult =
+  | { kind: 'throttled' }
+  | { kind: 'fetch-failed'; message: string }
+  | { kind: 'no-release' }
+  | { kind: 'up-to-date'; current: string; latest: string }
+  | { kind: 'available'; release: ReleaseInfo }
 
 export interface UpdaterDeps {
   currentVersion: string
-  now: () => string
   fetchJson: (url: string) => Promise<unknown>
-  readLastCheck: () => Promise<string | null>
-  writeLastCheck: (iso: string) => Promise<void>
-  notify: (release: ReleaseInfo) => void
-  log?: (message: string) => void
   force?: boolean
+  log?: (message: string) => void
+  notify: (release: ReleaseInfo) => void
+  now: () => string
+  readLastCheck: () => Promise<string | null>
   silent?: boolean
+  writeLastCheck: (iso: string) => Promise<void>
 }
 
 function normalizeVersion(raw: string): number[] {
@@ -115,8 +115,7 @@ export async function checkForUpdate(
   let json: unknown
   try {
     json = await deps.fetchJson(RELEASES_URL)
-  }
-  catch (err) {
+  } catch (err) {
     const message = (err as Error).message
     deps.log?.(`skipped: fetch failed (${message})`)
     return { kind: 'fetch-failed', message }
@@ -142,8 +141,7 @@ export async function checkForUpdate(
   if (!deps.silent) {
     deps.notify(release)
     deps.log?.(`notified: ${release.version} available`)
-  }
-  else {
+  } else {
     deps.log?.(`silent available: ${release.version}`)
   }
   return { kind: 'available', release }
@@ -158,8 +156,7 @@ async function readLastCheckFile(filePath: string): Promise<string | null> {
     const raw = await readFile(filePath, 'utf8')
     const state = JSON.parse(raw) as PersistedState
     return typeof state.lastCheckIso === 'string' ? state.lastCheckIso : null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -179,7 +176,7 @@ async function fetchJsonWithTimeout(url: string): Promise<unknown> {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'accept': 'application/vnd.github+json',
+        accept: 'application/vnd.github+json',
         'user-agent': 'torrent-vibe-updater',
       },
     })
@@ -187,8 +184,7 @@ async function fetchJsonWithTimeout(url: string): Promise<unknown> {
       return { message: `http ${res.status}` }
     }
     return await res.json()
-  }
-  finally {
+  } finally {
     clearTimeout(timer)
   }
 }
@@ -204,10 +200,10 @@ export interface InitUpdaterOptions {
 }
 
 export interface StartUpdaterDeps {
+  log?: (message: string) => void
+  runWeakChecker: () => void
   sparkleBridge: SparkleBridge | null
   sparkleOptions: SparkleInitOptions
-  runWeakChecker: () => void
-  log?: (message: string) => void
 }
 
 export function startUpdater(deps: StartUpdaterDeps): 'sparkle' | 'weak' {
@@ -220,14 +216,12 @@ export function startUpdater(deps: StartUpdaterDeps): 'sparkle' | 'weak' {
       deps.log?.(
         'sparkle bridge init returned false, falling back to weak checker',
       )
-    }
-    catch (err) {
+    } catch (err) {
       deps.log?.(
         `sparkle bridge init threw (${(err as Error).message}), falling back to weak checker`,
       )
     }
-  }
-  else {
+  } else {
     deps.log?.('sparkle bridge unavailable, falling back to weak checker')
   }
   deps.runWeakChecker()
@@ -263,7 +257,7 @@ function createWeakCheckDeps(log: (message: string) => void): UpdaterDeps {
     now: () => new Date().toISOString(),
     fetchJson: fetchJsonWithTimeout,
     readLastCheck: () => readLastCheckFile(stateFile),
-    writeLastCheck: iso => writeLastCheckFile(stateFile, iso),
+    writeLastCheck: (iso) => writeLastCheckFile(stateFile, iso),
     notify: (release) => {
       const notification = new Notification({
         title: 'Torrent Vibe update available',
@@ -295,13 +289,13 @@ export function createUpdaterHandle(options: {
   const showMessage = options.showMessage ?? defaultShowMessage
   const log = options.log ?? (() => {})
   const statusStore = options.statusStore ?? createUpdaterStatusStore()
-  const openRelease
-    = options.openRelease
-      ?? ((url: string) => {
-        shell.openExternal(url).catch((err) => {
-          log(`openRelease failed: ${(err as Error).message}`)
-        })
+  const openRelease =
+    options.openRelease ??
+    ((url: string) => {
+      shell.openExternal(url).catch((err) => {
+        log(`openRelease failed: ${(err as Error).message}`)
       })
+    })
 
   let silentCheckInFlight = false
 
@@ -311,7 +305,7 @@ export function createUpdaterHandle(options: {
 
   return {
     getStatus: () => statusStore.get(),
-    onStatus: cb => statusStore.on(cb),
+    onStatus: (cb) => statusStore.on(cb),
     silentCheckOnActivate: () => {
       if (options.mode === 'dev') {
         return
@@ -325,11 +319,9 @@ export function createUpdaterHandle(options: {
         try {
           const result = await run(false, true)
           applyResult(result)
-        }
-        catch (err) {
+        } catch (err) {
           log(`silentCheck failed: ${(err as Error).message}`)
-        }
-        finally {
+        } finally {
           silentCheckInFlight = false
         }
       })()
@@ -347,8 +339,7 @@ export function createUpdaterHandle(options: {
       if (options.mode === 'sparkle' && options.sparkleBridge) {
         try {
           options.sparkleBridge.checkForUpdates()
-        }
-        catch (err) {
+        } catch (err) {
           log(`checkNow sparkle failed: ${(err as Error).message}`)
           showMessage({
             type: 'error',
@@ -399,8 +390,7 @@ export function createUpdaterHandle(options: {
               message: 'No published release was found.',
             })
           }
-        }
-        catch (err) {
+        } catch (err) {
           log(`checkNow weak failed: ${(err as Error).message}`)
           showMessage({
             type: 'error',
@@ -423,8 +413,7 @@ export function createUpdaterHandle(options: {
       if (options.mode === 'sparkle' && options.sparkleBridge) {
         try {
           options.sparkleBridge.installUpdateNow()
-        }
-        catch (err) {
+        } catch (err) {
           log(`installNow sparkle failed: ${(err as Error).message}`)
           showMessage({
             type: 'error',
@@ -472,8 +461,7 @@ export function createUpdaterHandle(options: {
             title: 'Check for Updates',
             message: 'Unable to open the update page right now.',
           })
-        }
-        catch (err) {
+        } catch (err) {
           log(`installNow weak failed: ${(err as Error).message}`)
           showMessage({
             type: 'error',
@@ -507,8 +495,9 @@ export function initSparkleUpdater(
     },
     runWeakChecker: () => {
       setTimeout(() => {
-        void runElectronCheck(false, false).then(result =>
-          statusStore.applyResult(result))
+        void runElectronCheck(false, false).then((result) =>
+          statusStore.applyResult(result),
+        )
       }, options.delayMs ?? CHECK_DELAY_MS)
     },
     log,
@@ -517,8 +506,9 @@ export function initSparkleUpdater(
   // Badge detection always uses GitHub, including sparkle mode.
   if (mode === 'sparkle') {
     setTimeout(() => {
-      void runElectronCheck(false, true).then(result =>
-        statusStore.applyResult(result))
+      void runElectronCheck(false, true).then((result) =>
+        statusStore.applyResult(result),
+      )
     }, options.delayMs ?? CHECK_DELAY_MS)
   }
 
@@ -549,8 +539,7 @@ async function runElectronCheck(
 
   try {
     return await checkForUpdate(deps)
-  }
-  catch (err) {
+  } catch (err) {
     log(`skipped: unexpected error (${(err as Error).message})`)
     return { kind: 'fetch-failed', message: (err as Error).message }
   }

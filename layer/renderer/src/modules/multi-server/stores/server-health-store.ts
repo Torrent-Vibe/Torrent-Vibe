@@ -9,9 +9,9 @@ interface ServerHealthState {
 }
 
 interface ServerHealthActions {
-  setHealth: (serverId: string, result: ServerHealthResult) => void
   remove: (serverId: string) => void
   reset: () => void
+  setHealth: (serverId: string, result: ServerHealthResult) => void
 }
 
 export type ServerHealthStore = ServerHealthState & ServerHealthActions

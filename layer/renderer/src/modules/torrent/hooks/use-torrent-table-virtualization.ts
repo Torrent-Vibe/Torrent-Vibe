@@ -6,7 +6,7 @@ import { BASE_ROW_HEIGHT } from '../constants'
 import { markTorrentTableScrollActive } from '../stores/torrent-table-performance'
 
 type OffsetSubscriber = (offset: number, isScrolling: boolean) => void
-type RectSubscriber = (rect: { width: number, height: number }) => void
+type RectSubscriber = (rect: { width: number; height: number }) => void
 type ScrollOffsetUpdater = number | ((current: number) => number)
 type ScrollSamplingMode = 'default' | 'drag'
 
@@ -17,13 +17,14 @@ const DEFAULT_SCROLL_IDLE_RESET_MS = 220
 const DRAG_SCROLL_IDLE_RESET_MS = 650
 
 export interface TorrentTableVirtualizer {
-  tableHeight: number
-  headerHeight: number
   bodyHeight: number
-  isScrolling: boolean
-  totalSize: number
-  maxScrollOffset: number
   getScrollOffset: () => number
+  handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void
+  handleWheel: (event: React.WheelEvent<HTMLDivElement>) => void
+  headerHeight: number
+  isScrolling: boolean
+  maxScrollOffset: number
+  rowVirtualizer: Virtualizer<HTMLDivElement, Element>
   setBodyElement: (element: HTMLDivElement | null) => void
   setContainerElement: (element: HTMLDivElement | null) => void
   setScrollOffset: (
@@ -31,9 +32,8 @@ export interface TorrentTableVirtualizer {
     isScrolling?: boolean,
   ) => void
   setScrollSamplingMode: (mode: ScrollSamplingMode) => void
-  handleWheel: (event: React.WheelEvent<HTMLDivElement>) => void
-  handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void
-  rowVirtualizer: Virtualizer<HTMLDivElement, Element>
+  tableHeight: number
+  totalSize: number
 }
 
 const clamp = (value: number, min: number, max: number) =>
@@ -43,8 +43,8 @@ const normalizeWheelDelta = (
   event: React.WheelEvent<HTMLDivElement>,
   pageSize: number,
 ) => {
-  const multiplier
-    = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+  const multiplier =
+    event.deltaMode === WheelEvent.DOM_DELTA_LINE
       ? BASE_ROW_HEIGHT
       : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
         ? pageSize
@@ -71,8 +71,8 @@ export const useTorrentTableVirtualization = (
   const bodyRef = React.useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = React.useState(() => window.innerHeight)
   const [isScrollingState, setIsScrollingState] = React.useState(false)
-  const [scrollSamplingModeState, setScrollSamplingModeState]
-    = React.useState<ScrollSamplingMode>('default')
+  const [scrollSamplingModeState, setScrollSamplingModeState] =
+    React.useState<ScrollSamplingMode>('default')
   const offsetRef = React.useRef(0)
   const isScrollingRef = React.useRef(false)
   const targetOffsetRef = React.useRef(0)
@@ -139,7 +139,7 @@ export const useTorrentTableVirtualization = (
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       const newHeight = Math.floor(rect.height) || 300
-      setTableHeight(prev => (prev !== newHeight ? newHeight : prev))
+      setTableHeight((prev) => (prev !== newHeight ? newHeight : prev))
     }
   }, [])
 
@@ -184,8 +184,8 @@ export const useTorrentTableVirtualization = (
 
   const markScrollEnd = React.useCallback(() => {
     clearScrollEndTimer()
-    const resetDelay
-      = scrollSamplingModeRef.current === 'drag'
+    const resetDelay =
+      scrollSamplingModeRef.current === 'drag'
         ? DRAG_SCROLL_IDLE_RESET_MS
         : DEFAULT_SCROLL_IDLE_RESET_MS
 
@@ -216,20 +216,20 @@ export const useTorrentTableVirtualization = (
         markTorrentTableScrollActive()
       }
 
-      const isDragSampling
-        = isScrolling && scrollSamplingModeRef.current === 'drag'
+      const isDragSampling =
+        isScrolling && scrollSamplingModeRef.current === 'drag'
       const now = performance.now()
-      const shouldNotifyVirtualizer
-        = !isScrolling
-          || next === 0
-          || next === maxOffsetRef.current
-          || (Math.abs(next - notifiedOffsetRef.current)
-            >= (isDragSampling
-              ? DRAG_VIRTUALIZER_OFFSET_SAMPLE_SIZE
-              : DEFAULT_VIRTUALIZER_OFFSET_SAMPLE_SIZE)
-            && (!isDragSampling
-              || now - lastVirtualizerNotifyAtRef.current
-              >= DRAG_VIRTUALIZER_NOTIFY_INTERVAL_MS))
+      const shouldNotifyVirtualizer =
+        !isScrolling ||
+        next === 0 ||
+        next === maxOffsetRef.current ||
+        (Math.abs(next - notifiedOffsetRef.current) >=
+          (isDragSampling
+            ? DRAG_VIRTUALIZER_OFFSET_SAMPLE_SIZE
+            : DEFAULT_VIRTUALIZER_OFFSET_SAMPLE_SIZE) &&
+          (!isDragSampling ||
+            now - lastVirtualizerNotifyAtRef.current >=
+              DRAG_VIRTUALIZER_NOTIFY_INTERVAL_MS))
 
       syncScrollbarCssVar(next)
 
@@ -243,8 +243,7 @@ export const useTorrentTableVirtualization = (
 
       if (isScrolling) {
         markScrollEnd()
-      }
-      else if (isScrollingRef.current) {
+      } else if (isScrollingRef.current) {
         isScrollingRef.current = false
         setIsScrollingState(false)
       }
@@ -275,8 +274,8 @@ export const useTorrentTableVirtualization = (
   const setScrollOffset = React.useCallback(
     (nextOffset: ScrollOffsetUpdater, isScrolling = true) => {
       const current = targetOffsetRef.current
-      const rawNext
-        = typeof nextOffset === 'function' ? nextOffset(current) : nextOffset
+      const rawNext =
+        typeof nextOffset === 'function' ? nextOffset(current) : nextOffset
       const next = clamp(rawNext, 0, maxOffsetRef.current)
 
       if (next === targetOffsetRef.current && next === offsetRef.current) {
@@ -375,8 +374,7 @@ export const useTorrentTableVirtualization = (
   React.useLayoutEffect(() => {
     if (offsetRef.current > maxScrollOffset) {
       setScrollOffset(maxScrollOffset, false)
-    }
-    else {
+    } else {
       syncScrollCssVars(offsetRef.current)
     }
   }, [maxScrollOffset, setScrollOffset, syncScrollCssVars])
@@ -386,7 +384,7 @@ export const useTorrentTableVirtualization = (
   const setScrollSamplingMode = React.useCallback(
     (mode: ScrollSamplingMode) => {
       scrollSamplingModeRef.current = mode
-      setScrollSamplingModeState(prev => (prev === mode ? prev : mode))
+      setScrollSamplingModeState((prev) => (prev === mode ? prev : mode))
     },
     [],
   )
@@ -404,7 +402,7 @@ export const useTorrentTableVirtualization = (
 
       event.preventDefault()
       event.stopPropagation()
-      setScrollOffset(current => current + delta)
+      setScrollOffset((current) => current + delta)
     },
     [bodyHeight, setScrollOffset],
   )
@@ -419,19 +417,19 @@ export const useTorrentTableVirtualization = (
 
       switch (event.key) {
         case 'ArrowDown': {
-          nextOffset = current => current + BASE_ROW_HEIGHT
+          nextOffset = (current) => current + BASE_ROW_HEIGHT
           break
         }
         case 'ArrowUp': {
-          nextOffset = current => current - BASE_ROW_HEIGHT
+          nextOffset = (current) => current - BASE_ROW_HEIGHT
           break
         }
         case 'PageDown': {
-          nextOffset = current => current + bodyHeight
+          nextOffset = (current) => current + bodyHeight
           break
         }
         case 'PageUp': {
-          nextOffset = current => current - bodyHeight
+          nextOffset = (current) => current - bodyHeight
           break
         }
         case 'Home': {

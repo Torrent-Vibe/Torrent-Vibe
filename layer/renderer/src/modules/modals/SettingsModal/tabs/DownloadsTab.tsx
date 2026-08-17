@@ -26,8 +26,8 @@ export const DownloadsTab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.preferencesSaved"
       saveErrorI18nKey="messages.preferencesSaveFailed"
+      saveSuccessI18nKey="messages.preferencesSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">

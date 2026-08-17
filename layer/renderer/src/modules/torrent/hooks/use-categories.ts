@@ -8,9 +8,9 @@ import {
 } from '../stores/torrent-data-store'
 
 export interface CategoryWithCount {
+  count: number
   name: string
   savePath: string
-  count: number
 }
 
 /**
@@ -29,8 +29,7 @@ export const useCategoriesWithCounts = () => {
 
   const categoriesWithCounts = useMemo(() => {
     const categoriesData = (categories || data) as
-      | Record<string, { savePath: string }>
-      | undefined
+      Record<string, { savePath: string }> | undefined
     if (!categoriesData || !torrents) return []
 
     return Object.entries(categoriesData).map(

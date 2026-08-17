@@ -1,4 +1,3 @@
-/* eslint-disable ts/no-use-before-define */
 import type { FC } from 'react'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -60,7 +59,7 @@ const EMPTY_ROW_STICKY_STATUS: RowStickyStatus = {
   remainingTime: 0,
 }
 
-const MemoCell: React.FC<{ columnId: string, rowIndex: number }> = React.memo(
+const MemoCell: React.FC<{ columnId: string; rowIndex: number }> = React.memo(
   ({ columnId, rowIndex }) => {
     const Renderer = CELL_RENDERERS[columnId as keyof typeof CELL_RENDERERS] as
       ((p: { rowIndex: number }) => React.ReactNode) | undefined
@@ -77,11 +76,11 @@ const MemoCell: React.FC<{ columnId: string, rowIndex: number }> = React.memo(
 )
 
 interface TableBodyProps extends TorrentTableConfig {
-  rowVirtualizer: TorrentTableVirtualizer['rowVirtualizer']
-  viewportHeight: number
   headerHeight: number
   isScrolling?: boolean
   logicalScrollMode?: boolean
+  rowVirtualizer: TorrentTableVirtualizer['rowVirtualizer']
+  viewportHeight: number
 }
 
 export const TableBody: React.FC<TableBodyProps> = (props) => {
@@ -100,10 +99,10 @@ export const TableBody: React.FC<TableBodyProps> = (props) => {
 
   const { selectAndShowDetail } = useTorrentSelection()
   const activeTorrentHash = useTorrentTableStore(
-    state => state.activeTorrentHash,
+    (state) => state.activeTorrentHash,
   )
   const { selectedTorrents, stickyFilterEntries } = useTorrentDataStore(
-    useShallow(state => ({
+    useShallow((state) => ({
       selectedTorrents: state.selectedTorrents,
       stickyFilterEntries: state.stickyFilterEntries,
     })),
@@ -173,8 +172,8 @@ export const TableBody: React.FC<TableBodyProps> = (props) => {
         const rowHeight = getRowHeight(rowIndex)
         const rowTop = virtualRow.start
         const rowBottom = rowTop + rowHeight
-        const isStrictInViewport
-          = isScrolling || (rowBottom > viewportTop && rowTop < viewportBottom)
+        const isStrictInViewport =
+          isScrolling || (rowBottom > viewportTop && rowTop < viewportBottom)
         const shouldRecycleRow = logicalScrollMode && isScrolling
         const rowKey = shouldRecycleRow
           ? `scroll-slot-${virtualSlotIndex}`
@@ -200,9 +199,6 @@ export const TableBody: React.FC<TableBodyProps> = (props) => {
             isInViewport={isStrictInViewport}
             isScrolling={isScrolling}
             key={rowKey}
-            measureElement={
-              !logicalScrollMode ? rowVirtualizer.measureElement : undefined
-            }
             rowHeight={rowHeight}
             rowIndex={rowIndex}
             rowIsActive={rowIsActive}
@@ -212,6 +208,9 @@ export const TableBody: React.FC<TableBodyProps> = (props) => {
             torrent={torrent}
             virtualRowIndex={virtualRow.index}
             visibleColumnIds={visibleColumnIds}
+            measureElement={
+              !logicalScrollMode ? rowVirtualizer.measureElement : undefined
+            }
           />
         )
       })}
@@ -266,24 +265,24 @@ const TorrentTableRow = React.memo(
     return (
       <RowWrapper
         {...passiveStateProps}
-        rowIndex={rowIndex}
         data-index={virtualRowIndex}
+        data-odd={isOdd}
+        ref={measureElement}
         role="row"
+        rowIndex={rowIndex}
         className={cn(
           'grid border-b group border-border hover:!bg-accent-10 top-0 left-0 min-w-full absolute data-[odd=true]:bg-background-secondary',
           isScrolling && rowIsActive && '!bg-accent/10',
-          isScrolling
-          && stickyStatus.isSticky
-          && 'bg-orange/5 border-l-2 border-l-orange/50',
+          isScrolling &&
+            stickyStatus.isSticky &&
+            'bg-orange/5 border-l-2 border-l-orange/50',
         )}
-        data-odd={isOdd}
         style={{
           contain: 'layout paint style',
           gridTemplateColumns,
           transform: `translate3d(0, ${rowTop}px, 0)`,
           height: rowHeight,
         }}
-        ref={measureElement}
         onClick={isScrolling ? undefined : () => handleRowClick(rowIndex)}
       >
         {visibleColumnIds.map((cid: string, columnIndex) => {
@@ -292,74 +291,68 @@ const TorrentTableRow = React.memo(
           const cellKey = shouldRecycleRow ? cid : `${cid}-${rowIndex}`
 
           if (isScrolling) {
-            return isSticky
-              ? (
-                  <div
-                    key={cellKey}
-                    className={cn(
-                      'group-data-[odd=true]:bg-background-secondary bg-background group-hover:!bg-accent-10 group-data-[selected=true]:bg-transparent',
-                      'before:content-[\'\'] before:absolute before:bottom-0 before:left-0 before:w-full before:h-px before:bg-border',
-                    )}
-                    style={{
-                      gridColumn: columnIndex + 1,
-                      position: 'sticky',
-                      left,
-                      zIndex: 4,
-                    }}
-                  >
-                    <ScrollingCellPreview
-                      checkboxSelected={checkboxSelected}
-                      columnId={cid}
-                      torrent={torrent}
-                    />
-                  </div>
-                )
-              : (
-                  <div
-                    key={cellKey}
-                    className="relative min-w-0 overflow-hidden"
-                    style={{
-                      gridColumn: columnIndex + 1,
-                    }}
-                  >
-                    <ScrollingCellPreview
-                      checkboxSelected={checkboxSelected}
-                      columnId={cid}
-                      torrent={torrent}
-                    />
-                  </div>
-                )
+            return isSticky ? (
+              <div
+                key={cellKey}
+                className={cn(
+                  'group-data-[odd=true]:bg-background-secondary bg-background group-hover:!bg-accent-10 group-data-[selected=true]:bg-transparent',
+                  "before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-px before:bg-border",
+                )}
+                style={{
+                  gridColumn: columnIndex + 1,
+                  position: 'sticky',
+                  left,
+                  zIndex: 4,
+                }}
+              >
+                <ScrollingCellPreview
+                  checkboxSelected={checkboxSelected}
+                  columnId={cid}
+                  torrent={torrent}
+                />
+              </div>
+            ) : (
+              <div
+                className="relative min-w-0 overflow-hidden"
+                key={cellKey}
+                style={{
+                  gridColumn: columnIndex + 1,
+                }}
+              >
+                <ScrollingCellPreview
+                  checkboxSelected={checkboxSelected}
+                  columnId={cid}
+                  torrent={torrent}
+                />
+              </div>
+            )
           }
 
-          return isSticky
-            ? (
-                <div
-                  key={cellKey}
-                  className={cn(
-                    'group-data-[odd=true]:bg-background-secondary bg-background group-hover:!bg-accent-10 group-data-[selected=true]:bg-transparent',
-                    !isScrolling && 'backdrop-blur-xl',
+          return isSticky ? (
+            <div
+              key={cellKey}
+              className={cn(
+                'group-data-[odd=true]:bg-background-secondary bg-background group-hover:!bg-accent-10 group-data-[selected=true]:bg-transparent',
+                !isScrolling && 'backdrop-blur-xl',
 
-                    'before:content-[\'\'] before:absolute before:bottom-0 before:left-0 before:w-full before:h-px before:bg-border',
-                  )}
-                  style={{
-                    gridColumn: columnIndex + 1,
-                    position: 'sticky',
-                    left,
-                    zIndex: 4,
-                  }}
-                >
-                  {cid === 'name'
-                    ? (
-                        <NameCell rowIndex={rowIndex} isInViewport={isInViewport} />
-                      )
-                    : (
-                        <MemoCell columnId={cid} rowIndex={rowIndex} />
-                      )}
-                </div>
-              )
-            : (
-                <MemoCell key={cellKey} columnId={cid} rowIndex={rowIndex} />
-              )
+                "before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-px before:bg-border",
+              )}
+              style={{
+                gridColumn: columnIndex + 1,
+                position: 'sticky',
+                left,
+                zIndex: 4,
+              }}
+            >
+              {cid === 'name' ? (
+                <NameCell isInViewport={isInViewport} rowIndex={rowIndex} />
+              ) : (
+                <MemoCell columnId={cid} rowIndex={rowIndex} />
+              )}
+            </div>
+          ) : (
+            <MemoCell columnId={cid} key={cellKey} rowIndex={rowIndex} />
+          )
         })}
         {isScrolling && stickyStatus.isSticky && (
           <PassiveStickyIndicator remainingTime={stickyStatus.remainingTime} />
@@ -374,8 +367,7 @@ const PassiveStickyIndicator = React.memo(
     <div className="absolute z-10 top-1 left-1 flex items-center gap-1">
       <div className="size-2 rounded-full bg-orange animate-pulse" />
       <span className="text-xs text-orange font-medium opacity-75">
-        {Math.ceil(remainingTime / 1000)}
-        s
+        {Math.ceil(remainingTime / 1000)}s
       </span>
     </div>
   ),
@@ -389,8 +381,8 @@ const ScrollingNamePreview = React.memo(
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="flex-shrink-0">
               <TorrentStateIcon
-                state="unknown"
                 className="text-lg text-text-tertiary"
+                state="unknown"
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -409,9 +401,9 @@ const ScrollingNamePreview = React.memo(
       <div className="relative flex items-center gap-3 px-4 py-2">
         <div className="flex-shrink-0 pt-0.5">
           <TorrentStateIcon
-            state={torrent.state}
-            progress={torrent.progress}
             className="text-lg"
+            progress={torrent.progress}
+            state={torrent.state}
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -424,14 +416,14 @@ const ScrollingNamePreview = React.memo(
             </span>
             {tagList.length > 0 && (
               <div className="flex gap-1 overflow-hidden">
-                {tagList.slice(0, 2).map(tag => (
+                {tagList.slice(0, 2).map((tag) => (
                   <PreviewTag key={tag} tag={tag} />
                 ))}
                 {tagList.length > 2 && (
                   <PreviewTag
                     tag={`+${tagList.length - 2}`}
-                    variant="tertiary"
                     title={tagList.slice(2).join(', ')}
+                    variant="tertiary"
                   />
                 )}
               </div>
@@ -480,12 +472,12 @@ const ScrollingAiMetadataPreview = React.memo(
       }
       return (
         <span
-          className="inline-flex h-5 items-center gap-1 rounded-full border border-red/20 px-1.5 text-[10px] leading-none text-red/60"
           aria-label={getI18n().t('torrent.ai.status.error.default')}
+          className="inline-flex h-5 items-center gap-1 rounded-full border border-red/20 px-1.5 text-[10px] leading-none text-red/60"
         >
           <i
-            className="i-mingcute-warning-line text-[12px]"
             aria-hidden="true"
+            className="i-mingcute-warning-line text-[12px]"
           />
           <span>AI</span>
         </span>
@@ -496,8 +488,8 @@ const ScrollingAiMetadataPreview = React.memo(
       return (
         <span className="inline-flex h-5 items-center gap-1 text-[10px] text-text-tertiary">
           <i
-            className="i-mingcute-loading-3-line animate-spin text-[12px]"
             aria-hidden="true"
+            className="i-mingcute-loading-3-line animate-spin text-[12px]"
           />
           <span className="sr-only">
             {getI18n().t('torrent.ai.status.loading')}
@@ -517,28 +509,22 @@ const ScrollingAiMetadataPreview = React.memo(
 
     return (
       <span
-        className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
         aria-label={getI18n().t('torrent.ai.actions.openDetails')}
+        className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
       >
-        {mayBeTitle
-          ? (
-              <i className="i-lucide-flame text-[12px]" aria-hidden="true" />
-            )
-          : (
-              <i
-                className="i-lucide-file-question-mark text-[12px]"
-                aria-hidden="true"
-              />
-            )}
-        {mayBeTitle
-          ? (
-              <span className="max-w-[200px] truncate">{mayBeTitle}</span>
-            )
-          : confidenceLabel
-            ? (
-                <span>{confidenceLabel}</span>
-              )
-            : null}
+        {mayBeTitle ? (
+          <i aria-hidden="true" className="i-lucide-flame text-[12px]" />
+        ) : (
+          <i
+            aria-hidden="true"
+            className="i-lucide-file-question-mark text-[12px]"
+          />
+        )}
+        {mayBeTitle ? (
+          <span className="max-w-[200px] truncate">{mayBeTitle}</span>
+        ) : confidenceLabel ? (
+          <span>{confidenceLabel}</span>
+        ) : null}
       </span>
     )
   },
@@ -549,7 +535,7 @@ const splitPreviewTags = (tags: string | undefined) => {
     ? tags
         .split(',')
         .filter(Boolean)
-        .map(tag => tag.trim())
+        .map((tag) => tag.trim())
     : []
 }
 
@@ -564,13 +550,13 @@ const PreviewTag = React.memo(
     variant?: 'primary' | 'tertiary'
   }) => (
     <span
+      title={title || tag}
       className={cn(
         'px-2 py-1 rounded-md text-xs font-medium whitespace-pre min-w-0 truncate',
         variant === 'tertiary'
           ? 'bg-text-tertiary/20 text-text-tertiary cursor-default'
           : 'bg-accent/20 text-accent',
       )}
-      title={title || tag}
     >
       {tag}
     </span>
@@ -615,8 +601,8 @@ const formatPreviewRelativeDateTime = (
     ['minute', 60],
     ['second', 1],
   ] as const
-  const [unit, unitSeconds]
-    = units.find(([, seconds]) => absSeconds >= seconds) ?? units.at(-1)!
+  const [unit, unitSeconds] =
+    units.find(([, seconds]) => absSeconds >= seconds) ?? units.at(-1)!
   const sign = timestamp * 1000 - nowMs < 0 ? -1 : 1
   const value = sign * Math.floor(absSeconds / unitSeconds)
 
@@ -729,8 +715,7 @@ const getPreviewTrackerDomain = (url: string) => {
   try {
     const domain = new URL(url).hostname
     return domain.replace(/^www\./, '')
-  }
-  catch {
+  } catch {
     return url.length > 20 ? `${url.slice(0, 17)}...` : url
   }
 }
@@ -752,48 +737,69 @@ const getPreviewText = (columnId: string, torrent: TorrentInfo | undefined) => {
   }
 
   switch (columnId) {
-    case 'size':
+    case 'size': {
       return formatBytesSmart(torrent.size)
-    case 'dlspeed':
+    }
+    case 'dlspeed': {
       return formatSpeedWithStatus(torrent.dlspeed).text
-    case 'upspeed':
+    }
+    case 'upspeed': {
       return formatSpeedWithStatus(torrent.upspeed).text
-    case 'ratio':
+    }
+    case 'ratio': {
       return formatPreviewRatio(torrent.ratio)
-    case 'state':
+    }
+    case 'state': {
       return getI18n().t(getStatusConfig(torrent.state).label)
-    case 'priority':
+    }
+    case 'priority': {
       return getPreviewPriorityText(torrent.priority)
-    case 'tracker':
+    }
+    case 'tracker': {
       return getPreviewTrackerDomain(torrent.tracker)
-    case 'category':
+    }
+    case 'category': {
       return torrent.category || '-'
-    case 'tags':
+    }
+    case 'tags': {
       return splitPreviewTags(torrent.tags).slice(0, 2).join(', ') || '-'
-    case 'added_on':
+    }
+    case 'added_on': {
       return formatPreviewRelativeDateTime(torrent.added_on)
-    case 'completion_on':
+    }
+    case 'completion_on': {
       return formatPreviewRelativeDateTime(torrent.completion_on)
-    case 'last_activity':
+    }
+    case 'last_activity': {
       return formatPreviewRelativeDateTime(torrent.last_activity)
-    case 'save_path':
+    }
+    case 'save_path': {
       return getPreviewShortPath(torrent.save_path)
-    case 'downloaded':
+    }
+    case 'downloaded': {
       return formatBytes(torrent.downloaded)
-    case 'uploaded':
+    }
+    case 'uploaded': {
       return formatBytes(torrent.uploaded)
-    case 'num_seeds':
+    }
+    case 'num_seeds': {
       return torrent.num_seeds.toString()
-    case 'num_leechs':
+    }
+    case 'num_leechs': {
       return torrent.num_leechs.toString()
-    case 'amount_left':
+    }
+    case 'amount_left': {
       return torrent.amount_left > 0 ? formatBytes(torrent.amount_left) : '-'
-    case 'time_active':
+    }
+    case 'time_active': {
       return formatPreviewDuration(torrent.time_active)
-    case 'seeding_time':
+    }
+    case 'seeding_time': {
       return formatPreviewDuration(torrent.seeding_time)
-    default:
+    }
+    default: {
       return '-'
+    }
   }
 }
 
@@ -819,20 +825,20 @@ const ScrollingCellPreview = React.memo(
             data-state={checkboxSelected ? 'checked' : 'unchecked'}
           >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
               fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="3.5"
               stroke="currentColor"
+              strokeWidth="3.5"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
               className={cn(
                 'size-3.5',
                 checkboxSelected ? 'opacity-100' : 'opacity-0',
               )}
             >
               <path
+                d="M4.5 12.75l6 6 9-13.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M4.5 12.75l6 6 9-13.5"
               />
             </svg>
           </span>
@@ -852,8 +858,7 @@ const ScrollingCellPreview = React.memo(
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-xs font-medium text-text-secondary">
-                {percentage}
-                %
+                {percentage}%
               </span>
             </div>
             <div
@@ -864,8 +869,7 @@ const ScrollingCellPreview = React.memo(
               }}
             >
               <span className="text-xs font-medium text-white">
-                {percentage}
-                %
+                {percentage}%
               </span>
             </div>
           </div>
@@ -934,13 +938,11 @@ const ScrollingCellPreview = React.memo(
     if (columnId === 'category') {
       return (
         <div className="flex items-center px-2 py-2 text-sm text-text">
-          {torrent?.category
-            ? (
-                <PreviewTag tag={torrent.category} />
-              )
-            : (
-                <span className="text-text-tertiary">-</span>
-              )}
+          {torrent?.category ? (
+            <PreviewTag tag={torrent.category} />
+          ) : (
+            <span className="text-text-tertiary">-</span>
+          )}
         </div>
       )
     }
@@ -949,17 +951,15 @@ const ScrollingCellPreview = React.memo(
       const tagList = splitPreviewTags(torrent?.tags)
       return (
         <div className="flex items-center text-sm px-2 py-3">
-          {tagList.length > 0
-            ? (
-                <div className="flex flex-wrap gap-1 max-w-full">
-                  {tagList.map(tag => (
-                    <PreviewTag key={tag} tag={tag} />
-                  ))}
-                </div>
-              )
-            : (
-                <div className="text-text-tertiary text-xs">No tags</div>
-              )}
+          {tagList.length > 0 ? (
+            <div className="flex flex-wrap gap-1 max-w-full">
+              {tagList.map((tag) => (
+                <PreviewTag key={tag} tag={tag} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-text-tertiary text-xs">No tags</div>
+          )}
         </div>
       )
     }
@@ -977,7 +977,7 @@ const ScrollingCellPreview = React.memo(
     if (columnId === 'save_path') {
       return (
         <div className="flex items-center px-2 py-4 text-sm text-text">
-          <span title={torrent?.save_path || ''} className="truncate">
+          <span className="truncate" title={torrent?.save_path || ''}>
             {getPreviewText(columnId, torrent)}
           </span>
         </div>
@@ -997,15 +997,13 @@ const ScrollingCellPreview = React.memo(
         <div className="flex items-center justify-center px-2 py-4 text-sm text-text tabular-nums">
           <span>
             {torrent?.num_seeds || 0}
-            {torrent?.num_complete !== undefined
-              && torrent.num_complete !== torrent.num_seeds && (
-              <span className="text-text-secondary">
-                {' '}
-                (
-                {torrent.num_complete}
-                )
-              </span>
-            )}
+            {torrent?.num_complete !== undefined &&
+              torrent.num_complete !== torrent.num_seeds && (
+                <span className="text-text-secondary">
+                  {' '}
+                  ({torrent.num_complete})
+                </span>
+              )}
           </span>
         </div>
       )
@@ -1016,24 +1014,22 @@ const ScrollingCellPreview = React.memo(
         <div className="flex items-center justify-center px-2 py-2 text-sm text-text tabular-nums">
           <span>
             {torrent?.num_leechs || 0}
-            {torrent?.num_incomplete !== undefined
-              && torrent.num_incomplete !== torrent.num_leechs && (
-              <span className="text-text-secondary">
-                {' '}
-                (
-                {torrent.num_incomplete}
-                )
-              </span>
-            )}
+            {torrent?.num_incomplete !== undefined &&
+              torrent.num_incomplete !== torrent.num_leechs && (
+                <span className="text-text-secondary">
+                  {' '}
+                  ({torrent.num_incomplete})
+                </span>
+              )}
           </span>
         </div>
       )
     }
 
     if (
-      columnId === 'added_on'
-      || columnId === 'completion_on'
-      || columnId === 'last_activity'
+      columnId === 'added_on' ||
+      columnId === 'completion_on' ||
+      columnId === 'last_activity'
     ) {
       return (
         <div className="flex items-center justify-end px-2 top-4 absolute inset-x-0 text-sm text-text">
@@ -1045,10 +1041,10 @@ const ScrollingCellPreview = React.memo(
     }
 
     if (
-      columnId === 'downloaded'
-      || columnId === 'uploaded'
-      || columnId === 'time_active'
-      || columnId === 'seeding_time'
+      columnId === 'downloaded' ||
+      columnId === 'uploaded' ||
+      columnId === 'time_active' ||
+      columnId === 'seeding_time'
     ) {
       return (
         <div className="flex items-center justify-end px-2 py-4 text-sm text-text tabular-nums">
@@ -1077,7 +1073,7 @@ const PassiveCellWrapper: FC<
   React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
-  > & { children: React.ReactNode, rowIndex: number }
+  > & { children: React.ReactNode; rowIndex: number }
 > = ({ children, rowIndex: _rowIndex, ...rest }) => {
   return <div {...rest}>{children}</div>
 }
@@ -1086,7 +1082,7 @@ const ActiveCellWrapper: FC<
   React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
-  > & { children: React.ReactNode, rowIndex: number }
+  > & { children: React.ReactNode; rowIndex: number }
 > = ({ children, rowIndex, className, ...rest }) => {
   const isSelected = useTorrentTableSelectors.useRowActiveByIndex(rowIndex)
   const showContextMenu = useShowContextMenu()
@@ -1101,7 +1097,7 @@ const ActiveCellWrapper: FC<
 
       const now = Date.now()
       const stickyEntry = state.stickyFilterEntries.find(
-        entry => entry.hash === torrent.hash,
+        (entry) => entry.hash === torrent.hash,
       )
 
       if (!stickyEntry) {
@@ -1120,8 +1116,8 @@ const ActiveCellWrapper: FC<
 
   const handleContextMenu = React.useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
-      const { sortedTorrents, selectedTorrents }
-        = useTorrentDataStore.getState()
+      const { sortedTorrents, selectedTorrents } =
+        useTorrentDataStore.getState()
       const currentTorrent = sortedTorrents[rowIndex]
       const torrents = [...new Set([currentTorrent.hash, ...selectedTorrents])]
 
@@ -1182,7 +1178,7 @@ const ActiveCellWrapper: FC<
                 torrents.length > 1
                   ? t('torrent.multipleSelection')
                   : currentTorrent.name,
-              onConfirm: deleteFiles =>
+              onConfirm: (deleteFiles) =>
                 TorrentActions.shared.deleteTorrents(torrents, deleteFiles),
             }),
         }),
@@ -1276,10 +1272,10 @@ const ActiveCellWrapper: FC<
               currentTags,
               onConfirm: (tags: string[]) => {
                 const tagsToAdd = tags.filter(
-                  tag => !currentTags.includes(tag),
+                  (tag) => !currentTags.includes(tag),
                 )
                 const tagsToRemove = currentTags.filter(
-                  tag => !tags.includes(tag),
+                  (tag) => !tags.includes(tag),
                 )
 
                 // Remove tags first, then add new ones
@@ -1436,7 +1432,6 @@ const ActiveCellWrapper: FC<
   )
   return (
     <div
-      onContextMenu={handleContextMenu}
       data-selected={isSelected}
       className={cn(
         'relative group/actice-cell',
@@ -1444,6 +1439,7 @@ const ActiveCellWrapper: FC<
         stickyStatus.isSticky && 'bg-orange/5 border-l-2 border-l-orange/50',
         className,
       )}
+      onContextMenu={handleContextMenu}
       {...rest}
     >
       {children}
@@ -1454,8 +1450,7 @@ const ActiveCellWrapper: FC<
             <div className="absolute z-10 top-1 left-1 flex items-center gap-1 cursor-help">
               <div className="size-2 rounded-full bg-orange animate-pulse" />
               <span className="text-xs text-orange font-medium opacity-75">
-                {Math.ceil(stickyStatus.remainingTime / 1000)}
-                s
+                {Math.ceil(stickyStatus.remainingTime / 1000)}s
               </span>
             </div>
           </TooltipTrigger>

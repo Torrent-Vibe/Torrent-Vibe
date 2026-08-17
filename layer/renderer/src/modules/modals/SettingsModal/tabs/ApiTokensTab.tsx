@@ -99,8 +99,8 @@ const buildStatusLabel = (
 
 interface TokenSlotFieldProps {
   definition: ApiTokenSlotDefinition
-  slot: ApiTokenSlotState | undefined
   disabled: boolean
+  slot: ApiTokenSlotState | undefined
 }
 
 const TokenSlotField = ({
@@ -209,16 +209,14 @@ const TokenSlotField = ({
         if (!cancelled) {
           setModelOptions(ids)
         }
-      }
-      catch (error: any) {
+      } catch (error: any) {
         if (!cancelled) {
           setModelsError(error?.message || 'fetchFailed')
         }
         if (!cancelled) {
           setModelOptions([])
         }
-      }
-      finally {
+      } finally {
         if (!cancelled) {
           setIsLoadingModels(false)
         }
@@ -267,134 +265,118 @@ const TokenSlotField = ({
 
   return (
     <SettingField
+      controlClassName="flex flex-col gap-2"
       label={t(definition.labelKey)}
-      description={(
+      description={
         <p className="flex flex-wrap gap-1">
           {t(definition.descriptionKey)}
-          {definition.docsUrl
-            ? (
-                <a
-                  href={definition.docsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-accent hover:underline"
-                >
-                  {t('tabs.apiTokens.learnMore')}
-                </a>
-              )
-            : null}
+          {definition.docsUrl ? (
+            <a
+              className="text-xs text-accent hover:underline"
+              href={definition.docsUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {t('tabs.apiTokens.learnMore')}
+            </a>
+          ) : null}
         </p>
-      )}
-      controlClassName="flex flex-col gap-2"
+      }
     >
       <div className="flex w-full flex-col gap-2">
-        {definition.field === 'model'
-          ? (
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <ComboboxSelect
-                    value={draft}
-                    onValueChange={(v) => {
-                      setDraft(v)
-                      onSave(v)
-                    }}
-                    options={modelOptions ?? []}
-                    placeholder={
-                      definition.placeholderKey
-                        ? t(definition.placeholderKey)
-                        : undefined
-                    }
-                    allowCustom={true}
-                    disabled={saving || disabled || isLoadingModels}
-                    size="sm"
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            )
-          : (
-              <Input
-                type={definition.inputType ?? 'password'}
+        {definition.field === 'model' ? (
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <ComboboxSelect
+                allowCustom={true}
                 className="w-full"
-                endAdornmentVisibility="always"
+                disabled={saving || disabled || isLoadingModels}
+                options={modelOptions ?? []}
+                size="sm"
                 value={draft}
                 placeholder={
                   definition.placeholderKey
                     ? t(definition.placeholderKey)
                     : undefined
                 }
-                onChange={(event) => {
-                  setDraft(event.target.value)
+                onValueChange={(v) => {
+                  setDraft(v)
+                  onSave(v)
                 }}
-                disabled={saving || disabled}
-                endAdornment={(
-                  <div className="flex items-center gap-1 pr-1">
-                    <Button
-                      size="sm"
-                      aria-label="Save"
-                      type="button"
-                      onClick={() => onSave()}
-                      disabled={disabled || saving}
-                      className="h-7 w-7 p-1.5 !bg-transparent"
-                      variant="ghost"
-                    >
-                      <i className="i-mingcute-check-line text-base" />
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      type="button"
-                      aria-label="Clear"
-                      variant="ghost"
-                      className="h-7 w-7 p-1.5 !bg-transparent"
-                      onClick={onClear}
-                      disabled={disabled || saving}
-                    >
-                      <i className="i-mingcute-close-line text-base" />
-                    </Button>
-                  </div>
-                )}
               />
-            )}
+            </div>
+          </div>
+        ) : (
+          <Input
+            className="w-full"
+            disabled={saving || disabled}
+            endAdornmentVisibility="always"
+            type={definition.inputType ?? 'password'}
+            value={draft}
+            endAdornment={
+              <div className="flex items-center gap-1 pr-1">
+                <Button
+                  aria-label="Save"
+                  className="h-7 w-7 p-1.5 !bg-transparent"
+                  disabled={disabled || saving}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onSave()}
+                >
+                  <i className="i-mingcute-check-line text-base" />
+                </Button>
+
+                <Button
+                  aria-label="Clear"
+                  className="h-7 w-7 p-1.5 !bg-transparent"
+                  disabled={disabled || saving}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={onClear}
+                >
+                  <i className="i-mingcute-close-line text-base" />
+                </Button>
+              </div>
+            }
+            placeholder={
+              definition.placeholderKey
+                ? t(definition.placeholderKey)
+                : undefined
+            }
+            onChange={(event) => {
+              setDraft(event.target.value)
+            }}
+          />
+        )}
       </div>
       <div className="text-[10px] h-4 text-text-tertiary">
-        {saving
-          ? (
-              <span className="inline-flex items-center gap-1">
-                <i className="i-mingcute-loading-3-line animate-spin" />
-                {t('tabs.apiTokens.status.saving')}
-              </span>
-            )
-          : isLoadingModels && definition.field === 'model'
-            ? (
-                <span className="inline-flex items-center gap-1">
-                  <i className="i-mingcute-loading-3-line animate-spin" />
-                </span>
-              )
-            : modelsError && definition.field === 'model'
-              ? (
-                  <span className="inline-flex items-center gap-1 text-red">
-                    <i className="i-mingcute-alert-line" />
-                    {modelsError}
-                  </span>
-                )
-              : slot?.error
-                ? (
-                    STATUS_KEY_MAP[slot.error]
-                      ? (
-                          t(STATUS_KEY_MAP[slot.error])
-                        )
-                      : (
-                          slot.error
-                        )
-                  )
-                : slot?.hasValue
-                  ? (
-                      statusLabel
-                    )
-                  : (
-                      <i className="i-mingcute-info-line" aria-hidden="true" />
-                    )}
+        {saving ? (
+          <span className="inline-flex items-center gap-1">
+            <i className="i-mingcute-loading-3-line animate-spin" />
+            {t('tabs.apiTokens.status.saving')}
+          </span>
+        ) : isLoadingModels && definition.field === 'model' ? (
+          <span className="inline-flex items-center gap-1">
+            <i className="i-mingcute-loading-3-line animate-spin" />
+          </span>
+        ) : modelsError && definition.field === 'model' ? (
+          <span className="inline-flex items-center gap-1 text-red">
+            <i className="i-mingcute-alert-line" />
+            {modelsError}
+          </span>
+        ) : slot?.error ? (
+          STATUS_KEY_MAP[slot.error] ? (
+            t(STATUS_KEY_MAP[slot.error])
+          ) : (
+            slot.error
+          )
+        ) : slot?.hasValue ? (
+          statusLabel
+        ) : (
+          <i aria-hidden="true" className="i-mingcute-info-line" />
+        )}
       </div>
     </SettingField>
   )
@@ -404,9 +386,10 @@ export const ApiTokensTab = () => {
   const { t } = useTranslation('setting')
   const isElectron = typeof ELECTRON !== 'undefined' && ELECTRON
   const [aiEnabled, setAiEnabled] = useState<boolean>(() =>
-    getAiIntegrationEnabled())
+    getAiIntegrationEnabled(),
+  )
   const { initialized, isLoading, loadError, slots } = useApiTokenStore(
-    state => ({
+    (state) => ({
       initialized: state.initialized,
       isLoading: state.isLoading,
       loadError: state.loadError,
@@ -416,8 +399,8 @@ export const ApiTokensTab = () => {
   const [preferenceOrder, setPreferenceOrder] = useState<AiProviderId[]>(() => [
     ...DEFAULT_AI_PROVIDER_ORDER,
   ])
-  const [preferredProvider, setPreferredProvider]
-    = useState<AiProviderId | null>(null)
+  const [preferredProvider, setPreferredProvider] =
+    useState<AiProviderId | null>(null)
   const [preferenceInitialized, setPreferenceInitialized] = useState(false)
   const [preferenceLoading, setPreferenceLoading] = useState(false)
   const [preferenceSaving, setPreferenceSaving] = useState(false)
@@ -495,17 +478,16 @@ export const ApiTokensTab = () => {
         setPreferenceOrder(order)
         setPreferredProvider(order[0] ?? null)
         setExpandedProvider(order[0] ?? null)
-        const nextSearch
-          = typeof response?.searchProvider === 'string'
-            && SEARCH_PROVIDER_IDS.includes(
-              response.searchProvider as SearchProviderId,
-            )
+        const nextSearch =
+          typeof response?.searchProvider === 'string' &&
+          SEARCH_PROVIDER_IDS.includes(
+            response.searchProvider as SearchProviderId,
+          )
             ? (response.searchProvider as SearchProviderId)
             : DEFAULT_SEARCH_PROVIDER
         setSearchProvider(nextSearch)
         setPreferenceInitialized(true)
-      }
-      catch (error) {
+      } catch (error) {
         if (cancelled) {
           return
         }
@@ -519,8 +501,7 @@ export const ApiTokensTab = () => {
         setExpandedProvider(fallback[0] ?? null)
         setSearchProvider(DEFAULT_SEARCH_PROVIDER)
         setPreferenceInitialized(true)
-      }
-      finally {
+      } finally {
         if (!cancelled) {
           setPreferenceLoading(false)
         }
@@ -535,9 +516,9 @@ export const ApiTokensTab = () => {
   }, [isElectron, normalizePreferenceOrder])
 
   const groupedSlots = useMemo(() => {
-    return API_TOKEN_GROUPS.map(group => ({
+    return API_TOKEN_GROUPS.map((group) => ({
       definition: group,
-      slots: group.slots.map(slot => ({
+      slots: group.slots.map((slot) => ({
         definition: slot,
         state: slots[slot.id as ApiTokenSlotId],
       })),
@@ -546,7 +527,7 @@ export const ApiTokensTab = () => {
 
   const aiProviderViews = useMemo(() => {
     return AI_PROVIDER_DEFINITIONS.map((definition) => {
-      const providerSlots = definition.slots.map(slot => ({
+      const providerSlots = definition.slots.map((slot) => ({
         definition: slot,
         state: slots[slot.id as ApiTokenSlotId],
       }))
@@ -561,8 +542,8 @@ export const ApiTokensTab = () => {
   const configuredProviderIds = useMemo(
     () =>
       aiProviderViews
-        .filter(provider => provider.configured)
-        .map(provider => provider.definition.id),
+        .filter((provider) => provider.configured)
+        .map((provider) => provider.definition.id),
     [aiProviderViews],
   )
 
@@ -579,9 +560,9 @@ export const ApiTokensTab = () => {
       if (current && configuredProviderIds.includes(current)) {
         return current
       }
-      const fallback
-        = preferenceOrder.find(id => configuredProviderIds.includes(id))
-          ?? configuredProviderIds[0]!
+      const fallback =
+        preferenceOrder.find((id) => configuredProviderIds.includes(id)) ??
+        configuredProviderIds[0]!
       return fallback
     })
   }, [configuredProviderIds, preferenceOrder, preferenceInitialized])
@@ -640,16 +621,14 @@ export const ApiTokensTab = () => {
         setPreferenceOrder(resolvedOrder)
         setPreferredProvider(resolvedOrder[0] ?? next)
         setExpandedProvider(next)
-      }
-      catch (error) {
+      } catch (error) {
         console.error(
           '[api-tokens] failed to update AI provider preference',
           error,
         )
         toast.error(t('tabs.apiTokens.providers.preference.saveFailed'))
         setPreferenceOrder(nextOrder)
-      }
-      finally {
+      } finally {
         setPreferenceSaving(false)
       }
     },
@@ -658,7 +637,7 @@ export const ApiTokensTab = () => {
 
   const chatProviderOptions = useMemo(
     () =>
-      aiProviderViews.map(provider => ({
+      aiProviderViews.map((provider) => ({
         id: provider.definition.id,
         label: t(provider.definition.labelKey),
       })),
@@ -667,7 +646,7 @@ export const ApiTokensTab = () => {
 
   const searchProviderOptions = useMemo(
     () =>
-      SEARCH_PROVIDER_IDS.map(id => ({
+      SEARCH_PROVIDER_IDS.map((id) => ({
         id,
         label: t(`tabs.apiTokens.providers.${id}.label`),
       })),
@@ -690,17 +669,15 @@ export const ApiTokensTab = () => {
           searchProvider: next,
         })
         if (
-          response?.searchProvider
-          && SEARCH_PROVIDER_IDS.includes(response.searchProvider)
+          response?.searchProvider &&
+          SEARCH_PROVIDER_IDS.includes(response.searchProvider)
         ) {
           setSearchProvider(response.searchProvider)
         }
-      }
-      catch (error) {
+      } catch (error) {
         console.error('[api-tokens] failed to update AI search provider', error)
         toast.error(t('tabs.apiTokens.providers.search.saveFailed'))
-      }
-      finally {
+      } finally {
         setSearchSaving(false)
       }
     },
@@ -730,9 +707,9 @@ export const ApiTokensTab = () => {
 
       {groupedSlots.map(({ definition, slots: groupSlots }) => (
         <SettingSectionCard
+          description={t(definition.descriptionKey)}
           key={definition.id}
           title={t(definition.labelKey)}
-          description={t(definition.descriptionKey)}
           {...(definition.id === 'ai'
             ? {
                 enabled: aiEnabled,
@@ -743,119 +720,110 @@ export const ApiTokensTab = () => {
               }
             : {})}
         >
-          {definition.id === 'ai'
-            ? (
-                <div className="space-y-4">
-                  <ProviderSelect
-                    label={t('tabs.apiTokens.providers.chat.label')}
-                    description={t('tabs.apiTokens.providers.chat.description')}
-                    placeholder={t(
-                      'tabs.apiTokens.providers.preference.placeholder',
-                    )}
-                    options={chatProviderOptions}
-                    value={preferredProvider}
-                    onChange={handlePreferredProviderChange}
-                    disabled={disableProviderFields || preferenceLoading}
-                    loading={preferenceSaving || preferenceLoading}
-                  />
-                  <ProviderSelect
-                    label={t('tabs.apiTokens.providers.search.label')}
-                    description={t('tabs.apiTokens.providers.search.description')}
-                    placeholder={t('tabs.apiTokens.providers.search.placeholder')}
-                    options={searchProviderOptions}
-                    value={searchProvider}
-                    onChange={handleSearchProviderChange}
-                    disabled={disableProviderFields || preferenceLoading}
-                    loading={searchSaving || preferenceLoading}
-                  />
-                  <div className="space-y-2">
-                    {aiProviderViews.map((provider) => {
-                      const isOpen = expandedProvider === provider.definition.id
-                      return (
-                        <div
-                          key={provider.definition.id}
-                          className="overflow-hidden rounded-lg border border-border/60"
+          {definition.id === 'ai' ? (
+            <div className="space-y-4">
+              <ProviderSelect
+                description={t('tabs.apiTokens.providers.chat.description')}
+                disabled={disableProviderFields || preferenceLoading}
+                label={t('tabs.apiTokens.providers.chat.label')}
+                loading={preferenceSaving || preferenceLoading}
+                options={chatProviderOptions}
+                value={preferredProvider}
+                placeholder={t(
+                  'tabs.apiTokens.providers.preference.placeholder',
+                )}
+                onChange={handlePreferredProviderChange}
+              />
+              <ProviderSelect
+                description={t('tabs.apiTokens.providers.search.description')}
+                disabled={disableProviderFields || preferenceLoading}
+                label={t('tabs.apiTokens.providers.search.label')}
+                loading={searchSaving || preferenceLoading}
+                options={searchProviderOptions}
+                placeholder={t('tabs.apiTokens.providers.search.placeholder')}
+                value={searchProvider}
+                onChange={handleSearchProviderChange}
+              />
+              <div className="space-y-2">
+                {aiProviderViews.map((provider) => {
+                  const isOpen = expandedProvider === provider.definition.id
+                  return (
+                    <div
+                      className="overflow-hidden rounded-lg border border-border/60"
+                      key={provider.definition.id}
+                    >
+                      <button
+                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-fill/40"
+                        type="button"
+                        onClick={() =>
+                          setExpandedProvider(
+                            isOpen ? null : provider.definition.id,
+                          )
+                        }
+                      >
+                        <i
+                          aria-hidden="true"
+                          className={`i-mingcute-down-line size-4 shrink-0 text-text-tertiary transition-transform ${
+                            isOpen ? 'rotate-0' : '-rotate-90'
+                          }`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">
+                            {t(provider.definition.labelKey)}
+                          </span>
+                          {provider.definition.descriptionKey ? (
+                            <span className="mt-0.5 block text-xs text-text-tertiary">
+                              {t(provider.definition.descriptionKey)}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] tabular-nums ${
+                            provider.configured
+                              ? 'bg-green/10 text-green'
+                              : 'bg-fill/50 text-text-tertiary'
+                          }`}
                         >
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-fill/40"
-                            onClick={() =>
-                              setExpandedProvider(
-                                isOpen ? null : provider.definition.id,
+                          {provider.configured
+                            ? t('tabs.apiTokens.providers.status.configured')
+                            : t(
+                                'tabs.apiTokens.providers.status.notConfigured',
                               )}
-                          >
-                            <i
-                              className={`i-mingcute-down-line size-4 shrink-0 text-text-tertiary transition-transform ${
-                                isOpen ? 'rotate-0' : '-rotate-90'
-                              }`}
-                              aria-hidden="true"
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-sm font-medium">
-                                {t(provider.definition.labelKey)}
-                              </span>
-                              {provider.definition.descriptionKey
-                                ? (
-                                    <span className="mt-0.5 block text-xs text-text-tertiary">
-                                      {t(provider.definition.descriptionKey)}
-                                    </span>
-                                  )
-                                : null}
-                            </span>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] tabular-nums ${
-                                provider.configured
-                                  ? 'bg-green/10 text-green'
-                                  : 'bg-fill/50 text-text-tertiary'
-                              }`}
-                            >
-                              {provider.configured
-                                ? t('tabs.apiTokens.providers.status.configured')
-                                : t(
-                                    'tabs.apiTokens.providers.status.notConfigured',
-                                  )}
-                            </span>
-                          </button>
-                          {isOpen
-                            ? (
-                                <div className="space-y-4 border-t border-border/50 px-3 py-3">
-                                  {provider.slots.map(
-                                    ({ definition: slotDefinition, state }) => (
-                                      <TokenSlotField
-                                        key={slotDefinition.id}
-                                        definition={slotDefinition}
-                                        slot={state}
-                                        disabled={disableProviderFields}
-                                      />
-                                    ),
-                                  )}
-                                </div>
-                              )
-                            : null}
+                        </span>
+                      </button>
+                      {isOpen ? (
+                        <div className="space-y-4 border-t border-border/50 px-3 py-3">
+                          {provider.slots.map(
+                            ({ definition: slotDefinition, state }) => (
+                              <TokenSlotField
+                                definition={slotDefinition}
+                                disabled={disableProviderFields}
+                                key={slotDefinition.id}
+                                slot={state}
+                              />
+                            ),
+                          )}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            : groupSlots.length > 0
-              ? (
-                  groupSlots.map(({ definition: slotDefinition, state }) => (
-                    <TokenSlotField
-                      key={slotDefinition.id}
-                      definition={slotDefinition}
-                      slot={state}
-                      disabled={isLoading}
-                    />
-                  ))
-                )
-              : definition.emptyStateKey
-                ? (
-                    <p className="text-sm text-text-tertiary">
-                      {t(definition.emptyStateKey)}
-                    </p>
+                      ) : null}
+                    </div>
                   )
-                : null}
+                })}
+              </div>
+            </div>
+          ) : groupSlots.length > 0 ? (
+            groupSlots.map(({ definition: slotDefinition, state }) => (
+              <TokenSlotField
+                definition={slotDefinition}
+                disabled={isLoading}
+                key={slotDefinition.id}
+                slot={state}
+              />
+            ))
+          ) : definition.emptyStateKey ? (
+            <p className="text-sm text-text-tertiary">
+              {t(definition.emptyStateKey)}
+            </p>
+          ) : null}
         </SettingSectionCard>
       ))}
     </div>

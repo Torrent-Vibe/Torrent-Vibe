@@ -1,34 +1,32 @@
-// @ts-check
-import { defineConfig } from 'eslint-config-hyoban'
+import { defineConfig } from '@lobehub/eslint-config'
+import * as jsoncParser from 'jsonc-eslint-parser'
 
 import checkI18nJson from './plugins/eslint/eslint-check-i18n-json.js'
 import recursiveSort from './plugins/eslint/eslint-recursive-sort.js'
 
 export default defineConfig(
   {
-    formatting: false,
-    lessOpinionated: true,
-    preferESM: false,
-    react: true,
-    tailwindCSS: false,
+    ignores: [
+      'release/**',
+      'Release/**',
+      'native/**',
+      'apps/helper-go/**',
+      'apps/ios/**',
+      'portal/**',
+      '.worktrees/**',
+      '**/generated-routes.ts',
+    ],
+    react: 'vite',
+    reactCompiler: false,
+    regexp: false,
+    typescript: true,
+    yml: false,
   },
   {
-    settings: {
-      tailwindcss: {
-        whitelist: ['center'],
-      },
-    },
     rules: {
       'unicorn/prefer-math-trunc': 'off',
-      'style/max-statements-per-line': 'off',
-      'node/prefer-global/process': 'off',
-      'node/prefer-global/buffer': 'off',
-      'react-hooks/use-memo': 'off',
-      'e18e/prefer-static-regex': 'off',
       '@eslint-react/no-clone-element': 0,
       '@eslint-react/hooks-extra/no-direct-set-state-in-use-effect': 0,
-      // NOTE: Disable this temporarily
-      'react-compiler/react-compiler': 0,
       'no-restricted-syntax': 0,
       'no-restricted-globals': [
         'error',
@@ -44,18 +42,26 @@ export default defineConfig(
   {
     files: ['**/*.tsx'],
     rules: {
-      '@stylistic/jsx-self-closing-comp': 'error',
+      'react/self-closing-comp': 'error',
     },
   },
-
-  // @ts-expect-error
+  {
+    files: ['**/*.cjs', 'layer/main/preload/**'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
   {
     files: ['locales/**/*.json'],
+    languageOptions: {
+      parser: jsoncParser,
+    },
     plugins: {
       'recursive-sort': recursiveSort,
       'check-i18n-json': checkI18nJson,
     },
     rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
       'recursive-sort/recursive-sort': 'error',
       'check-i18n-json/valid-i18n-keys': 'error',
       'check-i18n-json/no-extra-keys': 'error',

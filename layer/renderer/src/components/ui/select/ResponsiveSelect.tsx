@@ -17,18 +17,18 @@ export type ResponsiveSelectItem = {
   value: string
 }
 export interface ResponsiveSelectProps {
+  contentClassName?: string
   defaultValue?: string
-  value?: string
+  disabled?: boolean
+  items: ResponsiveSelectItem[]
   onValueChange?: (value: string) => void
   placeholder?: string
-  items: ResponsiveSelectItem[]
-  renderValue?: (value: string) => React.ReactNode
   renderItem?: (item: ResponsiveSelectItem) => React.ReactNode
-  size?: 'sm' | 'default'
+  renderValue?: (value: string) => React.ReactNode
 
-  disabled?: boolean
+  size?: 'sm' | 'default'
   triggerClassName?: string
-  contentClassName?: string
+  value?: string
 }
 export const ResponsiveSelect = ({
   defaultValue,
@@ -66,7 +66,6 @@ export const ResponsiveSelect = ({
     return (
       <button
         type="button"
-        onClick={() => realSelectRef?.click()}
         className={clsxm(
           'placeholder:text-text-secondary flex w-full items-center justify-between whitespace-nowrap rounded-md bg-transparent disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
           focusRing,
@@ -76,6 +75,7 @@ export const ResponsiveSelect = ({
           'relative',
           triggerClassName,
         )}
+        onClick={() => realSelectRef?.click()}
       >
         <span className="flex">
           {(renderValue?.(valueInner) ?? valueToLabelMap[valueInner]) || (
@@ -84,8 +84,8 @@ export const ResponsiveSelect = ({
         </span>
         <i className="i-mingcute-down-line ml-2 size-4 shrink-0 opacity-50" />
         <select
-          ref={setRealSelectRef}
           className="absolute inset-0 opacity-0"
+          ref={setRealSelectRef}
           value={valueInner}
           onChange={(e) => onValueChange?.(e.target.value)}
         >
@@ -101,12 +101,12 @@ export const ResponsiveSelect = ({
 
   return (
     <Select
-      disabled={disabled}
       defaultValue={defaultValue}
+      disabled={disabled}
       value={valueInner}
       onValueChange={onValueChange}
     >
-      <SelectTrigger size={size} className={triggerClassName}>
+      <SelectTrigger className={triggerClassName} size={size}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent className={contentClassName} position="item-aligned">

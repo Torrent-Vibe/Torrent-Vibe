@@ -1,8 +1,7 @@
 import type { FC, PropsWithChildren } from 'react'
 import type { useTranslation } from 'react-i18next'
-// eslint-disable-next-line react-hooks/rules-of-hooks
+
 const { t } = useTranslation()
-// eslint-disable-next-line react-hooks/rules-of-hooks
 const { t: settingsT } = useTranslation('setting')
 declare global {
   export type Nullable<T> = T | null | undefined
@@ -34,8 +33,6 @@ declare global {
   >
 }
 
-
-
 declare global {
   export type Component<P = object> = FC<Prettify<ComponentType & P>>
 
@@ -60,7 +57,7 @@ declare global {
 
 declare module 'react' {
   export interface AriaAttributes {
-    'data-testid'?: string
     'data-hide-in-print'?: boolean
+    'data-testid'?: string
   }
 }

@@ -5,10 +5,10 @@ import type { BrowserWindow } from 'electron'
 import { app, screen } from 'electron'
 
 interface WindowBounds {
+  height: number
+  width: number
   x: number
   y: number
-  width: number
-  height: number
 }
 
 interface WindowStateData extends WindowBounds {
@@ -16,10 +16,10 @@ interface WindowStateData extends WindowBounds {
 }
 
 interface RestoreOptions {
-  defaultWidth: number
   defaultHeight: number
-  minWidth?: number
+  defaultWidth: number
   minHeight?: number
+  minWidth?: number
 }
 
 const getStateFile = (name?: string) =>
@@ -185,4 +185,4 @@ export function trackNamedWindowState(
   win.on('close', writeCurrent)
 }
 
-export type { RestoreOptions,WindowBounds }
+export type { RestoreOptions, WindowBounds }

@@ -21,8 +21,8 @@ import {
 
 export const MikanSubscriptionsTab = () => {
   const { t } = useTranslation('app')
-  const items = useSubscriptionsStore(state => state.items)
-  const statusByServer = useSubscriptionsStore(state => state.statusByServer)
+  const items = useSubscriptionsStore((state) => state.items)
+  const statusByServer = useSubscriptionsStore((state) => state.statusByServer)
   const targets = useServerHelperTargets()
   const { mikan } = DiscoverModalActions.shared.slices
 
@@ -34,9 +34,9 @@ export const MikanSubscriptionsTab = () => {
   if (rows.length === 0) {
     return (
       <DiscoverEmptyState
-        icon="i-mingcute-notify-line"
-        title={t('discover.modal.mikan.noSubscriptionsTitle')}
         description={t('discover.modal.mikan.noSubscriptionsDescription')}
+        icon="i-mingcute-notification-line"
+        title={t('discover.modal.mikan.noSubscriptionsTitle')}
       />
     )
   }
@@ -45,22 +45,23 @@ export const MikanSubscriptionsTab = () => {
     <div className="flex flex-col gap-3 px-4 py-4">
       {rows.map((item) => {
         const names = serverNamesForIds(item.targetServerIds, targets)
-        const reachable = item.targetServerIds.some(id =>
-          targets.some(target => target.id === id && target.paired))
+        const reachable = item.targetServerIds.some((id) =>
+          targets.some((target) => target.id === id && target.paired),
+        )
         const latest = latestEpisodeForSubscription(item, statusByServer)
         const rename = latest ? lastRenameDisplay(latest) : null
-        const renameText
-          = rename && ('text' in rename ? rename.text : t(rename.key))
+        const renameText =
+          rename && ('text' in rename ? rename.text : t(rename.key))
         const cover = resolveMikanCoverUrl(item.coverUrl)
 
         return (
           <div
-            key={item.id}
             className="flex gap-3 rounded-lg border border-border bg-background p-3"
+            key={item.id}
           >
             <button
-              type="button"
               className="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-fill-secondary"
+              type="button"
               onClick={() => {
                 const discoverItem: DiscoverItem = {
                   id: item.bangumiId,
@@ -78,19 +79,17 @@ export const MikanSubscriptionsTab = () => {
                 mikan.pushBangumi(discoverItem)
               }}
             >
-              {cover
-                ? (
-                    <img
-                      src={cover}
-                      alt={item.title}
-                      className="size-full object-cover"
-                    />
-                  )
-                : (
-                    <div className="flex size-full items-center justify-center text-text-tertiary">
-                      <i className="i-mingcute-movie-line text-lg" />
-                    </div>
-                  )}
+              {cover ? (
+                <img
+                  alt={item.title}
+                  className="size-full object-cover"
+                  src={cover}
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center text-text-tertiary">
+                  <i className="i-mingcute-movie-line text-lg" />
+                </div>
+              )}
             </button>
 
             <div className="min-w-0 flex-1 space-y-1">
@@ -109,8 +108,8 @@ export const MikanSubscriptionsTab = () => {
                 {item.targetServerIds
                   .map((id) => {
                     const sync = item.syncByServer[id]
-                    const name
-                      = targets.find(target => target.id === id)?.name ?? id
+                    const name =
+                      targets.find((target) => target.id === id)?.name ?? id
                     if (!sync || sync.status === 'pending') {
                       return `${name}: ${t('discover.modal.mikan.syncPending')}`
                     }
@@ -131,32 +130,33 @@ export const MikanSubscriptionsTab = () => {
                     : ''}
                 </p>
               )}
-              {latest
-                && (latest.state === 'failed'
-                  || latest.state === 'needs-manual') && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const serverId = item.targetServerIds.find(id =>
-                      targets.some(
-                        target => target.id === id && target.paired,
-                      ))
-                    if (!serverId) {
-                      return
-                    }
-                    void SubscriptionActions.shared.retryEpisode({
-                      serverId,
-                      bangumiId: item.bangumiId,
-                      subgroupId: item.subgroupId,
-                      episodeId: latest.episodeId,
-                      title: latest.title,
-                    })
-                  }}
-                >
-                  {t('discover.modal.mikan.retryEpisode')}
-                </Button>
-              )}
+              {latest &&
+                (latest.state === 'failed' ||
+                  latest.state === 'needs-manual') && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const serverId = item.targetServerIds.find((id) =>
+                        targets.some(
+                          (target) => target.id === id && target.paired,
+                        ),
+                      )
+                      if (!serverId) {
+                        return
+                      }
+                      void SubscriptionActions.shared.retryEpisode({
+                        serverId,
+                        bangumiId: item.bangumiId,
+                        subgroupId: item.subgroupId,
+                        episodeId: latest.episodeId,
+                        title: latest.title,
+                      })
+                    }}
+                  >
+                    {t('discover.modal.mikan.retryEpisode')}
+                  </Button>
+                )}
 
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <Button
@@ -203,7 +203,8 @@ export const MikanSubscriptionsTab = () => {
                     onClick={() =>
                       presentSettingsModal({
                         tab: ELECTRON ? 'servers' : 'appConnection',
-                      })}
+                      })
+                    }
                   >
                     {t('discover.modal.mikan.bindHelper')}
                   </Button>

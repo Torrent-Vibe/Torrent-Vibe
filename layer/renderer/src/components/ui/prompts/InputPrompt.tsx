@@ -87,29 +87,29 @@ export const InputPrompt: ModalComponent<InputPromptOptions> = ({
       </DialogHeader>
       <div className="mt-4">
         <Input
+          autoFocus
+          placeholder={placeholder}
+          type={type}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder={placeholder}
           onKeyDown={handleKeyDown}
-          autoFocus
-          type={type}
         />
       </div>
       <DialogFooter className="mt-4">
         <Button
+          disabled={submitting}
           size="sm"
           variant="secondary"
           onClick={handleCancel}
-          disabled={submitting}
         >
           {onCancelText}
         </Button>
         <Button
+          isLoading={submitting}
+          loadingText={onConfirmText}
           size="sm"
           variant={variant === 'danger' ? 'destructive' : 'primary'}
           onClick={handleConfirm}
-          isLoading={submitting}
-          loadingText={onConfirmText}
         >
           {onConfirmText}
         </Button>

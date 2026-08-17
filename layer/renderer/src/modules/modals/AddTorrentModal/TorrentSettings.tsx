@@ -8,9 +8,9 @@ import { TorrentOptionToggle } from './shared/components/TorrentOptionToggle'
 import type { TorrentFormData, TorrentFormHandlers } from './types'
 
 interface TorrentSettingsProps {
+  categories?: Record<string, { name: string; savePath: string }> | null
   formData: TorrentFormData
   handlers: TorrentFormHandlers
-  categories?: Record<string, { name: string; savePath: string }> | null
 }
 
 export const TorrentSettings = ({
@@ -35,9 +35,9 @@ export const TorrentSettings = ({
 
       {/* Basic Settings Section */}
       <TorrentBasicSettingsFields
+        categories={categories}
         formData={formData}
         handlers={handlers}
-        categories={categories}
       />
 
       {/* Options Section */}
@@ -49,75 +49,75 @@ export const TorrentSettings = ({
 
         <div className="space-y-3">
           <TorrentOptionToggle
-            id="auto-tmm"
             checked={!!formData.autoTMM}
+            id="auto-tmm"
+            label={t('addTorrent.settingsPanel.autoTMM')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 autoTMM: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.autoTMM')}
           />
 
           <TorrentOptionToggle
-            id="start-torrent"
             checked={formData.startTorrent}
+            id="start-torrent"
+            label={t('addTorrent.settingsPanel.startTorrent')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 startTorrent: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.startTorrent')}
           />
 
           <TorrentOptionToggle
-            id="skip-hash-check"
             checked={!!formData.skip_checking}
+            id="skip-hash-check"
+            label={t('addTorrent.settingsPanel.skipHashCheck')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 skip_checking: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.skipHashCheck')}
           />
 
           <TorrentOptionToggle
-            id="sequential-download"
             checked={!!formData.sequentialDownload}
+            id="sequential-download"
+            label={t('addTorrent.settingsPanel.sequentialDownload')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 sequentialDownload: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.sequentialDownload')}
           />
 
           <TorrentOptionToggle
-            id="first-last-piece"
             checked={!!formData.firstLastPiecePrio}
+            id="first-last-piece"
+            label={t('addTorrent.settingsPanel.firstLastPiecePrio')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 firstLastPiecePrio: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.firstLastPiecePrio')}
           />
 
           <TorrentOptionToggle
-            id="root-folder"
             checked={!!formData.root_folder}
+            id="root-folder"
+            label={t('addTorrent.settingsPanel.createRootFolder')}
             onChange={(checked) =>
               handlers.setFormData((prev) => ({
                 ...prev,
                 root_folder: checked,
               }))
             }
-            label={t('addTorrent.settingsPanel.createRootFolder')}
           />
         </div>
       </div>
@@ -132,15 +132,15 @@ export const TorrentSettings = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label
-              variant="form"
               className="text-xs text-text-secondary font-normal"
+              variant="form"
             >
               {t('addTorrent.settingsPanel.downloadLimit')}
             </Label>
             <Input
-              type="number"
               min="0"
               placeholder={t('addTorrent.settingsPanel.unlimited')}
+              type="number"
               value={formData.limitDownloadKiBs}
               onChange={(e) =>
                 handlers.setFormData((prev) => ({
@@ -152,15 +152,15 @@ export const TorrentSettings = ({
           </div>
           <div className="space-y-2">
             <Label
-              variant="form"
               className="text-xs text-text-secondary font-normal"
+              variant="form"
             >
               {t('addTorrent.settingsPanel.uploadLimit')}
             </Label>
             <Input
-              type="number"
               min="0"
               placeholder={t('addTorrent.settingsPanel.unlimited')}
+              type="number"
               value={formData.limitUploadKiBs}
               onChange={(e) =>
                 handlers.setFormData((prev) => ({

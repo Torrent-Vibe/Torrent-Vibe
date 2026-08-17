@@ -20,14 +20,14 @@ export const MobileFieldSelectorButton = ({
 
   return (
     <Button
-      variant="ghost"
+      aria-label="Customize cell fields"
       size="sm"
-      onClick={handleOpen}
+      variant="ghost"
       className={cn(
         'flex items-center gap-2 text-text-secondary hover:text-text',
         className,
       )}
-      aria-label="Customize cell fields"
+      onClick={handleOpen}
     >
       <i className="i-mingcute-settings-4-line text-sm" />
       <span className="text-xs font-medium">

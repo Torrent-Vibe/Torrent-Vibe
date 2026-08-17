@@ -8,43 +8,43 @@ const DEFAULT_POSTER_SIZE = 'w342'
 const DEFAULT_BACKDROP_SIZE = 'w780'
 
 interface SearchParams {
-  query: string
-  year?: number | null
   language?: string | null
   mediaType?: 'movie' | 'tv' | null
+  query: string
+  year?: number | null
 }
 
 interface DetailParams {
   id: number
-  mediaType: 'movie' | 'tv'
   language?: string | null
+  mediaType: 'movie' | 'tv'
 }
 
 export interface TmdbSearchResult {
+  backdropUrl: string | null
   id: number
+  language: string | null
   mediaType: 'movie' | 'tv'
-  title: string
   originalTitle: string | null
-  releaseDate: string | null
   overview: string | null
   posterUrl: string | null
-  backdropUrl: string | null
   rating: number | null
+  releaseDate: string | null
+  title: string
   votes: number | null
-  language: string | null
 }
 
 export interface TmdbDetailResult extends TmdbSearchResult {
+  episodeCount?: number | null
   homepage: string | null
   runtimeMinutes: number | null
-  episodeCount?: number | null
   seasonCount?: number | null
 }
 
 interface RequestResult<T> {
-  ok: boolean
   data?: T
   error?: string
+  ok: boolean
   status?: number
   tookMs?: number
 }
@@ -214,7 +214,7 @@ export class TmdbClient {
       Accept: 'application/json',
     }
 
-    const bearer = token.replace(/^Bearer\s+/i, '')
+    const bearer = token.replace(/^bearer\s+/i, '')
     headers.Authorization = `Bearer ${bearer}`
 
     const response = await fetch(url, { headers })

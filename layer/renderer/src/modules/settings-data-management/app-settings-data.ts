@@ -48,7 +48,7 @@ const STATIC_MANAGED_STORAGE_KEYS = new Set<string>([
 
 const EXPORTABLE_LOCAL_STORAGE_KEYS = new Set<string>(
   [...STATIC_MANAGED_STORAGE_KEYS].filter(
-    key => key !== STORAGE_KEYS.MULTI_SERVER_CONFIG,
+    (key) => key !== STORAGE_KEYS.MULTI_SERVER_CONFIG,
   ),
 )
 
@@ -120,10 +120,10 @@ export const appSettingsExportSchema = z.object({
 export type AppSettingsExport = z.infer<typeof appSettingsExportSchema>
 
 export interface AppSettingsImportResult {
+  appliedApiTokens: number
+  appliedDesktopSettings: number
   appliedLocalStorage: number
   importedServers: number
-  appliedDesktopSettings: number
-  appliedApiTokens: number
 }
 
 function collectManagedLocalStorageEntries(): Record<string, string> {
@@ -177,8 +177,8 @@ function normalizeAiProviderOrder(order?: unknown): AiProviderId[] {
 
 function normalizeSearchProvider(value?: unknown): SearchProviderId {
   if (
-    typeof value === 'string'
-    && SEARCH_PROVIDER_IDS.includes(value as SearchProviderId)
+    typeof value === 'string' &&
+    SEARCH_PROVIDER_IDS.includes(value as SearchProviderId)
   ) {
     return value as SearchProviderId
   }
@@ -205,8 +205,8 @@ async function collectDesktopAppSettings(): Promise<
   let hasValue = false
 
   if (searchSettings && 'agentBrowserPath' in searchSettings) {
-    payload.agentBrowserPath
-      = typeof searchSettings.agentBrowserPath === 'string'
+    payload.agentBrowserPath =
+      typeof searchSettings.agentBrowserPath === 'string'
         ? searchSettings.agentBrowserPath
         : null
     hasValue = true
@@ -272,8 +272,7 @@ async function collectApiTokenExport(): Promise<
     }
 
     return slots.length > 0 ? { slots } : undefined
-  }
-  catch (error) {
+  } catch (error) {
     console.error('[settings-export] failed to collect api tokens', error)
     return undefined
   }
@@ -307,8 +306,8 @@ async function collectMultiServerExport(): Promise<
 }
 
 export async function exportAppSettings(): Promise<AppSettingsExport> {
-  const [localStorageEntries, multiServer, desktopAppSettings, apiTokens]
-    = await Promise.all([
+  const [localStorageEntries, multiServer, desktopAppSettings, apiTokens] =
+    await Promise.all([
       Promise.resolve(collectManagedLocalStorageEntries()),
       collectMultiServerExport(),
       collectDesktopAppSettings(),
@@ -387,11 +386,12 @@ async function applyMultiServerConfig(
     return 0
   }
 
-  const sanitizedServers = input.servers.map(server =>
-    sanitizeServerForStore(server))
+  const sanitizedServers = input.servers.map((server) =>
+    sanitizeServerForStore(server),
+  )
 
   const activeServerId = sanitizedServers.some(
-    server => server.id === input.activeServerId,
+    (server) => server.id === input.activeServerId,
   )
     ? input.activeServerId
     : (sanitizedServers[0]?.id ?? null)
@@ -435,16 +435,16 @@ async function applyDesktopAppSettings(
   let applied = 0
 
   if (hasOwn(input, 'agentBrowserPath') && service.setAgentBrowserPath) {
-    const agentBrowserPath
-      = typeof input.agentBrowserPath === 'string' ? input.agentBrowserPath : null
+    const agentBrowserPath =
+      typeof input.agentBrowserPath === 'string' ? input.agentBrowserPath : null
 
     await service.setAgentBrowserPath({ agentBrowserPath })
     applied += 1
   }
 
   if (
-    hasOwn(input, 'aiPreferredProviders')
-    && service.setAiPreferredProviders
+    hasOwn(input, 'aiPreferredProviders') &&
+    service.setAiPreferredProviders
   ) {
     const normalized = normalizeAiProviderOrder(input.aiPreferredProviders)
     await service.setAiPreferredProviders({
@@ -463,7 +463,7 @@ async function applyDesktopAppSettings(
   return applied
 }
 
-const apiTokenSlotMap = new Map(API_TOKEN_SLOTS.map(slot => [slot.id, slot]))
+const apiTokenSlotMap = new Map(API_TOKEN_SLOTS.map((slot) => [slot.id, slot]))
 
 function resolveTokenEncryptionPreference(id: string): 'safeStorage' | 'plain' {
   const definition = apiTokenSlotMap.get(id as ApiTokenSlotId)
@@ -493,11 +493,10 @@ async function applyApiTokens(
     const existing = await service.listSlots()
     await Promise.all(
       existing
-        .filter(summary => summary?.hasValue && summary.id)
-        .map(summary => service.clearValue(summary.id)),
+        .filter((summary) => summary?.hasValue && summary.id)
+        .map((summary) => service.clearValue(summary.id)),
     )
-  }
-  catch (error) {
+  } catch (error) {
     console.error(
       '[settings-import] failed to clear existing api tokens',
       error,
@@ -522,8 +521,7 @@ async function applyApiTokens(
         encryption: resolveTokenEncryptionPreference(slot.id),
       })
       applied += 1
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[settings-import] failed to restore api token', {
         id: slot.id,
         error,

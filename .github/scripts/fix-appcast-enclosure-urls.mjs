@@ -13,7 +13,7 @@ if (!appcastPath || !repoSlug) {
 }
 
 const enclosureUrl = new RegExp(
-  `url="https://github\\.com/${repoSlug.replace(/[/.]/g, '\\$&')}/releases/download/desktop-v[^/"]+/([^/"]+)"`,
+  `url="https://github\\.com/${repoSlug.replaceAll(/[./]/g, '\\$&')}/releases/download/desktop-v[^/"]+/([^/"]+)"`,
   'g',
 )
 

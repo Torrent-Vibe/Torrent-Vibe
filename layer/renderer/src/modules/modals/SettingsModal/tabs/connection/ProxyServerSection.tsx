@@ -17,8 +17,8 @@ import {
 } from '../components'
 
 interface ProxyServerSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 const PROXY_TYPES = {
@@ -57,50 +57,50 @@ export const ProxyServerSection = ({
         </Select>
       </SettingField>
       <SettingInputField
+        disabled={!proxyEnabled}
         label={t('connection.proxy.host')}
         value={prefs.proxy_ip || ''}
         onChange={(v) => onPrefsChange({ proxy_ip: v })}
-        disabled={!proxyEnabled}
       />
       <SettingInputField
+        disabled={!proxyEnabled}
         label={t('connection.proxy.port')}
         type="number"
         value={String(prefs.proxy_port || 8080)}
         onChange={(v) =>
           onPrefsChange({ proxy_port: Number.parseInt(v) || 8080 })
         }
-        disabled={!proxyEnabled}
       />
 
       <SettingSwitchField
+        checked={Boolean(prefs.proxy_peer_connections)}
+        disabled={!proxyEnabled}
         id="proxy_peer_connections"
         label={t('connection.proxy.peerConnections')}
-        checked={Boolean(prefs.proxy_peer_connections)}
         onCheckedChange={(v) =>
           onPrefsChange({ proxy_peer_connections: Boolean(v) })
         }
-        disabled={!proxyEnabled}
       />
 
       <SettingSectionCard
-        title={t('connection.proxy.auth')}
         enabled={Boolean(prefs.proxy_auth_enabled)}
+        title={t('connection.proxy.auth')}
         onToggleEnabled={(v) =>
           onPrefsChange({ proxy_auth_enabled: Boolean(v) })
         }
       >
         <SettingInputField
+          disabled={!proxyEnabled}
           label={t('connection.proxy.username')}
           value={prefs.proxy_username || ''}
           onChange={(v) => onPrefsChange({ proxy_username: v })}
-          disabled={!proxyEnabled}
         />
         <SettingInputField
+          disabled={!proxyEnabled}
           label={t('connection.proxy.password')}
           type="password"
           value={prefs.proxy_password || ''}
           onChange={(v) => onPrefsChange({ proxy_password: v })}
-          disabled={!proxyEnabled}
         />
         <div className="text-xs text-text-secondary">
           {t('connection.proxy.passwordTip')}
@@ -109,18 +109,18 @@ export const ProxyServerSection = ({
 
       <SettingSectionCard title={t('connection.proxy.bittorrent')}>
         <SettingSwitchField
+          disabled
+          checked={false}
           id="proxy_rss"
           label={t('connection.proxy.rss')}
-          checked={false}
           onCheckedChange={() => {}}
-          disabled
         />
         <SettingSwitchField
+          disabled
+          checked={false}
           id="proxy_general"
           label={t('connection.proxy.general')}
-          checked={false}
           onCheckedChange={() => {}}
-          disabled
         />
       </SettingSectionCard>
     </SettingSectionCard>

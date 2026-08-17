@@ -19,11 +19,21 @@ const HoverCard = HoverCardPrimitive.Root
 
 const HoverCardTrigger = HoverCardPrimitive.Trigger
 
-const HoverCardContent = ({ ref, className, align = 'center', sideOffset = 8, ...props }: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & { ref?: React.RefObject<React.ElementRef<typeof HoverCardPrimitive.Content> | null> }) => (
+const HoverCardContent = ({
+  ref,
+  className,
+  align = 'center',
+  sideOffset = 8,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & {
+  ref?: React.RefObject<React.ElementRef<
+    typeof HoverCardPrimitive.Content
+  > | null>
+}) => (
   <RootPortal>
     <HoverCardPrimitive.Content
-      ref={ref}
       align={align}
+      ref={ref}
       sideOffset={sideOffset}
       className={clsxm(
         'bg-material-high/95 backdrop-blur-background text-text z-[60] w-[320px] max-w-[calc(100vw-2rem)] rounded-[12px] border border-border p-4 shadow-lg',
@@ -37,10 +47,18 @@ const HoverCardContent = ({ ref, className, align = 'center', sideOffset = 8, ..
 )
 HoverCardContent.displayName = HoverCardPrimitive.Content.displayName
 
-const HoverCardArrow = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Arrow> & { ref?: React.RefObject<React.ElementRef<typeof HoverCardPrimitive.Arrow> | null> }) => (
+const HoverCardArrow = ({
+  ref,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Arrow> & {
+  ref?: React.RefObject<React.ElementRef<
+    typeof HoverCardPrimitive.Arrow
+  > | null>
+}) => (
   <HoverCardPrimitive.Arrow
-    ref={ref}
     className={clsxm('fill-border/80 text-border/80', className)}
+    ref={ref}
     {...props}
   />
 )

@@ -144,21 +144,21 @@ function DialogContent({
         <DialogPortal forceMount data-slot="dialog-portal">
           <DialogOverlay asChild forceMount>
             <motion.div
-              key="dialog-overlay"
-              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              key="dialog-overlay"
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               onClick={stopPropagation}
             />
           </DialogOverlay>
           <DialogPrimitive.Content asChild forceMount {...props}>
             <motion.div
-              key="dialog-content"
-              data-slot="dialog-content"
-              initial={transitionVariants.initial}
               animate={transitionVariants.animate}
+              data-slot="dialog-content"
               exit={transitionVariants.exit}
+              initial={transitionVariants.initial}
+              key="dialog-content"
               transition={transition}
               className={cn(
                 'fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] max-h-[calc(100svh-3rem)] translate-y-[-50%] gap-4 border border-border bg-background p-4 shadow-lg rounded-xl',
@@ -236,8 +236,8 @@ type DialogDescriptionProps = React.ComponentProps<
 function DialogDescription({ className, ...props }: DialogDescriptionProps) {
   return (
     <DialogPrimitive.Description
-      data-slot="dialog-description"
       className={cn('text-sm text-muted-foreground', className)}
+      data-slot="dialog-description"
       {...props}
     />
   )

@@ -1,11 +1,6 @@
 // Types shared by the qBittorrent client package
 
 export interface QBittorrentConfig {
-  host: string
-  port: number
-  username: string
-  password: string
-  useHttps: boolean
   /**
    * Optional explicit base URL.
    * When provided it should include protocol and host (e.g. https://qb.example.com)
@@ -13,41 +8,47 @@ export interface QBittorrentConfig {
    * behind the same origin. If set, host/port/useHttps can be ignored by the client.
    */
   baseUrl?: string
-
   fetch?: typeof fetch
+  host: string
+  password: string
+  port: number
+  useHttps: boolean
+
+  username: string
 }
 
 export interface AddTorrentOptions {
-  urls?: string
-  torrents?: File[] | Blob[]
-  savepath?: string
-  cookie?: string
+  autoTMM?: boolean
   category?: string
-  tags?: string
+  cookie?: string
+  dlLimit?: number
+  firstLastPiecePrio?: boolean
+  ratioLimit?: number
+  rename?: string
+  root_folder?: boolean
+  savepath?: string
+  seedingTimeLimit?: number
+  sequentialDownload?: boolean
   skip_checking?: boolean
   stopped?: boolean
-  root_folder?: boolean
-  rename?: string
+  tags?: string
+  torrents?: File[] | Blob[]
   upLimit?: number
-  dlLimit?: number
-  ratioLimit?: number
-  seedingTimeLimit?: number
-  autoTMM?: boolean
-  sequentialDownload?: boolean
-  firstLastPiecePrio?: boolean
+  urls?: string
 }
 
 export interface TransferInfo {
+  dl_info_data?: number
   dl_info_speed: number
-  up_info_speed: number
   dl_rate_limit: number
+  up_info_data?: number
+  up_info_speed: number
   up_rate_limit: number
   use_alt_speed_limits?: boolean
-  dl_info_data?: number
-  up_info_data?: number
 }
 
 export interface TorrentFilters {
+  category?: string
   filter?:
     | 'all'
     | 'downloading'
@@ -61,13 +62,12 @@ export interface TorrentFilters {
     | 'stalled_uploading'
     | 'stalled_downloading'
     | 'errored'
-  category?: string
-  tag?: string
-  sort?: string
-  reverse?: boolean
+  hashes?: string | string[]
   limit?: number
   offset?: number
-  hashes?: string | string[]
+  reverse?: boolean
+  sort?: string
+  tag?: string
 }
 
 // Types mirroring qBittorrent Web API structures used by client
@@ -98,59 +98,59 @@ export type TorrentState =
   | 'unknown'
 
 export interface TorrentInfo {
-  hash: string
-  name: string
-  size: number
-  progress: number
-  dlspeed: number
-  upspeed: number
-  priority: number
-  num_seeds: number
-  num_leechs: number
-  ratio: number
-  eta: number
-  state: TorrentState
-  category: string
-  tags: string
   added_on: number
-  completion_on: number
-  last_activity: number
-  dl_limit: number
-  up_limit: number
-  downloaded: number
-  uploaded: number
-  downloaded_session: number
-  uploaded_session: number
   amount_left: number
   auto_tmm: boolean
   availability: number
+  category: string
   completed: number
+  completion_on: number
   content_path: string
+  dl_limit: number
+  dlspeed: number
+  downloaded: number
+  downloaded_session: number
+  eta: number
   f_l_piece_prio: boolean
   force_start: boolean
+  hash: string
+  isPrivate?: boolean
+  last_activity: number
   magnet_uri: string
   max_ratio: number
   max_seeding_time: number
+  name: string
   num_complete: number
   num_incomplete: number
+  num_leechs: number
+  num_seeds: number
+  priority: number
+  progress: number
+  ratio: number
   ratio_limit: number
   save_path: string
   seeding_time: number
   seeding_time_limit: number
   seen_complete: number
   seq_dl: boolean
+  size: number
+  state: TorrentState
   super_seeding: boolean
+  tags: string
   time_active: number
   total_size: number
   tracker: string
-  isPrivate?: boolean
+  up_limit: number
+  uploaded: number
+  uploaded_session: number
+  upspeed: number
 }
 
 export interface ServerState {
-  connection_status: 'connected' | 'firewalled' | 'disconnected'
   alltime_dl: number
   alltime_ul: number
   average_time_queue: number
+  connection_status: 'connected' | 'firewalled' | 'disconnected'
   dht_nodes: number
   dl_info_data: number
   dl_info_speed: number
@@ -175,26 +175,26 @@ export interface ServerState {
 }
 
 export interface MainData {
-  rid: number
-  full_update: boolean
-  torrents: Record<string, Partial<TorrentInfo>>
-  torrents_removed: string[]
   categories: Record<string, unknown>
   categories_removed: string[]
+  full_update: boolean
+  rid: number
+  server_state: ServerState
   tags: string[]
   tags_removed: string[]
-  server_state: ServerState
+  torrents: Record<string, Partial<TorrentInfo>>
+  torrents_removed: string[]
 }
 
 export interface TorrentFile {
-  index: number
-  name: string
-  size: number
-  progress: number
-  priority: number
-  is_seed?: boolean
-  piece_range: [number, number]
   availability: number
+  index: number
+  is_seed?: boolean
+  name: string
+  piece_range: [number, number]
+  priority: number
+  progress: number
+  size: number
 }
 
 export interface TorrentPeer {
@@ -216,14 +216,14 @@ export interface TorrentPeer {
 }
 
 export interface TorrentTracker {
-  url: string
-  status: number
-  tier: number
+  msg: string
+  num_downloaded: number
+  num_leeches: number
   num_peers: number
   num_seeds: number
-  num_leeches: number
-  num_downloaded: number
-  msg: string
+  status: number
+  tier: number
+  url: string
 }
 
 export interface TorrentProperties {

@@ -34,8 +34,8 @@ export const CheckboxCell = ({ rowIndex }: CheckboxCellProps) => {
       className={'flex items-center absolute inset-x-0 top-4 justify-center'}
     >
       <Checkbox
-        className="border border-border"
         checked={selectionData.isSelected}
+        className="border border-border"
         onCheckedChange={(checked) => {
           if (typeof checked === 'boolean') {
             handleSelectionChange(selectionData.hash, checked)
@@ -56,8 +56,8 @@ export const HeaderCheckboxCell = memo(() => {
   return (
     <div className="flex items-center justify-center absolute inset-0">
       <Checkbox
-        className="border border-border"
         checked={isAllSelected}
+        className="border border-border"
         indeterminate={isIndeterminate}
         onCheckedChange={useTypeScriptHappyCallback(
           (checked) => {

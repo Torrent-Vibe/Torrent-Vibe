@@ -8,9 +8,7 @@ import {
   useDiscoverProviderConfig,
 } from '~/atoms/settings/discover'
 import { Button } from '~/components/ui/button'
-import {
-  MTEAM_FILTER_DEFINITIONS_MODES,
-} from '~/modules/discover/providers/mteam'
+import { MTEAM_FILTER_DEFINITIONS_MODES } from '~/modules/discover/providers/mteam'
 
 import {
   SettingInputField,
@@ -19,8 +17,8 @@ import {
 } from '../../components'
 
 interface MTeamFormState {
-  baseUrl: string
   apiKey: string
+  baseUrl: string
   mode: string
   pageSize: string
 }
@@ -73,9 +71,9 @@ export const MTeamProviderSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('discover.providers.mteam.title')}
       description={t('discover.providers.mteam.description')}
       enabled={config.enabled}
+      title={t('discover.providers.mteam.title')}
       onToggleEnabled={(next) => {
         setDiscoverProviderEnabled('mteam', next)
         toast.success(
@@ -86,9 +84,12 @@ export const MTeamProviderSection = () => {
       }}
     >
       <SettingInputField
+        autoComplete="off"
+        description={t('discover.providers.mteam.baseUrl.description')}
         id="mteam-base-url"
         label={t('discover.providers.mteam.baseUrl.label')}
-        description={t('discover.providers.mteam.baseUrl.description')}
+        placeholder="https://api.m-team.cc/api"
+        spellCheck={false}
         value={form.baseUrl}
         onChange={(value) =>
           setForm((prev) => ({
@@ -96,31 +97,30 @@ export const MTeamProviderSection = () => {
             baseUrl: value,
           }))
         }
-        placeholder="https://api.m-team.cc/api"
-        spellCheck={false}
-        autoComplete="off"
       />
 
       <SettingSelectField
         id="mteam-mode"
         label={t('discover.providers.mteam.mode.label')}
         value={form.mode}
+        options={MTEAM_FILTER_DEFINITIONS_MODES.map((option) => ({
+          value: option.value,
+          label: t(option.label),
+        }))}
         onValueChange={(value) =>
           setForm((prev) => ({
             ...prev,
             mode: value,
           }))
         }
-        options={MTEAM_FILTER_DEFINITIONS_MODES.map((option) => ({
-          value: option.value,
-          label: t(option.label),
-        }))}
       />
 
       <SettingInputField
+        autoComplete="off"
+        description={t('discover.providers.mteam.apiKey.description')}
         id="mteam-api-key"
         label={t('discover.providers.mteam.apiKey.label')}
-        description={t('discover.providers.mteam.apiKey.description')}
+        type="password"
         value={form.apiKey}
         onChange={(value) =>
           setForm((prev) => ({
@@ -128,14 +128,15 @@ export const MTeamProviderSection = () => {
             apiKey: value,
           }))
         }
-        type="password"
-        autoComplete="off"
       />
 
       <SettingInputField
-        id="mteam-page-size"
-        label={t('discover.providers.mteam.pageSize.label')}
         description={t('discover.providers.mteam.pageSize.description')}
+        id="mteam-page-size"
+        inputMode="numeric"
+        label={t('discover.providers.mteam.pageSize.label')}
+        max={100}
+        min={1}
         value={form.pageSize}
         onChange={(value) =>
           setForm((prev) => ({
@@ -143,9 +144,6 @@ export const MTeamProviderSection = () => {
             pageSize: value.replaceAll(/\D/g, ''),
           }))
         }
-        inputMode="numeric"
-        min={1}
-        max={100}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -155,8 +153,9 @@ export const MTeamProviderSection = () => {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            disabled={!isDirty}
             size="sm"
+            variant="ghost"
             onClick={() => {
               setForm({
                 baseUrl: config.baseUrl,
@@ -165,14 +164,13 @@ export const MTeamProviderSection = () => {
                 pageSize: config.pageSize.toString(),
               })
             }}
-            disabled={!isDirty}
           >
             {t('discover.actions.reset')}
           </Button>
           <Button
+            disabled={!isDirty || !canSave}
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || !canSave}
           >
             {t('discover.actions.save')}
           </Button>

@@ -2,23 +2,21 @@ import { torrentDownloadUrl } from './urls'
 
 export interface BangumiCard {
   bangumiId: string
-  title: string
   coverUrl?: string
+  title: string
   weekday?: number
 }
 
 export interface SeasonWall {
-  year: number
+  groups: Array<{ weekday: number; items: BangumiCard[] }>
   season: string
-  groups: Array<{ weekday: number, items: BangumiCard[] }>
+  year: number
 }
 
 export interface BangumiDetail {
   bangumiId: string
-  title: string
-  coverUrl?: string
   bangumiSubjectId?: string
-  subgroups: Array<{ id: string, name: string }>
+  coverUrl?: string
   episodes: Array<{
     episodeId: string
     subgroupId: string
@@ -27,6 +25,8 @@ export interface BangumiDetail {
     sizeBytes?: number
     publishedAt?: string
   }>
+  subgroups: Array<{ id: string; name: string }>
+  title: string
 }
 
 const SIZE_UNITS: Record<string, number> = {
@@ -43,20 +43,22 @@ const SIZE_UNITS: Record<string, number> = {
 
 function decodeHtml(value: string): string {
   return value
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) =>
-      String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) =>
-      String.fromCodePoint(Number.parseInt(dec, 10)))
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, '\'')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+    .replaceAll(/&#x([\dA-Fa-f]+);/g, (_, hex: string) =>
+      String.fromCodePoint(Number.parseInt(hex, 16)),
+    )
+    .replaceAll(/&#(\d+);/g, (_, dec: string) =>
+      String.fromCodePoint(Number.parseInt(dec, 10)),
+    )
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&')
 }
 
 function stripTags(html: string): string {
-  return decodeHtml(html.replace(/<[^>]+>/g, '')).trim()
+  return decodeHtml(html.replaceAll(/<[^>]+>/g, '')).trim()
 }
 
 function parseSize(text: string): number | undefined {
@@ -81,24 +83,24 @@ function matchAll(html: string, pattern: RegExp): RegExpExecArray[] {
 function parseCardList(chunk: string, weekday?: number): BangumiCard[] {
   const items: BangumiCard[] = []
   const seen = new Set<string>()
-  const lis = chunk.match(/<li\b[^>]*>[\s\S]*?<\/li>/gi) ?? []
+  const lis = chunk.match(/<li\b[^>]*>[\S\s]*?<\/li>/gi) ?? []
 
   for (const li of lis) {
-    const bangumiId
-      = li.match(/data-bangumiid="(\d+)"/i)?.[1]
-        ?? li.match(/\/Home\/Bangumi\/(\d+)/i)?.[1]
+    const bangumiId =
+      li.match(/data-bangumiid="(\d+)"/i)?.[1] ??
+      li.match(/\/home\/bangumi\/(\d+)/i)?.[1]
     if (!bangumiId || seen.has(bangumiId)) {
       continue
     }
 
-    const titled
-      = li.match(/class="an-text"[^>]*title="([^"]*)"/i)?.[1]
-        ?? li.match(/title="([^"]*)"[^>]*class="an-text"/i)?.[1]
+    const titled =
+      li.match(/class="an-text"[^>]*title="([^"]*)"/i)?.[1] ??
+      li.match(/title="([^"]*)"[^>]*class="an-text"/i)?.[1]
     const titledBlock = li.match(
-      /class="an-text"[^>]*>([\s\S]*?)<\/(?:div|a)>/i,
+      /class="an-text"[^>]*>([\S\s]*?)<\/(?:div|a)>/i,
     )?.[1]
-    const title
-      = decodeHtml(titled ?? '').trim() || stripTags(titledBlock ?? '')
+    const title =
+      decodeHtml(titled ?? '').trim() || stripTags(titledBlock ?? '')
     if (!title) {
       continue
     }
@@ -119,10 +121,10 @@ function parseCardList(chunk: string, weekday?: number): BangumiCard[] {
 }
 
 export function parseSeasonWall(html: string): SeasonWall {
-  const date = html.match(/class="sk-col date-text">\s*(\d{4})\s*([春夏秋冬])/)
+  const date = html.match(/class="sk-col date-text">\s*(\d{4})\s*([冬夏春秋])/)
   const groups: SeasonWall['groups'] = []
-  const groupRe
-    = /<div class="sk-bangumi"[^>]*data-dayofweek="(\d+)"[^>]*>([\s\S]*?)(?=<div class="sk-bangumi"|$)/gi
+  const groupRe =
+    /<div class="sk-bangumi"[^>]*data-dayofweek="(\d+)"[^>]*>([\S\s]*?)(?=<div class="sk-bangumi"|$)/gi
 
   for (const match of matchAll(html, groupRe)) {
     const weekday = Number(match[1])
@@ -140,8 +142,8 @@ export function parseSeasonWall(html: string): SeasonWall {
 }
 
 export function parseSearchBangumi(html: string): BangumiCard[] {
-  const lists
-    = html.match(/<ul[^>]*class="[^"]*an-ul[^"]*"[^>]*>[\s\S]*?<\/ul>/gi) ?? []
+  const lists =
+    html.match(/<ul[^>]*class="[^"]*an-ul[^"]*"[^>]*>[\S\s]*?<\/ul>/gi) ?? []
   const cards: BangumiCard[] = []
   const seen = new Set<string>()
 
@@ -163,18 +165,18 @@ function parseEpisodeRows(
   subgroupId: string,
   baseUrl: string,
 ): BangumiDetail['episodes'] {
-  const rows = chunk.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? []
+  const rows = chunk.match(/<tr\b[^>]*>[\S\s]*?<\/tr>/gi) ?? []
   const episodes: BangumiDetail['episodes'] = []
 
   for (const row of rows) {
     if (/<th\b/i.test(row)) {
       continue
     }
-    const episodeId = row.match(/\/Home\/Episode\/([a-f0-9]+)/i)?.[1]
-    const titleHtml = row.match(/magnet-link-wrap[^>]*>([\s\S]*?)<\/a>/i)?.[1]
-    const torrentHref
-      = row.match(/href="(\/Download\/[^"]+\.torrent)"/i)?.[1]
-        ?? row.match(/href="(https?:\/\/[^"]+\.torrent)"/i)?.[1]
+    const episodeId = row.match(/\/home\/episode\/([\da-f]+)/i)?.[1]
+    const titleHtml = row.match(/magnet-link-wrap[^>]*>([\S\s]*?)<\/a>/i)?.[1]
+    const torrentHref =
+      row.match(/href="(\/download\/[^"]+\.torrent)"/i)?.[1] ??
+      row.match(/href="(https?:\/\/[^"]+\.torrent)"/i)?.[1]
     if (!episodeId || !titleHtml || !torrentHref) {
       continue
     }
@@ -186,13 +188,12 @@ function parseEpisodeRows(
       torrentUrl: torrentDownloadUrl(baseUrl, torrentHref),
     }
 
-    for (const cell of row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)) {
+    for (const cell of row.matchAll(/<td\b[^>]*>([\S\s]*?)<\/td>/gi)) {
       const text = stripTags(cell[1])
       const sizeBytes = parseSize(text)
       if (sizeBytes !== undefined) {
         episode.sizeBytes = sizeBytes
-      }
-      else if (/\d{4}\/\d{1,2}\/\d{1,2}/.test(text)) {
+      } else if (/\d{4}(?:\/\d{1,2}){2}/.test(text)) {
         episode.publishedAt = text
       }
     }
@@ -209,10 +210,10 @@ export function parseBangumiDetail(
   baseUrl: string,
 ): BangumiDetail {
   const title = stripTags(
-    html.match(/<p class="bangumi-title">([\s\S]*?)<\/p>/i)?.[1] ?? '',
+    html.match(/<p class="bangumi-title">([\S\s]*?)<\/p>/i)?.[1] ?? '',
   )
   const coverUrl = html.match(
-    /bangumi-poster"[^>]*style="[^"]*url\(\s*['"]?([^'")\s]+)['"]?\s*\)/i,
+    /bangumi-poster"[^>]*style="[^"]*url\(\s*["']?([^\s"')]+)["']?\s*\)/i,
   )?.[1]
   const bangumiSubjectId = html.match(/bgm\.tv\/subject\/(\d+)/i)?.[1]
 
@@ -230,7 +231,7 @@ export function parseBangumiDetail(
     const slice = html.slice(start, start + 800)
     const name = stripTags(
       slice.match(
-        /<a href="\/Home\/PublishGroup\/\d+"[^>]*>([\s\S]*?)<\/a>/i,
+        /<a href="\/home\/publishgroup\/\d+"[^>]*>([\S\s]*?)<\/a>/i,
       )?.[1] ?? '',
     )
     seen.add(id)

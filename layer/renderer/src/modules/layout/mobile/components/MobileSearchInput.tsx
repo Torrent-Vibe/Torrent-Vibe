@@ -48,10 +48,10 @@ export const MobileSearchInput: React.FC = () => {
   return (
     <div className="relative mt-1">
       <Input
+        inputClassName={cn('pl-8 pr-10 h-10 text-base', isPending && 'pr-16')}
+        placeholder={t('mobile.search.placeholder')}
         ref={inputRef}
         type="search"
-        placeholder={t('mobile.search.placeholder')}
-        inputClassName={cn('pl-8 pr-10 h-10 text-base', isPending && 'pr-16')}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         // Prevent losing focus on mobile
@@ -72,15 +72,15 @@ export const MobileSearchInput: React.FC = () => {
 
         {value && (
           <button
-            type="button"
+            aria-label={t('mobile.search.clear')}
             data-clear-button="true"
-            onClick={clearSearch}
+            type="button"
             className={cn(
               'p-1 rounded-full hover:bg-material-medium transition-colors',
               'text-text-tertiary hover:text-text-secondary',
               'touch-manipulation min-w-[24px] min-h-[24px] flex items-center justify-center',
             )}
-            aria-label={t('mobile.search.clear')}
+            onClick={clearSearch}
           >
             <i className="i-mingcute-close-circle-fill text-base" />
           </button>

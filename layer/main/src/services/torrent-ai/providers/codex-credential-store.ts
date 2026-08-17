@@ -12,15 +12,15 @@ import type {
 const CODEX_PROVIDER = 'openai-codex'
 
 interface CodexTokens {
+  [key: string]: unknown
   access_token: string
   refresh_token: string
-  [key: string]: unknown
 }
 
 interface CodexAuthFile {
-  tokens?: CodexTokens
-  last_refresh?: string
   [key: string]: unknown
+  last_refresh?: string
+  tokens?: CodexTokens
 }
 
 export function defaultCodexAuthPath(): string {
@@ -38,8 +38,7 @@ function jwtExpiryMs(token: string): number {
       Buffer.from(payload, 'base64url').toString('utf8'),
     ) as { exp?: unknown }
     return typeof claims.exp === 'number' ? claims.exp * 1000 : 0
-  }
-  catch {
+  } catch {
     return 0
   }
 }
@@ -50,8 +49,8 @@ function isCodexAuthFile(value: unknown): value is CodexAuthFile {
   }
   const tokens = (value as CodexAuthFile).tokens
   return (
-    typeof tokens?.access_token === 'string'
-    && typeof tokens.refresh_token === 'string'
+    typeof tokens?.access_token === 'string' &&
+    typeof tokens.refresh_token === 'string'
   )
 }
 
@@ -71,8 +70,7 @@ async function readCodexAuthFile(
   try {
     const parsed: unknown = JSON.parse(await readFile(authPath, 'utf8'))
     return isCodexAuthFile(parsed) ? parsed : undefined
-  }
-  catch {
+  } catch {
     return undefined
   }
 }
@@ -86,8 +84,7 @@ export function hasCodexOAuthCredential(
     }
     const parsed: unknown = JSON.parse(readFileSync(authPath, 'utf8'))
     return isCodexAuthFile(parsed)
-  }
-  catch {
+  } catch {
     return false
   }
 }

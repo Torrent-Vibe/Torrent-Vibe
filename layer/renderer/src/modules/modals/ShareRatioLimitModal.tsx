@@ -11,9 +11,9 @@ import type {
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio'
 
 interface ShareRatioLimitModalOwnProps {
+  currentInactiveSeedingTime?: number
   currentRatio?: number
   currentSeedingTime?: number
-  currentInactiveSeedingTime?: number
   onConfirm: (settings: {
     ratioLimit?: number
     seedingTimeLimit?: number
@@ -125,9 +125,9 @@ export const ShareRatioLimitModal: ModalComponent<
       {/* Radio options */}
       <div className="mb-6 mt-4">
         <RadioGroup
+          className="flex flex-col gap-2"
           value={limitMode}
           onValueChange={(value) => setLimitMode(value as LimitMode)}
-          className="flex flex-col gap-2"
         >
           {/* Global share limit */}
           <label className="flex items-center gap-3 cursor-button">
@@ -154,86 +154,86 @@ export const ShareRatioLimitModal: ModalComponent<
             {/* Ratio */}
             <div className="flex items-center gap-3">
               <Checkbox
+                checked={useRatio}
+                className="shrink-0"
                 id="ratio"
                 size="sm"
-                checked={useRatio}
                 onCheckedChange={(checked) => setUseRatio(Boolean(checked))}
-                className="shrink-0"
               />
               <label
-                htmlFor="ratio"
                 className="text-text min-w-0 text-sm flex-1"
+                htmlFor="ratio"
               >
                 Ratio
               </label>
               <Input
+                className="w-24"
+                disabled={!useRatio}
+                min="0"
+                placeholder="0.00"
                 size="sm"
+                step="0.01"
                 type="number"
                 value={ratio}
                 onChange={(e) => setRatio(e.target.value)}
-                disabled={!useRatio}
-                className="w-24"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
               />
             </div>
 
             {/* Seeding time */}
             <div className="flex items-center gap-3">
               <Checkbox
+                checked={useSeedingTime}
+                className="shrink-0"
                 id="seedingTime"
                 size="sm"
-                checked={useSeedingTime}
                 onCheckedChange={(checked) =>
                   setUseSeedingTime(Boolean(checked))
                 }
-                className="shrink-0"
               />
               <label
-                htmlFor="seedingTime"
                 className="text-text min-w-0 text-sm flex-1"
+                htmlFor="seedingTime"
               >
                 Total minutes
               </label>
               <Input
+                className="w-24"
+                disabled={!useSeedingTime}
+                min="0"
+                placeholder="0"
                 size="sm"
                 type="number"
                 value={seedingTime}
                 onChange={(e) => setSeedingTime(e.target.value)}
-                disabled={!useSeedingTime}
-                className="w-24"
-                min="0"
-                placeholder="0"
               />
             </div>
 
             {/* Inactive seeding time */}
             <div className="flex items-center gap-3">
               <Checkbox
-                id="inactiveSeedingTime"
                 checked={useInactiveSeedingTime}
+                className="shrink-0"
+                id="inactiveSeedingTime"
+                size="sm"
                 onCheckedChange={(checked) =>
                   setUseInactiveSeedingTime(Boolean(checked))
                 }
-                size="sm"
-                className="shrink-0"
               />
               <label
-                htmlFor="inactiveSeedingTime"
                 className="text-text min-w-0 text-sm flex-1"
+                htmlFor="inactiveSeedingTime"
               >
                 Inactive minutes
               </label>
               <Input
+                className="w-24"
+                disabled={!useInactiveSeedingTime}
+                min="0"
+                placeholder="0"
                 size="sm"
                 type="number"
                 value={inactiveSeedingTime}
                 onChange={(e) => setInactiveSeedingTime(e.target.value)}
-                disabled={!useInactiveSeedingTime}
-                className="w-24"
-                min="0"
-                placeholder="0"
               />
             </div>
           </div>
@@ -242,7 +242,7 @@ export const ShareRatioLimitModal: ModalComponent<
 
       {/* Actions */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} size="sm" className="px-6">
+        <Button className="px-6" size="sm" onClick={handleSave}>
           Save
         </Button>
       </div>

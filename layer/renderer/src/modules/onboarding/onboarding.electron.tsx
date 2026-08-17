@@ -67,13 +67,13 @@ const VALIDATION_STATES = {
 
 export const Onboarding = () => {
   const navigate = useNavigate()
-  const [validationState, setValidationState]
-    = useState<ValidationState>('idle')
-  const [validationError, setValidationError]
-    = useState<ValidationError | null>(null)
+  const [validationState, setValidationState] =
+    useState<ValidationState>('idle')
+  const [validationError, setValidationError] =
+    useState<ValidationError | null>(null)
   const currentState = VALIDATION_STATES[validationState]
 
-  const { servers, activeServerId, order } = useMultiServerStore(s => ({
+  const { servers, activeServerId, order } = useMultiServerStore((s) => ({
     servers: s.servers,
     activeServerId: s.activeServerId,
     order: s.order,
@@ -95,14 +95,14 @@ export const Onboarding = () => {
       useHttps:
         local.useHttps ?? base?.config.useHttps ?? initial.useHttps ?? true,
       rememberPassword:
-        local.rememberPassword
-        ?? (active ? hasServerPassword(active.id) : false)
-        ?? false,
+        local.rememberPassword ??
+        (active ? hasServerPassword(active.id) : false) ??
+        false,
     }
   }, [active, order.length, servers])
 
-  const { control, handleSubmit, getValues, reset, setValue, watch }
-    = useForm<OnboardingFormData>({
+  const { control, handleSubmit, getValues, reset, setValue, watch } =
+    useForm<OnboardingFormData>({
       defaultValues,
       mode: 'all',
     })
@@ -116,7 +116,9 @@ export const Onboarding = () => {
     const load = async () => {
       if (active && hasServerPassword(active.id)) {
         const pw = await loadServerPassword(active.id)
-        if (pw) { setValue('password', pw) }
+        if (pw) {
+          setValue('password', pw)
+        }
       }
     }
     load().catch(() => {})
@@ -134,7 +136,9 @@ export const Onboarding = () => {
   }
 
   const onSubmit = async (formData: OnboardingFormData) => {
-    if (validationState === 'validating') { return }
+    if (validationState === 'validating') {
+      return
+    }
     setValidationState('validating')
     setValidationError(null)
     try {
@@ -156,8 +160,7 @@ export const Onboarding = () => {
           if (formData.rememberPassword && config.password) {
             await saveServerPassword(server.id, config.password)
           }
-        }
-        else if (active) {
+        } else if (active) {
           // Update active server config
           multiServerStoreSetters.updateServer(active.id, {
             config,
@@ -183,14 +186,12 @@ export const Onboarding = () => {
         clearFormDataFromStorage()
         toast.success(getI18n().t('onboarding.messages.connectionSuccessful'))
         navigate('/')
-      }
-      else {
+      } else {
         setValidationState('error')
         setValidationError(result.error!)
         toast.error(result.error!.message)
       }
-    }
-    catch {
+    } catch {
       setValidationState('error')
       const fallbackError: ValidationError = {
         type: 'unknown',
@@ -203,7 +204,9 @@ export const Onboarding = () => {
 
   const onInvalid = (errs: any) => {
     const first = Object.values(errs)[0] as { message?: string } | undefined
-    if (first?.message) { toast.error(first.message) }
+    if (first?.message) {
+      toast.error(first.message)
+    }
   }
 
   const handleRetry = () => {
@@ -217,8 +220,8 @@ export const Onboarding = () => {
     <div className="flex min-h-screen [*]:select-none items-center justify-center p-6 electron:bg-transparent bg-background/90">
       <div className="drag-region inset-x-0 top-0 h-10 fixed" />
       <form
-        onSubmit={handleSubmit(onSubmit, onInvalid)}
         className="w-full bg-background max-w-md space-y-5 rounded-xl border border-neutral-200 p-6 shadow-sm dark:border-neutral-800"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
       >
         <div>
           <h1 className="text-2xl font-semibold">
@@ -262,16 +265,16 @@ export const Onboarding = () => {
         <OnboardingFields
           control={control}
           getValues={getValues}
-          useCurrentPath={useCurrentPath}
           showUseCurrentPath={false}
+          useCurrentPath={useCurrentPath}
           validation={FORM_VALIDATION}
         />
 
         <div className="flex gap-2">
           <Button
-            type="submit"
-            disabled={currentState.disabled}
             className="flex-1"
+            disabled={currentState.disabled}
+            type="submit"
           >
             {validationState === 'validating' && (
               <i className="i-mingcute-loading-3-line mr-2 animate-spin text-sm" />
@@ -280,10 +283,10 @@ export const Onboarding = () => {
           </Button>
           {validationState === 'error' && (
             <Button
+              className="px-3"
               type="button"
               variant="secondary"
               onClick={handleRetry}
-              className="px-3"
             >
               <i className="i-mingcute-refresh-2-line text-sm" />
             </Button>

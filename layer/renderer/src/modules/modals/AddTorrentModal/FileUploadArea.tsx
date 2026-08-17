@@ -52,19 +52,19 @@ export const FileUploadArea = ({ formData, handlers }: FileUploadAreaProps) => {
             : 'border-border hover:border-accent/50 hover:bg-fill/50',
           formData.files.length > 0 && 'border-green bg-green/5',
         )}
-        onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
         <input
+          multiple
+          accept=".torrent"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           ref={fileInputRef}
           type="file"
-          accept=".torrent"
-          multiple
           onChange={(e) =>
             e.target.files && handleFileSelect(Array.from(e.target.files))
           }
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
 
         <div className="text-center">
@@ -112,14 +112,14 @@ export const FileUploadArea = ({ formData, handlers }: FileUploadAreaProps) => {
       {/* File List for multiple files */}
       {formData.files.length > 0 && (
         <div className="flex flex-col gap-2 min-w-0 mt-2">
-          <Label variant="form" className="text-text-secondary">
+          <Label className="text-text-secondary" variant="form">
             Selected Files
           </Label>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {formData.files.map((file, index) => (
               <div
-                key={`${file.name}-${file.size}-${file.lastModified || index}`}
                 className="flex items-center gap-2 bg-fill/30 rounded-md px-3 py-2"
+                key={`${file.name}-${file.size}-${file.lastModified || index}`}
               >
                 <i className="i-mingcute-file-line text-text-secondary flex-shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -131,9 +131,9 @@ export const FileUploadArea = ({ formData, handlers }: FileUploadAreaProps) => {
                   </p>
                 </div>
                 <button
+                  className="text-text-secondary hover:text-red transition-colors p-1 flex-shrink-0"
                   type="button"
                   onClick={() => removeFile(index)}
-                  className="text-text-secondary hover:text-red transition-colors p-1 flex-shrink-0"
                 >
                   <i className="i-mingcute-close-line text-sm" />
                 </button>

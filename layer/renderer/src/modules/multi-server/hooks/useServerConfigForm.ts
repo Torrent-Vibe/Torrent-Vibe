@@ -19,9 +19,9 @@ import {
 
 interface UseServerConfigFormOptions {
   mode: 'add' | 'edit'
-  serverId?: string
-  onSuccess?: (serverId: string, action: 'created' | 'updated') => void
   onError?: (error: Error) => void
+  onSuccess?: (serverId: string, action: 'created' | 'updated') => void
+  serverId?: string
 }
 
 export const useServerConfigForm = ({
@@ -109,7 +109,10 @@ export const useServerConfigForm = ({
       })
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Unknown error')
-      const key = mode === 'add' ? 'messages.serverAddFailed' : 'messages.serverUpdateFailed'
+      const key =
+        mode === 'add'
+          ? 'messages.serverAddFailed'
+          : 'messages.serverUpdateFailed'
       toast.error(`${getI18n().t(key)}: ${err.message}`)
       onError?.(err)
       throw err

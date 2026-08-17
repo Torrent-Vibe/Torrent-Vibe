@@ -25,8 +25,8 @@ import { ipcServices } from '~/lib/ipc-client'
 import { useMultiServerStore } from '../stores/multi-server-store'
 
 interface PathMappingModalProps {
-  mode: 'create' | 'edit'
   mappingId?: string
+  mode: 'create' | 'edit'
 }
 
 type FormState = {
@@ -165,33 +165,27 @@ export const PathMappingModal: ModalComponent<PathMappingModalProps> = ({
       <div className="space-y-4">
         <div>
           <Label
-            variant="form"
             className="text-xs font-medium text-text-secondary"
             htmlFor="mapping-local"
+            variant="form"
           >
             {t('servers.pathMapping.localLabel')}
           </Label>
           <Input
-            id="mapping-local"
-            value={formState.localBasePath}
-            placeholder="\\\\nas\\\\downloads or smb://nas/downloads"
-            onChange={(event) =>
-              setFormState((prev) => ({
-                ...prev,
-                localBasePath: event.target.value,
-              }))
-            }
             endAdornmentVisibility="always"
+            id="mapping-local"
+            placeholder="\\\\nas\\\\downloads or smb://nas/downloads"
+            value={formState.localBasePath}
             endAdornment={
               <Button
+                aria-label={t('servers.pathMapping.selectLocalPath')}
+                className="p-2 -mr-2 !bg-transparent"
+                disabled={!isElectron || selectingLocalPath}
+                size="sm"
+                title={t('servers.pathMapping.selectLocalPath')}
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="p-2 -mr-2 !bg-transparent"
                 onClick={handleSelectLocalPath}
-                disabled={!isElectron || selectingLocalPath}
-                aria-label={t('servers.pathMapping.selectLocalPath')}
-                title={t('servers.pathMapping.selectLocalPath')}
               >
                 {selectingLocalPath ? (
                   <i className="i-mingcute-loading-3-line animate-spin" />
@@ -203,21 +197,27 @@ export const PathMappingModal: ModalComponent<PathMappingModalProps> = ({
                 </span>
               </Button>
             }
+            onChange={(event) =>
+              setFormState((prev) => ({
+                ...prev,
+                localBasePath: event.target.value,
+              }))
+            }
           />
         </div>
 
         <div>
           <Label
-            variant="form"
             className="text-xs font-medium text-text-secondary"
             htmlFor="mapping-remote"
+            variant="form"
           >
             {t('servers.pathMapping.remoteLabel')}
           </Label>
           <Input
             id="mapping-remote"
-            value={formState.remoteBasePath}
             placeholder="/downloads"
+            value={formState.remoteBasePath}
             onChange={(event) =>
               setFormState((prev) => ({
                 ...prev,
@@ -229,9 +229,9 @@ export const PathMappingModal: ModalComponent<PathMappingModalProps> = ({
 
         <div>
           <Label
-            variant="form"
             className="text-xs font-medium text-text-secondary"
             htmlFor="mapping-server"
+            variant="form"
           >
             {t('servers.pathMapping.serverScope')}
           </Label>
@@ -282,10 +282,10 @@ export const PathMappingModal: ModalComponent<PathMappingModalProps> = ({
       </div>
 
       <div className="flex justify-end gap-2 pt-6">
-        <Button variant="ghost" size="sm" onClick={dismiss}>
+        <Button size="sm" variant="ghost" onClick={dismiss}>
           {t('servers.pathMapping.modal.cancel')}
         </Button>
-        <Button size="sm" onClick={handleSave} disabled={!canSave}>
+        <Button disabled={!canSave} size="sm" onClick={handleSave}>
           {t('servers.pathMapping.modal.save')}
         </Button>
       </div>

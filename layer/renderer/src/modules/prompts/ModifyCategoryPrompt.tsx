@@ -5,8 +5,8 @@ import { Prompt } from '../../components/ui/prompts/Prompt'
 export interface ModifyCategoryOptions {
   categoryName: string
   currentSavePath?: string
-  onConfirm: (newSavePath: string) => void | Promise<void>
   onCancel?: () => void | Promise<void>
+  onConfirm: (newSavePath: string) => void | Promise<void>
 }
 
 export const ModifyCategoryPrompt = {

@@ -6,27 +6,27 @@ import type { FileFilter } from 'electron'
 import { dialog, shell } from 'electron'
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
-const URL_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
+const URL_PATTERN = /^[a-z][\d+.a-z-]*:\/\//i
 
 const isUrl = (value: string) => URL_PATTERN.test(value.trim())
 
 type PathAction = 'open' | 'reveal' | 'open-folder'
 
 interface PathActionPayload {
-  candidates: string[]
   action: PathAction
+  candidates: string[]
 }
 
 interface PathActionResult {
-  ok: boolean
-  usedPath?: string
   details?: string
   message?: string
+  ok: boolean
+  usedPath?: string
 }
 
 interface DirectoryDialogOptions {
-  title?: string
   defaultPath?: string
+  title?: string
 }
 
 interface DirectoryDialogResult {
@@ -35,10 +35,10 @@ interface DirectoryDialogResult {
 }
 
 interface SaveTextFilePayload {
-  title?: string
+  content: string
   defaultPath?: string
   filters?: FileFilter[]
-  content: string
+  title?: string
 }
 
 interface SaveTextFileResult {
@@ -59,18 +59,16 @@ const tryOpenCandidate = async (
     try {
       await shell.openExternal(trimmed)
       return { ok: true, usedPath: trimmed, details: 'external' }
-    }
-    catch {
+    } catch {
       return { ok: false, message: 'OPEN_EXTERNAL_FAILED' }
     }
   }
 
   const normalized = path.normalize(trimmed)
-  let stats: Stats | null = null
+  let stats: Stats | null
   try {
     stats = await fs.stat(normalized)
-  }
-  catch {
+  } catch {
     stats = null
   }
 
@@ -152,8 +150,8 @@ export class FileSystemService extends IpcService {
     payload: PathActionPayload,
   ): Promise<PathActionResult> {
     if (
-      !Array.isArray(payload?.candidates)
-      || payload.candidates.length === 0
+      !Array.isArray(payload?.candidates) ||
+      payload.candidates.length === 0
     ) {
       return { ok: false, message: 'NO_CANDIDATES' }
     }
@@ -167,8 +165,7 @@ export class FileSystemService extends IpcService {
           return result
         }
         lastError = result.message
-      }
-      catch (error) {
+      } catch (error) {
         lastError = error instanceof Error ? error.message : String(error)
       }
     }

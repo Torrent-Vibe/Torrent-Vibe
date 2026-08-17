@@ -8,9 +8,9 @@ import { getTabConfig } from '../configs'
 import { MobileSettingsScreen } from './MobileSettingsScreen'
 
 interface MobileSettingsTabWrapperProps {
-  settingKey: SettingsSection
   className?: string
   hideHeader?: boolean
+  settingKey: SettingsSection
 }
 
 export const MobileSettingsTabWrapper: React.FC<
@@ -44,7 +44,7 @@ export const MobileSettingsTabWrapper: React.FC<
     }
 
     return (
-      <MobileSettingsScreen title="Settings" className={className}>
+      <MobileSettingsScreen className={className} title="Settings">
         {errorContent}
       </MobileSettingsScreen>
     )
@@ -71,9 +71,9 @@ export const MobileSettingsTabWrapper: React.FC<
 
   return (
     <MobileSettingsScreen
-      title={config.label}
       className={className}
       paddingY={false}
+      title={config.label}
     >
       {content}
     </MobileSettingsScreen>

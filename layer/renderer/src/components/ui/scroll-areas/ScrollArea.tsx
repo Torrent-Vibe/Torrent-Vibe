@@ -14,10 +14,6 @@ const Thumb = ({
 }) => (
   <ScrollAreaBase.Thumb
     {...rest}
-    onClick={(e) => {
-      e.stopPropagation()
-      rest.onClick?.(e)
-    }}
     ref={forwardedRef}
     className={clsxm(
       'relative w-full flex-1 backdrop-blur-3xl rounded-xl transition-colors duration-150',
@@ -28,6 +24,10 @@ const Thumb = ({
 
       className,
     )}
+    onClick={(e) => {
+      e.stopPropagation()
+      rest.onClick?.(e)
+    }}
   />
 )
 Thumb.displayName = 'ScrollArea.Thumb'
@@ -101,9 +101,9 @@ const Root = ({
 }) => (
   <ScrollAreaBase.Root
     {...rest}
-    scrollHideDelay={0}
-    ref={forwardedRef}
     className={clsxm('overflow-hidden', className)}
+    ref={forwardedRef}
+    scrollHideDelay={0}
   >
     {children}
   </ScrollAreaBase.Root>
@@ -147,28 +147,28 @@ export const ScrollArea = ({
     <ScrollElementContext value={viewportRef}>
       <Root className={rootClassName} id={id} style={style}>
         <Viewport
+          asChild={asChild}
+          focusable={focusable}
+          mask={mask}
           ref={setViewportRef}
           className={clsxm(
             flex ? '[&>div]:!flex [&>div]:!flex-col' : '',
             viewportClassName,
           )}
-          mask={mask}
-          asChild={asChild}
           onScroll={onScroll}
-          focusable={focusable}
         >
           {children}
         </Viewport>
         {orientation === 'both' ? (
           <>
-            <Scrollbar orientation="vertical" className={scrollbarClassName} />
+            <Scrollbar className={scrollbarClassName} orientation="vertical" />
             <Scrollbar
-              orientation="horizontal"
               className={scrollbarClassName}
+              orientation="horizontal"
             />
           </>
         ) : (
-          <Scrollbar orientation={orientation} className={scrollbarClassName} />
+          <Scrollbar className={scrollbarClassName} orientation={orientation} />
         )}
       </Root>
     </ScrollElementContext>

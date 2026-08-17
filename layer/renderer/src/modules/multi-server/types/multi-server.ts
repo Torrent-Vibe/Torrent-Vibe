@@ -3,20 +3,17 @@ import { z } from 'zod'
 import type { QBittorrentConfig } from '~/shared/types/qbittorrent'
 
 export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error'
+  'disconnected' | 'connecting' | 'connected' | 'error'
 
 export interface ServerConnection {
-  id: string
-  name: string
+  color?: string
   config: QBittorrentConfig
+  id: string
   isDefault: boolean
   lastConnected?: string
+  name: string
   status: ConnectionStatus
   tags?: string[]
-  color?: string
 }
 
 export type MultiServerConfig = z.infer<typeof multiServerConfigSchema>
@@ -54,11 +51,11 @@ export const multiServerConfigSchema = z.object({
 export type ServerHealthStatus = 'healthy' | 'warning' | 'unhealthy'
 
 export interface ServerHealthResult {
+  consecutiveFailures: number
+  error?: string
+  lastChecked: string
+  responseTime: number
   serverId: string
   status: ServerHealthStatus
-  responseTime: number
-  lastChecked: string
-  consecutiveFailures: number
   version?: string
-  error?: string
 }

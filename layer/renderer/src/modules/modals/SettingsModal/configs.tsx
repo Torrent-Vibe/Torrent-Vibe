@@ -32,8 +32,8 @@ export type SidebarGroupId = 'app' | 'qbittorrent'
 
 export interface SidebarGroup {
   id: SidebarGroupId
-  translationKey: I18nKeysForSettings
   keys: SettingsSection[]
+  translationKey: I18nKeysForSettings
 }
 
 const BASE_SIDEBAR_GROUPS: SidebarGroup[] = [

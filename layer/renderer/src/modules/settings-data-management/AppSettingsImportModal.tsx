@@ -87,11 +87,11 @@ export const AppSettingsImportModal: ModalComponent<
 
       {/* Hidden file input */}
       <input
+        accept=".json"
+        className="hidden"
         ref={fileInputRef}
         type="file"
-        accept=".json"
         onChange={handleFileChange}
-        className="hidden"
       />
 
       <div className="flex justify-between gap-2">
@@ -100,11 +100,11 @@ export const AppSettingsImportModal: ModalComponent<
         </Button>
 
         <Button
+          disabled={!canImport}
+          isLoading={isImporting}
           size="sm"
           variant="secondary"
           onClick={handleImport}
-          disabled={!canImport}
-          isLoading={isImporting}
         >
           {t('general.dataManagement.actions.import')}
         </Button>

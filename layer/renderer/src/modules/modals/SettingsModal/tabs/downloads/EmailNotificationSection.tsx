@@ -8,8 +8,8 @@ import {
 } from '../components'
 
 interface EmailNotificationSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const EmailNotificationSection = ({
@@ -19,8 +19,8 @@ export const EmailNotificationSection = ({
   const { t } = useTranslation('setting')
   return (
     <SettingSectionCard
-      title={t('downloads.email.title')}
       enabled={Boolean(prefs.mail_notification_enabled)}
+      title={t('downloads.email.title')}
       onToggleEnabled={(v) =>
         onPrefsChange({ mail_notification_enabled: Boolean(v) })
       }
@@ -28,26 +28,26 @@ export const EmailNotificationSection = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <SettingInputField
           label={t('downloads.email.from')}
+          placeholder="qBittorrent_notification@example.com"
           value={prefs.mail_notification_sender ?? ''}
           onChange={(v) => onPrefsChange({ mail_notification_sender: v })}
-          placeholder="qBittorrent_notification@example.com"
         />
         <SettingInputField
           label={t('downloads.email.to')}
+          placeholder="user@example.com"
           value={prefs.mail_notification_email ?? ''}
           onChange={(v) => onPrefsChange({ mail_notification_email: v })}
-          placeholder="user@example.com"
         />
         <SettingInputField
           label={t('downloads.email.smtp')}
+          placeholder="smtp.changeme.com"
           value={prefs.mail_notification_smtp ?? ''}
           onChange={(v) => onPrefsChange({ mail_notification_smtp: v })}
-          placeholder="smtp.changeme.com"
         />
         <SettingSwitchField
+          checked={Boolean(prefs.mail_notification_ssl_enabled)}
           id="mail_notification_ssl_enabled"
           label={t('downloads.email.ssl')}
-          checked={Boolean(prefs.mail_notification_ssl_enabled)}
           onCheckedChange={(v) =>
             onPrefsChange({ mail_notification_ssl_enabled: Boolean(v) })
           }
@@ -55,8 +55,8 @@ export const EmailNotificationSection = ({
       </div>
 
       <SettingSectionCard
-        title={t('downloads.email.auth')}
         enabled={Boolean(prefs.mail_notification_auth_enabled)}
+        title={t('downloads.email.auth')}
         onToggleEnabled={(v) =>
           onPrefsChange({ mail_notification_auth_enabled: Boolean(v) })
         }

@@ -3,10 +3,10 @@ import * as React from 'react'
 export type StatusVariant = 'success' | 'warning' | 'danger' | 'unknown'
 
 interface StatusDotProps {
-  variant: StatusVariant
+  className?: string
   size?: 'sm' | 'md'
   title?: string
-  className?: string
+  variant: StatusVariant
 }
 
 const variantToBgClass: Record<StatusVariant, string> = {

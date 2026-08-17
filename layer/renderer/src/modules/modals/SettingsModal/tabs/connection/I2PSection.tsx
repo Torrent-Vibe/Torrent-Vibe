@@ -11,8 +11,8 @@ import {
 } from '../components'
 
 interface I2PSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const I2PSection = ({ prefs, onPrefsChange }: I2PSectionProps) => {
@@ -31,14 +31,15 @@ export const I2PSection = ({ prefs, onPrefsChange }: I2PSectionProps) => {
   }
 
   return (
-    <SettingSectionCard title={t('connection.i2p.title')} enabled={i2pEnabled}>
+    <SettingSectionCard enabled={i2pEnabled} title={t('connection.i2p.title')}>
       <SettingSwitchField
-        label={t('connection.i2p.enabled')}
         checked={i2pEnabled}
+        label={t('connection.i2p.enabled')}
         onCheckedChange={(v) => handleChange({ i2p_enabled: Boolean(v) })}
       />
       <SettingField label={t('connection.i2p.host')}>
         <Input
+          className="w-32"
           value={i2pHost}
           onChange={(e) =>
             handleChange({
@@ -46,7 +47,6 @@ export const I2PSection = ({ prefs, onPrefsChange }: I2PSectionProps) => {
               i2p_host: e.target.value,
             })
           }
-          className="w-32"
         />
       </SettingField>
       <SettingInputField
@@ -56,9 +56,9 @@ export const I2PSection = ({ prefs, onPrefsChange }: I2PSectionProps) => {
         onChange={(v) => handleChange({ i2p_port: Number.parseInt(v) || 7656 })}
       />
       <SettingSwitchField
+        checked={i2pMixedMode}
         id="i2p_mixed_mode"
         label={t('connection.i2p.mixedMode')}
-        checked={i2pMixedMode}
         onCheckedChange={(v) => handleChange({ i2p_mixed_mode: Boolean(v) })}
       />
     </SettingSectionCard>

@@ -5,14 +5,14 @@ import { cn } from '~/lib/cn'
 import { SettingSwitchField } from './SettingSwitchField'
 
 interface SettingSectionCardProps extends PropsWithChildren {
-  title: ReactNode
-  description?: ReactNode
   className?: string
+  description?: ReactNode
+  enabled?: boolean
+  headerAction?: ReactNode
+  onToggleEnabled?: (enabled: boolean) => void
   // If provided, renders a switch in the header and disables content when false
   switchLabel?: ReactNode
-  enabled?: boolean
-  onToggleEnabled?: (enabled: boolean) => void
-  headerAction?: ReactNode
+  title: ReactNode
 }
 
 export const SettingSectionCard = ({
@@ -30,7 +30,7 @@ export const SettingSectionCard = ({
 
   if (headerAction) {
     headerExtras.push(
-      <div key="action" className="flex-shrink-0">
+      <div className="flex-shrink-0" key="action">
         {headerAction}
       </div>,
     )
@@ -38,10 +38,10 @@ export const SettingSectionCard = ({
 
   if (hasSwitch) {
     headerExtras.push(
-      <div key="switch" className="flex-shrink-0">
+      <div className="flex-shrink-0" key="switch">
         <SettingSwitchField
-          label={switchLabel ?? ''}
           checked={!!enabled}
+          label={switchLabel ?? ''}
           onCheckedChange={(v) => onToggleEnabled?.(!!v)}
         />
       </div>,

@@ -68,12 +68,12 @@ export const CategoryCell = ({ rowIndex }: CategoryCellProps) => {
     <div className="flex items-center px-2 py-2 text-sm text-text">
       {category ? (
         <Tag
-          tag={category}
-          variant="accent"
-          type="category"
           showContextMenu
-          onModify={handleModifyCategory}
+          tag={category}
+          type="category"
+          variant="accent"
           onDelete={handleDeleteCategory}
+          onModify={handleModifyCategory}
         />
       ) : (
         <span className="text-text-tertiary">-</span>

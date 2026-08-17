@@ -11,12 +11,12 @@ import {
 import type { TorrentContentPreviewState } from '../types'
 
 interface TorrentPreviewSummaryProps {
-  state: TorrentContentPreviewState
-  selectedFileIndices: Set<number>
+  isLoading?: boolean
+  onClear?: () => Promise<void> | void
   onOpenPreview: () => void
   onReload?: () => Promise<void> | void
-  onClear?: () => Promise<void> | void
-  isLoading?: boolean
+  selectedFileIndices: Set<number>
+  state: TorrentContentPreviewState
 }
 
 export const TorrentPreviewSummary = ({
@@ -52,12 +52,12 @@ export const TorrentPreviewSummary = ({
         </div>
         {onClear && (
           <Button
+            disabled={isLoading}
             size="sm"
             variant="ghost"
             onClick={() => {
               void onClear()
             }}
-            disabled={isLoading}
           >
             {t('addTorrent.preview.clear')}
           </Button>
@@ -81,13 +81,13 @@ export const TorrentPreviewSummary = ({
         <div className="flex items-center gap-2">
           {onReload && (
             <Button
+              disabled={isLoading}
+              isLoading={isLoading}
               size="sm"
               variant="secondary"
               onClick={() => {
                 void onReload()
               }}
-              disabled={isLoading}
-              isLoading={isLoading}
             >
               {t('addTorrent.preview.retry')}
             </Button>
@@ -130,12 +130,12 @@ export const TorrentPreviewSummary = ({
       </div>
       <div className="flex items-center gap-2 self-end sm:self-center">
         <Button
-          size="sm"
-          variant="ghost"
-          type="button"
-          onClick={onOpenPreview}
           className="-mr-3"
           disabled={totalFiles === 0}
+          size="sm"
+          type="button"
+          variant="ghost"
+          onClick={onOpenPreview}
         >
           <i className="i-mingcute-eye-2-line mr-1" />
           {t('addTorrent.preview.openModal')}

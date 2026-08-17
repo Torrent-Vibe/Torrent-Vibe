@@ -30,15 +30,15 @@ import {
 const MemoTableHeader = React.memo(TableHeader)
 
 export interface TorrentTableConfig {
-  table: Table<TorrentInfo>
-  data: TorrentInfo[]
-  getRowHeight: (index: number) => number
-  visibleLeafColumns: Column<TorrentInfo>[]
-  visibleColumnIds: string[]
-  gridTemplateColumns: string
-  minTableWidth: number
   // cumulative left offsets per visible column id (in px)
   columnOffsets: Record<string, number>
+  data: TorrentInfo[]
+  getRowHeight: (index: number) => number
+  gridTemplateColumns: string
+  minTableWidth: number
+  table: Table<TorrentInfo>
+  visibleColumnIds: string[]
+  visibleLeafColumns: Column<TorrentInfo>[]
 }
 
 export const TorrentTableList = () => {
@@ -89,8 +89,8 @@ function TorrentTableListImpl() {
     if (sortState.sortKey && sortState.sortDirection) {
       const currentSort = selectSortState(useTorrentDataStore.getState())
       if (
-        currentSort.sortKey !== sortState.sortKey
-        || currentSort.sortDirection !== sortState.sortDirection
+        currentSort.sortKey !== sortState.sortKey ||
+        currentSort.sortDirection !== sortState.sortDirection
       ) {
         torrentDataStoreSetters.setSorting(
           sortState.sortKey as keyof TorrentInfo,
@@ -127,9 +127,9 @@ function TorrentTableListImpl() {
       actions.updateColumnVisibility((prev) => {
         const next = typeof updater === 'function' ? updater(prev) : updater
         const visible = getAllColumns()
-          .filter(c => c.id !== 'select')
-          .map(c => c.id as string)
-          .filter(k => next[k] !== false)
+          .filter((c) => c.id !== 'select')
+          .map((c) => c.id as string)
+          .filter((k) => next[k] !== false)
         // Ensure at least one column visible (besides select)
         if (visible.length === 0) {
           return prev
@@ -157,10 +157,10 @@ function TorrentTableListImpl() {
   // Derive from TanStack state each render so changes (visibility/order/size)
   // immediately reflect in layout without stale memoization
   const visibleLeafColumns = table.getVisibleLeafColumns()
-  const visibleColumnIds = visibleLeafColumns.map(c => c.id)
+  const visibleColumnIds = visibleLeafColumns.map((c) => c.id)
 
   const gridTemplateColumns = visibleLeafColumns
-    .map(c => `${c.getSize()}px`)
+    .map((c) => `${c.getSize()}px`)
     .join(' ')
 
   // Compute cumulative left offsets for sticky support
@@ -196,10 +196,10 @@ function TorrentTableListImpl() {
 
   return (
     <DndContext
-      sensors={dragDrop.sensors}
       collisionDetection={closestCenter}
-      onDragStart={dragDrop.handleDragStart}
+      sensors={dragDrop.sensors}
       onDragEnd={dragDrop.handleDragEnd}
+      onDragStart={dragDrop.handleDragStart}
     >
       <TorrentTableVirtualViewport
         columnMenu={columnMenu}
@@ -244,7 +244,9 @@ function TorrentTableVirtualViewport({
 
   return (
     <div
+      className="relative flex flex-1 h-0 min-h-[400px] w-full flex-col overflow-hidden bg-background outline-none"
       id="fixed-data-table"
+      tabIndex={-1}
       ref={(el) => {
         setContainerElement(el)
         // attach TABLE focus scope to the viewport element
@@ -252,8 +254,6 @@ function TorrentTableVirtualViewport({
           setTableScopeRef(el)
         }
       }}
-      className="relative flex flex-1 h-0 min-h-[400px] w-full flex-col overflow-hidden bg-background outline-none"
-      tabIndex={-1}
       onKeyDown={handleKeyDown}
       onMouseDown={(event) => {
         event.currentTarget.focus({ preventScroll: true })
@@ -270,51 +270,49 @@ function TorrentTableVirtualViewport({
           <MemoTableHeader {...tableConfig} columnMenu={columnMenu} />
 
           <DragOverlay>
-            {dragState.isDragging && dragState.draggedColumnId
-              ? (
-                  <DragPreview columnId={dragState.draggedColumnId}>
-                    {titleCase(dragState.draggedColumnId)}
-                  </DragPreview>
-                )
-              : null}
+            {dragState.isDragging && dragState.draggedColumnId ? (
+              <DragPreview columnId={dragState.draggedColumnId}>
+                {titleCase(dragState.draggedColumnId)}
+              </DragPreview>
+            ) : null}
           </DragOverlay>
 
           <div
-            ref={setBodyElement}
             className="relative min-h-0 flex-1 overflow-hidden"
+            ref={setBodyElement}
           >
             <TableBody
               {...tableConfig}
-              rowVirtualizer={rowVirtualizer}
-              viewportHeight={bodyHeight}
+              logicalScrollMode
               headerHeight={headerHeight}
               isScrolling={isScrolling}
-              logicalScrollMode
+              rowVirtualizer={rowVirtualizer}
+              viewportHeight={bodyHeight}
             />
           </div>
         </div>
       </div>
 
       <LogicalVerticalScrollbar
-        viewportHeight={bodyHeight}
-        totalSize={totalSize}
         getScrollOffset={getScrollOffset}
         setScrollOffset={setScrollOffset}
         setScrollSamplingMode={setScrollSamplingMode}
+        totalSize={totalSize}
+        viewportHeight={bodyHeight}
       />
     </div>
   )
 }
 
 interface LogicalVerticalScrollbarProps {
-  viewportHeight: number
-  totalSize: number
   getScrollOffset: () => number
   setScrollOffset: (
     nextOffset: number | ((current: number) => number),
     isScrolling?: boolean,
   ) => void
   setScrollSamplingMode: (mode: 'default' | 'drag') => void
+  totalSize: number
+  viewportHeight: number
 }
 
 function LogicalVerticalScrollbar({
@@ -331,8 +329,8 @@ function LogicalVerticalScrollbar({
 
   const maxScrollOffset = Math.max(0, totalSize - viewportHeight)
 
-  const thumbHeight
-    = maxScrollOffset > 0
+  const thumbHeight =
+    maxScrollOffset > 0
       ? Math.max(28, Math.floor((viewportHeight / totalSize) * viewportHeight))
       : viewportHeight
   const maxThumbTop = Math.max(0, viewportHeight - thumbHeight)
@@ -346,14 +344,14 @@ function LogicalVerticalScrollbar({
       event.preventDefault()
 
       const deltaY = event.clientY - dragState.startY
-      const scrollDelta
-        = maxThumbTop > 0 ? (deltaY / maxThumbTop) * maxScrollOffset : 0
+      const scrollDelta =
+        maxThumbTop > 0 ? (deltaY / maxThumbTop) * maxScrollOffset : 0
 
       setScrollOffset(dragState.startOffset + scrollDelta)
     }
 
     const finishDrag = () => {
-      setScrollOffset(current => current)
+      setScrollOffset((current) => current)
       setScrollSamplingMode('default')
       setDragState(null)
     }

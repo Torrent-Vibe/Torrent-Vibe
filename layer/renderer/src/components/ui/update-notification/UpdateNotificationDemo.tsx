@@ -43,10 +43,10 @@ export const UpdateNotificationDemo = () => {
 
       <FloatingUpdatePill
         updateState={updateState}
+        onDismiss={() => setUpdateState(null)}
         onInstall={() => console.warn('Install clicked')}
         onLater={() => console.warn('Later clicked')}
         onRetry={() => console.warn('Retry clicked')}
-        onDismiss={() => setUpdateState(null)}
       />
     </div>
   )

@@ -9,8 +9,8 @@ import {
 } from '../components'
 
 interface IPFilteringSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const IPFilteringSection = ({
@@ -30,8 +30,8 @@ export const IPFilteringSection = ({
   return (
     <SettingSectionCard title={t('connection.ipFiltering.title')}>
       <SettingSwitchField
-        label={t('connection.ipFiltering.filterPathEnabled')}
         checked={ipFilterEnabled}
+        label={t('connection.ipFiltering.filterPathEnabled')}
         onCheckedChange={(v) => handleChange({ ip_filter_enabled: Boolean(v) })}
       />
       <SettingInputField
@@ -40,19 +40,19 @@ export const IPFilteringSection = ({
         onChange={(v) => handleChange({ ip_filter_path: v })}
       />
       <SettingSwitchField
+        checked={ipFilterTrackers}
         id="ip_filter_trackers"
         label={t('connection.ipFiltering.applyToTrackers')}
-        checked={ipFilterTrackers}
         onCheckedChange={(v) =>
           handleChange({ ip_filter_trackers: Boolean(v) })
         }
       />
       <SettingTextareaField
         label={t('connection.ipFiltering.bannedIPs')}
-        value={bannedIPs}
-        onChange={(v) => handleChange({ banned_IPs: v })}
         placeholder={t('connection.ipFiltering.placeholder') as any}
         rows={6}
+        value={bannedIPs}
+        onChange={(v) => handleChange({ banned_IPs: v })}
       />
     </SettingSectionCard>
   )

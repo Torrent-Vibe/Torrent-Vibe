@@ -6,28 +6,28 @@ import {
   ALL_MOBILE_FIELDS,
   DEFAULT_MOBILE_FIELDS,
 } from '../constants/mobile-fields'
-import type { MobileCellConfig,MobileCellField } from '../types'
+import type { MobileCellConfig, MobileCellField } from '../types'
 
 export interface MobileFieldConfigHook {
   // Current configuration
   config: MobileCellConfig
   fields: MobileCellField[]
-  visibleFields: MobileCellField[]
-
-  // Field management
-  updateFieldVisibility: (fieldId: string, visible: boolean) => void
-  updateFieldsConfig: (fields: MobileCellField[]) => void
   resetFields: () => void
 
   // Layout management
   setLayout: (layout: 'compact' | 'detailed') => void
   toggleProgressDisplay: () => void
+  updateFieldsConfig: (fields: MobileCellField[]) => void
 
+  // Field management
+  updateFieldVisibility: (fieldId: string, visible: boolean) => void
   // Validation
   validateConfig: (fields: MobileCellField[]) => {
     valid: boolean
     errors: string[]
   }
+
+  visibleFields: MobileCellField[]
 }
 
 export const useMobileFieldConfig = (): MobileFieldConfigHook => {

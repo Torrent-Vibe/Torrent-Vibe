@@ -3,100 +3,97 @@ import type {
   DiscoverProviderId,
 } from '~/atoms/settings/discover'
 
-export type DiscoverProviderConfig<T extends DiscoverProviderId>
-  = DiscoverProviderConfigMap[T]
+export type DiscoverProviderConfig<T extends DiscoverProviderId> =
+  DiscoverProviderConfigMap[T]
 
 export type DiscoverPreviewDescriptionRenderer = 'markdown' | 'bbcode'
 
-export type DiscoverItemEnrichmentStatus
-  = | 'idle'
-    | 'loading'
-    | 'success'
-    | 'error'
+export type DiscoverItemEnrichmentStatus =
+  'idle' | 'loading' | 'success' | 'error'
 
 export interface DiscoverItemImdbEnrichment {
-  id: string
-  title?: string | null
-  year?: number | null
-  rating?: number | null
-  votes?: number | null
-  runtimeMinutes?: number | null
+  actors?: string[]
+  awards?: string | null
+  countries?: string[]
+  directors?: string[]
+  fetchedAt: string
   genres?: string[]
+  id: string
+  languages?: string[]
   plot?: string | null
   posterUrl?: string | null
-  releasedAt?: string | null
   rated?: string | null
+  rating?: number | null
+  releasedAt?: string | null
+  runtimeMinutes?: number | null
+  title?: string | null
   type?: string | null
-  languages?: string[]
-  countries?: string[]
-  awards?: string | null
-  directors?: string[]
+  votes?: number | null
   writers?: string[]
-  actors?: string[]
-  fetchedAt: string
+  year?: number | null
 }
 
 export interface DiscoverItemImdbInfo {
-  url: string
+  enrichment?: DiscoverItemImdbEnrichment | null
+  enrichmentError?: string | null
+  enrichmentStatus?: DiscoverItemEnrichmentStatus
   id?: string | null
   rating?: number | null
-  enrichment?: DiscoverItemImdbEnrichment | null
-  enrichmentStatus?: DiscoverItemEnrichmentStatus
-  enrichmentError?: string | null
+  url: string
 }
 
 export interface DiscoverItemDoubanInfo {
-  url: string
   rating?: number | null
+  url: string
 }
 
 export interface DiscoverItemExternalRefs {
-  imdb?: DiscoverItemImdbInfo
-  douban?: DiscoverItemDoubanInfo
   [key: string]: unknown
+  douban?: DiscoverItemDoubanInfo
+  imdb?: DiscoverItemImdbInfo
 }
 
 export interface DiscoverItem {
-  id: string
-  providerId: DiscoverProviderId
-  title: string
-  sizeBytes?: number | null
+  category?: string | null
   createdAt?: string | null
-  seeders?: number | null
-  leechers?: number | null
-  snatches?: number | null
   discount?: string | null
   discountEndsAt?: string | null
-  category?: string | null
-  tags?: string[]
-  synopsis?: string | null
   external?: DiscoverItemExternalRefs
-  raw?: unknown
   extra?: Record<string, unknown>
+  id: string
+  leechers?: number | null
+  providerId: DiscoverProviderId
+  raw?: unknown
+  seeders?: number | null
+  sizeBytes?: number | null
+  snatches?: number | null
+  synopsis?: string | null
+  tags?: string[]
+  title: string
 }
 
 export interface DiscoverItemDetail extends DiscoverItem {
   description?: string | null
-  files?: Array<{ name: string, sizeBytes?: number | null }>
-  screenshots?: string[]
   extra?: Record<string, unknown>
+  files?: Array<{ name: string; sizeBytes?: number | null }>
+  screenshots?: string[]
 }
 
 export interface DiscoverSearchParams {
+  filters?: Record<string, unknown>
   keyword?: string
   page?: number
   pageSize?: number
-  filters?: Record<string, unknown>
   signal?: AbortSignal
 }
 
 export interface DiscoverSearchResponse<T = unknown> {
+  hasMore?: boolean
   items: DiscoverItem[]
-  total?: number | null
   page: number
   pageSize: number
-  hasMore?: boolean
   raw?: T
+  total?: number | null
   totalPages?: number | null
 }
 
@@ -106,43 +103,31 @@ export interface DiscoverDownloadParams {
 }
 
 export interface DiscoverDownloadInfo {
-  url: string
   expiresAt?: string | null
   filename?: string | null
   raw?: unknown
+  url: string
 }
 
 export type DiscoverFilterType = 'text' | 'select' | 'multi-select' | 'tags'
 
 export interface DiscoverFilterOption {
-  value: string
   label: I18nKeysForSettings
+  value: string
 }
 
 export interface DiscoverFilterDefinition {
-  id: string
-  type: DiscoverFilterType
-  label: I18nKeysForSettings
-  placeholder?: I18nKeysForSettings
-  description?: I18nKeysForSettings
-  options?: DiscoverFilterOption[]
-  defaultValue?: unknown
   allowEmpty?: boolean
+  defaultValue?: unknown
+  description?: I18nKeysForSettings
+  id: string
+  label: I18nKeysForSettings
+  options?: DiscoverFilterOption[]
+  placeholder?: I18nKeysForSettings
+  type: DiscoverFilterType
 }
 
 export interface DiscoverProviderImplementation<T extends DiscoverProviderId> {
-  id: T
-  label: string
-  previewDescriptionRenderer?: DiscoverPreviewDescriptionRenderer
-  isConfigReady: (config: DiscoverProviderConfig<T>) => boolean
-  search: (
-    params: DiscoverSearchParams,
-    config: DiscoverProviderConfig<T>,
-  ) => Promise<DiscoverSearchResponse>
-  getItemDetail?: (
-    params: DiscoverDownloadParams,
-    config: DiscoverProviderConfig<T>,
-  ) => Promise<DiscoverItemDetail>
   getDownloadUrl: (
     params: DiscoverDownloadParams,
     config: DiscoverProviderConfig<T>,
@@ -150,10 +135,22 @@ export interface DiscoverProviderImplementation<T extends DiscoverProviderId> {
   getFilterDefinitions?: (
     config: DiscoverProviderConfig<T>,
   ) => DiscoverFilterDefinition[]
+  getItemDetail?: (
+    params: DiscoverDownloadParams,
+    config: DiscoverProviderConfig<T>,
+  ) => Promise<DiscoverItemDetail>
+  id: T
+  isConfigReady: (config: DiscoverProviderConfig<T>) => boolean
+  label: string
   normalizeFilters?: (
     filters: Record<string, unknown>,
     config: DiscoverProviderConfig<T>,
   ) => Record<string, unknown>
+  previewDescriptionRenderer?: DiscoverPreviewDescriptionRenderer
+  search: (
+    params: DiscoverSearchParams,
+    config: DiscoverProviderConfig<T>,
+  ) => Promise<DiscoverSearchResponse>
 }
 
 export type DiscoverProviderRegistry = {

@@ -11,9 +11,9 @@ import { useTorrentAiTraceStore } from '~/modules/torrent-ai-trace/store'
 
 export const TorrentAiTraceApp = () => {
   const { t } = useTranslation()
-  const selectedRunId = useTorrentAiTraceStore(state => state.selectedRunId)
-  const runOrder = useTorrentAiTraceStore(state => state.runOrder)
-  const runs = useTorrentAiTraceStore(state => state.runs)
+  const selectedRunId = useTorrentAiTraceStore((state) => state.selectedRunId)
+  const runOrder = useTorrentAiTraceStore((state) => state.runOrder)
+  const runs = useTorrentAiTraceStore((state) => state.runs)
   const selected = selectedRunId ? runs[selectedRunId] : undefined
   const runItems = useMemo(
     () =>
@@ -48,20 +48,20 @@ export const TorrentAiTraceApp = () => {
         </p>
         <div className="no-drag-region min-w-0 flex-1">
           <ResponsiveSelect
+            items={runItems}
+            placeholder={t('torrent.ai.trace.selectRun')}
             size="sm"
+            triggerClassName="bg-material-medium"
             value={selectedRunId ?? ''}
             onValueChange={(value) => {
               TorrentAiTraceActions.shared.selectRun(value || null)
             }}
-            placeholder={t('torrent.ai.trace.selectRun')}
-            items={runItems}
-            triggerClassName="bg-material-medium"
           />
         </div>
         <Button
-          variant="secondary"
-          size="sm"
           disabled={!selected}
+          size="sm"
+          variant="secondary"
           onClick={async () => {
             if (!selected) {
               return
@@ -83,33 +83,30 @@ export const TorrentAiTraceApp = () => {
         </Button>
       </header>
       <main className="min-h-0 flex-1 overflow-auto px-4 py-4">
-        {selected
-          ? (
-              <TorrentAiTraceChart run={selected} />
-            )
-          : (
-              <p className="py-16 text-center text-sm text-text-tertiary">
-                {t('torrent.ai.trace.empty')}
-              </p>
-            )}
+        {selected ? (
+          <TorrentAiTraceChart run={selected} />
+        ) : (
+          <p className="py-16 text-center text-sm text-text-tertiary">
+            {t('torrent.ai.trace.empty')}
+          </p>
+        )}
       </main>
-      {selected
-        ? (
-            <footer className="shrink-0 border-t border-border px-4 py-2 text-[11px] text-text-secondary">
-              {t('torrent.ai.trace.cacheSummary', {
-                broke: selected.events.filter(
-                  event => event.type === 'cache_broke',
-                ).length,
-                total: new Set(
-                  selected.events
-                    .filter(event => event.type === 'call_compiled')
-                    .map(event =>
-                      event.type === 'call_compiled' ? event.callIndex : null),
-                ).size,
-              })}
-            </footer>
-          )
-        : null}
+      {selected ? (
+        <footer className="shrink-0 border-t border-border px-4 py-2 text-[11px] text-text-secondary">
+          {t('torrent.ai.trace.cacheSummary', {
+            broke: selected.events.filter(
+              (event) => event.type === 'cache_broke',
+            ).length,
+            total: new Set(
+              selected.events
+                .filter((event) => event.type === 'call_compiled')
+                .map((event) =>
+                  event.type === 'call_compiled' ? event.callIndex : null,
+                ),
+            ).size,
+          })}
+        </footer>
+      ) : null}
     </div>
   )
 }

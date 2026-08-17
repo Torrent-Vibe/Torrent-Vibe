@@ -22,7 +22,7 @@ export const HelperPairingPanel = ({
   name?: string
 }) => {
   const { t } = useTranslation('app')
-  const binding = useHelperBindingsStore(state => state.bindings[serverId])
+  const binding = useHelperBindingsStore((state) => state.bindings[serverId])
   const probeUrl = useMemo(() => sameHostDiscoverUrl(host), [host])
   const [manualUrl, setManualUrl] = useState(binding?.url ?? probeUrl)
   const [busy, setBusy] = useState(false)
@@ -68,8 +68,7 @@ export const HelperPairingPanel = ({
             : 'servers.helper.pairFailed',
         ),
       )
-    }
-    finally {
+    } finally {
       busyRef.current = false
       setBusy(false)
     }
@@ -119,68 +118,66 @@ export const HelperPairingPanel = ({
         </div>
         {binding && (
           <Button
+            disabled={busy}
             size="sm"
             variant="ghost"
             onClick={() => {
               void handleUnbind()
             }}
-            disabled={busy}
           >
             {t('servers.helper.unbind')}
           </Button>
         )}
       </div>
 
-      {binding
-        ? (
-            <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-text [&::-webkit-details-marker]:hidden">
-                <i className="i-mingcute-down-line text-sm transition-transform duration-200 group-open:rotate-180" />
-                {t('servers.helper.configTitle')}
-              </summary>
-              <div className="mt-3 ml-1 border-l border-border/60 pl-4">
-                <HelperConfigForm serverId={serverId} />
-              </div>
-            </details>
-          )
-        : (
-            <>
-              {electron && (
-                <HelperMdnsList
-                  serverId={serverId}
-                  onSelect={(url) => {
-                    setManualUrl(url)
-                    void connect(url)
-                  }}
-                />
-              )}
-
-              <div className="flex gap-2">
-                <Input
-                  value={manualUrl}
-                  onChange={event => setManualUrl(event.target.value)}
-                  placeholder={probeUrl}
-                  aria-label={t('servers.helper.manualUrl')}
-                />
-                <Button
-                  size="sm"
-                  disabled={busy || !manualUrl.trim()}
-                  onClick={() => {
-                    void connect(manualUrl)
-                  }}
-                >
-                  {busy && (
-                    <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
-                  )}
-                  {busy
-                    ? t('servers.helper.connecting')
-                    : t('servers.helper.connect')}
-                </Button>
-              </div>
-
-              {electron && <HelperInstallSnippet />}
-            </>
+      {binding ? (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-text [&::-webkit-details-marker]:hidden">
+            <i className="i-mingcute-down-line text-sm transition-transform duration-200 group-open:rotate-180" />
+            {t('servers.helper.configTitle')}
+          </summary>
+          <div className="mt-3 ml-1 border-l border-border/60 pl-4">
+            <HelperConfigForm serverId={serverId} />
+          </div>
+        </details>
+      ) : (
+        <>
+          {electron && (
+            <HelperMdnsList
+              serverId={serverId}
+              onSelect={(url) => {
+                setManualUrl(url)
+                void connect(url)
+              }}
+            />
           )}
+
+          <div className="flex gap-2">
+            <Input
+              aria-label={t('servers.helper.manualUrl')}
+              placeholder={probeUrl}
+              value={manualUrl}
+              onChange={(event) => setManualUrl(event.target.value)}
+            />
+            <Button
+              disabled={busy || !manualUrl.trim()}
+              size="sm"
+              onClick={() => {
+                void connect(manualUrl)
+              }}
+            >
+              {busy && (
+                <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
+              )}
+              {busy
+                ? t('servers.helper.connecting')
+                : t('servers.helper.connect')}
+            </Button>
+          </div>
+
+          {electron && <HelperInstallSnippet />}
+        </>
+      )}
     </div>
   )
 }

@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { cn } from '~/lib/cn'
 
 export interface FloatingResizeHandlesProps {
-  width: number
   height: number
-  minWidth?: number
+  maxHeight?: number
   maxWidth?: number
   minHeight?: number
-  maxHeight?: number
-  onWidthChange?: (width: number) => void
-  onHeightChange?: (height: number) => void
-  onCommit?: (size: { width: number; height: number }) => void
+  minWidth?: number
   /** Gap from viewport edges (matches panel offset). Default: 16 */
   offset?: number
+  onCommit?: (size: { width: number; height: number }) => void
+  onHeightChange?: (height: number) => void
+  onWidthChange?: (width: number) => void
+  width: number
 }
 
 /**

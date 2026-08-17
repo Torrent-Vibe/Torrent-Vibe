@@ -8,29 +8,29 @@ import type {
 
 // Define the persistable form data (excluding files and magnetLinks)
 export interface PersistableTorrentFormData {
+  autoTMM?: boolean
+  category?: string
+  cookie?: string
+  firstLastPiecePrio?: boolean
+  limitDownloadKiBs: string
+  limitUploadKiBs: string
+
   method: InputMethod
+  // Numeric limits (stored as optional numbers)
+  ratioLimit?: number
+  rename?: string
+  root_folder?: boolean
   // Basic settings
   savepath?: string
-  category?: string
-  tags?: string
-  rename?: string
-  cookie?: string
+
+  seedingTimeLimit?: number
+  sequentialDownload?: boolean
 
   // Boolean options (stored as optional booleans)
   skip_checking?: boolean
-  root_folder?: boolean
-  autoTMM?: boolean
-  sequentialDownload?: boolean
-  firstLastPiecePrio?: boolean
-
-  // Numeric limits (stored as optional numbers)
-  ratioLimit?: number
-  seedingTimeLimit?: number
-
   // UI helper fields (always persisted)
   startTorrent: boolean
-  limitDownloadKiBs: string
-  limitUploadKiBs: string
+  tags?: string
 }
 
 // Default values for persistent form data

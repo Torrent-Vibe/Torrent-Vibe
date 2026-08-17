@@ -57,15 +57,15 @@ export const DiscoverFilterBar = () => {
             }`}
           >
             <Label
-              variant="form"
               className="text-xs font-medium text-text-secondary"
+              variant="form"
             >
               {tSetting(definition.label)}
             </Label>
             <Select
+              disabled={disabled}
               value={String(value ?? '')}
               onValueChange={(next) => handleFilterChange(definition.id, next)}
-              disabled={disabled}
             >
               <SelectTrigger className="h-9 w-full">
                 <SelectValue
@@ -90,16 +90,17 @@ export const DiscoverFilterBar = () => {
       case 'tags': {
         return (
           <div
-            key={definition.id}
             className="flex w-full flex-col gap-1 lg:order-2 lg:min-w-[16rem] lg:flex-1"
+            key={definition.id}
           >
             <Label
-              variant="form"
               className="text-xs font-medium text-text-secondary"
+              variant="form"
             >
               {tSetting(definition.label)}
             </Label>
             <Input
+              disabled={disabled}
               value={Array.isArray(value) ? value.join(', ') : ''}
               placeholder={
                 definition.placeholder
@@ -114,7 +115,6 @@ export const DiscoverFilterBar = () => {
                   .filter(Boolean)
                 handleFilterChange(definition.id, parsed)
               }}
-              disabled={disabled}
             />
           </div>
         )
@@ -148,13 +148,17 @@ export const DiscoverFilterBar = () => {
   const labelledBy = filterDefinitions.length > 0 ? filtersHeadingId : undefined
 
   return (
-    <form onSubmit={handleSubmit} className="px-4" aria-labelledby={labelledBy}>
+    <form
+      aria-labelledby={labelledBy}
+      className="mt-3 px-4"
+      onSubmit={handleSubmit}
+    >
       <div className="rounded-lg border border-border bg-background-secondary/40 p-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-3">
           <div className="flex w-full flex-col gap-1.5 lg:order-1 lg:flex-[2]">
             <Label
-              variant="form"
               className="text-xs font-medium uppercase tracking-wide text-text-tertiary"
+              variant="form"
             >
               {t('discover.modal.keywordLabel')}
             </Label>
@@ -164,16 +168,16 @@ export const DiscoverFilterBar = () => {
           </div>
           {filterDefinitions.map((definition) => renderFilterField(definition))}
           <div className="flex shrink-0 items-center gap-1.5 lg:order-3 lg:self-end">
-            <Button size="sm" type="submit" disabled={disabled || isSearching}>
+            <Button disabled={disabled || isSearching} size="sm" type="submit">
               <i className="i-mingcute-search-2-line mr-2" />
               <span>{t('discover.modal.search')}</span>
             </Button>
             <Button
+              disabled={isSearching}
+              size="sm"
               type="button"
               variant="secondary"
               onClick={() => form.resetSearch()}
-              disabled={isSearching}
-              size="sm"
             >
               {t('discover.modal.reset')}
             </Button>

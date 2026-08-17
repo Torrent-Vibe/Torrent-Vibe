@@ -11,11 +11,11 @@ import { CELL_RENDERERS } from './cells/StaticCellRenderers'
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line unused-imports/no-unused-vars
   interface TableMeta<TData extends RowData> {
+    handleSort?: (key: keyof TorrentInfo, direction: 'asc' | 'desc') => void
     sortState?: {
       sortKey?: keyof TorrentInfo
       sortDirection?: 'asc' | 'desc'
     }
-    handleSort?: (key: keyof TorrentInfo, direction: 'asc' | 'desc') => void
   }
 }
 
@@ -40,14 +40,14 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
-          label={'torrent.columns.name'}
-          sortable={true}
-          onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="name"
           align="left"
           cellClassName="px-4"
+          columnKey="name"
+          label={'torrent.columns.name'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
+          sortable={true}
+          onSort={table.options.meta?.handleSort}
         />
       )
     },
@@ -67,13 +67,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="size"
           label={'torrent.columns.size'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="size"
-          align="right"
         />
       )
     },
@@ -93,13 +93,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="progress"
           label={'torrent.columns.progress'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="progress"
-          align="center"
         />
       )
     },
@@ -119,13 +119,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="dlspeed"
           label={'torrent.columns.downloadSpeed'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="dlspeed"
-          align="right"
         />
       )
     },
@@ -145,13 +145,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="upspeed"
           label={'torrent.columns.uploadSpeed'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="upspeed"
-          align="right"
         />
       )
     },
@@ -171,13 +171,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="eta"
           label={'torrent.columns.eta'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="eta"
-          align="center"
         />
       )
     },
@@ -195,13 +195,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="ratio"
           label={'torrent.columns.ratio'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="ratio"
-          align="center"
         />
       )
     },
@@ -221,13 +221,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="state"
           label={'torrent.columns.status'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="state"
-          align="center"
         />
       )
     },
@@ -247,13 +247,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="priority"
           label={'torrent.columns.priority'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="priority"
-          align="center"
         />
       )
     },
@@ -274,13 +274,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="left"
+          columnKey="tracker"
           label={'torrent.columns.tracker'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="tracker"
-          align="left"
         />
       )
     },
@@ -301,13 +301,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="left"
+          columnKey="category"
           label={'torrent.columns.category'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="category"
-          align="left"
         />
       )
     },
@@ -328,13 +328,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="left"
+          columnKey="tags"
           label={'torrent.columns.tags'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="tags"
-          align="left"
         />
       )
     },
@@ -355,13 +355,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="num_seeds"
           label={'torrent.columns.seeds'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="num_seeds"
-          align="center"
         />
       )
     },
@@ -382,13 +382,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="center"
+          columnKey="num_leechs"
           label={'torrent.columns.peers'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="num_leechs"
-          align="center"
         />
       )
     },
@@ -409,13 +409,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="downloaded"
           label={'torrent.columns.downloaded'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="downloaded"
-          align="right"
         />
       )
     },
@@ -436,13 +436,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="uploaded"
           label={'torrent.columns.uploaded'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="uploaded"
-          align="right"
         />
       )
     },
@@ -463,13 +463,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="amount_left"
           label={'torrent.columns.remaining'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="amount_left"
-          align="right"
         />
       )
     },
@@ -490,13 +490,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="time_active"
           label={'torrent.columns.activeTime'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="time_active"
-          align="right"
         />
       )
     },
@@ -517,13 +517,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="seeding_time"
           label={'torrent.columns.seedingTime'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="seeding_time"
-          align="right"
         />
       )
     },
@@ -544,13 +544,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="added_on"
           label={'torrent.columns.addedOn'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="added_on"
-          align="right"
         />
       )
     },
@@ -569,13 +569,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="completion_on"
           label={'torrent.columns.completedOn'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="completion_on"
-          align="right"
         />
       )
     },
@@ -595,13 +595,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="right"
+          columnKey="last_activity"
           label={'torrent.columns.lastActivity'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="last_activity"
-          align="right"
         />
       )
     },
@@ -620,13 +620,13 @@ const tableAllColumns: ColumnDef<TorrentInfo>[] = [
       const { sortKey, sortDirection } = table.options.meta?.sortState || {}
       return (
         <HeaderCell
+          align="left"
+          columnKey="save_path"
           label={'torrent.columns.savePath'}
+          sortDirection={sortDirection}
+          sortKey={sortKey as keyof TorrentInfo}
           sortable={true}
           onSort={table.options.meta?.handleSort}
-          sortKey={sortKey as keyof TorrentInfo}
-          sortDirection={sortDirection}
-          columnKey="save_path"
-          align="left"
         />
       )
     },

@@ -15,8 +15,8 @@ import {
 } from '~/modules/torrent/hooks/use-torrent-computed'
 
 interface SpeedIndicatorsProps {
-  variant?: 'compact' | 'standard'
   showTotalData?: boolean
+  variant?: 'compact' | 'standard'
 }
 
 const SPEED_HISTORY_LENGTH = 60
@@ -100,9 +100,9 @@ const useSpeedHistory = (
 }
 
 interface SpeedSparklineProps {
-  data: number[]
-  colorClass: string
   ariaLabel: string
+  colorClass: string
+  data: number[]
 }
 
 const SpeedSparkline = ({
@@ -149,37 +149,37 @@ const SpeedSparkline = ({
 
   return (
     <div
-      ref={containerRef}
-      role="img"
       aria-label={ariaLabel}
       className={`h-20 w-full ${colorClass}`}
+      ref={containerRef}
+      role="img"
     >
       {containerWidth > 0 ? (
         <AreaChart
-          width={containerWidth}
-          height={80}
           data={chartData}
+          height={80}
           margin={{ top: 8, right: 0, left: 0, bottom: 8 }}
+          width={containerWidth}
         >
-          <XAxis dataKey="index" hide tickLine={false} axisLine={false} />
+          <XAxis hide axisLine={false} dataKey="index" tickLine={false} />
           <YAxis
+            allowDecimals
             hide
-            tickLine={false}
             axisLine={false}
             domain={[0, yDomainMax]}
-            allowDecimals
+            tickLine={false}
           />
           <Area
-            type="monotone"
+            activeDot={false}
             dataKey="value"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeOpacity={0.8}
+            dot={false}
             fill="currentColor"
             fillOpacity={0.16}
             isAnimationActive={false}
-            dot={false}
-            activeDot={false}
+            stroke="currentColor"
+            strokeOpacity={0.8}
+            strokeWidth={1.5}
+            type="monotone"
           />
         </AreaChart>
       ) : null}
@@ -189,12 +189,12 @@ const SpeedSparkline = ({
 
 interface SpeedMetricsHoverContentProps {
   downloadHistory: number[]
-  uploadHistory: number[]
   downloadSpeedText: string
-  uploadSpeedText: string
+  freeSpaceOnDisk: number
   totalDownloaded: number
   totalUploaded: number
-  freeSpaceOnDisk: number
+  uploadHistory: number[]
+  uploadSpeedText: string
 }
 
 const SpeedMetricsHoverContent = ({
@@ -223,9 +223,9 @@ const SpeedMetricsHoverContent = ({
           </span>
         </div>
         <SpeedSparkline
-          data={downloadHistory}
-          colorClass="text-blue"
           ariaLabel={t('status.download_speed')}
+          colorClass="text-blue"
+          data={downloadHistory}
         />
       </div>
 
@@ -237,9 +237,9 @@ const SpeedMetricsHoverContent = ({
           </span>
         </div>
         <SpeedSparkline
-          data={uploadHistory}
-          colorClass="text-green"
           ariaLabel={t('status.upload_speed')}
+          colorClass="text-green"
+          data={uploadHistory}
         />
       </div>
 
@@ -374,20 +374,20 @@ export const SpeedIndicators = ({
 
   return (
     <HoverCard
-      openDelay={120}
       closeDelay={120}
+      openDelay={120}
       onOpenChange={handleHoverCardOpenChange}
     >
       <HoverCardTrigger asChild>{indicatorContent}</HoverCardTrigger>
-      <HoverCardContent align="end" sideOffset={12} className="space-y-4">
+      <HoverCardContent align="end" className="space-y-4" sideOffset={12}>
         <SpeedMetricsHoverContent
           downloadHistory={downloadHistory}
-          uploadHistory={uploadHistory}
           downloadSpeedText={downloadSpeedInfo.text}
-          uploadSpeedText={uploadSpeedInfo.text}
+          freeSpaceOnDisk={freeSpaceOnDisk}
           totalDownloaded={totalDownloaded}
           totalUploaded={totalUploaded}
-          freeSpaceOnDisk={freeSpaceOnDisk}
+          uploadHistory={uploadHistory}
+          uploadSpeedText={uploadSpeedInfo.text}
         />
         <HoverCardArrow />
       </HoverCardContent>

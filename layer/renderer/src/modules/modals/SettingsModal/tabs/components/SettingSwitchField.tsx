@@ -5,11 +5,11 @@ import { Switch } from '~/components/ui/switch'
 import { SettingField } from './SettingField'
 
 interface SettingSwitchFieldProps {
+  checked: boolean
+  description?: ReactNode
+  disabled?: boolean
   id?: string
   label: ReactNode
-  description?: ReactNode
-  checked: boolean
-  disabled?: boolean
   onCheckedChange: (checked: boolean) => void
 }
 
@@ -22,12 +22,12 @@ export const SettingSwitchField = ({
   onCheckedChange,
 }: SettingSwitchFieldProps) => {
   return (
-    <SettingField label={label} description={description} htmlFor={id}>
+    <SettingField description={description} htmlFor={id} label={label}>
       <Switch
-        key={id}
-        id={id}
         checked={checked}
         disabled={disabled}
+        id={id}
+        key={id}
         onCheckedChange={(v) => onCheckedChange(Boolean(v))}
       />
     </SettingField>

@@ -58,7 +58,7 @@ export const firstNonEmptyString = (
 export const normalizeDescription = (value: string): string => {
   return value
     .replaceAll('\r\n', '\n')
-    .replaceAll(/\[img\][\s\S]*?\[\/img\]/gi, '')
+    .replaceAll(/\[img][\S\s]*?\[\/img]/gi, '')
     .trim()
 }
 
@@ -148,6 +148,6 @@ export const handleErrorResponse = async (response: Response) => {
     }
   } catch (error) {
     if (error instanceof Error) throw error
-    throw new Error(fallback)
+    throw new Error(fallback, { cause: error })
   }
 }

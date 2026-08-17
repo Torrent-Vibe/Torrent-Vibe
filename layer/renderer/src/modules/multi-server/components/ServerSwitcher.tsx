@@ -43,7 +43,7 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
 
   const { switchTo } = useServerSwitching()
 
-  const { order, servers, activeServerId } = useMultiServerStore(s => ({
+  const { order, servers, activeServerId } = useMultiServerStore((s) => ({
     order: s.order,
     servers: s.servers,
     activeServerId: s.activeServerId,
@@ -54,7 +54,7 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
       return
     }
     saveMultiServerConfig({
-      servers: order.map(id => servers[id]).filter(Boolean),
+      servers: order.map((id) => servers[id]).filter(Boolean),
       activeServerId,
     })
   }, [order, servers, activeServerId])
@@ -66,8 +66,9 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
     return servers[activeServerId]?.name ?? 'Unknown'
   }, [activeServerId, servers])
 
-  const health = useServerHealthStore(s =>
-    activeServerId ? s.results[activeServerId] : undefined)
+  const health = useServerHealthStore((s) =>
+    activeServerId ? s.results[activeServerId] : undefined,
+  )
 
   if (!ELECTRON) {
     return null
@@ -93,16 +94,16 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="ghost"
-            size="md"
             className={className}
+            size="md"
             title="Switch server"
+            variant="ghost"
           >
             <ServerIconWithStatus
-              variant={healthToVariant(health)}
+              className="mr-2"
               size="md"
               title={healthToTitle(health)}
-              className="mr-2"
+              variant={healthToVariant(health)}
             />
             <span className="text-xs">{activeName}</span>
             <i className="i-mingcute-down-line ml-1 text-xs opacity-60" />
@@ -149,17 +150,17 @@ export const ServerSwitcher = ({ className }: ServerSwitcherProps) => {
   // For exactly 2 servers: simple toggle behavior
   return (
     <Button
-      variant="ghost"
-      size="sm"
       className={className}
-      onClick={handleToggle}
+      size="sm"
       title="Click to switch between servers"
+      variant="ghost"
+      onClick={handleToggle}
     >
       <ServerIconWithStatus
-        variant={healthToVariant(health)}
+        className="mr-2"
         size="md"
         title={healthToTitle(health)}
-        className="mr-2"
+        variant={healthToVariant(health)}
       />
       <span className="text-xs">{activeName}</span>
       <i className="i-mingcute-repeat-line ml-1 text-xs opacity-60" />

@@ -55,8 +55,8 @@ export const Layout = () => {
 
       {/* Drag overlay for file uploads */}
       <DragOverlay
-        isVisible={dragDropState.isDragging && dragDropState.hasValidFiles}
         isDragOver={dragDropState.isDragOver}
+        isVisible={dragDropState.isDragging && dragDropState.hasValidFiles}
       />
     </div>
   )

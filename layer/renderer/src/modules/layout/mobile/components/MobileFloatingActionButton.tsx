@@ -16,10 +16,10 @@ import {
 
 interface MobileFloatingActionButtonProps {
   className?: string
-  position?: 'bottom-right' | 'bottom-left' | 'bottom-center'
-  offset?: { x: number; y: number }
   hideOnMultiSelect?: boolean
   hideOnScroll?: boolean
+  offset?: { x: number; y: number }
+  position?: 'bottom-right' | 'bottom-left' | 'bottom-center'
 }
 
 const defaultOffset = { x: 24, y: 24 }
@@ -104,6 +104,11 @@ export const MobileExpandableFloatingActionButton = ({
     <AnimatePresence mode="wait">
       {shouldShow && (
         <m.div
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          initial={{ scale: 0, opacity: 0 }}
+          style={positionStyles}
+          transition={Spring.presets.bouncy}
           className={cn(
             'fixed z-30 flex flex-col items-end gap-3',
             positionClasses[position],
@@ -111,32 +116,27 @@ export const MobileExpandableFloatingActionButton = ({
             position === 'bottom-center' && 'items-center',
             className,
           )}
-          style={positionStyles}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
-          transition={Spring.presets.bouncy}
         >
           {/* Action buttons */}
           <AnimatePresence>
             {isExpanded && (
               <m.div
-                className="flex flex-col gap-3"
-                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-3"
                 exit={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 20 }}
                 transition={Spring.presets.smooth}
               >
                 {actions.map((action, index) => (
                   <m.div
-                    key={action.label}
-                    initial={{ opacity: 0, scale: 0, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="flex items-center gap-3"
+                    initial={{ opacity: 0, scale: 0, y: 20 }}
+                    key={action.label}
                     transition={{
                       ...Spring.presets.bouncy,
                       delay: index * 0.05,
                     }}
-                    className="flex items-center gap-3"
                   >
                     {/* Label */}
                     <div
@@ -168,6 +168,8 @@ export const MobileExpandableFloatingActionButton = ({
 
           {/* Main FAB */}
           <Button
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Close actions' : 'Open actions'}
             variant="primary"
             className={cn(
               'h-14 w-14 rounded-full shadow-lg',
@@ -175,8 +177,6 @@ export const MobileExpandableFloatingActionButton = ({
               'transition-all duration-200',
             )}
             onClick={handleToggleExpand}
-            aria-label={isExpanded ? 'Close actions' : 'Open actions'}
-            aria-expanded={isExpanded}
           >
             <i
               className={cn(

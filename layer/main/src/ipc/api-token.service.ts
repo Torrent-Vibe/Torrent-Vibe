@@ -7,9 +7,9 @@ import type {
 import { ApiTokenStore } from '../services/api-token-store'
 
 interface SetValuePayload {
+  encryption: ApiTokenEncryption
   id: string
   value: string
-  encryption: ApiTokenEncryption
 }
 
 export class ApiTokenIPCService extends IpcService {

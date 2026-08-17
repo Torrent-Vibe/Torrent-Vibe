@@ -5,32 +5,32 @@ import { createWithEqualityFn } from 'zustand/traditional'
 import type { MultiServerConfig, ServerConnection } from '../types/multi-server'
 
 interface MultiServerState {
-  servers: Record<string, ServerConnection>
-  order: string[]
   activeServerId: string | null
+  order: string[]
+  servers: Record<string, ServerConnection>
   switchingToServerId: string | null
 }
 
 interface MultiServerActions {
   addServer: (server: ServerConnection) => void
-  updateServer: (serverId: string, patch: Partial<ServerConnection>) => void
   removeServer: (serverId: string) => void
+  replaceAll: (config: MultiServerConfig) => void
   setActiveServer: (serverId: string | null) => void
   setSwitching: (serverId: string | null) => void
-  replaceAll: (config: MultiServerConfig) => void
+  updateServer: (serverId: string, patch: Partial<ServerConnection>) => void
 }
 
 export type MultiServerStore = MultiServerState & MultiServerActions
 
 export const useMultiServerStore = createWithEqualityFn<MultiServerStore>()(
   subscribeWithSelector(
-    immer(set => ({
+    immer((set) => ({
       servers: {},
       order: [],
       activeServerId: null,
       switchingToServerId: null,
 
-      addServer: server =>
+      addServer: (server) =>
         set((draft) => {
           draft.servers[server.id] = server
           if (!draft.order.includes(server.id)) {
@@ -50,31 +50,31 @@ export const useMultiServerStore = createWithEqualityFn<MultiServerStore>()(
           Object.assign(s, patch)
         }),
 
-      removeServer: serverId =>
+      removeServer: (serverId) =>
         set((draft) => {
           delete draft.servers[serverId]
-          draft.order = draft.order.filter(id => id !== serverId)
+          draft.order = draft.order.filter((id) => id !== serverId)
           if (draft.activeServerId === serverId) {
             draft.activeServerId = draft.order[0] ?? null
           }
         }),
 
-      setActiveServer: serverId =>
+      setActiveServer: (serverId) =>
         set((draft) => {
           draft.activeServerId = serverId
         }),
 
-      setSwitching: serverId =>
+      setSwitching: (serverId) =>
         set((draft) => {
           draft.switchingToServerId = serverId
         }),
 
-      replaceAll: config =>
+      replaceAll: (config) =>
         set((draft) => {
           draft.servers = Object.fromEntries(
-            config.servers.map(s => [s.id, s]),
+            config.servers.map((s) => [s.id, s]),
           ) as Record<string, ServerConnection>
-          draft.order = config.servers.map(s => s.id)
+          draft.order = config.servers.map((s) => s.id)
           draft.activeServerId = config.activeServerId
         }),
     })),
@@ -90,7 +90,7 @@ export const multiServerStoreSetters: Pick<
   | 'setSwitching'
   | 'replaceAll'
 > = {
-  addServer: server => useMultiServerStore.getState().addServer(server),
+  addServer: (server) => useMultiServerStore.getState().addServer(server),
   updateServer: (id, patch) =>
     useMultiServerStore.getState().updateServer(id, patch),
   removeServer: (id) => {
@@ -99,7 +99,7 @@ export const multiServerStoreSetters: Pick<
       void SubscriptionActions.shared.forgetServer(id)
     })
   },
-  setActiveServer: id => useMultiServerStore.getState().setActiveServer(id),
-  setSwitching: id => useMultiServerStore.getState().setSwitching(id),
-  replaceAll: config => useMultiServerStore.getState().replaceAll(config),
+  setActiveServer: (id) => useMultiServerStore.getState().setActiveServer(id),
+  setSwitching: (id) => useMultiServerStore.getState().setSwitching(id),
+  replaceAll: (config) => useMultiServerStore.getState().replaceAll(config),
 }

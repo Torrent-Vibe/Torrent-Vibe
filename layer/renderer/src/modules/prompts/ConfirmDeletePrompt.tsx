@@ -1,11 +1,11 @@
 import { Prompt } from '../../components/ui/prompts/Prompt'
 
 export interface ConfirmDeleteOptions {
-  title: string
   itemName: string
   itemType?: 'category' | 'tag' | 'item'
-  onConfirm: () => void | Promise<void>
   onCancel?: () => void | Promise<void>
+  onConfirm: () => void | Promise<void>
+  title: string
 }
 
 export const ConfirmDeletePrompt = {

@@ -70,10 +70,10 @@ export const Onboarding = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { t } = useTranslation()
-  const [validationState, setValidationState]
-    = useState<ValidationState>('idle')
-  const [validationError, setValidationError]
-    = useState<ValidationError | null>(null)
+  const [validationState, setValidationState] =
+    useState<ValidationState>('idle')
+  const [validationError, setValidationError] =
+    useState<ValidationError | null>(null)
 
   const FORM_VALIDATION = {
     hostMessage: t(FORM_VALIDATION_KEYS.hostMessage),
@@ -125,20 +125,24 @@ export const Onboarding = () => {
     const parseBoolean = (
       value: string | null | undefined,
     ): boolean | undefined => {
-      if (!value) { return undefined }
+      if (!value) {
+        return undefined
+      }
       const normalized = value.toLowerCase()
       return (
-        normalized === '1'
-        || normalized === 'true'
-        || normalized === 'yes'
-        || normalized === 'on'
+        normalized === '1' ||
+        normalized === 'true' ||
+        normalized === 'yes' ||
+        normalized === 'on'
       )
     }
 
     const getParamValue = (keys: readonly string[]): string | null => {
       for (const key of keys) {
         const value = searchParams.get(key)
-        if (value) { return value }
+        if (value) {
+          return value
+        }
       }
       return null
     }
@@ -153,8 +157,7 @@ export const Onboarding = () => {
           port: url.port ? Number(url.port) : undefined,
           useHttps: url.protocol === 'https:',
         }
-      }
-      catch {
+      } catch {
         // ignore invalid URL
       }
     }
@@ -165,8 +168,8 @@ export const Onboarding = () => {
       username: getParamValue(PARAM_MAPPINGS.username),
       password: getParamValue(PARAM_MAPPINGS.password),
       useHttps:
-        window.location.protocol === 'https:'
-        || parseBoolean(getParamValue(PARAM_MAPPINGS.useHttps)),
+        window.location.protocol === 'https:' ||
+        parseBoolean(getParamValue(PARAM_MAPPINGS.useHttps)),
       rememberPassword: parseBoolean(
         getParamValue(PARAM_MAPPINGS.rememberPassword),
       ),
@@ -174,42 +177,42 @@ export const Onboarding = () => {
 
     return {
       host:
-        paramValues.host
-        || urlConfig.host
-        || (localStorageData.host as string | undefined)
-        || initial.host
-        || '',
+        paramValues.host ||
+        urlConfig.host ||
+        (localStorageData.host as string | undefined) ||
+        initial.host ||
+        '',
       port:
         (paramValues.port && !Number.isNaN(Number(paramValues.port))
           ? Number(paramValues.port)
-          : undefined)
-        || urlConfig.port
-        || (localStorageData.port as number | undefined)
-        || initial.port
-        || undefined,
+          : undefined) ||
+        urlConfig.port ||
+        (localStorageData.port as number | undefined) ||
+        initial.port ||
+        undefined,
       username:
-        paramValues.username
-        || (localStorageData.username as string | undefined)
-        || initial.username
-        || '',
+        paramValues.username ||
+        (localStorageData.username as string | undefined) ||
+        initial.username ||
+        '',
       password:
-        paramValues.password
-        || (localStorageData.password as string | undefined)
-        || initial.password
-        || '',
+        paramValues.password ||
+        (localStorageData.password as string | undefined) ||
+        initial.password ||
+        '',
       useHttps:
-        window.location.protocol === 'https:'
-        || (paramValues.useHttps
-          ?? urlConfig.useHttps
-          ?? (localStorageData.useHttps as boolean | undefined)
-          ?? (typeof globalThis !== 'undefined'
-            && globalThis.location?.protocol === 'https:')
-          ?? true),
+        window.location.protocol === 'https:' ||
+        (paramValues.useHttps ??
+          urlConfig.useHttps ??
+          (localStorageData.useHttps as boolean | undefined) ??
+          (typeof globalThis !== 'undefined' &&
+            globalThis.location?.protocol === 'https:') ??
+          true),
       rememberPassword:
-        paramValues.rememberPassword
-        ?? (localStorageData.rememberPassword as boolean | undefined)
-        ?? saved?.rememberPassword
-        ?? false,
+        paramValues.rememberPassword ??
+        (localStorageData.rememberPassword as boolean | undefined) ??
+        saved?.rememberPassword ??
+        false,
       useCurrentPath:
         (localStorageData.useCurrentPath as boolean | undefined) ?? true,
     }
@@ -220,8 +223,8 @@ export const Onboarding = () => {
     [computeDefaultValues],
   )
 
-  const { control, handleSubmit, watch, getValues, reset }
-    = useForm<OnboardingFormData>({
+  const { control, handleSubmit, watch, getValues, reset } =
+    useForm<OnboardingFormData>({
       defaultValues,
       mode: 'all',
     })
@@ -245,7 +248,9 @@ export const Onboarding = () => {
   }
 
   const onSubmit = async (formData: OnboardingFormData) => {
-    if (validationState === 'validating') { return }
+    if (validationState === 'validating') {
+      return
+    }
     setValidationState('validating')
     setValidationError(null)
     try {
@@ -271,14 +276,12 @@ export const Onboarding = () => {
         clearFormDataFromStorage()
         toast.success(t('onboarding.messages.connectionSuccessful'))
         navigate('/')
-      }
-      else {
+      } else {
         setValidationState('error')
         setValidationError(result.error!)
         toast.error(result.error!.message)
       }
-    }
-    catch {
+    } catch {
       setValidationState('error')
       const fallbackError: ValidationError = {
         type: 'unknown',
@@ -291,7 +294,9 @@ export const Onboarding = () => {
 
   const onInvalid = (errs: any) => {
     const first = Object.values(errs)[0] as { message?: string } | undefined
-    if (first?.message) { toast.error(first.message) }
+    if (first?.message) {
+      toast.error(first.message)
+    }
   }
 
   const handleRetry = () => {
@@ -313,8 +318,8 @@ export const Onboarding = () => {
     <div className="flex min-h-screen [*]:select-none items-center justify-center p-6 electron:bg-transparent bg-background/90">
       <div className="drag-region inset-x-0 top-0 h-10 fixed" />
       <form
-        onSubmit={handleSubmit(onSubmit, onInvalid)}
         className="w-full bg-background max-w-md space-y-5 rounded-xl border border-neutral-200 p-6 shadow-sm dark:border-neutral-800"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -324,9 +329,9 @@ export const Onboarding = () => {
             </p>
           </div>
           <Button
+            size="sm"
             type="button"
             variant="ghost"
-            size="sm"
             onClick={handleImportSettings}
           >
             {t('onboarding.actions.importSettings')}
@@ -364,18 +369,18 @@ export const Onboarding = () => {
         )}
 
         <OnboardingFields
+          showUseCurrentPath
           control={control}
           getValues={getValues}
           useCurrentPath={useCurrentPath}
-          showUseCurrentPath
           validation={FORM_VALIDATION}
         />
 
         <div className="flex gap-2">
           <Button
-            type="submit"
-            disabled={currentState.disabled}
             className="flex-1"
+            disabled={currentState.disabled}
+            type="submit"
           >
             {validationState === 'validating' && (
               <i className="i-mingcute-loading-3-line mr-2 animate-spin text-sm" />
@@ -384,10 +389,10 @@ export const Onboarding = () => {
           </Button>
           {validationState === 'error' && (
             <Button
+              className="px-3"
               type="button"
               variant="secondary"
               onClick={handleRetry}
-              className="px-3"
             >
               <i className="i-mingcute-refresh-2-line text-sm" />
             </Button>

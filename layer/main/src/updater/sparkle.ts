@@ -10,16 +10,16 @@ export interface SparkleInitOptions {
 }
 
 export interface SparkleBridge {
-  init: (options: SparkleInitOptions) => boolean
   checkForUpdates: () => void
+  init: (options: SparkleInitOptions) => boolean
   installUpdateNow: () => void
 }
 
 interface SparkleBridgeLoadDeps {
   isPackaged: boolean
-  resourcesPath: string
-  moduleUrl: string
   log?: (message: string) => void
+  moduleUrl: string
+  resourcesPath: string
 }
 
 const ADDON_RELATIVE_PATH = join(
@@ -49,9 +49,9 @@ export function loadSparkleBridge(
     const require = createRequire(deps.moduleUrl)
     const addon = require(addonPath) as SparkleBridge
     if (
-      typeof addon.init !== 'function'
-      || typeof addon.checkForUpdates !== 'function'
-      || typeof addon.installUpdateNow !== 'function'
+      typeof addon.init !== 'function' ||
+      typeof addon.checkForUpdates !== 'function' ||
+      typeof addon.installUpdateNow !== 'function'
     ) {
       deps.log?.(
         'addon loaded but missing expected exports, treating as unavailable',
@@ -59,8 +59,7 @@ export function loadSparkleBridge(
       return null
     }
     return addon
-  }
-  catch (err) {
+  } catch (err) {
     deps.log?.(`addon load failed: ${(err as Error).message}`)
     return null
   }

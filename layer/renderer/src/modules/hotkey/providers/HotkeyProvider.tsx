@@ -9,12 +9,12 @@ import { hotkeyManager } from '../core/hotkey-manager-core'
 import type { HotkeyConfig, HotkeyDebugInfo } from '../types'
 
 interface HotkeyContextValue {
-  manager: typeof hotkeyManager
+  debugInfo: HotkeyDebugInfo | null
   focusTracker: FocusTracker
   isEnabled: boolean
-  debugInfo: HotkeyDebugInfo | null
-  toggleEnabled: () => void
+  manager: typeof hotkeyManager
   toggleDebugMode: () => void
+  toggleEnabled: () => void
 }
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null)

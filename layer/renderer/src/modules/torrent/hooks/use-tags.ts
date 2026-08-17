@@ -8,8 +8,8 @@ import {
 } from '../stores/torrent-data-store'
 
 export interface TagWithCount {
-  name: string
   count: number
+  name: string
 }
 
 /**

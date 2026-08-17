@@ -3,9 +3,9 @@ import * as React from 'react'
 import { MobileSettingsLayout } from './MobileSettingsLayout'
 
 interface MobileSettingsContainerProps {
-  onClose?: () => void
   className?: string
   initialTab?: import('../configs').SettingsSection
+  onClose?: () => void
 }
 
 export const MobileSettingsContainer: React.FC<
@@ -13,9 +13,9 @@ export const MobileSettingsContainer: React.FC<
 > = ({ onClose, className, initialTab }) => {
   return (
     <MobileSettingsLayout
-      onClose={onClose}
       className={className}
       initialTab={initialTab}
+      onClose={onClose}
     />
   )
 }

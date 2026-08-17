@@ -52,10 +52,10 @@ export const DiscoverResultsToolbar = () => {
       </div>
       <div className="flex items-center gap-1.5">
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => selection.selectAll()}
           disabled={!hasItems}
+          size="sm"
+          variant="ghost"
+          onClick={() => selection.selectAll()}
         >
           <span>
             {allSelected
@@ -64,6 +64,7 @@ export const DiscoverResultsToolbar = () => {
           </span>
         </Button>
         <Button
+          disabled={importDisabled}
           size="sm"
           onClick={() => {
             void importingSlice.importSelected().then((result) => {
@@ -74,7 +75,6 @@ export const DiscoverResultsToolbar = () => {
               }
             })
           }}
-          disabled={importDisabled}
         >
           {importing && (
             <i className="i-mingcute-loading-3-line mr-2 animate-spin" />

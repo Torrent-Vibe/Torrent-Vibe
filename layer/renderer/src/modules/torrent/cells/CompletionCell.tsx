@@ -6,6 +6,6 @@ interface CompletionCellProps {
 
 export const CompletionCell = ({ rowIndex }: CompletionCellProps) => {
   return (
-    <DateTimeCell format="relative" rowIndex={rowIndex} field="completion_on" />
+    <DateTimeCell field="completion_on" format="relative" rowIndex={rowIndex} />
   )
 }

@@ -109,27 +109,27 @@ export const AppSettingsExportModal: ModalComponent = ({ dismiss }) => {
         </div>
       ) : (
         <textarea
+          readOnly
           className="relative resize-none font-mono block w-full appearance-none rounded-md border px-2.5 py-2 shadow-xs outline-hidden transition sm:text-sm border-border text-text placeholder:text-placeholder-text bg-background"
           rows={14}
-          readOnly
           value={exportJson}
         />
       )}
       <div className="flex justify-end gap-2">
         <Button
+          disabled={isLoading || isSaving}
+          isLoading={isSaving}
           size="sm"
           variant="secondary"
           onClick={handleSaveToDisk}
-          disabled={isLoading || isSaving}
-          isLoading={isSaving}
         >
           {t('general.dataManagement.actions.saveToDisk')}
         </Button>
         <Button
+          disabled={isLoading}
           size="sm"
           variant="primary"
           onClick={handleCopy}
-          disabled={isLoading}
         >
           {t('general.dataManagement.actions.copy')}
         </Button>

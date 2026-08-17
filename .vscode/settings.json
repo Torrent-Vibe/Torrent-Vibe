@@ -26,16 +26,18 @@
       "fixable": true
     },
     {
-      "rule": "antfu/consistent-list-newline",
-      "severity": "off"
-    },
-    {
-      "rule": "hyoban/jsx-attribute-spacing",
-      "severity": "off"
+      "rule": "perfectionist/*",
+      "severity": "off",
+      "fixable": true
     },
     {
       "rule": "simple-import-sort/*",
       "severity": "off"
+    },
+    {
+      "rule": "react/jsx-sort-props",
+      "severity": "off",
+      "fixable": true
     },
     {
       "rule": "unused-imports/no-unused-imports",

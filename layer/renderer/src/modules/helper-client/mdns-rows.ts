@@ -3,8 +3,8 @@ import { ownerOfHelperUrl } from './bindings'
 import type { HelperBinding } from './types'
 
 export interface MdnsRow {
-  name: string
   host: string
+  name: string
   port: number
   version: string
 }

@@ -131,6 +131,7 @@ const DropdownMenuCheckboxItem = ({
   > | null>
 }) => (
   <DropdownMenuPrimitive.CheckboxItem
+    checked={checked}
     ref={ref}
     className={clsxm(
       'cursor-menu focus:bg-accent focus:text-white relative flex select-none items-center rounded-[5px] py-1 pl-2.5 pr-8 outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
@@ -138,7 +139,6 @@ const DropdownMenuCheckboxItem = ({
       'h-[28px] w-full',
       className,
     )}
-    checked={checked}
     {...props}
   >
     {children}
@@ -214,8 +214,8 @@ const DropdownMenuSeparator = ({
   > | null>
 }) => (
   <DropdownMenuPrimitive.Separator
-    ref={ref}
     className={clsxm('backdrop-blur-background mx-2 my-1 h-px', className)}
+    ref={ref}
     {...props}
   />
 )

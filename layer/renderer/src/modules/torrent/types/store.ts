@@ -1,20 +1,20 @@
 import type { ServerState, TorrentInfo } from '~/types/torrent'
 
 export interface TorrentStats {
-  total: number
-  downloading: number
-  seeding: number
   completed: number
-  paused: number
+  downloading: number
   error: number
+  paused: number
+  seeding: number
+  total: number
 }
 
 export interface NetworkStats {
+  connectionStatus: string
+  downloadLimit: number
   globalDownloadSpeed: number
   globalUploadSpeed: number
-  downloadLimit: number
   uploadLimit: number
-  connectionStatus: string
 }
 
 export type TorrentFilterState =
@@ -39,34 +39,34 @@ export type TorrentAction = 'pause' | 'resume' | 'delete'
 // in their original filter even after state change
 export interface StickyFilterEntry {
   hash: string
-  originalFilter: TorrentFilterState
   operationTime: number
+  originalFilter: TorrentFilterState
 }
 
 // Duration to keep torrents "sticky" in their original filter (in milliseconds)
 export const STICKY_FILTER_DURATION = 1 * 60 * 1000 // 1 minute
 
 export interface TorrentStoreState {
-  // === SERVER STATE ===
-  torrents: TorrentInfo[]
-  serverState: ServerState | null
   categories: Record<string, { name: string; savePath: string }> | null
-  tags: string[] | null
+  filterState: TorrentFilterState
   lastUpdated: number
-
+  searchQuery?: string
   // === CLIENT STATE ===
   selectedTorrents: string[]
-  sortKey: keyof TorrentInfo
-  sortDirection: 'asc' | 'desc'
-  filterState: TorrentFilterState
-  searchQuery?: string
 
+  serverState: ServerState | null
+  sortDirection: 'asc' | 'desc'
+  // === COMPUTED STATE ===
+  sortedTorrents: TorrentInfo[]
+  sortKey: keyof TorrentInfo
   // === STICKY FILTER STATE ===
   // Keeps track of torrents that should temporarily remain visible in their original filter
   stickyFilterEntries: StickyFilterEntry[]
 
-  // === COMPUTED STATE ===
-  sortedTorrents: TorrentInfo[]
+  tags: string[] | null
+
+  // === SERVER STATE ===
+  torrents: TorrentInfo[]
   // Hash-based lookup for O(1) access by torrent hash
   torrentsByHash: Record<string, TorrentInfo>
 }

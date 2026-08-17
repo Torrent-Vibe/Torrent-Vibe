@@ -137,29 +137,29 @@ export const AgentBrowserSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('desktop.agentBrowser.title')}
       description={t('desktop.agentBrowser.description')}
+      title={t('desktop.agentBrowser.title')}
     >
       <SettingInputField
+        description={t('desktop.agentBrowser.path.description')}
+        disabled={!ELECTRON || loading}
         id="agent-browser-path"
         label={t('desktop.agentBrowser.path.label')}
-        description={t('desktop.agentBrowser.path.description')}
         placeholder={t('desktop.agentBrowser.path.placeholder')}
         value={currentPath}
         onChange={setCurrentPath}
-        disabled={!ELECTRON || loading}
       />
       <SettingField
-        label={t('desktop.agentBrowser.actions.label')}
-        description={t('desktop.agentBrowser.actions.help')}
         controlAlign="start"
+        description={t('desktop.agentBrowser.actions.help')}
+        label={t('desktop.agentBrowser.actions.label')}
       >
         <div className="flex flex-wrap gap-2">
           <Button
+            disabled={!ELECTRON || detecting}
+            size="sm"
             type="button"
             variant="secondary"
-            size="sm"
-            disabled={!ELECTRON || detecting}
             onClick={handleDetect}
           >
             {detecting
@@ -167,8 +167,8 @@ export const AgentBrowserSection = () => {
               : t('desktop.agentBrowser.actions.detect')}
           </Button>
           <Button
-            type="button"
             size="sm"
+            type="button"
             disabled={
               !ELECTRON || saving || (!hasChanges && !trimmedCurrentPath)
             }
@@ -179,9 +179,9 @@ export const AgentBrowserSection = () => {
               : t('desktop.agentBrowser.actions.save')}
           </Button>
           <Button
+            size="sm"
             type="button"
             variant="ghost"
-            size="sm"
             disabled={
               !ELECTRON ||
               loading ||

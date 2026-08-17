@@ -6,26 +6,26 @@ import type {
 export type TorrentAiStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface TorrentAiEntry {
-  hash: string
-  rawName: string
-  language: string
-  status: TorrentAiStatus
-  metadata: TorrentAIMetadata | null
   error: string | null
+  hash: string
+  language: string
+  metadata: TorrentAIMetadata | null
+  rawName: string
   requestedAt: number | null
-  updatedAt: number | null
   retries: number
+  status: TorrentAiStatus
+  updatedAt: number | null
 }
 
 export interface TorrentAiState {
-  initialized: boolean
   entries: Record<string, TorrentAiEntry>
+  initialized: boolean
 }
 
 export interface EnsureMetadataOptions {
+  force?: boolean
   hash: string
   rawName: string
-  force?: boolean
 }
 
 export type TorrentAiActionResult<T = void> = {

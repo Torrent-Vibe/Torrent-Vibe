@@ -6,8 +6,8 @@ import { getProviderById } from './registry'
 import type { AiProviderRuntime } from './types'
 
 interface SelectionResult {
-  runtime: AiProviderRuntime | null
   error?: string
+  runtime: AiProviderRuntime | null
   triedProviders: AiProviderId[]
 }
 

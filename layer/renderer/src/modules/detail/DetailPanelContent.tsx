@@ -27,9 +27,9 @@ export const DetailPanelContent = () => {
   if (!activeTorrent) {
     return (
       <m.div
+        animate={{ opacity: 1, y: 0 }}
         className="flex-1 flex items-center justify-center p-8 z-[-1] absolute inset-0"
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
         transition={Spring.presets.smooth}
       >
         <div className="text-center text-text-secondary">
@@ -60,9 +60,9 @@ export const DetailPanelContent = () => {
 
   return (
     <m.div
+      animate={{ opacity: 1 }}
       className="flex flex-col h-full flex-1"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
       transition={Spring.presets.smooth}
     >
       {/* Torrent info header */}
@@ -95,8 +95,9 @@ export const DetailPanelContent = () => {
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-separator">
         <div className="px-2 py-2 @container">
           <SegmentTab
+            containerClassName="w-full"
+            size="md"
             value={activeTab}
-            onChange={value => setActiveTab(value as typeof activeTab)}
             items={[
               {
                 value: 'general' as const,
@@ -131,8 +132,7 @@ export const DetailPanelContent = () => {
                 icon: <i className="i-mingcute-radar-line" />,
               },
             ]}
-            containerClassName="w-full"
-            size="md"
+            onChange={(value) => setActiveTab(value as typeof activeTab)}
           />
         </div>
       </div>
@@ -141,9 +141,9 @@ export const DetailPanelContent = () => {
       <div className="flex-1 overflow-y-hidden flex flex-col min-h-0 min-w-0">
         {activeTab === 'general' && (
           <GeneralTab
-            torrent={activeTorrent}
-            properties={torrentDetails.properties}
             pieceStates={torrentDetails.pieceStates}
+            properties={torrentDetails.properties}
+            torrent={activeTorrent}
           />
         )}
 
@@ -151,9 +151,9 @@ export const DetailPanelContent = () => {
           <div className="p-4 flex flex-col flex-1 min-h-0 min-w-0">
             <FilesTab
               files={torrentDetails.files}
-              torrentHash={activeTorrentHash!}
-              torrent={activeTorrent}
               isLoading={torrentDetails.isFilesLoading}
+              torrent={activeTorrent}
+              torrentHash={activeTorrentHash!}
             />
           </div>
         )}
@@ -161,8 +161,8 @@ export const DetailPanelContent = () => {
         {activeTab === 'peers' && (
           <div className="p-4 flex flex-col flex-1 min-h-0 min-w-0">
             <PeersTab
-              peers={torrentDetails.peers?.peers}
               isLoading={torrentDetails.isPeersLoading}
+              peers={torrentDetails.peers?.peers}
             />
           </div>
         )}
@@ -170,8 +170,8 @@ export const DetailPanelContent = () => {
         {activeTab === 'trackers' && (
           <div className="p-4 flex flex-col flex-1 min-h-0 min-w-0">
             <TrackersTab
-              trackers={torrentDetails.trackers}
               isLoading={torrentDetails.isTrackersLoading}
+              trackers={torrentDetails.trackers}
             />
           </div>
         )}

@@ -23,7 +23,6 @@ const AppLayer = () => {
   useDocumentTitleSpeed()
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAppIsReady(true)
   }, [appIsReady, location.pathname, navigate])
 

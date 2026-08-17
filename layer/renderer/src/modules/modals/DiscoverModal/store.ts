@@ -17,34 +17,34 @@ import type { DiscoverCommittedSearchState, DiscoverFilterState } from './types'
 
 export interface DiscoverModalState {
   activeProviderId: DiscoverProviderId
-  providerReady: boolean
-  pageSize: number
-  previewDescriptionRenderer: DiscoverPreviewDescriptionRenderer
-  totalPages: number
-  keyword: string
-  filters: DiscoverFilterState
+  committedSearch: DiscoverCommittedSearchState | null
   defaultFilters: DiscoverFilterState
   filterDefinitions: DiscoverFilterDefinition[]
-  searchHistory: string[]
-  committedSearch: DiscoverCommittedSearchState | null
-  items: DiscoverItem[]
-  total: number | null
+  filters: DiscoverFilterState
   hasMore: boolean
-  isSearching: boolean
-  searchError: string | null
-  selectedIds: Set<string>
-  previewId: string | null
-  previewDetail: DiscoverItemDetail | null
-  isPreviewLoading: boolean
-  previewError: string | null
   importing: boolean
-  mikanStack: MikanStackFrame[]
-  mikanBrowseScroll: { wall: number, search: number }
+  isPreviewLoading: boolean
+  isSearching: boolean
+  items: DiscoverItem[]
+  keyword: string
   mikanBangumiId: string | null
+  mikanBrowseScroll: { wall: number; search: number }
   mikanDetail: DiscoverItemDetail | null
-  mikanDetailLoading: boolean
   mikanDetailError: string | null
+  mikanDetailLoading: boolean
+  mikanStack: MikanStackFrame[]
   mikanSubgroupId: string | null
+  pageSize: number
+  previewDescriptionRenderer: DiscoverPreviewDescriptionRenderer
+  previewDetail: DiscoverItemDetail | null
+  previewError: string | null
+  previewId: string | null
+  providerReady: boolean
+  searchError: string | null
+  searchHistory: string[]
+  selectedIds: Set<string>
+  total: number | null
+  totalPages: number
 }
 
 const createInitialState = (): DiscoverModalState => ({
@@ -92,12 +92,10 @@ export const discoverModalStore = {
     if (typeof updater === 'function') {
       if (replace) {
         useDiscoverModalStore.setState(updater, true)
-      }
-      else {
+      } else {
         useDiscoverModalStore.setState(updater)
       }
-    }
-    else {
+    } else {
       useDiscoverModalStore.setState(updater, true)
     }
   },

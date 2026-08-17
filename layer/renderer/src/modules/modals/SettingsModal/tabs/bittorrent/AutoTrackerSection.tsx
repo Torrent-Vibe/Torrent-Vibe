@@ -6,8 +6,8 @@ import { Textarea } from '~/components/ui/input/Textarea'
 import { SettingSectionCard } from '../components'
 
 interface AutoTrackerSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const AutoTrackerSection = ({
@@ -18,19 +18,19 @@ export const AutoTrackerSection = ({
 
   return (
     <SettingSectionCard
-      title={t('bittorrent.autoTracker.title')}
       enabled={prefs.add_trackers_enabled ?? false}
+      title={t('bittorrent.autoTracker.title')}
       onToggleEnabled={(checked) =>
         onPrefsChange({ add_trackers_enabled: Boolean(checked) })
       }
     >
       <div className="space-y-2">
         <Textarea
+          className="h-32 font-mono text-xs"
+          placeholder={t('bittorrent.autoTracker.placeholder')}
+          rows={8}
           value={prefs.add_trackers ?? ''}
           onChange={(e) => onPrefsChange({ add_trackers: e.target.value })}
-          placeholder={t('bittorrent.autoTracker.placeholder')}
-          className="h-32 font-mono text-xs"
-          rows={8}
         />
         <p className="text-xs text-text-tertiary">
           {t('bittorrent.autoTracker.description')}

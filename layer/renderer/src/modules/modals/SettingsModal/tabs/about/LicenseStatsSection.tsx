@@ -1,9 +1,9 @@
 import type { LicenseStats } from './types'
 
 interface LicenseStatsSectionProps {
-  totalDependencies: number
-  licenseStats: LicenseStats[]
   commandLabel?: string
+  licenseStats: LicenseStats[]
+  totalDependencies: number
 }
 
 export const LicenseStatsSection: React.FC<LicenseStatsSectionProps> = ({
@@ -25,7 +25,7 @@ export const LicenseStatsSection: React.FC<LicenseStatsSectionProps> = ({
         </div>
         <div className="text-text-secondary">License distribution:</div>
         {licenseStats.map(({ license, count, percentage }) => (
-          <div key={license} className="ml-2 text-text">
+          <div className="ml-2 text-text" key={license}>
             <span className="text-text-secondary">{license}:</span>
             <span className="ml-4">
               {count} packages ({percentage}%)

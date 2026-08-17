@@ -23,14 +23,14 @@ import type {
 import type { ActionResult } from '../actions/types'
 
 export interface DiscoverImportItemSummary {
+  category?: string | null
   id: string
   title: string
-  category?: string | null
 }
 
 interface DiscoverImportConfirmModalProps {
-  mode: 'selected' | 'preview'
   items: DiscoverImportItemSummary[]
+  mode: 'selected' | 'preview'
   onConfirm: (formData: TorrentFormData) => Promise<ActionResult>
 }
 
@@ -111,7 +111,7 @@ export const DiscoverImportConfirmModal: ModalComponent<
           >
             <ul className="flex flex-col gap-2 text-sm text-text-secondary">
               {items.map((item) => (
-                <li key={item.id} className="flex flex-col min-w-0">
+                <li className="flex flex-col min-w-0" key={item.id}>
                   <span className="text-text font-medium line-clamp-5">
                     {item.title}
                   </span>
@@ -128,9 +128,9 @@ export const DiscoverImportConfirmModal: ModalComponent<
 
         <section className="space-y-4">
           <TorrentBasicSettingsFields
+            categories={categories}
             formData={formData}
             handlers={basicHandlers}
-            categories={categories}
             showRename={false}
           />
 
@@ -140,26 +140,26 @@ export const DiscoverImportConfirmModal: ModalComponent<
             </h3>
             <div className="space-y-3">
               <TorrentOptionToggle
-                id="auto-tmm"
                 checked={!!formData.autoTMM}
+                id="auto-tmm"
+                label={t('addTorrent.settingsPanel.autoTMM')}
                 onChange={(checked) =>
                   setFormData((prev) => ({
                     ...prev,
                     autoTMM: checked,
                   }))
                 }
-                label={t('addTorrent.settingsPanel.autoTMM')}
               />
               <TorrentOptionToggle
-                id="start-torrent"
                 checked={formData.startTorrent}
+                id="start-torrent"
+                label={t('addTorrent.settingsPanel.startTorrent')}
                 onChange={(checked) =>
                   setFormData((prev) => ({
                     ...prev,
                     startTorrent: checked,
                   }))
                 }
-                label={t('addTorrent.settingsPanel.startTorrent')}
               />
             </div>
           </div>
@@ -168,13 +168,13 @@ export const DiscoverImportConfirmModal: ModalComponent<
 
       <DialogFooter>
         <Button
-          type="button"
-          variant="primary"
-          size="sm"
           className="min-w-[120px]"
-          onClick={handleConfirm}
           isLoading={isSubmitting}
           loadingText={t('modals.addTorrent.addingText')}
+          size="sm"
+          type="button"
+          variant="primary"
+          onClick={handleConfirm}
         >
           {confirmLabel}
         </Button>

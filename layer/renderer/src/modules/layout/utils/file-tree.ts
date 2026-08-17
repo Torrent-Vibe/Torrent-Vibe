@@ -1,17 +1,17 @@
 import type { TorrentFile } from '~/types/torrent'
 
 export interface FileTreeNode {
-  name: string
-  fullPath: string
-  type: 'file' | 'folder'
-  size?: number
-  progress?: number
-  priority?: number
-  index?: number
   children?: FileTreeNode[]
+  fullPath: string
+  index?: number
   isExpanded?: boolean
-  isSelected?: boolean
   isPartiallySelected?: boolean
+  isSelected?: boolean
+  name: string
+  priority?: number
+  progress?: number
+  size?: number
+  type: 'file' | 'folder'
 }
 
 export type FileSelection = Record<number, boolean>

@@ -11,18 +11,18 @@ import {
 import { SettingField } from './SettingField'
 
 interface OptionItem {
-  value: string
   label: ReactNode
+  value: string
 }
 
 interface SettingSelectFieldProps {
+  description?: ReactNode
   id?: string
   label: ReactNode
-  description?: ReactNode
-  value: string
   onValueChange: (value: string) => void
   options?: OptionItem[]
   renderItems?: () => ReactNode
+  value: string
 }
 
 export const SettingSelectField = ({
@@ -35,7 +35,7 @@ export const SettingSelectField = ({
   renderItems,
 }: SettingSelectFieldProps) => {
   return (
-    <SettingField label={label} description={description} htmlFor={id}>
+    <SettingField description={description} htmlFor={id} label={label}>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger id={id}>
           <SelectValue />

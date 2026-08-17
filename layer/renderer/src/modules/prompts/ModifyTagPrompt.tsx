@@ -3,9 +3,9 @@ import { getI18n } from '~/i18n'
 import { Prompt } from '../../components/ui/prompts/Prompt'
 
 export interface ModifyTagOptions {
-  tagName: string
-  onConfirm: (newTagName: string) => void | Promise<void>
   onCancel?: () => void | Promise<void>
+  onConfirm: (newTagName: string) => void | Promise<void>
+  tagName: string
 }
 
 export const ModifyTagPrompt = {

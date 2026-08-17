@@ -4,8 +4,8 @@ import { CategorySelectDialog } from './CategorySelectDialog'
 
 export interface CategorySelectOptions {
   currentCategory?: string
-  title?: string
   onConfirm: (category: string) => void | Promise<void>
+  title?: string
 }
 
 export const CategorySelectPrompt = {

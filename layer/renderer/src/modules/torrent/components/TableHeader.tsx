@@ -17,9 +17,9 @@ import { useTorrentTableSelectors } from '../stores/torrent-table-store'
 import type { TorrentTableConfig } from '../TorrentTableList'
 
 interface SortableHeaderProps {
-  header: Header<TorrentInfo, unknown>
-  colId: string
   colDef: ColumnDef<TorrentInfo>
+  colId: string
+  header: Header<TorrentInfo, unknown>
   isReorderable: boolean
   onContextMenu: (e: React.MouseEvent) => void
   stickyLeft?: number
@@ -125,8 +125,8 @@ const SortableHeaderCell: React.FC<SortableHeaderProps> = ({
         isOver && !isDragging ? 'bg-accent/20 border-accent/50' : '',
       )}
       onContextMenu={onContextMenu}
-      onPointerDown={handlePointerDown}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
       {...(isReorderable && !isResizing ? attributes : {})}
     >
       {/* Drop indicator */}
@@ -146,10 +146,10 @@ const SortableHeaderCell: React.FC<SortableHeaderProps> = ({
 
       {colDef.enableResizing ? (
         <div
+          className="absolute top-0 right-[-2px] h-full w-[4px] z-[1] cursor-col-resize hover:bg-accent/40 hover:backdrop-blur-3xl active:bg-accent transition-colors duration-200"
           data-resizer="true"
           onMouseDown={handleResizeStart}
           onTouchStart={handleResizeStart}
-          className="absolute top-0 right-[-2px] h-full w-[4px] z-[1] cursor-col-resize hover:bg-accent/40 hover:backdrop-blur-3xl active:bg-accent transition-colors duration-200"
         />
       ) : null}
     </div>
@@ -176,14 +176,14 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     >
       {table.getHeaderGroups().map((headerGroup) => (
         <SortableContext
-          key={headerGroup.id}
           items={columnOrder}
+          key={headerGroup.id}
           strategy={horizontalListSortingStrategy}
         >
           <div
-            onContextMenu={openColumnsMenu}
             className="grid"
             style={{ gridTemplateColumns }}
+            onContextMenu={openColumnsMenu}
           >
             {headerGroup.headers.map((header) => {
               const colId = header.column.id
@@ -194,15 +194,15 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
               const isSticky = colId === 'name' || colId === 'select'
               return (
                 <SortableHeaderCell
-                  key={header.id}
-                  header={header}
-                  colId={colId}
                   colDef={colDef}
+                  colId={colId}
+                  header={header}
                   isReorderable={isReorderable}
-                  onContextMenu={openColumnsMenu}
+                  key={header.id}
                   stickyLeft={
                     isSticky ? (columnOffsets[colId] ?? 0) : undefined
                   }
+                  onContextMenu={openColumnsMenu}
                 />
               )
             })}

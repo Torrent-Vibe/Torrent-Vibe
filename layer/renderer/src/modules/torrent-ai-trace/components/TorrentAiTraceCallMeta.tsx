@@ -48,19 +48,19 @@ export const CallStats = ({
   hint: ReturnType<typeof detectCacheHint>
 }) => {
   const { t } = useTranslation()
-  const retry = events.find(event => event.type === 'retry_scheduled')
+  const retry = events.find((event) => event.type === 'retry_scheduled')
   if (!snapshot) {
     return <p className="text-[11px] text-text-tertiary">tokens unknown</p>
   }
 
   const prompt = providerPromptTokens(snapshot)
   const percent = providerCacheHitPercent(snapshot)
-  const cacheLabel
-    = snapshot.usage && percent != null
+  const cacheLabel =
+    snapshot.usage && percent != null
       ? `cache ${formatTraceTokens(snapshot.usage.cacheRead)} ${percent}%`
       : 'cache —'
-  const inputLabel
-    = prompt == null
+  const inputLabel =
+    prompt == null
       ? `in ~${formatTraceTokens(snapshot.totalTokens)}`
       : `in ${formatTraceTokens(prompt)}`
   const outputLabel = snapshot.usage
@@ -76,25 +76,19 @@ export const CallStats = ({
       <p className="text-[11px] tabular-nums text-text-secondary">
         {`${cacheLabel} · ${inputLabel} · ${outputLabel}`}
       </p>
-      {hintText
-        ? (
-            <p className="text-[11px] text-text-tertiary">{hintText}</p>
-          )
-        : null}
-      {snapshot.cacheBroke
-        ? (
-            <p className="text-[11px] text-red">
-              {`▲ cache broke${snapshot.brokeAt ? ` at ${snapshot.brokeAt}` : ''} — ${formatTraceTokens(snapshot.reprocessedTokens)} re-processed`}
-            </p>
-          )
-        : null}
-      {retry && retry.type === 'retry_scheduled'
-        ? (
-            <p className="text-[11px] text-orange">
-              {`retry scheduled ${retry.delayMs}ms · ${retry.errorMessage}`}
-            </p>
-          )
-        : null}
+      {hintText ? (
+        <p className="text-[11px] text-text-tertiary">{hintText}</p>
+      ) : null}
+      {snapshot.cacheBroke ? (
+        <p className="text-[11px] text-red">
+          {`▲ cache broke${snapshot.brokeAt ? ` at ${snapshot.brokeAt}` : ''} — ${formatTraceTokens(snapshot.reprocessedTokens)} re-processed`}
+        </p>
+      ) : null}
+      {retry && retry.type === 'retry_scheduled' ? (
+        <p className="text-[11px] text-orange">
+          {`retry scheduled ${retry.delayMs}ms · ${retry.errorMessage}`}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -109,8 +103,8 @@ export const NestedEvent = ({
   onHover: (toolCallId: string | null) => void
 }) => {
   const [open, setOpen] = useState(false)
-  const toolCallId
-    = event.type === 'tool_start' || event.type === 'tool_end'
+  const toolCallId =
+    event.type === 'tool_start' || event.type === 'tool_end'
       ? event.toolCallId
       : null
   const className = clsxm(
@@ -121,8 +115,8 @@ export const NestedEvent = ({
   )
 
   if (event.type === 'tool_start' || event.type === 'tool_end') {
-    const label
-      = event.type === 'tool_start'
+    const label =
+      event.type === 'tool_start'
         ? open
           ? `↳ ${event.toolName} ${event.argsPreview}`
           : `↳ ${event.toolName}`
@@ -131,9 +125,9 @@ export const NestedEvent = ({
           : `↳ ${event.toolName}  ${event.durationMs}ms  ${event.isError ? 'error' : 'ok'}`
     return (
       <button
-        type="button"
         className={className}
-        onClick={() => setOpen(value => !value)}
+        type="button"
+        onClick={() => setOpen((value) => !value)}
         onMouseEnter={() => onHover(toolCallId)}
         onMouseLeave={() => onHover(null)}
       >
@@ -181,7 +175,7 @@ export const PrefixCacheUnderline = ({
             <span className="absolute top-1/2 right-0 size-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-green" />
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
+        <TooltipContent className="text-xs" side="bottom">
           {layout.remainderTokens > 0 && layout.remainderSource
             ? t('torrent.ai.trace.prefixRangePartial', {
                 cached: formatTraceTokens(layout.cacheRead),

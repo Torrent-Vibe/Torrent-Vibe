@@ -2,18 +2,17 @@ export type TorrentAIMediaType = 'movie' | 'tv' | 'anime' | 'music' | 'other'
 
 export interface TorrentAITitleGuess {
   canonicalTitle: string
-  localizedTitle?: string | null
-  originalTitle?: string | null
-  releaseYear?: number | null
-  seasonNumber?: number | null
   episodeNumbers?: number[] | null
   episodeTitle?: string | null
   extraInfo?: string[] | null
   languageOfLocalizedTitle?: string | null
+  localizedTitle?: string | null
+  originalTitle?: string | null
+  releaseYear?: number | null
+  seasonNumber?: number | null
 }
 
 export interface TorrentAISeriesInfo {
-  seasonNumber?: number | null
   /**
    * Explicit episode numbers present in the release name or file tree
    */
@@ -22,6 +21,7 @@ export interface TorrentAISeriesInfo {
    * Compact range representation for multi-episode packs (e.g., { from: 1, to: 2 } for E01–E02)
    */
   episodeRange?: { from: number; to: number } | null
+  seasonNumber?: number | null
   /**
    * Total episodes in the season when it can be inferred (optional)
    */
@@ -29,71 +29,71 @@ export interface TorrentAISeriesInfo {
 }
 
 export interface TorrentAITechnicalInsight {
-  resolution?: string | null
-  videoCodec?: string | null
   audio?: string[] | null
-  source?: string | null
   edition?: string | null
   otherTags?: string[] | null
+  resolution?: string | null
+  source?: string | null
+  videoCodec?: string | null
 }
 
 export interface TorrentAITmdbMatch {
-  id: number
-  mediaType: Extract<TorrentAIMediaType, 'movie' | 'tv' | 'anime'>
-  title: string
-  originalTitle?: string | null
-  releaseDate?: string | null
-  posterUrl?: string | null
   backdropUrl?: string | null
-  overview?: string | null
-  rating?: number | null
-  votes?: number | null
-  language?: string | null
   homepage?: string | null
+  id: number
+  language?: string | null
+  mediaType: Extract<TorrentAIMediaType, 'movie' | 'tv' | 'anime'>
+  originalTitle?: string | null
+  overview?: string | null
+  posterUrl?: string | null
+  rating?: number | null
+  releaseDate?: string | null
+  title: string
+  votes?: number | null
 }
 
 export interface TorrentAIConfidence {
   overall: number
+  synopsis?: number | null
   title?: number | null
   tmdbMatch?: number | null
-  synopsis?: number | null
 }
 
 export interface TorrentAIExplanation {
-  heading?: string | null
   body?: string | null
+  heading?: string | null
 }
 
 export interface TorrentAIMetadata {
-  rawName: string
-  normalizedName: string
+  confidence: TorrentAIConfidence
+  explanations?: TorrentAIExplanation[] | null
+  generatedAt: string
+  keywords?: string[] | null
   language: string
+  /** AI-suggested human-readable title for this torrent */
+  mayBeTitle?: string | null
   mediaType: TorrentAIMediaType
-  title: TorrentAITitleGuess
+  model?: string | null
+  normalizedName: string
+  /** Optional preview image URL to represent the content */
+  previewImageUrl?: string | null
+  provider?: string | null
+  rawName: string
   /**
    * Structured series information. Fields in here may duplicate legacy fields
    * under `title` (seasonNumber, episodeNumbers) for backward compatibility.
    */
   series?: TorrentAISeriesInfo | null
-  technical: TorrentAITechnicalInsight
-  tmdb?: TorrentAITmdbMatch | null
   synopsis?: string | null
-  keywords?: string[] | null
-  explanations?: TorrentAIExplanation[] | null
-  /** Optional preview image URL to represent the content */
-  previewImageUrl?: string | null
-  confidence: TorrentAIConfidence
-  /** AI-suggested human-readable title for this torrent */
-  mayBeTitle?: string | null
-  provider?: string | null
-  model?: string | null
-  generatedAt: string
+  technical: TorrentAITechnicalInsight
+  title: TorrentAITitleGuess
+  tmdb?: TorrentAITmdbMatch | null
 }
 
 export interface TorrentAIEnrichmentResult {
-  ok: boolean
-  metadata?: TorrentAIMetadata
   error?: string
+  metadata?: TorrentAIMetadata
+  ok: boolean
   transient?: boolean
 }
 

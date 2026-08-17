@@ -1,22 +1,22 @@
 export interface AppInfo {
-  name: string
-  version: string
-  description: string
   author: string
+  description: string
+  name: string
   platform: string
+  version: string
 }
 
 export interface DependencyInfo {
-  name: string
-  version: string
   license: string
-  repository: string | null
   licenseText: string | null
+  name: string
+  repository: string | null
+  version: string
 }
 
 export interface LicenseGroup {
-  license: string
   count: number
+  license: string
   packages: Array<{
     name: string
     version: string
@@ -28,19 +28,19 @@ export interface AppLicenseData {
   appName: string
   appVersion: string
   generated: string
-  totalLibraries: number
-  licenses: DependencyInfo[]
   licenseGroups: LicenseGroup[]
+  licenses: DependencyInfo[]
+  totalLibraries: number
 }
 
 export interface LicenseStats {
-  license: string
   count: number
+  license: string
   percentage: number
 }
 
 export interface AppInfoItem {
+  isCommand?: boolean
   label: string
   value: string
-  isCommand?: boolean
 }

@@ -10,15 +10,15 @@ import type {
 import { formatDiscountLabel } from './utils'
 
 export interface PreviewStat {
-  id: string
   icon: string
+  id: string
   label: string
   value: string
 }
 
 export interface PreviewLink {
-  id: string
   href: string
+  id: string
   label: string
   rating: string | null
 }
@@ -29,28 +29,28 @@ export interface PreviewFileItem {
 }
 
 export interface PreviewScreenshot {
-  url: string
   alt: string
+  url: string
 }
 
 export interface PreviewHeroData {
-  title: string
+  stats: PreviewStat[]
   subtitle?: string | null
   tags: string[]
   tagsLabel?: string
-  stats: PreviewStat[]
+  title: string
 }
 
 export interface PreviewModel {
-  hero: PreviewHeroData
-  originFileName?: string | null
-  links: PreviewLink[]
-  screenshots: PreviewScreenshot[]
   description?: string | null
   descriptionRenderer: DiscoverPreviewDescriptionRenderer
   files: PreviewFileItem[]
   filesOverflowLabel?: string | null
+  hero: PreviewHeroData
+  links: PreviewLink[]
   mediainfo?: string | null
+  originFileName?: string | null
+  screenshots: PreviewScreenshot[]
 }
 
 export interface BuildPreviewModelOptions {

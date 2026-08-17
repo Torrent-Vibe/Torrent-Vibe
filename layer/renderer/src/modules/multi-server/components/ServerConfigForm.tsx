@@ -10,38 +10,38 @@ import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 import type { QBittorrentConfig } from '~/shared/types/qbittorrent'
 
 export interface ServerFormData {
-  name: string
   host: string
-  port: string
-  username: string
+  name: string
   password: string
+  port: string
+  remember: boolean
   useHttps: boolean
 
-  remember: boolean
+  username: string
 }
 
 export interface ValidationErrors {
-  name?: string
+  baseUrl?: string
   host?: string
+  name?: string
   port?: string
   username?: string
-  baseUrl?: string
 }
 
 export interface TestResult {
-  success: boolean
   message: string
   responseTime?: number
+  success: boolean
 }
 
 interface ServerConfigFormProps {
-  mode: 'add' | 'edit'
   initialData?: Partial<ServerFormData>
+  isLoading?: boolean
+  mode: 'add' | 'edit'
+  onCancel?: () => void
   onSubmit: (data: ServerFormData) => Promise<void>
   onTest: (data: ServerFormData) => Promise<TestResult>
-  isLoading?: boolean
   testResult?: TestResult | null
-  onCancel?: () => void
 }
 
 const getInitialFormData = (
@@ -182,13 +182,13 @@ export const ServerConfigForm = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <Label variant="form" className="mb-1">
+          <Label className="mb-1" variant="form">
             Name
           </Label>
           <Input
+            disabled={isLoading}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            disabled={isLoading}
           />
           {errors.name && (
             <div className="text-xs text-red mt-1">{errors.name}</div>
@@ -196,13 +196,13 @@ export const ServerConfigForm = ({
         </div>
 
         <div>
-          <Label variant="form" className="mb-1">
+          <Label className="mb-1" variant="form">
             Host
           </Label>
           <Input
+            disabled={isLoading}
             value={form.host}
             onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))}
-            disabled={isLoading}
           />
           {errors.host && (
             <div className="text-xs text-red mt-1">{errors.host}</div>
@@ -210,14 +210,14 @@ export const ServerConfigForm = ({
         </div>
 
         <div>
-          <Label variant="form" className="mb-1">
+          <Label className="mb-1" variant="form">
             Port
           </Label>
           <Input
-            value={form.port}
-            inputMode="numeric"
-            onChange={(e) => setForm((f) => ({ ...f, port: e.target.value }))}
             disabled={isLoading}
+            inputMode="numeric"
+            value={form.port}
+            onChange={(e) => setForm((f) => ({ ...f, port: e.target.value }))}
           />
           {errors.port && (
             <div className="text-xs text-red mt-1">{errors.port}</div>
@@ -225,15 +225,15 @@ export const ServerConfigForm = ({
         </div>
 
         <div>
-          <Label variant="form" className="mb-1">
+          <Label className="mb-1" variant="form">
             Username
           </Label>
           <Input
+            disabled={isLoading}
             value={form.username}
             onChange={(e) =>
               setForm((f) => ({ ...f, username: e.target.value }))
             }
-            disabled={isLoading}
           />
           {errors.username && (
             <div className="text-xs text-red mt-1">{errors.username}</div>
@@ -241,24 +241,24 @@ export const ServerConfigForm = ({
         </div>
 
         <div>
-          <Label variant="form" className="mb-1">
+          <Label className="mb-1" variant="form">
             Password
           </Label>
           <Input
+            disabled={isLoading}
             type="password"
             value={form.password}
             onChange={(e) =>
               setForm((f) => ({ ...f, password: e.target.value }))
             }
-            disabled={isLoading}
           />
         </div>
         <div className="flex gap-2 col-span-2 flex-col">
           <div className="flex items-center gap-2 w-full justify-between">
             <Label htmlFor="https">Use HTTPS</Label>
             <Switch
-              id="https"
               checked={form.useHttps}
+              id="https"
               onCheckedChange={(v) =>
                 setForm((f) => ({ ...f, useHttps: Boolean(v) }))
               }
@@ -268,12 +268,12 @@ export const ServerConfigForm = ({
           <div className="flex items-center gap-2 w-full justify-between">
             <Label htmlFor="remember">Remember password</Label>
             <Switch
-              id="remember"
               checked={form.remember}
+              disabled={isLoading}
+              id="remember"
               onCheckedChange={(v) =>
                 setForm((f) => ({ ...f, remember: Boolean(v) }))
               }
-              disabled={isLoading}
             />
           </div>
         </div>
@@ -282,26 +282,26 @@ export const ServerConfigForm = ({
           <div className="flex items-center gap-2">
             {onCancel && (
               <Button
+                disabled={isLoading || isTesting}
                 size="sm"
                 variant="ghost"
                 onClick={onCancel}
-                disabled={isLoading || isTesting}
               >
                 Cancel
               </Button>
             )}
             <Button
+              disabled={!canSubmit || isLoading || isTesting}
               size="sm"
               variant="secondary"
               onClick={handleTest}
-              disabled={!canSubmit || isLoading || isTesting}
             >
               {isTesting ? 'Testing...' : 'Test'}
             </Button>
             <Button
+              disabled={!canSubmit || isLoading || isTesting}
               size="sm"
               onClick={handleSubmit}
-              disabled={!canSubmit || isLoading || isTesting}
             >
               {isLoading
                 ? 'Saving...'

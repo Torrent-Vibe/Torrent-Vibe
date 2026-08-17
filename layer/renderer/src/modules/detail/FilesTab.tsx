@@ -42,20 +42,20 @@ import {
 
 interface FilesTabProps {
   files?: TorrentFile[]
-  torrentHash?: string
-  torrent?: TorrentInfo
   isLoading?: boolean
+  torrent?: TorrentInfo
+  torrentHash?: string
 }
 
 interface FileRowProps {
-  node: FileTreeNode
-  depth: number
-  onToggleSelection: (path: string, selected: boolean) => void
-  onToggleExpansion: (path: string) => void
-  onSetFilePriority: (fileIndex: number, priority: 0 | 1 | 6 | 7) => void
   canOpenPaths: boolean
+  depth: number
+  node: FileTreeNode
   onOpenNode?: (node: FileTreeNode) => void
   onRevealNode?: (node: FileTreeNode) => void
+  onSetFilePriority: (fileIndex: number, priority: 0 | 1 | 6 | 7) => void
+  onToggleExpansion: (path: string) => void
+  onToggleSelection: (path: string, selected: boolean) => void
 }
 
 const FileRow = memo(
@@ -165,43 +165,41 @@ const FileRow = memo(
     return (
       <>
         <m.div
-          className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-2 px-1.5 py-1.5 hover:bg-fill-secondary/30 transition-colors"
-          style={{ paddingLeft: `${depth * 12 + 4}px` }}
-          initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
+          className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-2 px-1.5 py-1.5 hover:bg-fill-secondary/30 transition-colors"
+          initial={{ opacity: 0, x: -6 }}
+          style={{ paddingLeft: `${depth * 12 + 4}px` }}
           transition={Spring.smooth(0.25)}
           onContextMenu={handleContextMenu}
         >
           {/* Expand */}
           <div className="w-4 flex items-center justify-center">
-            {isFolder
-              ? (
-                  <button
-                    type="button"
-                    onClick={handleExpansionToggle}
-                    className="text-text-secondary hover:text-accent transition-colors"
-                  >
-                    <i
-                      className={
-                        node.isExpanded
-                          ? 'i-mingcute-down-line text-xs'
-                          : 'i-mingcute-right-line text-xs'
-                      }
-                    />
-                  </button>
-                )
-              : (
-                  <span className="inline-block w-4" />
-                )}
+            {isFolder ? (
+              <button
+                className="text-text-secondary hover:text-accent transition-colors"
+                type="button"
+                onClick={handleExpansionToggle}
+              >
+                <i
+                  className={
+                    node.isExpanded
+                      ? 'i-mingcute-down-line text-xs'
+                      : 'i-mingcute-right-line text-xs'
+                  }
+                />
+              </button>
+            ) : (
+              <span className="inline-block w-4" />
+            )}
           </div>
 
           {/* Checkbox */}
           <Checkbox
+            aria-label={node.name}
             checked={!!node.isSelected}
+            className="size-4"
             indeterminate={!!node.isPartiallySelected}
             onCheckedChange={handleCheckboxChange}
-            aria-label={node.name}
-            className="size-4"
           />
 
           {/* Name + progress inline */}
@@ -230,8 +228,7 @@ const FileRow = memo(
                   />
                 </div>
                 <span className="text-xs text-text-secondary">
-                  {progressPercentage.toFixed(1)}
-                  %
+                  {progressPercentage.toFixed(1)}%
                 </span>
               </div>
             </div>
@@ -244,27 +241,26 @@ const FileRow = memo(
 
           {/* Priority */}
           <div className="text-xs">
-            {isFolder
-              ? (
-                  <span className="text-text-secondary">{priorityLabel}</span>
-                )
-              : (
-                  <Select
-                    value={String(node.priority ?? 1)}
-                    onValueChange={value =>
-                      handlePriorityChange(Number(value) as 0 | 1 | 6 | 7)}
-                  >
-                    <SelectTrigger size="sm" className="min-w-[92px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Skip</SelectItem>
-                      <SelectItem value="1">Normal</SelectItem>
-                      <SelectItem value="6">High</SelectItem>
-                      <SelectItem value="7">Max</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+            {isFolder ? (
+              <span className="text-text-secondary">{priorityLabel}</span>
+            ) : (
+              <Select
+                value={String(node.priority ?? 1)}
+                onValueChange={(value) =>
+                  handlePriorityChange(Number(value) as 0 | 1 | 6 | 7)
+                }
+              >
+                <SelectTrigger className="min-w-[92px]" size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Skip</SelectItem>
+                  <SelectItem value="1">Normal</SelectItem>
+                  <SelectItem value="6">High</SelectItem>
+                  <SelectItem value="7">Max</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </m.div>
 
@@ -296,7 +292,7 @@ export const FilesTab = ({
   // Use effect for side-effectful state updates
   useMemo(() => {
     startTransition(() => {
-      setFileTree(prev => mergeExpansionState(prev, tree))
+      setFileTree((prev) => mergeExpansionState(prev, tree))
     })
   }, [tree])
 
@@ -314,8 +310,8 @@ export const FilesTab = ({
         return
       }
       const selectedIndices = getSelectedFileIndices(snapshot)
-      const unselectedIndices
-        = files
+      const unselectedIndices =
+        files
           ?.filter((_, index) => !selectedIndices.includes(index))
           .map((_, index) => index) || []
 
@@ -334,8 +330,7 @@ export const FilesTab = ({
             0,
           )
         }
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to sync selection to server:', error)
       }
     },
@@ -343,15 +338,15 @@ export const FilesTab = ({
   )
 
   const handleToggleExpansion = useCallback((path: string) => {
-    setFileTree(prev => toggleNodeExpansion(prev, path))
+    setFileTree((prev) => toggleNodeExpansion(prev, path))
   }, [])
 
   const handleExpandAll = useCallback(() => {
-    setFileTree(prev => setAllExpanded(prev, true))
+    setFileTree((prev) => setAllExpanded(prev, true))
   }, [])
 
   const handleCollapseAll = useCallback(() => {
-    setFileTree(prev => setAllExpanded(prev, false))
+    setFileTree((prev) => setAllExpanded(prev, false))
   }, [])
 
   const handleSetFilePriority = useCallback(
@@ -366,8 +361,7 @@ export const FilesTab = ({
           [fileIndex],
           priority,
         )
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to set file priority:', error)
       }
     },
@@ -408,7 +402,7 @@ export const FilesTab = ({
 
   // Flatten visible tree for virtualization
   const flatRows = useMemo(() => {
-    const out: Array<{ node: FileTreeNode, depth: number }> = []
+    const out: Array<{ node: FileTreeNode; depth: number }> = []
     const walk = (nodes: FileTreeNode[], depth: number) => {
       for (const n of nodes) {
         out.push({ node: n, depth })
@@ -424,14 +418,14 @@ export const FilesTab = ({
   const renderItem = useCallback(
     (row: RowData) => (
       <FileRow
-        node={row.node}
-        depth={row.depth}
-        onToggleSelection={handleToggleSelection}
-        onToggleExpansion={handleToggleExpansion}
-        onSetFilePriority={handleSetFilePriority}
         canOpenPaths={canOpenPaths}
+        depth={row.depth}
+        node={row.node}
         onOpenNode={handleOpenNode}
         onRevealNode={handleRevealNode}
+        onSetFilePriority={handleSetFilePriority}
+        onToggleExpansion={handleToggleExpansion}
+        onToggleSelection={handleToggleSelection}
       />
     ),
     [
@@ -448,8 +442,8 @@ export const FilesTab = ({
     return (
       <div className="flex items-center justify-center p-6">
         <m.div
-          className="size-6 border-3 border-accent border-t-transparent rounded-full"
           animate={{ rotate: 360 }}
+          className="size-6 border-3 border-accent border-t-transparent rounded-full"
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         />
       </div>
@@ -472,36 +466,30 @@ export const FilesTab = ({
         <div className="flex items-center gap-3 justify-between w-full">
           <div className="flex items-center gap-1">
             <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleExpandAll}
               className="text-xs px-3 py-2 rounded-lg"
+              size="sm"
+              variant="secondary"
+              onClick={handleExpandAll}
             >
               <i className="i-lucide-unfold-vertical" />
               <span className="ml-1 hidden @[320px]:inline"> Expand All </span>
             </Button>
             <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleCollapseAll}
               className="text-xs px-3 py-2 rounded-lg"
+              size="sm"
+              variant="secondary"
+              onClick={handleCollapseAll}
             >
               <i className="i-lucide-fold-vertical" />
               <span className="ml-1 hidden @[320px]:inline">
                 {' '}
-                Collapse All
-                {' '}
+                Collapse All{' '}
               </span>
             </Button>
           </div>
 
           <span className="text-xs text-text-secondary">
-            {selectedCount}
-            {' '}
-            /
-            {totalCount}
-            {' '}
-            selected
+            {selectedCount} /{totalCount} selected
           </span>
         </div>
       </div>
@@ -513,16 +501,16 @@ export const FilesTab = ({
         )}
       >
         <VirtualList<RowData>
-          data={flatRows}
-          renderItem={renderItem}
-          getItemKey={row => row.node.fullPath}
-          estimateSize={50}
           className="px-4 pb-4"
+          data={flatRows}
+          estimateSize={50}
+          getItemKey={(row) => row.node.fullPath}
           itemClassName="pb-0.5 last:pb-0"
+          renderItem={renderItem}
         />
       </div>
     </div>
   )
 }
 
-type RowData = { node: FileTreeNode, depth: number }
+type RowData = { node: FileTreeNode; depth: number }

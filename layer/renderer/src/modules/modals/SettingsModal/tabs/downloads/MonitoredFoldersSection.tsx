@@ -27,8 +27,8 @@ export const MonitoredFoldersSection = ({
             </div>
             {Object.entries(prefs.scan_dirs || {}).map(([folder, action]) => (
               <div
-                key={folder}
                 className="flex items-center gap-2 text-sm p-2 bg-fill/5 rounded"
+                key={folder}
               >
                 <span className="flex-1">{folder}</span>
                 <span className="text-text-secondary">

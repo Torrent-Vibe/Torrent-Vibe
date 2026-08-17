@@ -28,12 +28,12 @@ export const DiscoverPreviewPanel: FC<HTMLMotionProps<'aside'>> = (props) => {
     <AnimatePresence mode="popLayout">
       {previewId && (
         <m.aside
-          key="discover-preview"
-          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={Spring.presets.smooth}
           className="flex w-[300px] flex-col grow h-0 @container bg-background border-l border-border"
+          exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
+          key="discover-preview"
+          transition={Spring.presets.smooth}
           {...props}
         >
           <div className="flex items-center justify-between border-b border-border px-3.5 h-14">
@@ -48,11 +48,11 @@ export const DiscoverPreviewPanel: FC<HTMLMotionProps<'aside'>> = (props) => {
               ) : null}
             </div>
             <Button
-              variant="ghost"
-              size="sm"
-              className="size-7"
-              onClick={() => preview.closePreview()}
               aria-label={t('discover.modal.close')}
+              className="size-7"
+              size="sm"
+              variant="ghost"
+              onClick={() => preview.closePreview()}
             >
               <i className="i-mingcute-close-line shrink-0" />
             </Button>

@@ -13,8 +13,8 @@ import { MobileGestureHandler } from './MobileGestureHandler'
 interface MobileStackNavigatorProps {
   children?: React.ReactNode
   className?: string
-  renderScreen: (screen: MobileNavigationScreen) => React.ReactNode
   enableGestures?: boolean
+  renderScreen: (screen: MobileNavigationScreen) => React.ReactNode
   swipeThreshold?: number
 }
 
@@ -101,13 +101,13 @@ export const MobileStackNavigator: React.FC<MobileStackNavigatorProps> = ({
           onExitComplete={handleAnimationComplete}
         >
           <m.div
-            key={currentScreen.id}
-            className="absolute inset-0 w-full h-full bg-background"
-            variants={variants}
-            initial="initial"
             animate="animate"
+            className="absolute inset-0 w-full h-full bg-background"
             exit="exit"
+            initial="initial"
+            key={currentScreen.id}
             transition={Spring.presets.smooth}
+            variants={variants}
             onAnimationComplete={() => {
               // Only call completion handler when entering
               if (!isNavigating) return
@@ -115,8 +115,8 @@ export const MobileStackNavigator: React.FC<MobileStackNavigatorProps> = ({
             }}
           >
             <ScreenRenderer
-              screen={currentScreen}
               renderScreen={renderScreen}
+              screen={currentScreen}
             />
           </m.div>
         </AnimatePresence>
@@ -126,8 +126,8 @@ export const MobileStackNavigator: React.FC<MobileStackNavigatorProps> = ({
 }
 
 interface ScreenRendererProps {
-  screen: MobileNavigationScreen
   renderScreen: (screen: MobileNavigationScreen) => React.ReactNode
+  screen: MobileNavigationScreen
 }
 
 const ScreenRenderer: React.FC<ScreenRendererProps> = ({

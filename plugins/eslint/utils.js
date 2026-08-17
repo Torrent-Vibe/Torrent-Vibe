@@ -16,7 +16,7 @@ export const sortObjectKeys = (obj) => {
 }
 
 export const cleanJsonText = (text) => {
-  const cleaned = text.replaceAll(/,\s*\}/g, '}')
+  const cleaned = text.replaceAll(/,\s*}/g, '}')
   try {
     JSON.parse(cleaned)
     return cleaned

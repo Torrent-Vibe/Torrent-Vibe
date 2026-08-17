@@ -40,7 +40,7 @@ const joinRemotePath = (base: string, relative: string) => {
 
   if (
     normalizedBase.startsWith('\\\\') ||
-    /^[A-Z]:/i.test(normalizedBase) ||
+    /^[a-z]:/i.test(normalizedBase) ||
     (normalizedBase.includes('\\') && !normalizedBase.includes('/'))
   ) {
     const basePath = normalizedBase.endsWith('\\')

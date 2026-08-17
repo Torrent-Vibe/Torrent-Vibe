@@ -143,12 +143,12 @@ const VirtualizedTorrentList = ({ onCellTap }: VirtualizedTorrentListProps) => {
   }, [torrentsLength, cellConfig])
   return (
     <div
-      ref={containerRef}
+      data-mobile-torrent-list
       className="flex flex-1 relative h-[calc(100vh-5rem)] overflow-y-auto"
+      ref={containerRef}
       style={{
         WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
       }}
-      data-mobile-torrent-list
     >
       {/* iOS-style table view */}
       <div
@@ -160,10 +160,10 @@ const VirtualizedTorrentList = ({ onCellTap }: VirtualizedTorrentListProps) => {
       >
         {items.map((virtualItem) => (
           <div
-            key={virtualItem.key}
-            data-index={virtualItem.index} // For measureElement to identify items
-            ref={virtualizer.measureElement} // Connect to virtualizer measurement
             className="absolute top-0 left-0 w-full"
+            data-index={virtualItem.index} // For measureElement to identify items
+            key={virtualItem.key}
+            ref={virtualizer.measureElement} // Connect to virtualizer measurement
             style={{
               height: virtualItem.size,
               transform: `translateY(${virtualItem.start}px)`,

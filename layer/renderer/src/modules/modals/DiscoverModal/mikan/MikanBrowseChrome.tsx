@@ -4,7 +4,9 @@ import { Button } from '~/components/ui/button'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
@@ -13,17 +15,11 @@ import {
   MIKAN_SEASONS,
   resolveMikanSeason,
 } from '~/modules/discover/providers/mikan/utils'
-import {
-  useCurrentHelperPaired,
-  useCurrentHelperTarget,
-} from '~/modules/helper-client/hooks'
 import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
-import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
 import { DiscoverSearchInput } from '../components'
 import { useDiscoverModalStore } from '../store'
-import { openHelperSettings } from './bangumi-actions'
 import { mikanSeasonControlsVisible } from './stack'
 
 const MIKAN_SEASON_LABELS = {
@@ -32,6 +28,18 @@ const MIKAN_SEASON_LABELS = {
   秋: 'discover.modal.mikan.season.autumn',
   冬: 'discover.modal.mikan.season.winter',
 } as const
+
+const seasonValue = (year: number, season: string) => `${year}:${season}`
+
+const parseSeasonValue = (value: string) => {
+  const [yearPart, seasonPart] = value.split(':')
+  const year = Number(yearPart)
+  const season = resolveMikanSeason(seasonPart)
+  if (!Number.isFinite(year) || !season) {
+    return null
+  }
+  return { year, season }
+}
 
 export const MikanSearchField = () => {
   const { t } = useTranslation('app')
@@ -45,10 +53,10 @@ export const MikanSearchField = () => {
 export const MikanSeasonPicker = () => {
   const { t } = useTranslation('app')
   const { form } = DiscoverModalActions.shared.slices
-  const filters = useDiscoverModalStore(state => state.filters)
+  const filters = useDiscoverModalStore((state) => state.filters)
   const current = getCurrentMikanSeason()
-  const parsedYear
-    = typeof filters.year === 'number'
+  const parsedYear =
+    typeof filters.year === 'number'
       ? filters.year
       : typeof filters.year === 'string' && filters.year.trim()
         ? Number(filters.year)
@@ -62,122 +70,74 @@ export const MikanSeasonPicker = () => {
   )
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Select
-        value={String(year)}
-        onValueChange={(value) => {
-          form.updateFilters(prev => ({
-            ...prev,
-            year: Number(value),
-            season,
-          }))
-        }}
-      >
-        <SelectTrigger className="h-9 w-[6.5rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {years.map(option => (
-            <SelectItem key={option} value={String(option)}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={season}
-        onValueChange={(value) => {
-          form.updateFilters(prev => ({
-            ...prev,
-            year,
-            season: value,
-          }))
-        }}
-      >
-        <SelectTrigger className="h-9 w-[7.5rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {MIKAN_SEASONS.map(option => (
-            <SelectItem key={option} value={option}>
-              {t(MIKAN_SEASON_LABELS[option])}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  )
-}
-
-export const MikanHelperChip = () => {
-  const { t } = useTranslation('app')
-  const paired = useCurrentHelperPaired()
-  const target = useCurrentHelperTarget()
-  const statusError = useSubscriptionsStore((state) => {
-    const serverId = target?.id
-    return serverId ? state.statusByServer[serverId]?.error : undefined
-  })
-
-  if (!paired) {
-    return (
-      <button
-        type="button"
-        className="h-9 shrink-0 px-1.5 text-xs text-text-tertiary hover:text-accent"
-        onClick={() =>
-          presentSettingsModal({
-            tab: ELECTRON ? 'servers' : 'appConnection',
-          })}
-      >
-        {t('discover.modal.mikan.helperUnboundChip')}
-      </button>
-    )
-  }
-
-  if (statusError) {
-    return (
-      <button
-        type="button"
-        className="h-9 shrink-0 px-1.5 text-xs text-text-tertiary hover:text-accent"
-        onClick={openHelperSettings}
-      >
-        {t('discover.modal.mikan.helperUnreachableChip')}
-      </button>
-    )
-  }
-
-  return (
-    <p className="flex h-9 shrink-0 items-center gap-1.5 px-1.5 text-xs text-text-secondary">
-      <span className="size-1.5 rounded-full bg-green" />
-      {target?.name}
-    </p>
+    <Select
+      value={seasonValue(year, season)}
+      onValueChange={(value) => {
+        const next = parseSeasonValue(value)
+        if (!next) {
+          return
+        }
+        form.updateFilters((prev) => ({
+          ...prev,
+          year: next.year,
+          season: next.season,
+        }))
+      }}
+    >
+      <SelectTrigger className="h-9 w-[8.5rem]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {years.map((option) => (
+          <SelectGroup key={option}>
+            <SelectLabel>{option}</SelectLabel>
+            {MIKAN_SEASONS.map((entry) => (
+              <SelectItem
+                key={seasonValue(option, entry)}
+                value={seasonValue(option, entry)}
+              >
+                {option} {t(MIKAN_SEASON_LABELS[entry])}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
 export const MikanSubscriptionBadge = () => {
   const { t } = useTranslation('app')
-  const count = useSubscriptionsStore(state => state.items.length)
+  const count = useSubscriptionsStore((state) => state.items.length)
   const { mikan } = DiscoverModalActions.shared.slices
+  const label = t('discover.modal.mikan.subscriptionBadge', { count })
 
   return (
     <Button
-      variant="secondary"
-      className="h-9 shrink-0"
+      aria-label={label}
+      className="relative h-9 w-9 shrink-0 p-0"
+      title={label}
+      variant="ghost"
       onClick={() => mikan.pushSubscriptions()}
     >
-      {t('discover.modal.mikan.subscriptionBadge', { count })}
+      <i className="i-mingcute-notification-line text-lg" />
+      {count > 0 && (
+        <span className="absolute top-0.5 right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] leading-none font-medium text-background">
+          {count}
+        </span>
+      )}
     </Button>
   )
 }
 
 export const MikanBrowseHeaderEnd = () => {
-  const keyword = useDiscoverModalStore(state => state.keyword)
+  const keyword = useDiscoverModalStore((state) => state.keyword)
   const showSeason = mikanSeasonControlsVisible(keyword)
 
   return (
     <>
       {showSeason && <MikanSeasonPicker />}
       <MikanSubscriptionBadge />
-      <MikanHelperChip />
     </>
   )
 }

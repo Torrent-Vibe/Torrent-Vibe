@@ -6,24 +6,24 @@ import { useId } from 'react'
 import { cn } from '~/lib/cn'
 
 export interface SegmentTabItem<T = string> {
-  value: T
-  label: ReactNode
   icon?: ReactNode
+  label: ReactNode
+  value: T
 }
 
 export interface SegmentTabProps<T = string> {
-  items: SegmentTabItem<T>[]
-  value: T
-  onChange: (value: T) => void
+  activeClassName?: string
   className?: string
   containerClassName?: string
-  activeClassName?: string
-  inactiveClassName?: string
-  size?: 'sm' | 'md' | 'lg'
-  variant?: 'default' | 'compact'
   disabled?: boolean
-  responsiveWrap?: boolean
+  inactiveClassName?: string
+  items: SegmentTabItem<T>[]
+  onChange: (value: T) => void
   ref?: Ref<HTMLDivElement>
+  responsiveWrap?: boolean
+  size?: 'sm' | 'md' | 'lg'
+  value: T
+  variant?: 'default' | 'compact'
 }
 
 const sizeClasses = {
@@ -76,9 +76,9 @@ export function SegmentTab<T = string>({
   const sizeClass = sizeClasses[variant][size]
   return (
     <div
+      aria-disabled={disabled || undefined}
       ref={ref}
       role="tablist"
-      aria-disabled={disabled || undefined}
       className={cn(
         'relative flex items-center container-type-[inline-size] w-full',
         styles.container,
@@ -98,9 +98,13 @@ export function SegmentTab<T = string>({
 
           return (
             <m.button
+              aria-selected={isActive}
+              disabled={disabled}
               key={String(item.value)}
+              role="tab"
+              style={{ zIndex: 2 }}
               type="button"
-              onClick={() => !disabled && onChange(item.value)}
+              whileTap={{ scale: 0.985 }}
               className={cn(
                 // Text legibility and pill shape
                 'relative font-medium transition-colors duration-200',
@@ -121,11 +125,7 @@ export function SegmentTab<T = string>({
                       inactiveClassName,
                     ),
               )}
-              style={{ zIndex: 2 }}
-              disabled={disabled}
-              role="tab"
-              aria-selected={isActive}
-              whileTap={{ scale: 0.985 }}
+              onClick={() => !disabled && onChange(item.value)}
             >
               {item.icon && (
                 <span className="flex items-center justify-center">

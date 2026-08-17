@@ -11,8 +11,8 @@ import {
 } from '../components'
 
 interface ListeningPortSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const ListeningPortSection = ({
@@ -30,6 +30,9 @@ export const ListeningPortSection = ({
       <SettingField label={t('connection.port.description')}>
         <div className="flex items-center gap-2">
           <Input
+            className="w-24"
+            max={65535}
+            min={1024}
             type="number"
             value={prefs.listen_port || 47050}
             onChange={(e) =>
@@ -37,19 +40,16 @@ export const ListeningPortSection = ({
                 listen_port: Number.parseInt(e.target.value) || 47050,
               })
             }
-            min={1024}
-            max={65535}
-            className="w-24"
           />
-          <Button variant="secondary" size="sm" onClick={handleRandomPort}>
+          <Button size="sm" variant="secondary" onClick={handleRandomPort}>
             {t('connection.port.random')}
           </Button>
         </div>
       </SettingField>
       <SettingSwitchField
+        checked={Boolean(prefs.upnp)}
         id="upnp"
         label={t('connection.port.upnp')}
-        checked={Boolean(prefs.upnp)}
         onCheckedChange={(v) => onPrefsChange({ upnp: Boolean(v) })}
       />
     </SettingSectionCard>

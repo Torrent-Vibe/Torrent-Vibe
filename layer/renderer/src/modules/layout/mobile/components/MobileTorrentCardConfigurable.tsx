@@ -27,12 +27,12 @@ import type { MobileCellField, TorrentData } from '../types'
 import { useMobileDetailBottomSheet } from './MobileDetailBottomSheet'
 
 interface MobileTorrentCardConfigurableProps {
-  rowIndex: number
   className?: string
-
-  onTap?: (torrentHash: string) => void
   onSwipeLeft?: (torrentHash: string) => void
+
   onSwipeRight?: (torrentHash: string) => void
+  onTap?: (torrentHash: string) => void
+  rowIndex: number
 }
 
 export const MobileTorrentCardConfigurable = ({
@@ -209,7 +209,7 @@ export const MobileTorrentCardConfigurable = ({
       }
 
       return (
-        <div key={field.id} className="flex items-center gap-1">
+        <div className="flex items-center gap-1" key={field.id}>
           {field.icon && <i className={cn('text-xs', field.icon)} />}
           <span>{displayValue}</span>
         </div>
@@ -238,6 +238,12 @@ export const MobileTorrentCardConfigurable = ({
 
   return (
     <m.div
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: 20 }}
+      layout="position"
+      transition={Spring.presets.smooth}
+      whileTap={{ scale: 0.98 }}
       className={cn(
         'relative bg-background border-0 mx-4 mb-0 overflow-hidden',
         'active:bg-material-medium transition-colors',
@@ -245,14 +251,8 @@ export const MobileTorrentCardConfigurable = ({
         multiSelectMode && 'cursor-pointer',
         className,
       )}
-      layout="position"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={Spring.presets.smooth}
-      onTap={handleTap}
       onPan={handlePan}
-      whileTap={{ scale: 0.98 }}
+      onTap={handleTap}
     >
       {/* iOS-style cell content */}
       <div className="flex min-w-0 flex-col px-3 sm:px-4 py-3 min-h-[64px] relative">
@@ -282,8 +282,8 @@ export const MobileTorrentCardConfigurable = ({
             {/* Primary field (title) */}
             {fieldGroups.primary.map((field) => (
               <div
-                key={field.id}
                 className="text-base font-normal text-text leading-tight mb-1 min-w-0"
+                key={field.id}
               >
                 <div className="truncate pr-2">
                   {field.id === 'name'
@@ -298,8 +298,8 @@ export const MobileTorrentCardConfigurable = ({
               <div className="flex items-center gap-1.5 text-sm text-placeholder-text flex-wrap">
                 {fieldGroups.secondary.map((field, index) => (
                   <div
-                    key={field.id}
                     className="flex items-center gap-1.5 min-w-0"
+                    key={field.id}
                   >
                     {index > 0 && (
                       <span className="text-placeholder-text text-xs">•</span>
@@ -330,8 +330,8 @@ export const MobileTorrentCardConfigurable = ({
             <div className="flex flex-col items-end gap-1 text-xs text-text-secondary min-w-0">
               {fieldGroups.trailing.slice(0, 2).map((field) => (
                 <span
-                  key={field.id}
                   className="font-mono tabular-nums inline-flex items-center gap-1 truncate max-w-[60px] sm:max-w-[80px] md:max-w-[100px]"
+                  key={field.id}
                 >
                   {renderField(field)?.props?.children}
                 </span>
@@ -341,12 +341,12 @@ export const MobileTorrentCardConfigurable = ({
             {/* Expand/collapse button - only show if there's more content */}
             {hasExpandableContent && (
               <button
+                aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
                 type="button"
-                onClick={handleToggleExpansion}
                 className={cn(
                   'p-1 -m-1 text-placeholder-text hover:text-text transition-colors flex-shrink-0',
                 )}
-                aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+                onClick={handleToggleExpansion}
               >
                 <i
                   className={cn(
@@ -370,10 +370,10 @@ export const MobileTorrentCardConfigurable = ({
       {/* Expandable Section - iOS Settings style */}
       {hasExpandableContent && isExpanded && (
         <m.div
-          className="overflow-hidden"
-          initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
+          className="overflow-hidden"
           exit={{ height: 0, opacity: 0 }}
+          initial={{ height: 0, opacity: 0 }}
           transition={Spring.presets.smooth}
         >
           {/* Separator line */}
@@ -385,8 +385,8 @@ export const MobileTorrentCardConfigurable = ({
               <div className="space-y-2 mb-3">
                 {fieldGroups.trailing.slice(2).map((field) => (
                   <div
-                    key={field.id}
                     className="flex items-center justify-between py-1.5 min-h-[32px] gap-3"
+                    key={field.id}
                   >
                     <div className="flex items-center gap-2 text-sm text-text min-w-0 flex-1">
                       {field.icon && (

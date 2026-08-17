@@ -32,12 +32,11 @@ export const handleErrorResponse = async (response: Response) => {
   try {
     const text = await response.text()
     throw new Error(text.trim() || fallback)
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(fallback)
+    throw new Error(fallback, { cause: error })
   }
 }
 
@@ -56,7 +55,7 @@ export const resolveMikanSeason = (value: unknown): MikanSeasonStr | null => {
 
 export const getCurrentMikanSeason = (
   date = new Date(),
-): { year: number, season: MikanSeasonStr } => {
+): { year: number; season: MikanSeasonStr } => {
   const month = date.getMonth()
   const year = date.getFullYear()
   if (month <= 2) {
@@ -76,8 +75,8 @@ export const resolveSeasonWallQuery = (
 ) => {
   const current = getCurrentMikanSeason()
   const yearRaw = filters.year
-  const parsedYear
-    = typeof yearRaw === 'number'
+  const parsedYear =
+    typeof yearRaw === 'number'
       ? yearRaw
       : typeof yearRaw === 'string' && yearRaw.trim()
         ? Number(yearRaw)
@@ -89,20 +88,20 @@ export const resolveSeasonWallQuery = (
 
 export interface MikanEpisodeExtra {
   episodeId: string
+  publishedAt?: string
+  sizeBytes?: number
   subgroupId: string
   title: string
   torrentUrl: string
-  sizeBytes?: number
-  publishedAt?: string
 }
 
 export interface MikanBangumiExtra {
-  kind: 'bangumi'
-  weekday?: number
-  coverUrl?: string
   bangumiSubjectId?: string
-  subgroups?: Array<{ id: string, name: string }>
+  coverUrl?: string
   episodes?: MikanEpisodeExtra[]
+  kind: 'bangumi'
+  subgroups?: Array<{ id: string; name: string }>
+  weekday?: number
 }
 
 export const asMikanBangumiExtra = (
@@ -120,7 +119,7 @@ export const findEpisodeTorrentUrl = (
 ): string | null => {
   const bangumi = asMikanBangumiExtra(extra)
   const match = bangumi?.episodes?.find(
-    episode => episode.episodeId === episodeId,
+    (episode) => episode.episodeId === episodeId,
   )
   return match?.torrentUrl || null
 }

@@ -4,32 +4,32 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { SettingsSection } from '../configs'
 
 export interface MobileNavigationScreen {
+  canGoBack?: boolean
+  data?: Record<string, any>
+  icon?: string
   id: string
   screenId: SettingsSection | 'root'
   title: string
-  icon?: string
-  data?: Record<string, any>
-  canGoBack?: boolean
 }
 
 export interface MobileNavigationState {
-  // Navigation Stack
-  screens: MobileNavigationScreen[]
-  currentScreenIndex: number
-
-  // Animation State
-  isNavigating: boolean
-  navigationDirection: 'push' | 'pop' | null
-
+  canGoBack: () => boolean
   // Screen Data
   currentScreen: MobileNavigationScreen | null
 
-  // Actions
-  push: (screen: Omit<MobileNavigationScreen, 'id'>) => void
+  currentScreenIndex: number
+  // Animation State
+  isNavigating: boolean
+
+  navigationDirection: 'push' | 'pop' | null
+
   pop: () => boolean
   popToRoot: () => void
+  // Actions
+  push: (screen: Omit<MobileNavigationScreen, 'id'>) => void
   replace: (screen: Omit<MobileNavigationScreen, 'id'>) => void
-  canGoBack: () => boolean
+  // Navigation Stack
+  screens: MobileNavigationScreen[]
 
   // Animation Actions
   setIsNavigating: (isNavigating: boolean) => void

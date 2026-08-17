@@ -18,35 +18,35 @@ import {
 
 export const MikanBangumiHeaderActions = () => {
   const { t } = useTranslation('app')
-  const items = useDiscoverModalStore(state => state.items)
-  const bangumiId = useDiscoverModalStore(state => state.mikanBangumiId)
-  const detail = useDiscoverModalStore(state => state.mikanDetail)
-  const subgroupId = useDiscoverModalStore(state => state.mikanSubgroupId)
+  const items = useDiscoverModalStore((state) => state.items)
+  const bangumiId = useDiscoverModalStore((state) => state.mikanBangumiId)
+  const detail = useDiscoverModalStore((state) => state.mikanDetail)
+  const subgroupId = useDiscoverModalStore((state) => state.mikanSubgroupId)
   const helperPaired = useCurrentHelperPaired()
   const currentServerId = useCurrentServerId()
-  const subscriptions = useSubscriptionsStore(state => state.items)
+  const subscriptions = useSubscriptionsStore((state) => state.items)
   const [backfilling, setBackfilling] = useState(false)
 
-  const item = detail ?? items.find(entry => entry.id === bangumiId) ?? null
+  const item = detail ?? items.find((entry) => entry.id === bangumiId) ?? null
   const extra = asMikanBangumiExtra(item?.extra)
   const subgroups = extra?.subgroups ?? []
   const helperHint = t('discover.modal.mikan.helperNotBound')
   const subscription = subscriptions.find(
-    entry =>
-      entry.bangumiId === bangumiId
-      && entry.subgroupId === (subgroupId ?? entry.subgroupId),
+    (entry) =>
+      entry.bangumiId === bangumiId &&
+      entry.subgroupId === (subgroupId ?? entry.subgroupId),
   )
 
   const allEpisodes = extra?.episodes ?? []
   const episodes = subgroupId
-    ? allEpisodes.filter(episode => episode.subgroupId === subgroupId)
+    ? allEpisodes.filter((episode) => episode.subgroupId === subgroupId)
     : allEpisodes
 
   const handleSubscribe = () => {
     if (!helperPaired || !bangumiId || !subgroupId || !item) {
       return
     }
-    const group = subgroups.find(entry => entry.id === subgroupId)
+    const group = subgroups.find((entry) => entry.id === subgroupId)
     presentBangumiSubscribe({
       bangumiId,
       title: item.title,
@@ -55,8 +55,8 @@ export const MikanBangumiHeaderActions = () => {
       subgroupId,
       subgroupName: group?.name || subgroupId,
       initialIds:
-        subscription?.targetServerIds
-        ?? (currentServerId ? [currentServerId] : []),
+        subscription?.targetServerIds ??
+        (currentServerId ? [currentServerId] : []),
     })
   }
 
@@ -67,8 +67,7 @@ export const MikanBangumiHeaderActions = () => {
     setBackfilling(true)
     try {
       await backfillReleasedEpisodes(bangumiId, subgroupId, episodes)
-    }
-    finally {
+    } finally {
       setBackfilling(false)
     }
   }
@@ -77,9 +76,9 @@ export const MikanBangumiHeaderActions = () => {
     <div className="flex shrink-0 items-center gap-1.5">
       <span title={helperPaired ? undefined : helperHint}>
         <Button
+          disabled={!helperPaired || backfilling || !subgroupId}
           size="sm"
           variant="secondary"
-          disabled={!helperPaired || backfilling || !subgroupId}
           onClick={() => {
             void handleBackfill()
           }}
@@ -92,9 +91,9 @@ export const MikanBangumiHeaderActions = () => {
       </span>
       <span title={helperPaired ? undefined : helperHint}>
         <Button
+          disabled={!helperPaired || !subgroupId}
           size="sm"
           variant="secondary"
-          disabled={!helperPaired || !subgroupId}
           onClick={handleSubscribe}
         >
           {subscription
@@ -104,8 +103,8 @@ export const MikanBangumiHeaderActions = () => {
       </span>
       {!helperPaired && (
         <button
-          type="button"
           className="text-xs text-accent hover:underline"
+          type="button"
           onClick={openHelperSettings}
         >
           {t('discover.modal.mikan.bindHelper')}

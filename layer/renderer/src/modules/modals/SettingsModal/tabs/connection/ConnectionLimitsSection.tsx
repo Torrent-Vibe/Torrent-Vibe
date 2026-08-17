@@ -6,8 +6,8 @@ import { Input } from '~/components/ui/input'
 import { SettingSectionCard, SettingToggleField } from '../components'
 
 interface ConnectionLimitsSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const ConnectionLimitsSection = ({
@@ -23,8 +23,8 @@ export const ConnectionLimitsSection = ({
   return (
     <SettingSectionCard title={t('connection.limits.title')}>
       <SettingToggleField
-        label={t('connection.limits.globalConnections')}
         enabled={maxConnecEnabled}
+        label={t('connection.limits.globalConnections')}
         onEnabledChange={(v) =>
           onPrefsChange({
             max_connec: v ? (prefs.max_connec ?? 500) || 500 : -1,
@@ -32,19 +32,19 @@ export const ConnectionLimitsSection = ({
         }
       >
         <Input
+          className="w-20"
+          min={0}
           type="number"
           value={prefs.max_connec ?? 500}
           onChange={(e) =>
             onPrefsChange({ max_connec: Number.parseInt(e.target.value) || 0 })
           }
-          min={0}
-          className="w-20"
         />
       </SettingToggleField>
 
       <SettingToggleField
-        label={t('connection.limits.connectionsPerTorrent')}
         enabled={maxConnecPerTorrentEnabled}
+        label={t('connection.limits.connectionsPerTorrent')}
         onEnabledChange={(v) =>
           onPrefsChange({
             max_connec_per_torrent: v
@@ -54,6 +54,8 @@ export const ConnectionLimitsSection = ({
         }
       >
         <Input
+          className="w-20"
+          min={0}
           type="number"
           value={prefs.max_connec_per_torrent ?? 100}
           onChange={(e) =>
@@ -61,32 +63,30 @@ export const ConnectionLimitsSection = ({
               max_connec_per_torrent: Number.parseInt(e.target.value) || 0,
             })
           }
-          min={0}
-          className="w-20"
         />
       </SettingToggleField>
 
       <SettingToggleField
-        label={t('connection.limits.globalUploads')}
         enabled={maxUploadsEnabled}
+        label={t('connection.limits.globalUploads')}
         onEnabledChange={(v) =>
           onPrefsChange({ max_uploads: v ? (prefs.max_uploads ?? 8) || 8 : -1 })
         }
       >
         <Input
+          className="w-20"
+          min={0}
           type="number"
           value={prefs.max_uploads ?? 8}
           onChange={(e) =>
             onPrefsChange({ max_uploads: Number.parseInt(e.target.value) || 0 })
           }
-          min={0}
-          className="w-20"
         />
       </SettingToggleField>
 
       <SettingToggleField
-        label={t('connection.limits.uploadsPerTorrent')}
         enabled={maxUploadsPerTorrentEnabled}
+        label={t('connection.limits.uploadsPerTorrent')}
         onEnabledChange={(v) =>
           onPrefsChange({
             max_uploads_per_torrent: v
@@ -96,6 +96,8 @@ export const ConnectionLimitsSection = ({
         }
       >
         <Input
+          className="w-20"
+          min={0}
           type="number"
           value={prefs.max_uploads_per_torrent ?? 4}
           onChange={(e) =>
@@ -103,8 +105,6 @@ export const ConnectionLimitsSection = ({
               max_uploads_per_torrent: Number.parseInt(e.target.value) || 0,
             })
           }
-          min={0}
-          className="w-20"
         />
       </SettingToggleField>
     </SettingSectionCard>

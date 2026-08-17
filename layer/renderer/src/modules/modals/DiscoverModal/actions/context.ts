@@ -22,8 +22,8 @@ const readHistoryMap = (): DiscoverSearchHistoryStorage => {
     return {}
   }
   return (
-    storage.getJSON<DiscoverSearchHistoryStorage>(SEARCH_HISTORY_STORAGE_KEY)
-    ?? {}
+    storage.getJSON<DiscoverSearchHistoryStorage>(SEARCH_HISTORY_STORAGE_KEY) ??
+    {}
   )
 }
 
@@ -33,8 +33,7 @@ const writeHistoryMap = (next: DiscoverSearchHistoryStorage) => {
   }
   if (Object.keys(next).length === 0) {
     storage.removeItem(SEARCH_HISTORY_STORAGE_KEY)
-  }
-  else {
+  } else {
     storage.setJSON(SEARCH_HISTORY_STORAGE_KEY, next)
   }
 }
@@ -42,8 +41,11 @@ const writeHistoryMap = (next: DiscoverSearchHistoryStorage) => {
 export interface DiscoverActionContext {
   ensureFilterClone: typeof ensureFilterClone
   getState: typeof discoverModalStore.getState
-  setState: typeof discoverModalStore.setState
-  search: {
+  history: {
+    load: (providerId: DiscoverProviderId) => string[]
+    persist: (providerId: DiscoverProviderId, history: string[]) => void
+  }
+  mikan: {
     nextToken: () => number
     currentToken: () => number
     invalidate: () => void
@@ -53,15 +55,12 @@ export interface DiscoverActionContext {
     currentToken: () => number
     invalidate: () => void
   }
-  mikan: {
+  search: {
     nextToken: () => number
     currentToken: () => number
     invalidate: () => void
   }
-  history: {
-    load: (providerId: DiscoverProviderId) => string[]
-    persist: (providerId: DiscoverProviderId, history: string[]) => void
-  }
+  setState: typeof discoverModalStore.setState
 }
 
 export const createActionContext = (): DiscoverActionContext => {
@@ -81,8 +80,7 @@ export const createActionContext = (): DiscoverActionContext => {
     const map = readHistoryMap()
     if (history.length > 0) {
       map[providerId] = history
-    }
-    else {
+    } else {
       delete map[providerId]
     }
     writeHistoryMap(map)

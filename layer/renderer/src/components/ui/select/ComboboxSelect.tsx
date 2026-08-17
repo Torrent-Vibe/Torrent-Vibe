@@ -11,18 +11,18 @@ import { InputPrompt } from '../prompts/InputPrompt'
 import { SelectItem, SelectSeparator } from './Select'
 
 interface ComboboxSelectProps {
-  value?: string
-  onValueChange?: (value: string) => void
-  placeholder?: string
-  options?: string[]
   allowCustom?: boolean
-  disabled?: boolean
-  size?: 'default' | 'sm'
   className?: string
-  label?: string
-  customInputTitle?: string
   customInputDescription?: string
   customInputPlaceholder?: string
+  customInputTitle?: string
+  disabled?: boolean
+  label?: string
+  onValueChange?: (value: string) => void
+  options?: string[]
+  placeholder?: string
+  size?: 'default' | 'sm'
+  value?: string
 }
 
 const DEFAULT_OPTIONS: string[] = []
@@ -83,11 +83,11 @@ export const ComboboxSelect: FC<ComboboxSelectProps> = ({
         </label>
       )}
       <SelectPrimitive.Root
-        value={value === '' ? '__EMPTY__' : value}
-        onValueChange={handleValueChange}
-        open={isOpen}
-        onOpenChange={setIsOpen}
         disabled={disabled}
+        open={isOpen}
+        value={value === '' ? '__EMPTY__' : value}
+        onOpenChange={setIsOpen}
+        onValueChange={handleValueChange}
       >
         <SelectPrimitive.Trigger
           className={clsxm(
@@ -112,11 +112,11 @@ export const ComboboxSelect: FC<ComboboxSelectProps> = ({
 
         <RootPortal>
           <SelectPrimitive.Content
+            position="item-aligned"
             className={clsxm(
               'bg-material-medium backdrop-blur-background text-text z-[60] max-h-96 min-w-32 overflow-hidden rounded-[6px] border border-border p-1',
               'shadow-context-menu',
             )}
-            position="item-aligned"
           >
             <SelectPrimitive.Viewport className="p-0">
               {options.length === 0 && !allowCustom ? (

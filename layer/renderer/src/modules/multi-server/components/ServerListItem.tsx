@@ -18,8 +18,8 @@ import {
 } from '../utils/server-config'
 
 interface ServerItemProps {
-  server: ServerConnection
   isActive: boolean
+  server: ServerConnection
 }
 
 export const ServerItem = memo(({ server, isActive }: ServerItemProps) => {

@@ -5,5 +5,5 @@ interface AddedOnCellProps {
 }
 
 export const AddedOnCell = ({ rowIndex }: AddedOnCellProps) => {
-  return <DateTimeCell format="relative" rowIndex={rowIndex} field="added_on" />
+  return <DateTimeCell field="added_on" format="relative" rowIndex={rowIndex} />
 }

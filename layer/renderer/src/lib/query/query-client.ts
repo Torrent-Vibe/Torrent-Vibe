@@ -11,13 +11,13 @@ const queryClient = new QueryClient({
       retry(failureCount, error) {
         console.error(error)
 
-        const status
-          = error instanceof FetchError ? error.statusCode : undefined
+        const status =
+          error instanceof FetchError ? error.statusCode : undefined
         const message = error instanceof Error ? error.message : ''
-        const isAuthError
-          = status === 401
-            || status === 403
-            || /HTTP 401\b|HTTP 403\b|Unauthorized/i.test(message)
+        const isAuthError =
+          status === 401 ||
+          status === 403 ||
+          /http 401\b|http 403\b|unauthorized/i.test(message)
 
         if (isAuthError) {
           authManager.handle401Error().then((success) => {

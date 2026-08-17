@@ -16,19 +16,18 @@ export const HelperInstallSnippet = () => {
 
   return (
     <p className="text-xs text-text-tertiary">
-      {t('servers.helper.installHint')}
-      {' '}
+      {t('servers.helper.installHint')}{' '}
       <button
-        type="button"
         className="text-text-secondary underline-offset-2 hover:text-text hover:underline"
+        type="button"
         onClick={() => copy('amd64')}
       >
         {t('servers.helper.archAmd64')}
       </button>
       {' · '}
       <button
-        type="button"
         className="text-text-secondary underline-offset-2 hover:text-text hover:underline"
+        type="button"
         onClick={() => copy('arm64')}
       >
         {t('servers.helper.archArm64')}

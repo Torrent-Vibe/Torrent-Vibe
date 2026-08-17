@@ -1,14 +1,14 @@
 import type { TorrentState } from '../../../types/torrent'
 
 export interface TorrentStateIconProps {
-  state: TorrentState
-  progress?: number
   className?: string
+  progress?: number
+  state: TorrentState
 }
 
 interface StateIconConfig {
-  icon: string
   color: string
+  icon: string
 }
 
 const stateIconMap: Record<TorrentState, StateIconConfig> = {

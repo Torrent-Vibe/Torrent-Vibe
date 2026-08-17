@@ -8,11 +8,11 @@ interface SettingInputFieldProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'onChange' | 'size'
 > {
-  label: ReactNode
-  description?: ReactNode
-  value: string | number
-  onChange: (value: string) => void
   dense?: boolean
+  description?: ReactNode
+  label: ReactNode
+  onChange: (value: string) => void
+  value: string | number
 }
 
 export const SettingInputField = ({
@@ -26,16 +26,16 @@ export const SettingInputField = ({
 }: SettingInputFieldProps) => {
   return (
     <SettingField
-      label={label}
+      dense={dense}
       description={description}
       htmlFor={id}
-      dense={dense}
+      label={label}
     >
       <Input
+        className={dense ? 'h-8 text-[13px]' : undefined}
         id={id}
         value={value}
-        onChange={e => onChange(e.target.value)}
-        className={dense ? 'h-8 text-[13px]' : undefined}
+        onChange={(e) => onChange(e.target.value)}
         {...rest}
       />
     </SettingField>

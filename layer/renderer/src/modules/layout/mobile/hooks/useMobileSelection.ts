@@ -18,10 +18,10 @@ interface MobileSelectionOptions {
   autoExitAfterAction?: boolean
   // Maximum number of selected items
   maxSelection?: number
-  // Callback when selection changes
-  onSelectionChange?: (selectedHashes: string[], count: number) => void
   // Callback when entering/exiting multi-select mode
   onModeChange?: (isMultiSelect: boolean) => void
+  // Callback when selection changes
+  onSelectionChange?: (selectedHashes: string[], count: number) => void
 }
 
 export const useMobileSelection = (options: MobileSelectionOptions = {}) => {

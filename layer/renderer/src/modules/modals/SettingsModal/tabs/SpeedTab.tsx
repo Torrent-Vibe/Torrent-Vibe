@@ -29,8 +29,8 @@ export const SpeedTab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.speedSaved"
       saveErrorI18nKey="messages.speedSaveFailed"
+      saveSuccessI18nKey="messages.speedSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">
@@ -44,7 +44,9 @@ export const SpeedTab = () => {
         <SettingField label={t('speed.global.upload')}>
           <div className="flex items-center gap-2">
             <Input
+              className="w-28"
               id="up-limit"
+              min={0}
               type="number"
               value={prefs.up_limit ?? 0}
               onChange={(e) =>
@@ -52,8 +54,6 @@ export const SpeedTab = () => {
                   up_limit: Number.parseInt(e.target.value) || 0,
                 })
               }
-              min={0}
-              className="w-28"
             />
             <span className="text-xs text-text-tertiary">
               {t('speed.global.kibpsUnlimited')}
@@ -63,7 +63,9 @@ export const SpeedTab = () => {
         <SettingField label={t('speed.global.download')}>
           <div className="flex items-center gap-2">
             <Input
+              className="w-28"
               id="dl-limit"
+              min={0}
               type="number"
               value={prefs.dl_limit ?? 0}
               onChange={(e) =>
@@ -71,8 +73,6 @@ export const SpeedTab = () => {
                   dl_limit: Number.parseInt(e.target.value) || 0,
                 })
               }
-              min={0}
-              className="w-28"
             />
             <span className="text-xs text-text-tertiary">
               {t('speed.global.kibpsUnlimited')}
@@ -100,8 +100,8 @@ export const SpeedTab = () => {
 // --- Extracted sections ---
 
 interface SectionProps {
-  prefs: Partial<Preferences>
   onChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 const AlternativeRateLimitsSection = ({ prefs, onChange }: SectionProps) => {
@@ -109,17 +109,17 @@ const AlternativeRateLimitsSection = ({ prefs, onChange }: SectionProps) => {
   const altEnabled =
     (prefs.alt_dl_limit ?? 0) > 0 || (prefs.alt_up_limit ?? 0) > 0
   return (
-    <SettingSectionCard title={t('speed.alt.title')} enabled={altEnabled}>
+    <SettingSectionCard enabled={altEnabled} title={t('speed.alt.title')}>
       <SettingField label={t('speed.alt.upload')}>
         <div className="flex items-center gap-2">
           <Input
+            className="w-28"
+            min={0}
             type="number"
             value={prefs.alt_up_limit ?? 0}
             onChange={(e) =>
               onChange({ alt_up_limit: Number.parseInt(e.target.value) || 0 })
             }
-            min={0}
-            className="w-28"
           />
           <span className="text-xs text-text-tertiary">KiB/s</span>
         </div>
@@ -127,13 +127,13 @@ const AlternativeRateLimitsSection = ({ prefs, onChange }: SectionProps) => {
       <SettingField label={t('speed.alt.download')}>
         <div className="flex items-center gap-2">
           <Input
+            className="w-28"
+            min={0}
             type="number"
             value={prefs.alt_dl_limit ?? 0}
             onChange={(e) =>
               onChange({ alt_dl_limit: Number.parseInt(e.target.value) || 0 })
             }
-            min={0}
-            className="w-28"
           />
           <span className="text-xs text-text-tertiary">KiB/s</span>
         </div>
@@ -152,12 +152,12 @@ const AlternativeRateLimitSchedulerSection = ({
     Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min
   return (
     <SettingSectionCard
-      title={t('speed.scheduler.title')}
       enabled={schedulerEnabled}
+      title={t('speed.scheduler.title')}
     >
       <SettingSwitchField
-        label={t('speed.scheduler.enable')}
         checked={schedulerEnabled}
+        label={t('speed.scheduler.enable')}
         onCheckedChange={(enable) => onChange({ scheduler_enabled: enable })}
       />
 
@@ -165,10 +165,10 @@ const AlternativeRateLimitSchedulerSection = ({
         <div className="flex items-center gap-3">
           <span className="text-sm">{t('speed.scheduler.from')}</span>
           <Input
-            type="number"
             className="w-14 text-center"
-            min={0}
             max={23}
+            min={0}
+            type="number"
             value={prefs.schedule_from_hour ?? 0}
             onChange={(e) =>
               onChange({
@@ -182,10 +182,10 @@ const AlternativeRateLimitSchedulerSection = ({
           />
           <span>:</span>
           <Input
-            type="number"
             className="w-14 text-center"
-            min={0}
             max={59}
+            min={0}
+            type="number"
             value={prefs.schedule_from_min ?? 0}
             onChange={(e) =>
               onChange({
@@ -202,10 +202,10 @@ const AlternativeRateLimitSchedulerSection = ({
         <div className="flex items-center gap-3">
           <span className="text-sm">{t('speed.scheduler.to')}</span>
           <Input
-            type="number"
             className="w-14 text-center"
-            min={0}
             max={23}
+            min={0}
+            type="number"
             value={prefs.schedule_to_hour ?? 0}
             onChange={(e) =>
               onChange({
@@ -219,10 +219,10 @@ const AlternativeRateLimitSchedulerSection = ({
           />
           <span>:</span>
           <Input
-            type="number"
             className="w-14 text-center"
-            min={0}
             max={59}
+            min={0}
+            type="number"
             value={prefs.schedule_to_min ?? 0}
             onChange={(e) =>
               onChange({
@@ -240,14 +240,6 @@ const AlternativeRateLimitSchedulerSection = ({
           id="scheduler-days"
           label={t('speed.scheduler.dayLabel')}
           value={String(prefs.scheduler_days ?? 0)}
-          onValueChange={(v) => {
-            const raw = Number.parseInt(v)
-            const clamped = Math.min(
-              9,
-              Math.max(0, Number.isFinite(raw) ? raw : 0),
-            ) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
-            onChange({ scheduler_days: clamped })
-          }}
           options={[
             { value: '0', label: t('speed.schedulerDay.every') },
             { value: '1', label: t('speed.schedulerDay.weekdays') },
@@ -260,6 +252,14 @@ const AlternativeRateLimitSchedulerSection = ({
             { value: '8', label: t('speed.schedulerDay.sat') },
             { value: '9', label: t('speed.schedulerDay.sun') },
           ]}
+          onValueChange={(v) => {
+            const raw = Number.parseInt(v)
+            const clamped = Math.min(
+              9,
+              Math.max(0, Number.isFinite(raw) ? raw : 0),
+            ) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+            onChange({ scheduler_days: clamped })
+          }}
         />
       </div>
     </SettingSectionCard>
@@ -272,25 +272,25 @@ const RateLimitOptionsSection = ({ prefs, onChange }: SectionProps) => {
     <SettingSectionCard title={t('speed.options.title')}>
       <div className="flex flex-col gap-2">
         <SettingSwitchField
+          checked={Boolean(prefs.limit_utp_rate)}
           id="limit-utp-rate"
           label={t('speed.options.utp')}
-          checked={Boolean(prefs.limit_utp_rate)}
           onCheckedChange={(checked) => onChange({ limit_utp_rate: checked })}
         />
 
         <SettingSwitchField
+          checked={Boolean(prefs.limit_tcp_overhead)}
           id="limit-tcp-overhead"
           label={t('speed.options.overhead')}
-          checked={Boolean(prefs.limit_tcp_overhead)}
           onCheckedChange={(checked) =>
             onChange({ limit_tcp_overhead: checked })
           }
         />
 
         <SettingSwitchField
+          checked={Boolean(prefs.limit_lan_peers)}
           id="limit-lan-peers"
           label={t('speed.options.lan')}
-          checked={Boolean(prefs.limit_lan_peers)}
           onCheckedChange={(checked) => onChange({ limit_lan_peers: checked })}
         />
       </div>

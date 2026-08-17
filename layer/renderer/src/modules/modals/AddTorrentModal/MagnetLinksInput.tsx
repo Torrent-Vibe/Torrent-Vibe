@@ -28,8 +28,10 @@ export const MagnetLinksInput = ({
   return (
     <div className="space-y-2 grow flex flex-col">
       <Textarea
+        className="font-mono -mt-3 text-sm min-h-[180px] resize-none h-0 grow"
         id="magnet-links"
         placeholder="Enter one or more magnet links (one per line):&#10;magnet:?xt=urn:btih:...&#10;magnet:?xt=urn:btih:..."
+        rows={6}
         value={formData.magnetLinks}
         onChange={(e) =>
           handlers.setFormData((prev) => ({
@@ -37,8 +39,6 @@ export const MagnetLinksInput = ({
             magnetLinks: e.target.value,
           }))
         }
-        className="font-mono -mt-3 text-sm min-h-[180px] resize-none h-0 grow"
-        rows={6}
       />
 
       <div className="flex flex-col gap-1">

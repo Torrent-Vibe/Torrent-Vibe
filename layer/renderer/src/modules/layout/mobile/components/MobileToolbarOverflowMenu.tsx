@@ -15,12 +15,12 @@ import { BottomSheet } from './UniversalBottomSheetManager'
 
 interface OverflowMenuButtonProps {
   compact?: boolean
+  onSortDirectionToggle: () => void
+  onSortFieldChange: (sortKey: string) => void
   sortState: {
     sortKey: keyof TorrentInfo
     sortDirection: 'asc' | 'desc'
   }
-  onSortFieldChange: (sortKey: string) => void
-  onSortDirectionToggle: () => void
 }
 
 // Sort options for mobile
@@ -111,14 +111,14 @@ export const OverflowMenuButton = ({
 
   return (
     <Button
-      variant="ghost"
       size="sm"
-      onClick={handleOverflowMenuClick}
+      title="Sort and view options"
+      variant="ghost"
       className={cn(
         'shrink-0 text-text-secondary hover:text-text',
         compact ? 'px-1.5 py-1 h-7' : 'px-2 py-1.5 h-9',
       )}
-      title="Sort and view options"
+      onClick={handleOverflowMenuClick}
     >
       <i
         className={cn(

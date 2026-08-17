@@ -78,7 +78,7 @@ const Handler = () => {
             if (!nextItem && item instanceof MenuItemSeparator) {
               return null
             }
-            return <Item key={index} item={item} />
+            return <Item item={item} key={index} />
           })}
       </ContextMenuContent>
     </ContextMenu>
@@ -115,14 +115,14 @@ const Item = memo(({ item }: { item: FollowMenuItem }) => {
       return (
         <Sub>
           <Wrapper
+            checked={item.checked}
+            className="flex items-center gap-2"
+            hasIcon={!!item.icon}
             ref={itemRef}
             disabled={
               item.disabled || (item.click === undefined && !hasSubmenu)
             }
             onClick={onClick}
-            className="flex items-center gap-2"
-            checked={item.checked}
-            hasIcon={!!item.icon}
           >
             {!!item.icon && (
               <span className="absolute left-2 flex items-center justify-center">
@@ -135,7 +135,7 @@ const Item = memo(({ item }: { item: FollowMenuItem }) => {
             <ContextMenuPortal>
               <ContextMenuSubContent>
                 {item.submenu.map((subItem, index) => (
-                  <Item key={index} item={subItem} />
+                  <Item item={subItem} key={index} />
                 ))}
               </ContextMenuSubContent>
             </ContextMenuPortal>

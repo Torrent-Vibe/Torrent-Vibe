@@ -6,9 +6,9 @@ import { getLogger } from '../config/log-config'
 import type { WindowContentLoader } from '../types/window-manager.types'
 
 export interface ContentLoaderOptions {
-  isDevelopment?: boolean
-  devServerPort?: number
   devServerHost?: string
+  devServerPort?: number
+  isDevelopment?: boolean
 }
 
 export class DefaultWindowContentLoader implements WindowContentLoader {

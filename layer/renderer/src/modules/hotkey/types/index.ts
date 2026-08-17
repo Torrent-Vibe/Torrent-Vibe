@@ -3,18 +3,18 @@ export type HotkeyCombo = string // e.g., "Ctrl+s", "$mod+Shift+d", "Escape"
 
 // Hotkey action with metadata
 export interface HotkeyAction {
-  id: string
+  category?: string
   combo: HotkeyCombo
+  description?: string
+  disabled?: boolean
   handler: (
     event: KeyboardEvent,
     context?: FocusContext,
   ) => void | Promise<void>
-  description?: string
-  category?: string
-  disabled?: boolean
+  id: string
   preventDefault?: boolean
-  stopPropagation?: boolean
   priority?: number
+  stopPropagation?: boolean
 }
 
 // Hotkey binding for registration
@@ -24,95 +24,95 @@ export interface HotkeyBinding extends Omit<HotkeyAction, 'id'> {
 
 // Resolved hotkey after scope processing
 export interface ResolvedHotkey extends HotkeyAction {
-  scopeId: string
-  resolutionReason: 'override' | 'union' | 'additive' | 'intersection'
   originalBinding: HotkeyBinding
+  resolutionReason: 'override' | 'union' | 'additive' | 'intersection'
+  scopeId: string
 }
 
 // Focus context information
 export interface FocusContext {
   element: HTMLElement
+  priority: number
   scopeId: string
   scopePath: HotkeyScope[]
-  priority: number
 }
 
 // Scope activation strategy
 export enum ScopeActivationStrategy {
-  UNION = 'union', // All parent scope hotkeys are activated
+  ADDITIVE = 'additive', // Child scope adds to parent, no override
   INTERSECTION = 'intersection', // Only common hotkeys are activated
   OVERRIDE = 'override', // Child scope overrides parent scope
-  ADDITIVE = 'additive', // Child scope adds to parent, no override
+  UNION = 'union', // All parent scope hotkeys are activated
 }
 
 // Centralized scope identifiers for common scopes used across the module
 export enum HotkeyScope {
-  GLOBAL = 'global',
   APP = 'app',
+  GLOBAL = 'global',
   MODAL = 'modal',
   TABLE = 'table',
 }
 
 // Hotkey inheritance rule
 export interface HotkeyInheritanceRule {
-  fromScope: string
   combos: string[] | '*'
+  fromScope: string
   mode: 'inherit' | 'block' | 'override'
 }
 
 // Scope definition
 export interface ScopeDefinition {
+  autoActivate?: boolean
+  conditionalActivation?: (context: FocusContext) => boolean
+  focusSelector?: string
+  hotkeyInheritance: HotkeyInheritanceRule[]
   id: string
+  metadata?: Record<string, any>
   parentId?: string
   priority: number
   strategy: ScopeActivationStrategy
-  hotkeyInheritance: HotkeyInheritanceRule[]
-  conditionalActivation?: (context: FocusContext) => boolean
-  autoActivate?: boolean
-  focusSelector?: string
-  metadata?: Record<string, any>
 }
 
 // Scope state
 export interface ScopeState {
-  id: string
   active: boolean
-  element?: HTMLElement
   context?: FocusContext
+  element?: HTMLElement
   hotkeys: Map<HotkeyCombo, HotkeyBinding>
+  id: string
   lastActivated?: number
 }
 
 // Scope change information
 export interface ScopeChange {
   activated: string[]
+  context: FocusContext | null
   deactivated: string[]
   unchanged: string[]
-  context: FocusContext | null
 }
 
 // Hotkey registration options
 export interface HotkeyRegistrationOptions {
-  scope?: string
-  description?: string
   category?: string
+  description?: string
   disabled?: boolean
   preventDefault?: boolean
-  stopPropagation?: boolean
   priority?: number
+  scope?: string
+  stopPropagation?: boolean
   waitFor?: () => boolean
 }
 
 // Focus scope options for React hook
 export interface FocusScopeOptions {
-  priority?: number
-  parentScope?: string
-  strategy?: ScopeActivationStrategy
   autoActivate?: boolean
+  conditionalActivation?: () => boolean
   focusSelector?: string
   inheritFrom?: string[]
   metadata?: Record<string, any>
-  conditionalActivation?: () => boolean
+  parentScope?: string
+  priority?: number
+  strategy?: ScopeActivationStrategy
 }
 
 // Batch mode configuration
@@ -120,52 +120,52 @@ export interface FocusScopeOptions {
 
 // Performance monitoring
 export interface PerformanceMetrics {
-  fps: number
   cpuUsage: number
-  memoryUsage: number
+  fps: number
   hotkeyLatency: number
+  memoryUsage: number
 }
 
 // Hotkey manager configuration
 export interface HotkeyConfig {
-  enabled: boolean
+  debounceDelay: number
   debugMode: boolean
+  enabled: boolean
+  enablePrediction: boolean
+  maxScopeDepth: number
   preventDefault: boolean
   stopPropagation: boolean
-  maxScopeDepth: number
-  debounceDelay: number
-  enablePrediction: boolean
 }
 
 // Debug information
 export interface HotkeyDebugInfo {
   activeScopes: string[]
-  registeredHotkeys: Map<string, ResolvedHotkey>
   focusContext: FocusContext | null
   performanceMetrics: PerformanceMetrics
+  registeredHotkeys: Map<string, ResolvedHotkey>
   scopeHierarchy: ScopeDefinition[]
 }
 
 // Events
 export interface HotkeyEvent {
+  payload: any
+  timestamp: number
   type:
     | 'scope-activated'
     | 'scope-deactivated'
     | 'hotkey-triggered'
     | 'focus-changed'
-  payload: any
-  timestamp: number
 }
 
 // Manager interface
 export interface HotkeyManagerInterface {
-  register: (binding: HotkeyBinding) => string
-  unregister: (id: string) => boolean
   activateScope: (scopeId: string, context?: FocusContext) => void
   deactivateScope: (scopeId: string) => void
-  updateScopeState: (scopeId: string, state: Partial<ScopeState>) => void
-  updateScopeCondition: (scopeId: string, condition: () => boolean) => void
   getActiveHotkeys: () => Map<string, ResolvedHotkey>
   getDebugInfo: () => HotkeyDebugInfo
+  register: (binding: HotkeyBinding) => string
+  unregister: (id: string) => boolean
+  updateScopeCondition: (scopeId: string, condition: () => boolean) => void
+  updateScopeState: (scopeId: string, state: Partial<ScopeState>) => void
   // Batch mode removed
 }

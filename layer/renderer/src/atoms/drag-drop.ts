@@ -1,9 +1,9 @@
 import { atom } from 'jotai'
 
 export interface DragDropState {
+  hasValidFiles: boolean
   isDragging: boolean
   isDragOver: boolean
-  hasValidFiles: boolean
 }
 
 export const dragDropStateAtom = atom<DragDropState>({

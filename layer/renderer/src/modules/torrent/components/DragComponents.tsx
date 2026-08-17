@@ -4,17 +4,17 @@ import * as React from 'react'
 import { Spring } from '~/lib/spring'
 
 export interface DragPreviewProps {
-  columnId: string
   children: React.ReactNode
+  columnId: string
 }
 
 export const DragPreview: React.FC<DragPreviewProps> = ({ children }) => {
   return (
     <m.div
-      initial={{ scale: 1, rotate: 0 }}
       animate={{ scale: 1.05, rotate: 2 }}
-      transition={Spring.presets.snappy}
       className="bg-material-medium border border-accent/50 rounded-lg px-3 py-2 text-text shadow-2xl backdrop-blur-sm relative"
+      initial={{ scale: 1, rotate: 0 }}
+      transition={Spring.presets.snappy}
       style={{
         minWidth: '120px',
         maxWidth: '200px',

@@ -8,18 +8,18 @@ import { Button } from '../button/Button'
 import { RootPortal } from '../portal/RootPortal'
 
 interface UpdateState {
-  version?: string
-  hasError?: boolean
   errorMessage?: string
+  hasError?: boolean
+  version?: string
 }
 
 interface FloatingUpdatePillProps {
-  updateState: UpdateState | null
+  onDismiss?: () => void
 
   onInstall?: () => void
   onLater?: () => void
   onRetry?: () => void
-  onDismiss?: () => void
+  updateState: UpdateState | null
 }
 
 const ReadyState = ({
@@ -36,18 +36,18 @@ const ReadyState = ({
     <span className="text-sm text-text">{`Update ${version} ready`}</span>
     <div className="flex items-center gap-2">
       <Button
-        variant="primary"
-        size="sm"
-        onClick={onInstall}
         className="h-5 px-2 text-xs bg-text hover:bg-text/90"
+        size="sm"
+        variant="primary"
+        onClick={onInstall}
       >
         Install Now
       </Button>
       <Button
-        variant="ghost"
-        size="sm"
-        onClick={onLater}
         className="h-6 px-2 text-xs"
+        size="sm"
+        variant="ghost"
+        onClick={onLater}
       >
         Later
       </Button>
@@ -71,17 +71,17 @@ const ErrorState = ({
     </span>
     <div className="flex items-center gap-2">
       <Button
-        variant="primary"
-        size="sm"
-        onClick={onRetry}
         className="h-6 px-3 text-xs"
+        size="sm"
+        variant="primary"
+        onClick={onRetry}
       >
         Retry
       </Button>
       <button
+        className="size-8 inline-flex items-center justify-center"
         type="button"
         onClick={onDismiss}
-        className="size-8 inline-flex items-center justify-center"
       >
         <i className="i-mingcute-close-line text-text-secondary" />
       </button>
@@ -110,8 +110,8 @@ export const FloatingUpdatePill = ({
       return (
         <ErrorState
           errorMessage={updateState.errorMessage}
-          onRetry={onRetry}
           onDismiss={handleDismiss}
+          onRetry={onRetry}
         />
       )
     }
@@ -136,13 +136,14 @@ export const FloatingUpdatePill = ({
       <AnimatePresence>
         {content && (
           <m.div
-            className="pointer-events-none fixed bottom-5 left-5 z-50 bg-material-medium backdrop-blur"
-            initial={{ opacity: 0, x: -100, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
+            className="pointer-events-none fixed bottom-5 left-5 z-50 bg-material-medium backdrop-blur"
             exit={{ opacity: 0, x: -100, scale: 0.9 }}
+            initial={{ opacity: 0, x: -100, scale: 0.9 }}
             transition={Spring.presets.snappy}
           >
             <m.div
+              transition={Spring.smooth(0.3)}
               className={clsxm(
                 // Base pill styling
                 'pointer-events-auto relative overflow-hidden rounded-lg border border-border shadow-lg',
@@ -150,7 +151,6 @@ export const FloatingUpdatePill = ({
                 // Padding and sizing
                 'pl-4 pr-2 py-1',
               )}
-              transition={Spring.smooth(0.3)}
             >
               {content}
             </m.div>

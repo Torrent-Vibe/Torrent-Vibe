@@ -1,5 +1,5 @@
 export * from './MikanBangumiPage'
+export * from './MikanBody'
 export * from './MikanSearchResults'
 export * from './MikanSeasonWall'
-export * from './MikanWorkspace'
 export * from './stack'

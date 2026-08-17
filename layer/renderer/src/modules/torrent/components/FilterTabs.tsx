@@ -17,12 +17,7 @@ import {
 import { selectFilterState } from '../stores/torrent-selectors'
 
 type FilterKey =
-  | 'all'
-  | 'downloading'
-  | 'seeding'
-  | 'completed'
-  | 'paused'
-  | 'error'
+  'all' | 'downloading' | 'seeding' | 'completed' | 'paused' | 'error'
 
 const TAB_CONFIGS: Array<{
   key: FilterKey
@@ -128,7 +123,11 @@ const FilterTab = memo(function FilterTab(props: {
 
   return (
     <m.button
+      disabled={isEmpty}
       key={String(props.filterKey)}
+      transition={Spring.presets.snappy}
+      whileHover={!isEmpty ? { scale: 1.02 } : undefined}
+      whileTap={!isEmpty ? { scale: 0.98 } : undefined}
       className={clsx(
         'relative px-3 py-2 rounded-lg text-sm font-medium transition-all',
         isActive
@@ -139,10 +138,6 @@ const FilterTab = memo(function FilterTab(props: {
         isEmpty ? 'cursor-not-allowed' : 'cursor-pointer',
       )}
       onClick={handleClick}
-      disabled={isEmpty}
-      whileHover={!isEmpty ? { scale: 1.02 } : undefined}
-      whileTap={!isEmpty ? { scale: 0.98 } : undefined}
-      transition={Spring.presets.snappy}
     >
       <div className="flex items-center gap-2">
         <i
@@ -293,12 +288,12 @@ export const FilterTabs = () => {
     >
       {TAB_CONFIGS.map((cfg) => (
         <FilterTab
-          key={cfg.key}
-          filterKey={cfg.key}
-          labelKey={cfg.labelKey}
-          icon={cfg.icon}
           color={cfg.color}
           count={counts[cfg.key]}
+          filterKey={cfg.key}
+          icon={cfg.icon}
+          key={cfg.key}
+          labelKey={cfg.labelKey}
         />
       ))}
     </div>

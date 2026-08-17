@@ -1,24 +1,23 @@
-export type HelperEpisodeState
-  = | 'pending'
-    | 'added'
-    | 'downloading'
-    | 'renaming'
-    | 'done'
-    | 'failed'
-    | 'needs-manual'
-    | 'skipped'
+export type HelperEpisodeState =
+  | 'pending'
+  | 'added'
+  | 'downloading'
+  | 'renaming'
+  | 'done'
+  | 'failed'
+  | 'needs-manual'
+  | 'skipped'
 
 export interface SubscriptionRecord {
+  bangumiId: string
+  bangumiSubjectId?: string
+  coverUrl?: string
+  createdAt: string
   id: string
   providerId: 'mikan'
-  bangumiId: string
-  title: string
-  coverUrl?: string
-  bangumiSubjectId?: string
+  rssUrl: string
   subgroupId: string
   subgroupName: string
-  rssUrl: string
-  targetServerIds: string[]
   syncByServer: Record<
     string,
     {
@@ -27,19 +26,20 @@ export interface SubscriptionRecord {
       lastPushedAt?: string
     }
   >
-  createdAt: string
+  targetServerIds: string[]
+  title: string
   updatedAt: string
 }
 
 export interface HelperReplica {
-  id: string
   bangumiId: string
-  title: string
   bangumiSubjectId?: string
+  id: string
+  rssUrl: string
   subgroupId: string
   subgroupName: string
-  rssUrl: string
+  title: string
 }
 
-export type DesiredStateOp
-  = { type: 'add', replica: HelperReplica } | { type: 'remove', id: string }
+export type DesiredStateOp =
+  { type: 'add'; replica: HelperReplica } | { type: 'remove'; id: string }

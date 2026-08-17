@@ -6,21 +6,21 @@ import { app, safeStorage } from 'electron'
 export type ApiTokenEncryption = 'safeStorage' | 'plain'
 
 export interface StoredApiToken {
-  id: string
-  value: string
-  hint: string | null
-  encryption: ApiTokenEncryption
   createdAt: string
+  encryption: ApiTokenEncryption
+  hint: string | null
+  id: string
   updatedAt: string
+  value: string
 }
 
 export interface ApiTokenSummary {
-  id: string
-  hint: string | null
-  encryption: ApiTokenEncryption
   createdAt: string
-  updatedAt: string
+  encryption: ApiTokenEncryption
   hasValue: boolean
+  hint: string | null
+  id: string
+  updatedAt: string
 }
 
 type ApiTokenStoreData = Record<string, StoredApiToken>
@@ -127,7 +127,7 @@ export class ApiTokenStore {
     const now = new Date().toISOString()
     const previous = this.cache[id]
 
-    let encryption: ApiTokenEncryption = 'plain'
+    let encryption: ApiTokenEncryption
     let storedValue: string
 
     try {

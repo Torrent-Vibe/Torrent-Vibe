@@ -9,16 +9,16 @@ import { clsxm as cn, focusRing } from '~/lib/cn'
 import { Spring } from '~/lib/spring'
 
 interface MultiSelectProps {
-  value?: string[]
-  onChange?: (value: string[]) => void
-  placeholder?: string
-  options?: string[]
   allowCustom?: boolean
-  disabled?: boolean
-  size?: 'default' | 'sm'
   className?: string
+  disabled?: boolean
   label?: string
   maxHeight?: string
+  onChange?: (value: string[]) => void
+  options?: string[]
+  placeholder?: string
+  size?: 'default' | 'sm'
+  value?: string[]
 }
 
 const DEFAULT_VALUE: string[] = []
@@ -81,7 +81,7 @@ export const MultiSelect: FC<MultiSelectProps> = ({
   }, [isOpen])
 
   return (
-    <div ref={containerRef} className={cn('relative w-full', className)}>
+    <div className={cn('relative w-full', className)} ref={containerRef}>
       {label && (
         <label className="mb-2 block text-sm font-medium text-text">
           {label}
@@ -90,9 +90,8 @@ export const MultiSelect: FC<MultiSelectProps> = ({
 
       {/* Trigger button (aligned with SelectTrigger) */}
       <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
         disabled={disabled}
+        type="button"
         className={cn(
           'flex w-full items-center justify-between whitespace-nowrap rounded-lg bg-transparent',
           focusRing,
@@ -105,6 +104,7 @@ export const MultiSelect: FC<MultiSelectProps> = ({
           'shadow-sm hover:shadow',
           disabled && 'cursor-not-allowed opacity-30',
         )}
+        onClick={() => setIsOpen((v) => !v)}
       >
         <span
           className={cn('text-text-secondary', value.length > 0 && 'text-text')}
@@ -123,10 +123,10 @@ export const MultiSelect: FC<MultiSelectProps> = ({
       <AnimatePresence>
         {isOpen && (
           <m.div
-            key="multi-select-content"
-            initial={{ opacity: 0, scale: 0.96, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            key="multi-select-content"
             transition={Spring.presets.smooth}
             className={cn(
               'bg-background absolute z-[60] mt-1 w-full overflow-hidden rounded-lg border border-border p-1.5 shadow-md',
@@ -139,22 +139,22 @@ export const MultiSelect: FC<MultiSelectProps> = ({
                 <div className="border-border border-b p-1 mb-1">
                   <div className="flex gap-1">
                     <Input
+                      className="border-transparent bg-transparent focus:border-border rounded-md shadow-none h-7 px-2 py-1 text-sm"
+                      inputClassName="bg-transparent border-transparent appearance-none shadow-none h-7 px-0 !ring-0 !border-0"
+                      placeholder="Add custom tag..."
                       value={customValue}
                       onChange={(e) => setCustomValue(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Add custom tag..."
-                      inputClassName="bg-transparent border-transparent appearance-none shadow-none h-7 px-0 !ring-0 !border-0"
-                      className="border-transparent bg-transparent focus:border-border rounded-md shadow-none h-7 px-2 py-1 text-sm"
                     />
                     <Button
+                      className="rounded-md h-7"
                       size="sm"
                       variant="secondary"
-                      className="rounded-md h-7"
-                      onClick={handleAddCustom}
                       disabled={
                         !customValue.trim() ||
                         value.includes(customValue.trim())
                       }
+                      onClick={handleAddCustom}
                     >
                       Add
                     </Button>
@@ -175,7 +175,6 @@ export const MultiSelect: FC<MultiSelectProps> = ({
                       <button
                         key={option}
                         type="button"
-                        onClick={() => handleToggleOption(option)}
                         className={cn(
                           'cursor-menu focus:bg-accent focus:text-white relative flex w-full select-none items-center rounded-[5px] px-2.5 py-1 text-left text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                           'focus-within:outline-transparent',
@@ -184,6 +183,7 @@ export const MultiSelect: FC<MultiSelectProps> = ({
                             ? 'bg-accent text-white'
                             : 'hover:bg-accent hover:text-white',
                         )}
+                        onClick={() => handleToggleOption(option)}
                       >
                         <span className="pr-5">{option}</span>
                         {selected && (

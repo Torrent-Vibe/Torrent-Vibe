@@ -2,11 +2,11 @@ import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/cn'
 
 interface DiscoverEmptyStateProps {
-  icon: string
-  title: string
-  description: string
   actionLabel?: string
+  description: string
+  icon: string
   onAction?: () => void
+  title: string
 }
 
 export const DiscoverEmptyState = ({
@@ -24,7 +24,7 @@ export const DiscoverEmptyState = ({
         <p className="text-sm text-text-secondary">{description}</p>
       </div>
       {actionLabel && onAction && (
-        <Button onClick={onAction} size="sm">
+        <Button size="sm" onClick={onAction}>
           {actionLabel}
         </Button>
       )}

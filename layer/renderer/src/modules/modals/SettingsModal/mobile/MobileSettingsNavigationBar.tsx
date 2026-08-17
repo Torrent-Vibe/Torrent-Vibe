@@ -12,8 +12,8 @@ import {
 } from './mobile-navigation-store'
 
 interface MobileSettingsNavigationBarProps {
-  onClose?: () => void
   className?: string
+  onClose?: () => void
 }
 
 /**
@@ -57,6 +57,7 @@ export const MobileSettingsNavigationBar: React.FC<
 
   return (
     <header
+      style={{ height: MOBILE_SETTINGS_NAVIGATION_BAR_HEIGHT }}
       className={cn(
         'flex items-center justify-between px-4 py-3',
         'bg-background border-b border-border',
@@ -64,29 +65,28 @@ export const MobileSettingsNavigationBar: React.FC<
         'shrink-0', // Prevent header from shrinking
         className,
       )}
-      style={{ height: MOBILE_SETTINGS_NAVIGATION_BAR_HEIGHT }}
     >
       {/* Left Side - Back Button */}
       <div className="flex items-center min-w-0 flex-1 macos:electron:pl-16">
         {showBackButton && (
           <m.div
-            key="back-button"
-            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, x: -10 }}
+            key="back-button"
             transition={Spring.presets.smooth}
           >
             <Button
-              variant="ghost"
+              aria-label="Go back"
+              disabled={isNavigating}
               size="sm"
+              variant="ghost"
               className={cn(
                 'p-2 -ml-2 mr-2 min-w-[40px] h-[40px]',
                 'hover:bg-fill-tertiary active:bg-fill',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               onClick={handleBackPress}
-              disabled={isNavigating}
-              aria-label="Go back"
             >
               <i className="i-mingcute-arrow-left-line text-lg text-accent" />
             </Button>
@@ -100,15 +100,15 @@ export const MobileSettingsNavigationBar: React.FC<
       {/* Center - Title */}
       <div className="flex-1 flex justify-center items-center px-4">
         <m.h1
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 5 }}
+          initial={{ opacity: 0, y: -5 }}
           key={`title-${currentScreen?.id || 'unknown'}`}
+          transition={Spring.presets.smooth}
           className={cn(
             'text-lg font-semibold text-text',
             'truncate max-w-full text-center',
           )}
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
-          transition={Spring.presets.smooth}
         >
           {title}
         </m.h1>
@@ -118,22 +118,22 @@ export const MobileSettingsNavigationBar: React.FC<
       <div className="flex items-center justify-end min-w-0 flex-1">
         {showCloseButton && (
           <m.div
-            key="close-button"
-            initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
+            initial={{ opacity: 0, x: 10 }}
+            key="close-button"
             transition={Spring.presets.smooth}
           >
             <Button
-              variant="ghost"
+              aria-label="Close settings"
               size="sm"
+              variant="ghost"
               className={cn(
                 'p-2 -mr-2 ml-2 min-w-[40px] h-[40px]',
                 'hover:bg-fill-tertiary active:bg-fill',
                 'text-text-secondary hover:text-text',
               )}
               onClick={handleClose}
-              aria-label="Close settings"
             >
               <i className="i-mingcute-close-line text-lg" />
             </Button>

@@ -7,7 +7,7 @@ import { Drawer } from 'vaul'
 import { cn } from '~/lib/cn'
 import { jotaiStore } from '~/lib/jotai'
 
-import type { BottomSheetComponent,BottomSheetItem  } from './types'
+import type { BottomSheetComponent, BottomSheetItem } from './types'
 import {
   BottomSheet,
   bottomSheetItemsAtom,
@@ -20,7 +20,7 @@ export const UniversalBottomSheetContainer = () => {
     <div id="global-bottomsheet-container">
       <AnimatePresence initial={false}>
         {items.map((item) => (
-          <BottomSheetWrapper key={item.id} item={item} />
+          <BottomSheetWrapper item={item} key={item.id} />
         ))}
       </AnimatePresence>
     </div>
@@ -87,10 +87,10 @@ const BottomSheetWrapper = ({ item }: { item: BottomSheetItem }) => {
 
   return (
     <Drawer.Root
-      open={open}
-      onOpenChange={handleOpenChange}
       shouldScaleBackground
       modal={true}
+      open={open}
+      onOpenChange={handleOpenChange}
     >
       <Drawer.Portal>
         {/* Overlay */}

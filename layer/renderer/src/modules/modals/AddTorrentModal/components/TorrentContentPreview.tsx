@@ -13,13 +13,13 @@ import {
 import type { TorrentContentPreviewState } from '../types'
 
 export interface TorrentContentPreviewProps {
-  state: TorrentContentPreviewState
-  selectedFileIndices: Set<number>
-  onToggleFile: (index: number, next?: boolean) => void
-  onToggleAll: (select: boolean) => void
-  onReload?: () => Promise<void> | void
-  onClear?: () => Promise<void> | void
   isLoading?: boolean
+  onClear?: () => Promise<void> | void
+  onReload?: () => Promise<void> | void
+  onToggleAll: (select: boolean) => void
+  onToggleFile: (index: number, next?: boolean) => void
+  selectedFileIndices: Set<number>
+  state: TorrentContentPreviewState
 }
 
 export const TorrentContentPreview = ({
@@ -112,25 +112,25 @@ export const TorrentContentPreview = ({
 
         <div className="flex items-center gap-2">
           <Checkbox
-            size="sm"
             checked={allSelected}
             indeterminate={isIndeterminate}
-            onCheckedChange={(checked) => onToggleAll(Boolean(checked))}
+            size="sm"
             aria-label={
               allSelected
                 ? t('addTorrent.preview.deselectAll')
                 : t('addTorrent.preview.selectAll')
             }
+            onCheckedChange={(checked) => onToggleAll(Boolean(checked))}
           />
           {onReload && (
             <Button
+              disabled={isLoading}
+              isLoading={isLoading}
               size="sm"
               variant="secondary"
               onClick={() => {
                 onReload()
               }}
-              disabled={isLoading}
-              isLoading={isLoading}
             >
               {t('addTorrent.preview.reload')}
             </Button>
@@ -159,12 +159,12 @@ export const TorrentContentPreview = ({
             const selected = selectedFileIndices.has(file.index)
             return (
               <label
-                key={`${file.index}-${file.path}`}
                 className="flex items-start gap-3 rounded-md bg-background px-3 py-2 text-xs"
+                key={`${file.index}-${file.path}`}
               >
                 <Checkbox
-                  size="sm"
                   checked={selected}
+                  size="sm"
                   onCheckedChange={(checked) =>
                     onToggleFile(file.index, Boolean(checked))
                   }

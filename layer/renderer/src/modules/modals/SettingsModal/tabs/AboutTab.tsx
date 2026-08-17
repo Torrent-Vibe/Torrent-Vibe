@@ -78,12 +78,12 @@ export const AboutTab = () => {
       {rendererLicenseData && (
         <LicenseStatsSection
           commandLabel="torrent-vibe --licenses"
-          totalDependencies={
-            (rendererLicenseData as AppLicenseData).totalLibraries
-          }
           licenseStats={calculateLicenseStats(
             rendererLicenseData as AppLicenseData,
           )}
+          totalDependencies={
+            (rendererLicenseData as AppLicenseData).totalLibraries
+          }
         />
       )}
 
@@ -91,12 +91,12 @@ export const AboutTab = () => {
       {ELECTRON && electronLicenseData && (
         <LicenseStatsSection
           commandLabel="torrent-vibe --licenses electron"
-          totalDependencies={
-            (electronLicenseData as AppLicenseData).totalLibraries
-          }
           licenseStats={calculateLicenseStats(
             electronLicenseData as AppLicenseData,
           )}
+          totalDependencies={
+            (electronLicenseData as AppLicenseData).totalLibraries
+          }
         />
       )}
     </div>

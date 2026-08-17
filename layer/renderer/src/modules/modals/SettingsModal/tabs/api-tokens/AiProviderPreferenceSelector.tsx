@@ -17,11 +17,11 @@ interface ProviderOption {
 }
 
 interface AiProviderPreferenceSelectorProps {
-  providers: ProviderOption[]
-  value: AiProviderId | null
-  onChange: (providerId: AiProviderId) => void
   disabled?: boolean
   loading?: boolean
+  onChange: (providerId: AiProviderId) => void
+  providers: ProviderOption[]
+  value: AiProviderId | null
 }
 
 export const AiProviderPreferenceSelector = ({
@@ -41,14 +41,14 @@ export const AiProviderPreferenceSelector = ({
 
   return (
     <SettingField
-      label={t('tabs.apiTokens.providers.preference.label')}
       description={t('tabs.apiTokens.providers.preference.description')}
+      label={t('tabs.apiTokens.providers.preference.label')}
     >
       <div className="flex w-full flex-col gap-2">
         <Select
+          disabled={disabled || loading}
           value={selectValue}
           onValueChange={(next) => onChange(next as AiProviderId)}
-          disabled={disabled || loading}
         >
           <SelectTrigger loading={loading}>
             <SelectValue

@@ -18,16 +18,16 @@ import type { WindowManagerOptions } from './types/window-manager.types'
 import { initUpdater } from './updater'
 
 interface BootstrapOptions {
+  devServerHost?: string
   // Development server configuration
   devServerPort?: number
-  devServerHost?: string
-
-  // Window configuration
-  windowOptions?: Electron.BrowserWindowConstructorOptions
 
   // Application configuration
   enableDevTools?: boolean
+
   enableSingleInstance?: boolean
+  // Window configuration
+  windowOptions?: Electron.BrowserWindowConstructorOptions
 }
 
 class ElectronBootstrap {
@@ -42,8 +42,8 @@ class ElectronBootstrap {
     app.commandLine.appendSwitch('disable-web-security')
     app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
 
-    this.isDevelopment
-      = process.env.NODE_ENV === 'development' || !app.isPackaged
+    this.isDevelopment =
+      process.env.NODE_ENV === 'development' || !app.isPackaged
 
     this.options = {
       devServerPort: 5173, // Default Vite dev server port
@@ -128,12 +128,11 @@ class ElectronBootstrap {
       if (this.isDevelopment && this.options.enableDevTools) {
         try {
           // Dynamic import so build does not fail if dependency is missing in production
-          const { default: installExtension, REACT_DEVELOPER_TOOLS }
-            = await import('electron-devtools-installer')
+          const { default: installExtension, REACT_DEVELOPER_TOOLS } =
+            await import('electron-devtools-installer')
           await installExtension(REACT_DEVELOPER_TOOLS)
           console.warn('React DevTools installed')
-        }
-        catch (e) {
+        } catch (e) {
           // Non-fatal if not installed or fails
           console.warn('Failed to install React DevTools:', e)
         }
@@ -173,8 +172,7 @@ class ElectronBootstrap {
 
       // Platform-split application updater: Sparkle on macOS, electron-updater elsewhere
       initUpdater()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to initialize Electron application:', error)
       await this.showErrorDialog('Initialization Error', String(error))
       app.quit()
@@ -192,8 +190,7 @@ class ElectronBootstrap {
     for (const target of legacyPaths) {
       try {
         rmSync(target, { recursive: true, force: true })
-      }
-      catch (error) {
+      } catch (error) {
         console.warn('Failed to purge legacy update artifact:', target, error)
       }
     }

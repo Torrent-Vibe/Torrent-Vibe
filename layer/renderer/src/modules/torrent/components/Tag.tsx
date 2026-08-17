@@ -5,14 +5,14 @@ import { getI18n } from '~/i18n'
 import { clsxm } from '~/lib/cn'
 
 interface TagProps {
-  tag: string
-  variant?: 'primary' | 'accent' | 'tertiary'
-  onModify?: (tag: string) => void
-  onDelete?: (tag: string) => void
-  showContextMenu?: boolean
   className?: string
+  onDelete?: (tag: string) => void
+  onModify?: (tag: string) => void
+  showContextMenu?: boolean
+  tag: string
   title?: string
   type?: 'category' | 'tag'
+  variant?: 'primary' | 'accent' | 'tertiary'
 }
 
 const TagComponent = ({
@@ -77,13 +77,13 @@ const TagComponent = ({
 
   return (
     <span
+      title={title || tag}
       className={clsxm(
         baseClassName,
         variantClassName,
         interactiveClassName,
         className,
       )}
-      title={title || tag}
       onContextMenu={handleContextMenu}
     >
       {tag}

@@ -62,10 +62,10 @@ const ServerConfigModal = ({
   if (mode === 'edit' && isInitializing) {
     return (
       <m.div
-        className="bg-background rounded-lg border border-border p-6 max-w-lg w-full mx-4"
-        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
+        className="bg-background rounded-lg border border-border p-6 max-w-lg w-full mx-4"
         exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         transition={Spring.presets.smooth}
       >
         <div className="flex items-center justify-center py-8">
@@ -80,10 +80,10 @@ const ServerConfigModal = ({
 
   return (
     <m.div
-      className="bg-background max-w-2xl w-full"
-      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
+      className="bg-background max-w-2xl w-full"
       exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       transition={Spring.presets.smooth}
     >
       <div className="flex items-center justify-between mb-4">
@@ -91,13 +91,13 @@ const ServerConfigModal = ({
       </div>
 
       <ServerConfigForm
-        mode={mode}
         initialData={initialData}
-        onSubmit={handleSubmit}
-        onTest={handleTest}
         isLoading={isSubmitting}
+        mode={mode}
         testResult={testResult}
         onCancel={handleClose}
+        onSubmit={handleSubmit}
+        onTest={handleTest}
       />
     </m.div>
   )

@@ -25,14 +25,14 @@ export interface AiTraceExportInit {
 }
 
 export interface AiTraceSink {
-  emit: (event: AiTraceEvent) => void
-  setBroadcastEnabled: (enabled: boolean) => void
-  getSnapshot: () => { runs: AiTraceRun[] }
-  initExport: (runId: string, init: AiTraceExportInit) => void
   addCompiledCall: (runId: string, call: AiTraceExportCall) => void
   addInvocation: (runId: string, invocation: AiTraceExportInvocation) => void
-  setExportMessages: (runId: string, messages: unknown[]) => void
+  emit: (event: AiTraceEvent) => void
   getExport: (runId: string) => AiTraceExport | null
+  getSnapshot: () => { runs: AiTraceRun[] }
+  initExport: (runId: string, init: AiTraceExportInit) => void
+  setBroadcastEnabled: (enabled: boolean) => void
+  setExportMessages: (runId: string, messages: unknown[]) => void
 }
 
 const INJECTED_PROCESSORS = new Set([
@@ -68,12 +68,12 @@ const toCallSegment = (
   const source = isAiCallSource(segment.sourceType)
     ? segment.sourceType
     : 'unattributed'
-  const cached
-    = segment.cacheStatus === 'reused-internally'
-      || segment.cacheStatus === 'provider-cache-read'
-  const injected
-    = segment.cacheScope === 'turn'
-      || INJECTED_PROCESSORS.has(segment.processorId)
+  const cached =
+    segment.cacheStatus === 'reused-internally' ||
+    segment.cacheStatus === 'provider-cache-read'
+  const injected =
+    segment.cacheScope === 'turn' ||
+    INJECTED_PROCESSORS.has(segment.processorId)
   const next: AiCallSegment = {
     source,
     tokens: segment.tokens,
@@ -102,8 +102,8 @@ export const projectTurnSnapshot = (
 
   for (const segment of snapshot.segments) {
     if (
-      segment.processorId === 'raw-message'
-      && segment.messageId?.startsWith('injected:stable-prefix:')
+      segment.processorId === 'raw-message' &&
+      segment.messageId?.startsWith('injected:stable-prefix:')
     ) {
       continue
     }
@@ -235,11 +235,10 @@ const formatLogLine = (event: AiTraceEvent): string | null => {
 const applyEventToRun = (run: AiTraceRun, event: AiTraceEvent): void => {
   run.events.push(event)
   if (run.events.length > AI_TRACE_EVENTS_PER_RUN) {
-    const index = run.events.findIndex(item => !BOOKEND_TYPES.has(item.type))
+    const index = run.events.findIndex((item) => !BOOKEND_TYPES.has(item.type))
     if (index >= 0) {
       run.events.splice(index, 1)
-    }
-    else {
+    } else {
       run.events.shift()
     }
   }
@@ -329,8 +328,7 @@ export const getAiTraceSink = (): AiTraceSink => {
           evict(evicted)
         }
       }
-    }
-    else {
+    } else {
       applyEventToRun(run, event)
     }
 
@@ -344,8 +342,7 @@ export const getAiTraceSink = (): AiTraceSink => {
     if (broadcastEnabled) {
       try {
         BridgeService.shared.broadcast('torrent-ai:trace', event)
-      }
-      catch {}
+      } catch {}
     }
   }
 
@@ -356,7 +353,7 @@ export const getAiTraceSink = (): AiTraceSink => {
     },
     getSnapshot: () => ({
       runs: order
-        .map(id => runs.get(id))
+        .map((id) => runs.get(id))
         .filter((run): run is AiTraceRun => Boolean(run)),
     }),
     initExport: (runId, init) => {
@@ -372,7 +369,7 @@ export const getAiTraceSink = (): AiTraceSink => {
     addInvocation: (runId, invocation) => {
       const draft = ensureExport(runId)
       const existing = draft.invocations.find(
-        item => item.toolCallId === invocation.toolCallId,
+        (item) => item.toolCallId === invocation.toolCallId,
       )
       if (existing) {
         existing.callIndex = invocation.callIndex

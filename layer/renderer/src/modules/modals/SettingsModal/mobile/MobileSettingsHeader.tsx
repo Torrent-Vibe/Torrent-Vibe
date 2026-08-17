@@ -10,10 +10,10 @@ import { useStackNavigation } from './MobileStackNavigator'
 
 interface MobileSettingsHeaderProps {
   className?: string
+  onBackPress?: () => void
+  rightContent?: React.ReactNode
   showBackButton?: boolean
   title?: string
-  rightContent?: React.ReactNode
-  onBackPress?: () => void
 }
 
 export const MobileSettingsHeader: React.FC<MobileSettingsHeaderProps> = ({
@@ -91,22 +91,22 @@ export const MobileSettingsHeader: React.FC<MobileSettingsHeaderProps> = ({
       <div className="flex items-center min-w-0 flex-1">
         {shouldShowBackButton && (
           <m.div
-            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, x: -10 }}
             transition={Spring.presets.smooth}
           >
             <Button
-              variant="ghost"
+              aria-label="Go back"
+              disabled={isNavigating}
               size="sm"
+              variant="ghost"
               className={cn(
                 'p-2 -ml-2 mr-2 min-w-[40px] h-[40px]',
                 'hover:bg-fill-tertiary active:bg-fill',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               onClick={handleBackPress}
-              disabled={isNavigating}
-              aria-label="Go back"
             >
               <i className="i-mingcute-arrow-left-line text-lg text-accent" />
             </Button>
@@ -136,9 +136,9 @@ export const MobileSettingsHeader: React.FC<MobileSettingsHeaderProps> = ({
       <div className="flex items-center justify-end min-w-0 flex-1">
         {rightContent && (
           <m.div
-            initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
+            initial={{ opacity: 0, x: 10 }}
             transition={Spring.presets.smooth}
           >
             {rightContent}
@@ -153,8 +153,10 @@ export const MobileSettingsHeader: React.FC<MobileSettingsHeaderProps> = ({
 }
 
 // Header with close button (for root/modal)
-interface MobileSettingsHeaderWithCloseProps
-  extends Omit<MobileSettingsHeaderProps, 'rightContent'> {
+interface MobileSettingsHeaderWithCloseProps extends Omit<
+  MobileSettingsHeaderProps,
+  'rightContent'
+> {
   onClose?: () => void
   showCloseButton?: boolean
 }
@@ -168,15 +170,15 @@ export const MobileSettingsHeaderWithClose: React.FC<
 
   const closeButton = showCloseButton ? (
     <Button
-      variant="ghost"
+      aria-label="Close settings"
       size="sm"
+      variant="ghost"
       className={cn(
         'p-2 -mr-2 ml-2 min-w-[40px] h-[40px]',
         'hover:bg-fill-tertiary active:bg-fill',
         'text-text-secondary hover:text-text',
       )}
       onClick={handleClose}
-      aria-label="Close settings"
     >
       <i className="i-mingcute-close-line text-lg" />
     </Button>

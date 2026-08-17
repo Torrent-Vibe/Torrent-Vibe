@@ -114,22 +114,22 @@ export const DiscoverPreviewContent = ({
 
             {previewModel.originFileName && (
               <PreviewOriginFile
-                title={t('discover.modal.detailOriginalFilename')}
                 originFileName={previewModel.originFileName}
+                title={t('discover.modal.detailOriginalFilename')}
               />
             )}
 
             {previewModel.links.length > 0 && (
               <PreviewLinks
-                title={t('discover.modal.detailLinks')}
                 links={previewModel.links}
+                title={t('discover.modal.detailLinks')}
               />
             )}
 
             {previewModel.screenshots.length > 0 && (
               <PreviewScreenshots
-                title={t('discover.modal.detailScreenshots')}
                 screenshots={previewModel.screenshots}
+                title={t('discover.modal.detailScreenshots')}
               />
             )}
 
@@ -140,25 +140,25 @@ export const DiscoverPreviewContent = ({
                 }
               >
                 <PreviewDescription
-                  title={t('discover.modal.detailDescription')}
                   content={previewModel.description}
                   renderer={previewModel.descriptionRenderer}
+                  title={t('discover.modal.detailDescription')}
                 />
               </ErrorBoundary>
             )}
 
             {previewModel.files.length > 0 && (
               <PreviewFiles
-                title={t('discover.modal.detailFiles')}
                 files={previewModel.files}
                 overflowLabel={previewModel.filesOverflowLabel}
+                title={t('discover.modal.detailFiles')}
               />
             )}
 
             {previewModel.mediainfo && (
               <PreviewMediainfo
-                title={t('discover.modal.detailMediaInfo')}
                 mediainfo={previewModel.mediainfo}
+                title={t('discover.modal.detailMediaInfo')}
               />
             )}
           </div>
@@ -166,10 +166,10 @@ export const DiscoverPreviewContent = ({
           <div className="flex flex-col gap-2 w-full @[640px]:w-auto @[640px]:self-end @[640px]:flex-row @[640px]:justify-end">
             {showImportAll && (
               <Button
-                variant="secondary"
                 className="w-full @[640px]:w-auto @[640px]:px-6 @[640px]:min-w-[200px]"
-                onClick={handleImportAll}
                 disabled={disableImportAll}
+                variant="secondary"
+                onClick={handleImportAll}
               >
                 {importing && (
                   <i className="i-mingcute-loading-3-line mr-2 animate-spin" />
@@ -179,10 +179,10 @@ export const DiscoverPreviewContent = ({
             )}
 
             <Button
-              variant="primary"
               className="w-full @[640px]:w-auto @[640px]:px-6 @[640px]:min-w-[200px]"
-              onClick={handleImport}
               disabled={disableImport}
+              variant="primary"
+              onClick={handleImport}
             >
               {importing && (
                 <i className="i-mingcute-loading-3-line mr-2 animate-spin" />

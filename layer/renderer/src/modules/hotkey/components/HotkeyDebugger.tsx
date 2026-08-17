@@ -5,10 +5,10 @@ import { useHotkeyContext } from '../providers/HotkeyProvider'
 import type { FocusContext, HotkeyDebugInfo, ResolvedHotkey } from '../types'
 
 interface HotkeyDebuggerProps {
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
-  width?: number
   maxHeight?: number
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
   refreshInterval?: number
+  width?: number
 }
 
 export function HotkeyDebugger({
@@ -106,7 +106,6 @@ export function HotkeyDebugger({
         </h3>
         <button
           type="button"
-          onClick={() => setIsVisible(false)}
           style={{
             background: 'none',
             border: 'none',
@@ -115,6 +114,7 @@ export function HotkeyDebugger({
             fontSize: 16,
             padding: 0,
           }}
+          onClick={() => setIsVisible(false)}
         >
           ×
         </button>
@@ -131,7 +131,6 @@ export function HotkeyDebugger({
           <button
             key={tab}
             type="button"
-            onClick={() => setActiveTab(tab as any)}
             style={{
               background:
                 activeTab === tab ? 'rgba(255, 255, 255, 0.1)' : 'none',
@@ -146,6 +145,7 @@ export function HotkeyDebugger({
                   ? '2px solid #007acc'
                   : '2px solid transparent',
             }}
+            onClick={() => setActiveTab(tab as any)}
           >
             {tab}
           </button>
@@ -161,8 +161,8 @@ export function HotkeyDebugger({
       >
         {activeTab === 'hotkeys' && (
           <HotkeyTab
-            hotkeys={filteredHotkeys}
             filter={filter}
+            hotkeys={filteredHotkeys}
             setFilter={setFilter}
             totalCount={debugInfo.registeredHotkeys.size}
           />
@@ -211,10 +211,9 @@ function HotkeyTab({
     <>
       <div style={{ marginBottom: 12 }}>
         <input
-          type="text"
           placeholder="Filter hotkeys..."
+          type="text"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
           style={{
             width: '100%',
             padding: '6px 8px',
@@ -224,6 +223,7 @@ function HotkeyTab({
             color: 'white',
             fontSize: 11,
           }}
+          onChange={(e) => setFilter(e.target.value)}
         />
         <div style={{ marginTop: 4, color: '#888', fontSize: 10 }}>
           Showing {hotkeys.length} of {totalCount} hotkeys

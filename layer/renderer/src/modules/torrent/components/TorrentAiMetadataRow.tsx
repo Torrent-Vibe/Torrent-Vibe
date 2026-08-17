@@ -110,12 +110,10 @@ const resolveAiAvailability = async () => {
         : false
       cachedAiAvailability = Boolean(available)
       return cachedAiAvailability
-    }
-    catch {
+    } catch {
       cachedAiAvailability = false
       return false
-    }
-    finally {
+    } finally {
       aiAvailabilityPromise = null
     }
   })()
@@ -155,7 +153,7 @@ export const TorrentAiMetadataRow = ({
   }, [isElectron])
 
   const entry = useTorrentAiStore(
-    useShallow(state => selectTorrentAiEntry(state, hash) ?? null),
+    useShallow((state) => selectTorrentAiEntry(state, hash) ?? null),
   )
 
   const requestMetadata = useCallback(
@@ -192,15 +190,15 @@ export const TorrentAiMetadataRow = ({
   if (!entry) {
     return (
       <button
-        type="button"
-        className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
         aria-label={t('torrent.ai.actions.analyze')}
+        className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
+        type="button"
         onClick={(event) => {
           event.stopPropagation()
           requestMetadata()
         }}
       >
-        <i className="i-lucide-sparkles text-[12px]" aria-hidden="true" />
+        <i aria-hidden="true" className="i-lucide-sparkles text-[12px]" />
         <span>{t('torrent.ai.actions.analyze')}</span>
       </button>
     )
@@ -211,8 +209,8 @@ export const TorrentAiMetadataRow = ({
     if (entry.error && NON_RETRYABLE_ERRORS.has(entry.error)) {
       return null
     }
-    const messageKey
-      = entry.error && entry.error in ERROR_MESSAGE_KEY
+    const messageKey =
+      entry.error && entry.error in ERROR_MESSAGE_KEY
         ? ERROR_MESSAGE_KEY[entry.error as keyof typeof ERROR_MESSAGE_KEY]
         : 'torrent.ai.status.error.default'
     const errorLabel = t(messageKey)
@@ -226,44 +224,42 @@ export const TorrentAiMetadataRow = ({
     }
 
     return (
-      <HoverCard openDelay={150} closeDelay={120}>
+      <HoverCard closeDelay={120} openDelay={150}>
         <HoverCardTrigger asChild>
           <span
-            className="inline-flex h-5 items-center gap-1 rounded-full border border-red/20 px-1.5 text-[10px] leading-none text-red/60"
             aria-label={t('torrent.ai.status.error.default')}
+            className="inline-flex h-5 items-center gap-1 rounded-full border border-red/20 px-1.5 text-[10px] leading-none text-red/60"
           >
             <i
-              className="i-mingcute-warning-line text-[12px]"
               aria-hidden="true"
+              className="i-mingcute-warning-line text-[12px]"
             />
             <span>AI</span>
           </span>
         </HoverCardTrigger>
         <HoverCardContent
-          onClick={stopPropagation}
           align="start"
-          sideOffset={12}
           className="gap-2 justify-between flex items-center"
+          sideOffset={12}
+          onClick={stopPropagation}
         >
           <div className="flex items-start gap-2 text-sm text-red">
-            <i className="i-mingcute-warning-line mt-0.5" aria-hidden="true" />
+            <i aria-hidden="true" className="i-mingcute-warning-line mt-0.5" />
             <div className="min-w-0">
               <div className="font-medium">{errorLabel}</div>
             </div>
           </div>
-          {isRetryable
-            ? (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-6 px-2"
-                  type="button"
-                  onClick={handleRetry}
-                >
-                  {t('torrent.ai.actions.retry')}
-                </Button>
-              )
-            : null}
+          {isRetryable ? (
+            <Button
+              className="h-6 px-2"
+              size="sm"
+              type="button"
+              variant="destructive"
+              onClick={handleRetry}
+            >
+              {t('torrent.ai.actions.retry')}
+            </Button>
+          ) : null}
 
           <HoverCardArrow />
         </HoverCardContent>
@@ -275,8 +271,8 @@ export const TorrentAiMetadataRow = ({
     return (
       <span className="inline-flex h-5 items-center gap-1 text-[10px] text-text-tertiary">
         <i
-          className="i-mingcute-loading-3-line animate-spin text-[12px]"
           aria-hidden="true"
+          className="i-mingcute-loading-3-line animate-spin text-[12px]"
         />
         <span className="sr-only">{t('torrent.ai.status.loading')}</span>
       </span>
@@ -288,12 +284,12 @@ export const TorrentAiMetadataRow = ({
   }
 
   const { metadata } = entry
-  const localizedTitle
-    = metadata.title.localizedTitle || metadata.title.canonicalTitle
+  const localizedTitle =
+    metadata.title.localizedTitle || metadata.title.canonicalTitle
   const { canonicalTitle } = metadata.title
   const { seasonNumber } = metadata.title
   const { episodeNumbers } = metadata.title
-  const episodeRange: { from: number, to: number } | null = (() => {
+  const episodeRange: { from: number; to: number } | null = (() => {
     if (!episodeNumbers || episodeNumbers.length < 2) {
       return null
     }
@@ -303,34 +299,34 @@ export const TorrentAiMetadataRow = ({
     const isContiguous = last - first + 1 === sorted.length
     return isContiguous ? { from: first, to: last } : null
   })()
-  const showOriginalTitle
-    = metadata.title.originalTitle
-      && metadata.title.originalTitle !== localizedTitle
-      && metadata.title.originalTitle !== canonicalTitle
+  const showOriginalTitle =
+    metadata.title.originalTitle &&
+    metadata.title.originalTitle !== localizedTitle &&
+    metadata.title.originalTitle !== canonicalTitle
 
   const keywords = metadata.keywords ?? []
   const explanations = metadata.explanations ?? []
   const mayBeTitle = metadata.mayBeTitle?.trim()
   const confidenceLabel = formatConfidence(metadata.confidence?.overall ?? null)
-  const mediaTypeKey
-    = MEDIA_TYPE_LABEL_KEYS[metadata.mediaType] ?? MEDIA_TYPE_LABEL_KEYS.other
+  const mediaTypeKey =
+    MEDIA_TYPE_LABEL_KEYS[metadata.mediaType] ?? MEDIA_TYPE_LABEL_KEYS.other
   const mediaTypeLabel = t(mediaTypeKey)
   const infoButtonLabel = t('torrent.ai.actions.openDetails')
-  const previewUrl
-    = metadata.previewImageUrl
-      ?? metadata.tmdb?.posterUrl
-      ?? metadata.tmdb?.backdropUrl
-      ?? null
+  const previewUrl =
+    metadata.previewImageUrl ??
+    metadata.tmdb?.posterUrl ??
+    metadata.tmdb?.backdropUrl ??
+    null
 
-  const originalTitleLabel
-    = showOriginalTitle && metadata.title.originalTitle
+  const originalTitleLabel =
+    showOriginalTitle && metadata.title.originalTitle
       ? t('torrent.ai.labels.originalTitle', {
           title: metadata.title.originalTitle,
         })
       : null
 
-  const tmdbTitleLabel
-    = metadata.tmdb?.title && metadata.tmdb.title !== localizedTitle
+  const tmdbTitleLabel =
+    metadata.tmdb?.title && metadata.tmdb.title !== localizedTitle
       ? t('torrent.ai.labels.tmdbTitle', {
           title: metadata.tmdb.title,
         })
@@ -342,8 +338,8 @@ export const TorrentAiMetadataRow = ({
       })
     : null
 
-  const ratingLabel
-    = typeof metadata.tmdb?.rating === 'number'
+  const ratingLabel =
+    typeof metadata.tmdb?.rating === 'number'
       ? t('torrent.ai.labels.rating', {
           rating: metadata.tmdb.rating.toFixed(1),
         })
@@ -354,37 +350,31 @@ export const TorrentAiMetadataRow = ({
     : null
 
   return (
-    <HoverCard openDelay={150} closeDelay={120}>
+    <HoverCard closeDelay={120} openDelay={150}>
       <HoverCardTrigger asChild>
         <span
-          className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
           aria-label={infoButtonLabel}
+          className="inline-flex h-5 items-center gap-1 rounded-full border border-border/50 bg-material-opaque px-1.5 text-[10px] leading-none text-text-tertiary hover:text-text"
         >
-          {mayBeTitle
-            ? (
-                <i className="i-lucide-flame text-[12px]" aria-hidden="true" />
-              )
-            : (
-                <i
-                  className="i-lucide-file-question-mark text-[12px]"
-                  aria-hidden="true"
-                />
-              )}
-          {mayBeTitle
-            ? (
-                <span className="max-w-[200px] truncate">{mayBeTitle}</span>
-              )
-            : confidenceLabel
-              ? (
-                  <span>{confidenceLabel}</span>
-                )
-              : null}
+          {mayBeTitle ? (
+            <i aria-hidden="true" className="i-lucide-flame text-[12px]" />
+          ) : (
+            <i
+              aria-hidden="true"
+              className="i-lucide-file-question-mark text-[12px]"
+            />
+          )}
+          {mayBeTitle ? (
+            <span className="max-w-[200px] truncate">{mayBeTitle}</span>
+          ) : confidenceLabel ? (
+            <span>{confidenceLabel}</span>
+          ) : null}
         </span>
       </HoverCardTrigger>
       <HoverCardContent
         align="start"
-        sideOffset={12}
         className="flex flex-col gap-3"
+        sideOffset={12}
         onClick={stopPropagation}
       >
         <div className="flex gap-3 justify-between">
@@ -392,180 +382,144 @@ export const TorrentAiMetadataRow = ({
             <div className="text-sm font-semibold text-text">
               {localizedTitle}
             </div>
-            {seasonNumber != null
-              || (episodeNumbers && episodeNumbers.length > 0)
-              || episodeRange
-              ? (
-                  <div className="text-xs text-text-tertiary">
-                    {(() => {
-                      const s
-                        = seasonNumber != null
-                          ? `S${String(seasonNumber).padStart(2, '0')}`
-                          : null
-                      const e = episodeRange
-                        ? `E${String(episodeRange.from).padStart(2, '0')}-E${String(episodeRange.to).padStart(2, '0')}`
-                        : episodeNumbers && episodeNumbers.length > 0
-                          ? episodeNumbers
-                            .slice(0, 3)
-                            .map(n => `E${String(n).padStart(2, '0')}`)
-                            .join(', ') + (episodeNumbers.length > 3 ? '…' : '')
-                          : null
-                      return [s, e].filter(Boolean).join(' ')
-                    })()}
-                  </div>
-                )
-              : null}
-            {originalTitleLabel
-              ? (
-                  <div className="text-xs text-text-tertiary">
-                    {originalTitleLabel}
-                  </div>
-                )
-              : null}
-            {tmdbTitleLabel
-              ? (
-                  <div className="text-xs text-text-tertiary">{tmdbTitleLabel}</div>
-                )
-              : null}
+            {seasonNumber != null ||
+            (episodeNumbers && episodeNumbers.length > 0) ||
+            episodeRange ? (
+              <div className="text-xs text-text-tertiary">
+                {(() => {
+                  const s =
+                    seasonNumber != null
+                      ? `S${String(seasonNumber).padStart(2, '0')}`
+                      : null
+                  const e = episodeRange
+                    ? `E${String(episodeRange.from).padStart(2, '0')}-E${String(episodeRange.to).padStart(2, '0')}`
+                    : episodeNumbers && episodeNumbers.length > 0
+                      ? episodeNumbers
+                          .slice(0, 3)
+                          .map((n) => `E${String(n).padStart(2, '0')}`)
+                          .join(', ') + (episodeNumbers.length > 3 ? '…' : '')
+                      : null
+                  return [s, e].filter(Boolean).join(' ')
+                })()}
+              </div>
+            ) : null}
+            {originalTitleLabel ? (
+              <div className="text-xs text-text-tertiary">
+                {originalTitleLabel}
+              </div>
+            ) : null}
+            {tmdbTitleLabel ? (
+              <div className="text-xs text-text-tertiary">{tmdbTitleLabel}</div>
+            ) : null}
           </div>
           <div className="flex flex-row items-end gap-1">
             <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 self-start"
-              type="button"
-              title={t('torrent.ai.actions.forceRefresh')}
               aria-label={t('torrent.ai.actions.forceRefresh')}
+              className="h-6 px-2 self-start"
+              size="sm"
+              title={t('torrent.ai.actions.forceRefresh')}
+              type="button"
+              variant="ghost"
               onClick={() => requestMetadata(true)}
             >
               <i
-                className="i-mingcute-refresh-3-line text-[12px]"
                 aria-hidden="true"
+                className="i-mingcute-refresh-3-line text-[12px]"
               />
               <span className="ml-1 text-[10px]">
                 {t('torrent.ai.actions.refresh')}
               </span>
             </Button>
-            {previewUrl
-              ? (
-                  <div className="overflow-hidden rounded bg-material-opaque h-18">
-                    <img
-                      src={previewUrl}
-                      alt={localizedTitle}
-                      className="h-18 object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                )
-              : null}
+            {previewUrl ? (
+              <div className="overflow-hidden rounded bg-material-opaque h-18">
+                <img
+                  alt={localizedTitle}
+                  className="h-18 object-cover"
+                  decoding="async"
+                  loading="lazy"
+                  src={previewUrl}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {technicalBadges.slice(0, 5).length > 0
-          ? (
-              <div className="flex flex-wrap gap-1">
-                {technicalBadges.slice(0, 5).map(badge => (
-                  <span
-                    key={badge}
-                    className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] text-text-tertiary"
-                  >
-                    {badge}
-                  </span>
-                ))}
-                {metadata.mediaType !== 'other'
-                  ? (
-                      <span className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-tertiary">
-                        {mediaTypeLabel}
-                      </span>
-                    )
-                  : null}
-              </div>
-            )
-          : null}
+        {technicalBadges.slice(0, 5).length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {technicalBadges.slice(0, 5).map((badge) => (
+              <span
+                className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] text-text-tertiary"
+                key={badge}
+              >
+                {badge}
+              </span>
+            ))}
+            {metadata.mediaType !== 'other' ? (
+              <span className="inline-flex items-center rounded bg-material-opaque px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-text-tertiary">
+                {mediaTypeLabel}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
-        {keywords.length > 0
-          ? (
-              <div className="flex flex-wrap gap-1">
-                {keywords.slice(0, 6).map(keyword => (
-                  <span
-                    key={keyword}
-                    className="inline-flex items-center rounded-full bg-material-opaque px-2 py-0.5 text-[10px] text-text-tertiary"
-                  >
-                    {t('torrent.ai.labels.keyword', { keyword })}
-                  </span>
-                ))}
-              </div>
-            )
-          : null}
+        {keywords.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {keywords.slice(0, 6).map((keyword) => (
+              <span
+                className="inline-flex items-center rounded-full bg-material-opaque px-2 py-0.5 text-[10px] text-text-tertiary"
+                key={keyword}
+              >
+                {t('torrent.ai.labels.keyword', { keyword })}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
-        {metadata.tmdb
-          ? (
-              <div className="flex items-center gap-2 text-xs text-text-secondary">
-                {ratingLabel
-                  ? (
-                      <span className="inline-flex items-center gap-1">
-                        <i
-                          className="i-mingcute-star-line text-accent"
-                          aria-hidden="true"
-                        />
-                        <span>{ratingLabel}</span>
-                        {votesLabel
-                          ? (
-                              <span>
-                                {' '}
-                                ·
-                                {votesLabel}
-                              </span>
-                            )
-                          : null}
-                      </span>
-                    )
-                  : null}
-                {releaseLabel ? <span>{releaseLabel}</span> : null}
-              </div>
-            )
-          : null}
+        {metadata.tmdb ? (
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            {ratingLabel ? (
+              <span className="inline-flex items-center gap-1">
+                <i
+                  aria-hidden="true"
+                  className="i-mingcute-star-line text-accent"
+                />
+                <span>{ratingLabel}</span>
+                {votesLabel ? <span> ·{votesLabel}</span> : null}
+              </span>
+            ) : null}
+            {releaseLabel ? <span>{releaseLabel}</span> : null}
+          </div>
+        ) : null}
 
-        {metadata.synopsis
-          ? (
-              <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-5">
-                {metadata.synopsis}
-              </p>
-            )
-          : null}
+        {metadata.synopsis ? (
+          <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-5">
+            {metadata.synopsis}
+          </p>
+        ) : null}
 
-        {explanations.length > 0
-          ? (
-              <div className="space-y-1">
-                {explanations.slice(0, 2).map(ex => (
-                  <div
-                    key={`${ex.heading}::${ex.body ?? ''}`}
-                    className="space-y-0.5"
-                  >
-                    <div className="text-xs font-medium text-text">
-                      {ex.heading}
-                    </div>
-                    {ex.body
-                      ? (
-                          <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-4">
-                            {ex.body}
-                          </p>
-                        )
-                      : null}
-                  </div>
-                ))}
+        {explanations.length > 0 ? (
+          <div className="space-y-1">
+            {explanations.slice(0, 2).map((ex) => (
+              <div
+                className="space-y-0.5"
+                key={`${ex.heading}::${ex.body ?? ''}`}
+              >
+                <div className="text-xs font-medium text-text">
+                  {ex.heading}
+                </div>
+                {ex.body ? (
+                  <p className="text-xs leading-relaxed text-text-secondary whitespace-pre-line line-clamp-4">
+                    {ex.body}
+                  </p>
+                ) : null}
               </div>
-            )
-          : null}
+            ))}
+          </div>
+        ) : null}
 
         {!!metadata.model && !!metadata.provider && (
           <div className="text-[10px] -mt-1 text-right text-text-secondary">
-            This metadata is generated by
-            {' '}
-            {metadata.provider}
-            /
-            {metadata.model}
+            This metadata is generated by {metadata.provider}/{metadata.model}
           </div>
         )}
         <HoverCardArrow />

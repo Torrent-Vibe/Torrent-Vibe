@@ -45,8 +45,9 @@ const torrentSearchInputStyles = tv({
   },
 })
 
-interface TorrentSearchInputProps
-  extends VariantProps<typeof torrentSearchInputStyles> {
+interface TorrentSearchInputProps extends VariantProps<
+  typeof torrentSearchInputStyles
+> {
   className?: string
 }
 
@@ -86,26 +87,26 @@ export const TorrentSearchInput: React.FC<TorrentSearchInputProps> = ({
 
   return (
     <m.div
-      initial={false}
       animate={{ width: focused ? widths.focused : widths.unfocused }}
-      transition={Spring.presets.smooth}
       className={cn(styles.container(), className)}
       data-layout-id="torrent-search-input"
+      initial={false}
+      transition={Spring.presets.smooth}
     >
       <Input
-        type="search"
+        className={styles.input()}
         placeholder={'Search torrents...'}
+        type="search"
+        value={value}
         inputClassName={cn(styles.input(), {
           'pr-8': isPending,
           'pr-6': isPending && variant === 'compact',
 
           'h-8': variant === 'compact',
         })}
-        className={styles.input()}
-        value={value}
+        onBlur={() => setFocused(false)}
         onChange={(e) => setValue(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
       />
 
       {isPending && <i className={cn(styles.loadingIcon())} />}

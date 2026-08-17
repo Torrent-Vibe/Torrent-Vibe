@@ -7,17 +7,17 @@ import type {
 import type { DiscoverFilterState } from '../types'
 
 export interface ConfigureProviderOptions {
-  providerId: DiscoverProviderId
-  providerReady: boolean
-  pageSize: number
+  defaultFilters: DiscoverFilterState
   descriptionRenderer: DiscoverPreviewDescriptionRenderer
   filterDefinitions: DiscoverFilterDefinition[]
-  defaultFilters: DiscoverFilterState
   initialKeyword?: string
+  pageSize: number
+  providerId: DiscoverProviderId
+  providerReady: boolean
 }
 
 export interface ActionResult<T = void> {
-  ok: boolean
   data?: T
   error?: string
+  ok: boolean
 }

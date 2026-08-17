@@ -30,7 +30,7 @@ export const SavePathCell = ({ rowIndex }: SavePathCellProps) => {
 
   return (
     <div className="flex items-center px-2 py-4 text-sm text-text">
-      <span title={savePath} className="truncate">
+      <span className="truncate" title={savePath}>
         {getShortPath(savePath)}
       </span>
     </div>

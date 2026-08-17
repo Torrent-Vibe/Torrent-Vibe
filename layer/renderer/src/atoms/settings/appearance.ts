@@ -16,10 +16,10 @@ export type AccentColorId =
 export type AppColorStyle = 'default' | 'low' | 'high'
 
 export interface AccentColorPreset {
+  darkColor: string
   id: AccentColorId
   labelKey: I18nKeysForSettings
   lightColor: string
-  darkColor: string
 }
 
 export const ACCENT_COLOR_PRESETS: AccentColorPreset[] = [
@@ -101,25 +101,25 @@ const loadColorStyle = (): AppColorStyle => {
   let resolved: AppColorStyle = DEFAULT_COLOR_STYLE
 
   switch (stored) {
-  case 'high': 
-  case 'high-contrast': {
-    resolved = 'high'
-  
-  break;
-  }
-  case 'low': 
-  case 'kawaii': {
-    resolved = 'low'
-  
-  break;
-  }
-  case 'default': 
-  case 'regular': {
-    resolved = 'default'
-  
-  break;
-  }
-  // No default
+    case 'high':
+    case 'high-contrast': {
+      resolved = 'high'
+
+      break
+    }
+    case 'low':
+    case 'kawaii': {
+      resolved = 'low'
+
+      break
+    }
+    case 'default':
+    case 'regular': {
+      resolved = 'default'
+
+      break
+    }
+    // No default
   }
 
   if (stored && stored !== resolved) {

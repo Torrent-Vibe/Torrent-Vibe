@@ -11,10 +11,7 @@ import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
 import { cn } from '~/lib/cn'
 
 import type { SettingsSection } from './configs'
-import {
-  getTabConfig,
-  SIDEBAR_GROUPS,
-} from './configs'
+import { getTabConfig, SIDEBAR_GROUPS } from './configs'
 
 export const SettingsModal: ModalComponent<{ tab: SettingsSection }> = ({
   tab,
@@ -45,7 +42,7 @@ export const SettingsModal: ModalComponent<{ tab: SettingsSection }> = ({
           </div>
           <nav className="flex flex-col gap-4">
             {SIDEBAR_GROUPS.map((group, groupIndex) => (
-              <div key={group.id} className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1" key={group.id}>
                 <div
                   className={cn(
                     'px-2 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary',
@@ -59,8 +56,8 @@ export const SettingsModal: ModalComponent<{ tab: SettingsSection }> = ({
 
                   return (
                     <button
-                      type="button"
                       key={settingsKey}
+                      type="button"
                       className={cn(
                         'flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-sm text-left',
                         active === settingsKey

@@ -110,13 +110,13 @@ const SelectContent = ({
 }) => (
   <RootPortal>
     <SelectPrimitive.Content
+      position={position}
       ref={ref}
       className={clsxm(
         'bg-material-medium backdrop-blur-background no-drag-region pointer-events-auto text-text z-[60] max-h-96 min-w-32 overflow-hidden rounded-[6px] border border-border p-1',
         'shadow-context-menu',
         className,
       )}
-      position={position}
       {...props}
     >
       <SelectScrollUpButton />
@@ -196,8 +196,8 @@ const SelectSeparator = ({
   ref?: React.Ref<React.ElementRef<typeof SelectPrimitive.Separator> | null>
 }) => (
   <SelectPrimitive.Separator
-    className="backdrop-blur-background mx-2 my-1 h-px"
     asChild
+    className="backdrop-blur-background mx-2 my-1 h-px"
     ref={ref}
     {...props}
   >

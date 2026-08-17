@@ -21,8 +21,8 @@ export const ServerManagementSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('servers.management')}
       description={t('servers.clickToActivate')}
+      title={t('servers.management')}
       headerAction={
         <Button size="sm" onClick={handleAddServer}>
           <i className="i-mingcute-add-line w-4 h-4 mr-1" />
@@ -48,9 +48,9 @@ export const ServerManagementSection = () => {
 
             return (
               <ServerItem
+                isActive={activeServerId === id}
                 key={id}
                 server={server}
-                isActive={activeServerId === id}
               />
             )
           })}

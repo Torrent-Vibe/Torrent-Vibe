@@ -4,13 +4,13 @@ import { Label } from '~/components/ui/label/Label'
 import { cn } from '~/lib/cn'
 
 export interface SettingFieldProps extends PropsWithChildren {
-  label: ReactNode
-  description?: ReactNode
-  descriptionTrailing?: ReactNode
-  htmlFor?: string
   controlAlign?: 'start' | 'end'
   controlClassName?: string
   dense?: boolean
+  description?: ReactNode
+  descriptionTrailing?: ReactNode
+  htmlFor?: string
+  label: ReactNode
 }
 
 export const SettingField = ({
@@ -32,23 +32,19 @@ export const SettingField = ({
     >
       <div>
         <Label
-          htmlFor={htmlFor}
           className={cn('text-text', dense && 'text-[13px]')}
+          htmlFor={htmlFor}
         >
           {label}
         </Label>
-        {description
-          ? (
-              <div className="mt-1 text-xs text-text-secondary flex items-center gap-2">
-                <div className="min-w-0">{description}</div>
-                {descriptionTrailing
-                  ? (
-                      <div className="ml-auto shrink-0">{descriptionTrailing}</div>
-                    )
-                  : null}
-              </div>
-            )
-          : null}
+        {description ? (
+          <div className="mt-1 text-xs text-text-secondary flex items-center gap-2">
+            <div className="min-w-0">{description}</div>
+            {descriptionTrailing ? (
+              <div className="ml-auto shrink-0">{descriptionTrailing}</div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <div
         className={cn(

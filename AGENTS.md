@@ -20,7 +20,7 @@ Notes: native and security prep steps run via pre-scripts (`native:build`, `secu
 
 ## Coding Style & Naming Conventions
 - TypeScript, React, ESM. Prettier (`.prettierrc.mjs`) controls formatting; run `pnpm format`.
-- ESLint config: `eslint-config-hyoban` with repo-specific rules; run `pnpm lint`.
+- ESLint config: `@lobehub/eslint-config` with repo-specific rules; run `pnpm lint`.
 - File names: components `PascalCase.tsx`; modules/utilities `kebab-case.ts`.
 - Tailwind CSS v4; prefer utility classes over ad‑hoc CSS.
 

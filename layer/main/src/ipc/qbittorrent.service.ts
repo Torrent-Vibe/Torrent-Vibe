@@ -22,7 +22,7 @@ export class QBittorrentIPCService extends IpcService {
     'requestTransferInfo',
   ])
 
-  private readonly cache = new Map<string, { expiry: number, value: any }>()
+  private readonly cache = new Map<string, { expiry: number; value: any }>()
   private readonly inFlight = new Map<string, Promise<any>>()
 
   @IpcMethod()
@@ -68,8 +68,7 @@ export class QBittorrentIPCService extends IpcService {
     }
     try {
       return await exec
-    }
-    finally {
+    } finally {
       if (key) {
         this.inFlight.delete(key)
       }
@@ -96,11 +95,11 @@ export class QBittorrentIPCService extends IpcService {
         torrents?: Array<
           | Blob
           | {
-            __binary: true
-            data: Uint8Array
-            type?: string
-            name?: string
-          }
+              __binary: true
+              data: Uint8Array
+              type?: string
+              name?: string
+            }
         >
       }
       if (options.torrents && Array.isArray(options.torrents)) {
@@ -129,11 +128,10 @@ export class QBittorrentIPCService extends IpcService {
   }
 
   private buildCacheKey(scope: string, method: string, args: AnyArgs): string {
-    let argsKey = ''
+    let argsKey: string
     try {
       argsKey = JSON.stringify(args)
-    }
-    catch {
+    } catch {
       argsKey = '[unserializable]'
     }
     return `${scope}::${method}::${argsKey}`

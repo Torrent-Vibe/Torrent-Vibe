@@ -17,7 +17,7 @@ import { TorrentActions } from '~/modules/torrent/stores/torrent-actions'
 import { useTorrentTableSelectors } from '~/modules/torrent/stores/torrent-table-store'
 
 import { AddTorrentModal } from '../../../modals/AddTorrentModal'
-import { DiscoverModal } from '../../../modals/DiscoverModal'
+import { openDiscover } from '../../../modals/DiscoverModal'
 import { presentSettingsModal } from '../../../modals/SettingsModal'
 import { TorrentSearchInput } from './TorrentSearchInput'
 
@@ -42,7 +42,9 @@ export const StandardHeader = ({
 
   // Torrent action handler
   const handleTorrentAction = async (action: 'pause' | 'resume' | 'delete') => {
-    if (!canInteract) return
+    if (!canInteract) {
+      return
+    }
 
     const hashes = hasSelection
       ? useTorrentDataStore.getState().selectedTorrents
@@ -108,8 +110,8 @@ export const StandardHeader = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink min-w-0 grow">
           <Button
-            variant="primary"
             className="shadow-md shrink-0"
+            variant="primary"
             onClick={() => {
               Modal.present(AddTorrentModal)
             }}
@@ -123,28 +125,28 @@ export const StandardHeader = ({
           <div className="flex items-center gap-1 shrink min-w-0 grow relative">
             <div className="@container flex grow">
               <Button
-                variant="ghost"
-                disabled={!canInteract}
-                onClick={() => handleTorrentAction('resume')}
                 className="hover:bg-green/10 hover:text-green text-green/80"
+                disabled={!canInteract}
+                variant="ghost"
+                onClick={() => handleTorrentAction('resume')}
               >
                 <i className="i-mingcute-play-fill mr-1.5" />
                 <span className="@md:inline hidden">{t('buttons.resume')}</span>
               </Button>
               <Button
-                variant="ghost"
-                disabled={!canInteract}
-                onClick={() => handleTorrentAction('pause')}
                 className="hover:bg-orange/10 hover:text-orange text-orange/80"
+                disabled={!canInteract}
+                variant="ghost"
+                onClick={() => handleTorrentAction('pause')}
               >
                 <i className="i-mingcute-pause-fill mr-1.5" />
                 <span className="@md:inline hidden">{t('buttons.pause')}</span>
               </Button>
               <Button
-                variant="ghost"
-                disabled={!canInteract}
-                onClick={() => handleTorrentAction('delete')}
                 className="hover:bg-red/10 hover:text-red text-red/80"
+                disabled={!canInteract}
+                variant="ghost"
+                onClick={() => handleTorrentAction('delete')}
               >
                 <i className="i-mingcute-delete-2-line mr-1.5" />
                 <span className="@md:inline hidden">{t('buttons.delete')}</span>
@@ -157,19 +159,19 @@ export const StandardHeader = ({
       {/* Right section: Stats, Search, and Controls */}
       <div className="flex items-center gap-3 -mr-3">
         {/* Disk usage and speed indicators */}
-        <SpeedIndicators variant="standard" showTotalData />
+        <SpeedIndicators showTotalData variant="standard" />
 
         <div className="h-6 w-px bg-border" />
 
         <div className="flex items-center gap-2">
           {showSearch && <TorrentSearchInput />}
           <Button
-            variant="ghost"
             className="p-2"
-            onClick={() => {
-              Modal.present(DiscoverModal)
-            }}
             title={t('buttons.discover')}
+            variant="ghost"
+            onClick={() => {
+              openDiscover()
+            }}
           >
             <i className="i-mingcute-safari-line text-lg" />
           </Button>
@@ -177,17 +179,17 @@ export const StandardHeader = ({
         <div className="h-6 w-px bg-border" />
         <div className="flex items-center">
           <Button
-            variant="ghost"
             className="p-2"
+            title={t('buttons.settings')}
+            variant="ghost"
             onClick={() => {
               presentSettingsModal({ tab: 'appearance' })
             }}
-            title={t('buttons.settings')}
           >
             <i className="i-mingcute-settings-3-line text-lg" />
           </Button>
 
-          <Button variant="ghost" className="p-2" onClick={toggleTheme}>
+          <Button className="p-2" variant="ghost" onClick={toggleTheme}>
             <i
               className={cn(
                 'text-lg',

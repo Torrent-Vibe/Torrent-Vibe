@@ -48,9 +48,9 @@ export const MikanProviderSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('discover.providers.mikan.title')}
       description={t('discover.providers.mikan.description')}
       enabled={config.enabled}
+      title={t('discover.providers.mikan.title')}
       onToggleEnabled={(next) => {
         setDiscoverProviderEnabled('mikan', next)
         toast.success(
@@ -61,18 +61,19 @@ export const MikanProviderSection = () => {
       }}
     >
       <SettingInputField
+        autoComplete="off"
+        description={t('discover.providers.mikan.baseUrl.description')}
         id="mikan-base-url"
         label={t('discover.providers.mikan.baseUrl.label')}
-        description={t('discover.providers.mikan.baseUrl.description')}
-        value={form.baseUrl}
-        onChange={value =>
-          setForm(prev => ({
-            ...prev,
-            baseUrl: value,
-          }))}
         placeholder="https://mikanani.me"
         spellCheck={false}
-        autoComplete="off"
+        value={form.baseUrl}
+        onChange={(value) =>
+          setForm((prev) => ({
+            ...prev,
+            baseUrl: value,
+          }))
+        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -82,21 +83,21 @@ export const MikanProviderSection = () => {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            disabled={!isDirty}
             size="sm"
+            variant="ghost"
             onClick={() => {
               setForm({
                 baseUrl: config.baseUrl,
               })
             }}
-            disabled={!isDirty}
           >
             {t('discover.actions.reset')}
           </Button>
           <Button
+            disabled={!isDirty || !canSave}
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || !canSave}
           >
             {t('discover.actions.save')}
           </Button>

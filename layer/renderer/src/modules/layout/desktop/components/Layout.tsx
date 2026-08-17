@@ -96,7 +96,7 @@ export const Layout = () => {
   }, [detailPanelWidth, setDetailPanelWidth, showDetailInLayout])
 
   return (
-    <div ref={appScopeRef} className="h-screen flex flex-col text-text">
+    <div className="h-screen flex flex-col text-text" ref={appScopeRef}>
       <PrefetchTorrents />
       {/* Fixed Header */}
       {ELECTRON && <div className="fixed top-0 inset-x-0 h-10 drag-region" />}
@@ -112,8 +112,8 @@ export const Layout = () => {
       />
 
       <DragOverlay
-        isVisible={dragDropState.isDragging && dragDropState.hasValidFiles}
         isDragOver={dragDropState.isDragOver}
+        isVisible={dragDropState.isDragging && dragDropState.hasValidFiles}
       />
       <DetailPanelConditionRender />
     </div>

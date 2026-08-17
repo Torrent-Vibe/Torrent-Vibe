@@ -10,12 +10,12 @@ import {
 import { app } from 'electron'
 
 interface AppSettingsData {
-  search?: {
-    agentBrowserPath?: string | null
-  }
   ai?: {
     preferredProviders?: AiProviderId[]
     searchProvider?: SearchProviderId
+  }
+  search?: {
+    agentBrowserPath?: string | null
   }
 }
 
@@ -64,8 +64,7 @@ export class AppSettingsStore {
       const raw = readFileSync(this.filePath, 'utf8')
       const parsed = JSON.parse(raw) as AppSettingsData
       this.cache = parsed && typeof parsed === 'object' ? parsed : {}
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('[app-settings] failed to load store, resetting', error)
       this.cache = {}
     }
@@ -76,8 +75,7 @@ export class AppSettingsStore {
       const directory = dirname(this.filePath)
       ensureDirectory(directory)
       writeFileSync(this.filePath, JSON.stringify(this.cache, null, 2), 'utf8')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('[app-settings] failed to persist store', error)
     }
   }
@@ -98,7 +96,8 @@ export class AppSettingsStore {
   getPreferredAiProviders(): AiProviderId[] {
     const stored = this.cache.ai?.preferredProviders ?? []
     const valid = stored.filter((id): id is AiProviderId =>
-      AI_PROVIDER_IDS.includes(id))
+      AI_PROVIDER_IDS.includes(id),
+    )
 
     if (valid.length > 0) {
       return Array.from(new Set(valid))
@@ -109,7 +108,8 @@ export class AppSettingsStore {
 
   setPreferredAiProviders(order: AiProviderId[]): AiProviderId[] {
     const normalized = order.filter((id): id is AiProviderId =>
-      AI_PROVIDER_IDS.includes(id))
+      AI_PROVIDER_IDS.includes(id),
+    )
 
     const deduped = normalized.length > 0 ? Array.from(new Set(normalized)) : []
 

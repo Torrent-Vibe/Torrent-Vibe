@@ -72,8 +72,8 @@ export const AuthFailureAlert = () => {
             </p>
             <div className="mt-3 flex gap-2">
               <Button
-                size="sm"
                 className="text-sm"
+                size="sm"
                 variant="destructive"
                 onClick={handleRetryAuth}
               >
@@ -81,10 +81,10 @@ export const AuthFailureAlert = () => {
                 Retry
               </Button>
               <Button
+                className="text-sm"
                 size="sm"
                 variant="ghost"
                 onClick={handleReconnect}
-                className="text-sm"
               >
                 <i className="i-mingcute-settings-2-line mr-1 text-xs" />
                 Settings

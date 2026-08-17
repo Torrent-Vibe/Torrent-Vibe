@@ -6,7 +6,7 @@ import { Button } from '~/components/ui/button/Button'
 import { Modal } from '~/components/ui/modal/ModalManager'
 import { cn } from '~/lib/cn'
 import { useDiscoverProviders } from '~/modules/discover/hooks/useDiscoverProviders'
-import { DiscoverModal } from '~/modules/modals/DiscoverModal'
+import { openDiscover } from '~/modules/modals/DiscoverModal'
 import { ServerSwitcher } from '~/modules/multi-server/components/ServerSwitcher'
 import { useHasSelection } from '~/modules/torrent/hooks/use-torrent-computed'
 import { useTorrentDataStore } from '~/modules/torrent/stores'
@@ -32,7 +32,9 @@ export const MacOSHeader = ({
 
   // Torrent action handler
   const handleTorrentAction = async (action: 'pause' | 'resume' | 'delete') => {
-    if (!canInteract) return
+    if (!canInteract) {
+      return
+    }
 
     const hashes = hasSelection
       ? useTorrentDataStore.getState().selectedTorrents
@@ -86,15 +88,15 @@ export const MacOSHeader = ({
         {/* Search Area */}
         {showSearch && (
           <div className="flex items-center gap-2 [&_input]:shadow-none">
-            <TorrentSearchInput variant="compact" fullRounded />
+            <TorrentSearchInput fullRounded variant="compact" />
 
             {hasReadyProviders && (
               <Button
-                variant="ghost"
+                aria-label={t('buttons.discover')}
                 className="p-2 hover:bg-fill rounded-full"
                 size="md"
-                onClick={() => Modal.present(DiscoverModal)}
-                aria-label={t('buttons.discover')}
+                variant="ghost"
+                onClick={() => openDiscover()}
               >
                 <i className="i-mingcute-safari-line text-sm" />
               </Button>
@@ -111,8 +113,8 @@ export const MacOSHeader = ({
         {/* Left: Action Buttons */}
         <div className="flex items-center gap-3">
           <Button
-            variant="primary"
             className="h-8 px-4 text-sm font-medium shadow-sm"
+            variant="primary"
             onClick={() => {
               Modal.present(AddTorrentModal)
             }}
@@ -123,29 +125,29 @@ export const MacOSHeader = ({
 
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              disabled={!canInteract}
-              onClick={() => handleTorrentAction('resume')}
               className="h-8 w-8 p-0 hover:bg-green/10 hover:text-green text-green/70 disabled:text-text-quaternary"
+              disabled={!canInteract}
               title="Resume selected torrents"
+              variant="ghost"
+              onClick={() => handleTorrentAction('resume')}
             >
               <i className="i-mingcute-play-fill text-sm" />
             </Button>
             <Button
-              variant="ghost"
-              disabled={!canInteract}
-              onClick={() => handleTorrentAction('pause')}
               className="h-8 w-8 p-0 hover:bg-orange/10 hover:text-orange text-orange/70 disabled:text-text-quaternary"
+              disabled={!canInteract}
               title="Pause selected torrents"
+              variant="ghost"
+              onClick={() => handleTorrentAction('pause')}
             >
               <i className="i-mingcute-pause-fill text-sm" />
             </Button>
             <Button
-              variant="ghost"
-              disabled={!canInteract}
-              onClick={() => handleTorrentAction('delete')}
               className="h-8 w-8 p-0 hover:bg-red/10 hover:text-red text-red/70 disabled:text-text-quaternary"
+              disabled={!canInteract}
               title="Delete selected torrents"
+              variant="ghost"
+              onClick={() => handleTorrentAction('delete')}
             >
               <i className="i-mingcute-delete-2-line text-sm" />
             </Button>

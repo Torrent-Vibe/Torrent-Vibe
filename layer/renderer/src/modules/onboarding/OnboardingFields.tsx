@@ -11,17 +11,17 @@ import { saveFormFieldToStorage } from './onboardingStorage'
 
 export interface FormValidationRules {
   hostMessage: string
-  portMin: number
   portMax: number
   portMessage: string
+  portMin: number
   usernameMessage: string
 }
 
 interface Props {
   control: Control<OnboardingFormData>
   getValues: UseFormGetValues<OnboardingFormData>
-  useCurrentPath?: boolean
   showUseCurrentPath?: boolean
+  useCurrentPath?: boolean
   validation: FormValidationRules
 }
 
@@ -39,8 +39,8 @@ export function OnboardingFields(props: Props) {
             name={'useCurrentPath'}
             render={({ field }) => (
               <Checkbox
-                id="useCurrentPath"
                 checked={Boolean(field.value)}
+                id="useCurrentPath"
                 onCheckedChange={(v) => {
                   const checked = Boolean(v)
                   field.onChange(checked)
@@ -60,18 +60,12 @@ export function OnboardingFields(props: Props) {
         <Controller
           control={control}
           name={'host'}
-          rules={{
-            validate: (v: string) =>
-              getValues('useCurrentPath') ||
-              v.trim() !== '' ||
-              validation.hostMessage,
-          }}
           render={({ field, fieldState }) => (
             <Input
+              aria-invalid={Boolean(fieldState.error)}
+              disabled={useCurrentPath}
               id="host"
               placeholder={t('onboarding.fields.host.placeholder')}
-              disabled={useCurrentPath}
-              aria-invalid={Boolean(fieldState.error)}
               value={field.value}
               onChange={(e) => field.onChange(e.target.value)}
               onBlur={(e) => {
@@ -80,6 +74,12 @@ export function OnboardingFields(props: Props) {
               }}
             />
           )}
+          rules={{
+            validate: (v: string) =>
+              getValues('useCurrentPath') ||
+              v.trim() !== '' ||
+              validation.hostMessage,
+          }}
         />
       </div>
 
@@ -88,6 +88,30 @@ export function OnboardingFields(props: Props) {
         <Controller
           control={control}
           name={'port'}
+          render={({ field, fieldState }) => (
+            <Input
+              aria-invalid={Boolean(fieldState.error)}
+              disabled={useCurrentPath}
+              id="port"
+              max={validation.portMax}
+              min={validation.portMin}
+              placeholder={t('onboarding.fields.port.placeholder')}
+              type="number"
+              value={field.value ?? ''}
+              onBlur={(e) => {
+                field.onBlur()
+                const v = e.target.value
+                const n = Number(v)
+                if (!Number.isNaN(n) && n > 0) {
+                  saveFormFieldToStorage('port', n)
+                }
+              }}
+              onChange={(e) => {
+                const v = e.target.value
+                ;(field as any).onChange(v === '' ? undefined : Number(v))
+              }}
+            />
+          )}
           rules={{
             validate: (v: any) => {
               if (getValues('useCurrentPath')) return true
@@ -99,30 +123,6 @@ export function OnboardingFields(props: Props) {
               return true
             },
           }}
-          render={({ field, fieldState }) => (
-            <Input
-              id="port"
-              type="number"
-              placeholder={t('onboarding.fields.port.placeholder')}
-              min={validation.portMin}
-              max={validation.portMax}
-              disabled={useCurrentPath}
-              aria-invalid={Boolean(fieldState.error)}
-              value={field.value ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                ;(field as any).onChange(v === '' ? undefined : Number(v))
-              }}
-              onBlur={(e) => {
-                field.onBlur()
-                const v = e.target.value
-                const n = Number(v)
-                if (!Number.isNaN(n) && n > 0) {
-                  saveFormFieldToStorage('port', n)
-                }
-              }}
-            />
-          )}
         />
       </div>
 
@@ -133,15 +133,11 @@ export function OnboardingFields(props: Props) {
         <Controller
           control={control}
           name={'username'}
-          rules={{
-            validate: (v: string) =>
-              v.trim() !== '' || validation.usernameMessage,
-          }}
           render={({ field, fieldState }) => (
             <Input
+              aria-invalid={Boolean(fieldState.error)}
               id="username"
               placeholder={t('onboarding.fields.username.placeholder')}
-              aria-invalid={Boolean(fieldState.error)}
               value={field.value}
               onChange={(e) => field.onChange(e.target.value)}
               onBlur={(e) => {
@@ -150,6 +146,10 @@ export function OnboardingFields(props: Props) {
               }}
             />
           )}
+          rules={{
+            validate: (v: string) =>
+              v.trim() !== '' || validation.usernameMessage,
+          }}
         />
       </div>
 
@@ -181,6 +181,7 @@ export function OnboardingFields(props: Props) {
           name={'useHttps'}
           render={({ field }) => (
             <Checkbox
+              checked={Boolean(field.value)}
               id="useHttps"
               disabled={
                 (typeof window !== 'undefined' &&
@@ -188,7 +189,6 @@ export function OnboardingFields(props: Props) {
                 Boolean(useCurrentPath) ||
                 useCurrentPath
               }
-              checked={Boolean(field.value)}
               onCheckedChange={(v) => {
                 field.onChange(Boolean(v))
                 saveFormFieldToStorage('useHttps', Boolean(v))
@@ -207,8 +207,8 @@ export function OnboardingFields(props: Props) {
           name={'rememberPassword'}
           render={({ field }) => (
             <Checkbox
-              id="rememberPassword"
               checked={Boolean(field.value)}
+              id="rememberPassword"
               onCheckedChange={(v) => {
                 field.onChange(Boolean(v))
                 saveFormFieldToStorage('rememberPassword', Boolean(v))

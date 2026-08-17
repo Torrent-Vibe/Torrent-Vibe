@@ -5,9 +5,9 @@ import { healthToTitle, healthToVariant } from '../utils/health-ui'
 import { ServerIconWithStatus } from './ServerIconWithStatus'
 
 interface ServerDropdownOptionProps {
+  hostLabel?: string
   serverId: string
   serverName: string
-  hostLabel?: string
 }
 
 export const ServerDropdownOption: React.FC<ServerDropdownOptionProps> = ({
@@ -23,7 +23,7 @@ export const ServerDropdownOption: React.FC<ServerDropdownOptionProps> = ({
   return (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
-        <ServerIconWithStatus variant={variant} size="sm" title={title} />
+        <ServerIconWithStatus size="sm" title={title} variant={variant} />
         <span className="text-sm">{serverName}</span>
       </div>
       {hostLabel && (

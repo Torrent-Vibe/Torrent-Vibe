@@ -21,8 +21,8 @@ export const AdvancedTab = () => {
 
   return (
     <PrefsTabLayout
-      saveSuccessI18nKey="messages.advancedSaved"
       saveErrorI18nKey="messages.advancedSaveFailed"
+      saveSuccessI18nKey="messages.advancedSaved"
     >
       {loadingPrefs && (
         <div className="text-xs text-text-tertiary flex items-center gap-2">

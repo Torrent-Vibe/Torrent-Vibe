@@ -9,8 +9,8 @@ import {
 } from '../components'
 
 interface ExternalProgramsSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const ExternalProgramsSection = ({
@@ -21,17 +21,17 @@ export const ExternalProgramsSection = ({
   return (
     <SettingSectionCard title={t('downloads.programs.title')}>
       <SettingSwitchField
+        checked={false}
         id="autorun_on_add"
         label={t('downloads.programs.onAdd')}
-        checked={false}
         onCheckedChange={() => {}}
       />
       <SettingInputField
+        disabled
         label={'Command'}
+        placeholder="/path/to/program --args"
         value={''}
         onChange={() => {}}
-        placeholder="/path/to/program --args"
-        disabled
       />
       <SettingField label="">
         <div className="text-xs text-text-secondary">
@@ -40,15 +40,15 @@ export const ExternalProgramsSection = ({
       </SettingField>
 
       <SettingSectionCard
-        title={t('downloads.programs.onComplete')}
         enabled={Boolean(prefs.autorun_enabled)}
+        title={t('downloads.programs.onComplete')}
         onToggleEnabled={(v) => onPrefsChange({ autorun_enabled: Boolean(v) })}
       >
         <SettingInputField
           label={'Command'}
+          placeholder="/path/to/program --args"
           value={prefs.autorun_program ?? ''}
           onChange={(v) => onPrefsChange({ autorun_program: v })}
-          placeholder="/path/to/program --args"
         />
       </SettingSectionCard>
 

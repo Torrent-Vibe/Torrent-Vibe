@@ -8,8 +8,8 @@ import {
 } from '../components'
 
 interface PeerConnectionSectionProps {
-  prefs: Partial<Preferences>
   onPrefsChange: (updates: Partial<Preferences>) => void
+  prefs: Partial<Preferences>
 }
 
 export const PeerConnectionSection = ({
@@ -21,6 +21,11 @@ export const PeerConnectionSection = ({
     <SettingSectionCard title={t('connection.peer.title')}>
       <SettingSelectField
         label={t('connection.peer.encryption')}
+        options={[
+          { value: 'disabled', label: t('connection.peer.encryptionDisabled') },
+          { value: 'enabled', label: t('connection.peer.encryptionEnabled') },
+          { value: 'forced', label: t('connection.peer.encryptionForced') },
+        ]}
         value={
           prefs.encryption === 0
             ? 'disabled'
@@ -33,20 +38,15 @@ export const PeerConnectionSection = ({
             value === 'disabled' ? 0 : value === 'enabled' ? 1 : 2
           onPrefsChange({ encryption: encryptionValue })
         }}
-        options={[
-          { value: 'disabled', label: t('connection.peer.encryptionDisabled') },
-          { value: 'enabled', label: t('connection.peer.encryptionEnabled') },
-          { value: 'forced', label: t('connection.peer.encryptionForced') },
-        ]}
       />
       <div className="text-xs text-text-secondary ml-6">
         {t('connection.peer.encryptionDescription')}
       </div>
 
       <SettingSwitchField
+        checked={Boolean(prefs.anonymous_mode)}
         id="anonymous_mode"
         label={t('connection.peer.anonymousMode')}
-        checked={Boolean(prefs.anonymous_mode)}
         onCheckedChange={(checked) =>
           onPrefsChange({ anonymous_mode: Boolean(checked) })
         }

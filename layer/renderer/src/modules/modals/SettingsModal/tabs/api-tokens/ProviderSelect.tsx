@@ -14,14 +14,14 @@ interface ProviderOption<T extends string> {
 }
 
 interface ProviderSelectProps<T extends string> {
-  label: string
   description?: string
-  placeholder?: string
-  options: ProviderOption<T>[]
-  value: T | null
-  onChange: (id: T) => void
   disabled?: boolean
+  label: string
   loading?: boolean
+  onChange: (id: T) => void
+  options: ProviderOption<T>[]
+  placeholder?: string
+  value: T | null
 }
 
 export const ProviderSelect = <T extends string>({
@@ -41,17 +41,17 @@ export const ProviderSelect = <T extends string>({
   const selectValue = value ?? options[0]!.id
 
   return (
-    <SettingField label={label} description={description}>
+    <SettingField description={description} label={label}>
       <Select
-        value={selectValue}
-        onValueChange={next => onChange(next as T)}
         disabled={disabled || loading}
+        value={selectValue}
+        onValueChange={(next) => onChange(next as T)}
       >
         <SelectTrigger loading={loading}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {options.map(option => (
+          {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
               {option.label}
             </SelectItem>

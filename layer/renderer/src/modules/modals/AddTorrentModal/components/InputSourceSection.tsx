@@ -189,9 +189,9 @@ export const InputSourceSection = ({
               {t('addTorrent.inputSource.hint.file')}
             </p>
             <button
+              className="text-xs text-accent flex items-center hover:underline px-1 py-0.5"
               type="button"
               onClick={() => revertToInitial('file')}
-              className="text-xs text-accent flex items-center hover:underline px-1 py-0.5"
             >
               {t('addTorrent.inputSource.revert')}
             </button>
@@ -222,9 +222,9 @@ export const InputSourceSection = ({
             {t('addTorrent.inputSource.hint.magnet')}
           </p>
           <button
+            className="text-xs text-accent hover:underline px-1 py-0.5"
             type="button"
             onClick={() => revertToInitial('magnet')}
-            className="text-xs text-accent hover:underline px-1 py-0.5"
           >
             {t('addTorrent.inputSource.revert')}
           </button>
@@ -235,12 +235,12 @@ export const InputSourceSection = ({
       )}
 
       <TorrentPreviewSummary
-        state={previewState}
+        isLoading={isPreviewLoading}
         selectedFileIndices={selectedFileIndices}
+        state={previewState}
+        onClear={handleClearPreview}
         onOpenPreview={handleOpenPreview}
         onReload={handlePreviewReload}
-        onClear={handleClearPreview}
-        isLoading={isPreviewLoading}
       />
     </div>
   )

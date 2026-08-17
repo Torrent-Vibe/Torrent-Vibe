@@ -37,7 +37,7 @@ export function isForbiddenError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false
   }
-  return /HTTP 403\b|\bForbidden\b/i.test(error.message)
+  return /http 403\b|\bforbidden\b/i.test(error.message)
 }
 
 export class QbSessionPool {
@@ -48,8 +48,8 @@ export class QbSessionPool {
   setSharedConfig(config: QBittorrentConfig): QbSession {
     const key = connectionKey(config)
     const existing = this.sessions.get(key)
-    const sid
-      = existing && sameCredentials(existing.config, config) ? existing.sid : null
+    const sid =
+      existing && sameCredentials(existing.config, config) ? existing.sid : null
     const session = this.createSession(config, key, sid)
     this.sessions.set(key, session)
     this.activeKey = key
@@ -86,8 +86,7 @@ export class QbSessionPool {
 
     try {
       return await fn.apply(session.client, args)
-    }
-    catch (error) {
+    } catch (error) {
       if (method === 'login') {
         session.sid = null
         throw error
@@ -133,11 +132,11 @@ export class QbSessionPool {
         }
 
         const method = (
-          originalInit.method
-          || (input && typeof input === 'object' && 'method' in (input as any)
+          originalInit.method ||
+          (input && typeof input === 'object' && 'method' in (input as any)
             ? (input as any).method
-            : 'GET')
-          || 'GET'
+            : 'GET') ||
+          'GET'
         )
           .toString()
           .toUpperCase()
@@ -155,11 +154,11 @@ export class QbSessionPool {
 
         try {
           const res = await fetch(input as any, finalInit)
-          const cookies: string[]
-            = (res as any).headers.getSetCookie?.()
-              ?? (res.headers.get('set-cookie')
-                ? [res.headers.get('set-cookie') as string]
-                : [])
+          const cookies: string[] =
+            (res as any).headers.getSetCookie?.() ??
+            (res.headers.get('set-cookie')
+              ? [res.headers.get('set-cookie') as string]
+              : [])
           const sid = this.extractSid(cookies)
           if (sid && sid !== session.sid) {
             this.logger.debug(`[${requestId}] session SID updated`)
@@ -174,14 +173,12 @@ export class QbSessionPool {
 
           if (res.status >= 400) {
             this.logger.warn(logLine)
-          }
-          else {
+          } else {
             this.loggerIf(logLine)
           }
 
           return res
-        }
-        catch (err) {
+        } catch (err) {
           const duration = Date.now() - start
           this.logger.error(
             `[${requestId}] !! ${method} ${maskedUrl} failed in ${duration}ms`,
@@ -217,8 +214,7 @@ export class QbSessionPool {
       if (input && typeof input === 'object' && 'url' in input) {
         return String((input as any).url)
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.logger.debug('normalizeUrlString failed', { error: String(err) })
     }
     return '[unknown-url]'
@@ -234,8 +230,7 @@ export class QbSessionPool {
         }
       })
       return u.toString()
-    }
-    catch {
+    } catch {
       return urlStr
     }
   }
@@ -247,8 +242,8 @@ export class QbSessionPool {
     }
     try {
       if (
-        typeof headersLike.forEach === 'function'
-        && typeof headersLike.append === 'function'
+        typeof headersLike.forEach === 'function' &&
+        typeof headersLike.append === 'function'
       ) {
         headersLike.forEach((v: string, k: string) => {
           out[k] = v
@@ -267,8 +262,7 @@ export class QbSessionPool {
           out[String(k)] = String(v as any)
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       this.logger.debug('headersToObject failed', { error: String(err) })
     }
     return out
@@ -282,25 +276,23 @@ export class QbSessionPool {
       return v
     }
     if (
-      typeof v === 'string'
-      || typeof v === 'number'
-      || typeof v === 'boolean'
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean'
     ) {
       return v
     }
     if (Array.isArray(v)) {
-      return v.slice(0, 50).map(x => this.maskValue(x, depth + 1))
+      return v.slice(0, 50).map((x) => this.maskValue(x, depth + 1))
     }
     if (typeof v === 'object') {
       const out: any = {}
       for (const [k, val] of Object.entries(v)) {
         if (/password|cookie|authorization|auth/i.test(k)) {
           out[k] = val ? '********' : ''
-        }
-        else if (k === 'torrents') {
+        } else if (k === 'torrents') {
           out[k] = '[omitted]'
-        }
-        else {
+        } else {
           out[k] = this.maskValue(val, depth + 1)
         }
       }
@@ -329,9 +321,9 @@ export class QbSessionPool {
     if (body instanceof FormData) {
       return JSON.stringify(Object.fromEntries(body.entries()))
     }
-    const name
-      = (body && (body as any).constructor && (body as any).constructor.name)
-        || typeof body
+    const name =
+      (body && (body as any).constructor && (body as any).constructor.name) ||
+      typeof body
     return name
   }
 }

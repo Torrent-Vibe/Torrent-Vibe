@@ -74,13 +74,13 @@ export const PathMappingSection = () => {
 
   return (
     <SettingSectionCard
-      title={t('servers.pathMapping.title')}
       description={t('servers.pathMapping.description')}
+      title={t('servers.pathMapping.title')}
     >
       <div className="space-y-3">
         <DndContext
-          sensors={sensors}
           collisionDetection={closestCenter}
+          sensors={sensors}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -107,22 +107,22 @@ export const PathMappingSection = () => {
                 return (
                   <SortableMappingRow
                     key={mapping.id}
+                    localLabel={localDisplay}
                     mapping={mapping}
                     remoteLabel={remoteDisplay}
-                    localLabel={localDisplay}
                     serverLabel={serverLabel}
-                    onToggle={(checked) =>
-                      updatePathMapping(mapping.id, {
-                        enabled: Boolean(checked),
-                      })
-                    }
+                    onRemove={() => handleRemove(mapping.id)}
                     onEdit={() =>
                       Modal.present(PathMappingModal, {
                         mode: 'edit',
                         mappingId: mapping.id,
                       })
                     }
-                    onRemove={() => handleRemove(mapping.id)}
+                    onToggle={(checked) =>
+                      updatePathMapping(mapping.id, {
+                        enabled: Boolean(checked),
+                      })
+                    }
                   />
                 )
               })
@@ -131,12 +131,12 @@ export const PathMappingSection = () => {
         </DndContext>
 
         <Button
+          variant="secondary"
           onClick={() =>
             Modal.present(PathMappingModal, {
               mode: 'create',
             })
           }
-          variant="secondary"
         >
           <i className="i-lucide-plus mr-1 size-4" />
           {t('servers.pathMapping.add')}
@@ -181,7 +181,7 @@ const SortableMappingRow = ({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="touch-none">
+    <div className="touch-none" ref={setNodeRef} style={style}>
       <div
         className={cn(
           'flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 shadow-sm transition-colors',
@@ -190,9 +190,9 @@ const SortableMappingRow = ({
         )}
       >
         <button
-          type="button"
-          className="text-text-tertiary inline-flex items-center hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 rounded-md p-1 -ml-1 cursor-grab active:cursor-grabbing"
           aria-label={t('servers.pathMapping.a11y.dragHandle')}
+          className="text-text-tertiary inline-flex items-center hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 rounded-md p-1 -ml-1 cursor-grab active:cursor-grabbing"
+          type="button"
           {...attributes}
           {...listeners}
         >
@@ -237,20 +237,20 @@ const SortableMappingRow = ({
             />
           </div>
           <Button
+            aria-label={t('servers.pathMapping.edit')}
+            className="text-text-secondary hover:text-text p-2 -mr-2"
             size="sm"
             variant="ghost"
             onClick={onEdit}
-            className="text-text-secondary hover:text-text p-2 -mr-2"
-            aria-label={t('servers.pathMapping.edit')}
           >
             <i className="i-mingcute-edit-2-line size-4" />
           </Button>
           <Button
+            aria-label={t('servers.pathMapping.remove')}
+            className="text-red hover:text-red p-2"
             size="sm"
             variant="ghost"
-            className="text-red hover:text-red p-2"
             onClick={onRemove}
-            aria-label={t('servers.pathMapping.remove')}
           >
             <i className="i-lucide-trash-2 size-4" />
           </Button>

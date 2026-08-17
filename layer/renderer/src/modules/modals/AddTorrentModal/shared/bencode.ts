@@ -37,19 +37,19 @@ const isValidUtf8 = (buf: Uint8Array) => {
   const len = buf.length
 
   while (i < len) {
-    if (buf[i] <= 0x7f) {
+    if (buf[i] <= 0x7F) {
       i += 1
       continue
     }
 
-    if (buf[i] >= 0xc2 && buf[i] <= 0xdf && buf[i + 1] >> 6 === 2) {
+    if (buf[i] >= 0xC2 && buf[i] <= 0xDF && buf[i + 1] >> 6 === 2) {
       i += 2
       continue
     }
 
     if (
-      ((buf[i] === 0xe0 && buf[i + 1] >= 0xa0 && buf[i + 1] <= 0xbf) ||
-        (buf[i] === 0xed && buf[i + 1] >= 0x80 && buf[i + 1] <= 0x9f)) &&
+      ((buf[i] === 0xE0 && buf[i + 1] >= 0xA0 && buf[i + 1] <= 0xBF) ||
+        (buf[i] === 0xED && buf[i + 1] >= 0x80 && buf[i + 1] <= 0x9F)) &&
       buf[i + 2] >> 6 === 2
     ) {
       i += 3
@@ -57,8 +57,8 @@ const isValidUtf8 = (buf: Uint8Array) => {
     }
 
     if (
-      ((buf[i] >= 0xe1 && buf[i] <= 0xec) ||
-        (buf[i] >= 0xee && buf[i] <= 0xef)) &&
+      ((buf[i] >= 0xE1 && buf[i] <= 0xEC) ||
+        (buf[i] >= 0xEE && buf[i] <= 0xEF)) &&
       buf[i + 1] >> 6 === 2 &&
       buf[i + 2] >> 6 === 2
     ) {
@@ -67,9 +67,9 @@ const isValidUtf8 = (buf: Uint8Array) => {
     }
 
     if (
-      ((buf[i] === 0xf0 && buf[i + 1] >= 0x90 && buf[i + 1] <= 0xbf) ||
-        (buf[i] >= 0xf1 && buf[i] <= 0xf3 && buf[i + 1] >> 6 === 2) ||
-        (buf[i] === 0xf4 && buf[i + 1] >= 0x80 && buf[i + 1] <= 0x8f)) &&
+      ((buf[i] === 0xF0 && buf[i + 1] >= 0x90 && buf[i + 1] <= 0xBF) ||
+        (buf[i] >= 0xF1 && buf[i] <= 0xF3 && buf[i + 1] >> 6 === 2) ||
+        (buf[i] === 0xF4 && buf[i + 1] >= 0x80 && buf[i + 1] <= 0x8F)) &&
       buf[i + 2] >> 6 === 2 &&
       buf[i + 3] >> 6 === 2
     ) {
@@ -93,10 +93,7 @@ export type BencodeValue =
 export type BencodeDictionary = Record<string, BencodeValue>
 
 type SupportedPayload =
-  | string
-  | ArrayBuffer
-  | Uint8Array
-  | { buffer: ArrayBuffer }
+  string | ArrayBuffer | Uint8Array | { buffer: ArrayBuffer }
 
 class Decoder {
   private idx = 0

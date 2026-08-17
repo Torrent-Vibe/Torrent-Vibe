@@ -2,24 +2,26 @@ import { torrentDownloadUrl } from './urls'
 
 export interface RssEpisode {
   episodeId: string
-  title: string
-  torrentUrl: string
   publishedAt?: string
   sizeBytes?: number
+  title: string
+  torrentUrl: string
 }
 
 function decodeXml(value: string): string {
   return value
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) =>
-      String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) =>
-      String.fromCodePoint(Number.parseInt(dec, 10)))
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, '\'')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+    .replaceAll(/&#x([\dA-Fa-f]+);/g, (_, hex: string) =>
+      String.fromCodePoint(Number.parseInt(hex, 16)),
+    )
+    .replaceAll(/&#(\d+);/g, (_, dec: string) =>
+      String.fromCodePoint(Number.parseInt(dec, 10)),
+    )
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&')
 }
 
 function tagText(xml: string, name: string): string | undefined {
@@ -30,14 +32,14 @@ function tagText(xml: string, name: string): string | undefined {
 }
 
 function attr(tag: string, name: string): string | undefined {
-  const match
-    = tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i'))
-      ?? tag.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'))
+  const match =
+    tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i')) ??
+    tag.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'))
   return match?.[1] === undefined ? undefined : decodeXml(match[1])
 }
 
 export function parseBangumiRss(xml: string, baseUrl: string): RssEpisode[] {
-  const items = xml.match(/<item\b[^>]*>[\s\S]*?<\/item>/gi) ?? []
+  const items = xml.match(/<item\b[^>]*>[\S\s]*?<\/item>/gi) ?? []
   const episodes: RssEpisode[] = []
 
   for (const item of items) {
@@ -45,9 +47,9 @@ export function parseBangumiRss(xml: string, baseUrl: string): RssEpisode[] {
     const pageLink = tagText(item, 'link') ?? ''
     const enclosureTag = item.match(/<enclosure\b[^>]*>/i)?.[0] ?? ''
     const enclosureUrl = attr(enclosureTag, 'url')
-    const episodeId
-      = pageLink.match(/\/Home\/Episode\/([a-f0-9]+)/i)?.[1]
-        ?? enclosureUrl?.match(/\/Download\/\d+\/([a-f0-9]+)\.torrent/i)?.[1]
+    const episodeId =
+      pageLink.match(/\/home\/episode\/([\da-f]+)/i)?.[1] ??
+      enclosureUrl?.match(/\/download\/\d+\/([\da-f]+)\.torrent/i)?.[1]
     const torrentHref = enclosureUrl ?? pageLink
     if (!title || !episodeId || !torrentHref) {
       continue
@@ -64,8 +66,8 @@ export function parseBangumiRss(xml: string, baseUrl: string): RssEpisode[] {
       episode.publishedAt = publishedAt
     }
 
-    const sizeRaw
-      = tagText(item, 'contentLength') ?? attr(enclosureTag, 'length')
+    const sizeRaw =
+      tagText(item, 'contentLength') ?? attr(enclosureTag, 'length')
     const sizeBytes = Number(sizeRaw)
     if (Number.isFinite(sizeBytes) && sizeBytes > 0) {
       episode.sizeBytes = sizeBytes

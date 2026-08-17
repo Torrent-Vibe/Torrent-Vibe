@@ -15,8 +15,8 @@ import {
 } from '../stores/torrent-selectors'
 
 interface NameCellProps {
-  rowIndex: number
   isInViewport?: boolean
+  rowIndex: number
 }
 
 export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
@@ -32,7 +32,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
   const nameData = useTorrentDataStore(
     useShallow(
       useCallback(
-        state => selectTorrentName(state, deferredRowIndex),
+        (state) => selectTorrentName(state, deferredRowIndex),
         [deferredRowIndex],
       ),
     ),
@@ -41,7 +41,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
   const { progress, state } = useTorrentDataStore(
     useShallow(
       useCallback(
-        state => selectTorrentProgress(state, deferredRowIndex),
+        (state) => selectTorrentProgress(state, deferredRowIndex),
         [deferredRowIndex],
       ),
     ),
@@ -52,7 +52,7 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
     ? nameData.tags
         .split(',')
         .filter(Boolean)
-        .map(t => t.trim())
+        .map((t) => t.trim())
     : []
 
   const handleModifyTag = useCallback(
@@ -67,18 +67,19 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
           // Since qBittorrent doesn't support renaming tags directly,
           // we need to create the new tag and update all torrents that use the old tag
           const { torrents } = useTorrentDataStore.getState()
-          const torrentsWithTag = torrents.filter(torrent =>
+          const torrentsWithTag = torrents.filter((torrent) =>
             torrent.tags
               .split(',')
-              .map(t => t.trim())
-              .includes(tagName))
+              .map((t) => t.trim())
+              .includes(tagName),
+          )
 
           // Create new tag
           await createTagMutation.mutateAsync([newTagName.trim()])
 
           // Add new tag to all torrents that had the old tag
           if (torrentsWithTag.length > 0) {
-            const hashes = torrentsWithTag.map(t => t.hash)
+            const hashes = torrentsWithTag.map((t) => t.hash)
             await addTorrentTagsMutation.mutateAsync({
               hashes,
               tags: [newTagName.trim()],
@@ -123,8 +124,8 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
         <div className="flex items-center gap-3 px-2 py-2">
           <div className="flex-shrink-0">
             <TorrentStateIcon
-              state="unknown"
               className="text-lg text-text-tertiary"
+              state="unknown"
             />
           </div>
           <div className="flex-1 min-w-0">
@@ -141,9 +142,9 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
     <div className="relative flex items-center gap-3 px-4 py-2">
       <div className="flex-shrink-0 pt-0.5">
         <TorrentStateIcon
-          state={state}
-          progress={progress}
           className="text-lg"
+          progress={progress}
+          state={state}
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -156,38 +157,36 @@ export const NameCell = ({ rowIndex, isInViewport }: NameCellProps) => {
           </span>
           {tagList.length > 0 && (
             <div className="flex gap-1 overflow-hidden">
-              {tagList.slice(0, 2).map(tag => (
+              {tagList.slice(0, 2).map((tag) => (
                 <Tag
                   key={tag}
-                  tag={tag}
-                  variant="primary"
-                  type="tag"
                   showContextMenu={true}
-                  onModify={handleModifyTag}
+                  tag={tag}
+                  type="tag"
+                  variant="primary"
                   onDelete={handleDeleteTag}
+                  onModify={handleModifyTag}
                 />
               ))}
               {tagList.length > 2 && (
                 <Tag
-                  tag={`+${tagList.length - 2}`}
-                  variant="tertiary"
                   className="cursor-default"
+                  tag={`+${tagList.length - 2}`}
                   title={tagList.slice(2).join(', ')}
+                  variant="tertiary"
                 />
               )}
             </div>
           )}
 
-          {isInViewport
-            ? (
-                <div className="ml-auto shrink-0 h-0 -translate-y-3 translate-x-2">
-                  <TorrentAiMetadataRow
-                    hash={nameData.hash}
-                    rawName={nameData.name}
-                  />
-                </div>
-              )
-            : null}
+          {isInViewport ? (
+            <div className="ml-auto shrink-0 h-0 -translate-y-3 translate-x-2">
+              <TorrentAiMetadataRow
+                hash={nameData.hash}
+                rawName={nameData.name}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

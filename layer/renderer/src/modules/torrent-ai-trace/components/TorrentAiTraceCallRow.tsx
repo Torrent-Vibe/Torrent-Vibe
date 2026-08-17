@@ -78,7 +78,7 @@ export const TorrentAiTraceCallRow = ({
   const layout = snapshot
     ? buildPrefixCacheLayout(
         snapshot,
-        bound.map(segment => ({ ...segment, covered: 'none' })),
+        bound.map((segment) => ({ ...segment, covered: 'none' })),
       )
     : null
   const tokens = layout?.visualTokens ?? snapshot?.totalTokens ?? 0
@@ -88,8 +88,8 @@ export const TorrentAiTraceCallRow = ({
     return {
       ...segment,
       boundary:
-        Boolean(segment.messageId)
-        && segment.messageId !== previousSegment?.messageId,
+        Boolean(segment.messageId) &&
+        segment.messageId !== previousSegment?.messageId,
       displayCached: snapshot?.usage
         ? segment.covered === 'full'
         : segment.cached,
@@ -116,12 +116,12 @@ export const TorrentAiTraceCallRow = ({
                 const color = AI_CALL_SOURCE_COLORS[segment.source]
                 const share = tokens > 0 ? (segment.tokens / tokens) * 100 : 0
                 const hovered = Boolean(hoverToolCallId)
-                const matched
-                  = hovered
-                    && (segment.toolCallId
-                      ? segment.toolCallId === hoverToolCallId
-                      : segment.source === 'tool-call'
-                        || segment.source === 'tool-result')
+                const matched =
+                  hovered &&
+                  (segment.toolCallId
+                    ? segment.toolCallId === hoverToolCallId
+                    : segment.source === 'tool-call' ||
+                      segment.source === 'tool-result')
                 const dimmed = hovered && !matched
                 const key = [
                   callIndex,
@@ -157,16 +157,14 @@ export const TorrentAiTraceCallRow = ({
                             : undefined,
                         }}
                       >
-                        {segment.injected
-                          ? (
-                              <span className="absolute top-0 right-0 flex size-2.5 items-center justify-center rounded-sm bg-orange text-[8px] leading-none text-white">
-                                i
-                              </span>
-                            )
-                          : null}
+                        {segment.injected ? (
+                          <span className="absolute top-0 right-0 flex size-2.5 items-center justify-center rounded-sm bg-orange text-[8px] leading-none text-white">
+                            i
+                          </span>
+                        ) : null}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
+                    <TooltipContent className="text-xs" side="top">
                       {`${segment.source} · ${formatTraceTokens(segment.tokens)}${segment.displayCached ? ' · cached' : ''}`}
                     </TooltipContent>
                   </Tooltip>
@@ -174,23 +172,21 @@ export const TorrentAiTraceCallRow = ({
               })}
             </div>
           </div>
-          {layout
-            ? (
-                <PrefixCacheUnderline layout={layout} barWidthPercent={width} />
-              )
-            : (
-                <div className="h-2" />
-              )}
+          {layout ? (
+            <PrefixCacheUnderline barWidthPercent={width} layout={layout} />
+          ) : (
+            <div className="h-2" />
+          )}
         </div>
-        <CallStats snapshot={snapshot} events={events} hint={hint} />
+        <CallStats events={events} hint={hint} snapshot={snapshot} />
         <div className="space-y-0.5">
-          {events.map(event => (
+          {events.map((event) => (
             <NestedEvent
-              key={`${event.type}-${event.ts}-${'toolCallId' in event ? event.toolCallId : event.runId}`}
               event={event}
+              key={`${event.type}-${event.ts}-${'toolCallId' in event ? event.toolCallId : event.runId}`}
               active={
-                (event.type === 'tool_start' || event.type === 'tool_end')
-                && event.toolCallId === hoverToolCallId
+                (event.type === 'tool_start' || event.type === 'tool_end') &&
+                event.toolCallId === hoverToolCallId
               }
               onHover={onHoverTool}
             />

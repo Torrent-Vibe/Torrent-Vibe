@@ -5,7 +5,7 @@ import { useDiscoverModalStore } from '../store'
 import { MikanBangumiCard } from './MikanSeasonWall'
 
 export const MikanSearchResults = () => {
-  const items = useDiscoverModalStore(state => state.items)
+  const items = useDiscoverModalStore((state) => state.items)
   const { mikan } = DiscoverModalActions.shared.slices
 
   return (
@@ -16,10 +16,10 @@ export const MikanSearchResults = () => {
           'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
         )}
       >
-        {items.map(item => (
+        {items.map((item) => (
           <MikanBangumiCard
-            key={item.id}
             item={item}
+            key={item.id}
             onSelect={mikan.pushBangumi}
           />
         ))}

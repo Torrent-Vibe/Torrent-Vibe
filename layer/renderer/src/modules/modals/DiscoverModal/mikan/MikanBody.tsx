@@ -1,41 +1,37 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '~/components/ui/button'
 import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
 import { SubscriptionActions } from '~/modules/subscriptions'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
-import { DiscoverEmptyState, DiscoverModalHeader } from '../components'
+import { DiscoverEmptyState } from '../components'
 import { useDiscoverModalStore } from '../store'
-import { MikanBangumiHeaderActions } from './MikanBangumiHeaderActions'
 import { MikanBangumiPage } from './MikanBangumiPage'
-import { MikanBrowseHeaderEnd, MikanSearchField } from './MikanBrowseChrome'
+import { MikanChrome } from './MikanChrome'
 import { MikanSearchResults } from './MikanSearchResults'
 import { MikanSeasonWall } from './MikanSeasonWall'
 import { MikanSubscriptionsTab } from './MikanSubscriptionsTab'
 import { mikanBrowseBody, mikanStackTop } from './stack'
 
-export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
+export const MikanBody = () => {
   const { t } = useTranslation('app')
   const actions = DiscoverModalActions.shared
   const { search, mikan } = actions.slices
 
-  const providerReady = useDiscoverModalStore(state => state.providerReady)
-  const keyword = useDiscoverModalStore(state => state.keyword)
-  const year = useDiscoverModalStore(state => state.filters.year)
-  const season = useDiscoverModalStore(state => state.filters.season)
+  const providerReady = useDiscoverModalStore((state) => state.providerReady)
+  const keyword = useDiscoverModalStore((state) => state.keyword)
+  const year = useDiscoverModalStore((state) => state.filters.year)
+  const season = useDiscoverModalStore((state) => state.filters.season)
   const committedSearch = useDiscoverModalStore(
-    state => state.committedSearch,
+    (state) => state.committedSearch,
   )
-  const items = useDiscoverModalStore(state => state.items)
-  const isSearching = useDiscoverModalStore(state => state.isSearching)
-  const searchError = useDiscoverModalStore(state => state.searchError)
-  const stack = useDiscoverModalStore(state => state.mikanStack)
-  const browseScroll = useDiscoverModalStore(state => state.mikanBrowseScroll)
-  const detail = useDiscoverModalStore(state => state.mikanDetail)
-  const bangumiId = useDiscoverModalStore(state => state.mikanBangumiId)
+  const items = useDiscoverModalStore((state) => state.items)
+  const isSearching = useDiscoverModalStore((state) => state.isSearching)
+  const searchError = useDiscoverModalStore((state) => state.searchError)
+  const stack = useDiscoverModalStore((state) => state.mikanStack)
+  const browseScroll = useDiscoverModalStore((state) => state.mikanBrowseScroll)
 
   const seasonKey = `${String(year ?? '')}:${String(season ?? '')}`
   const previousSeasonKeyRef = useRef(seasonKey)
@@ -77,10 +73,10 @@ export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
     }
 
     const leftStack = previousStackLenRef.current > 0 && stack.length === 0
-    const switchedBody
-      = previousStackLenRef.current === 0
-        && stack.length === 0
-        && previousBodyRef.current !== bodyMode
+    const switchedBody =
+      previousStackLenRef.current === 0 &&
+      stack.length === 0 &&
+      previousBodyRef.current !== bodyMode
 
     if (leftStack || switchedBody) {
       node.scrollTop = browseScroll[bodyMode]
@@ -90,49 +86,9 @@ export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
     previousBodyRef.current = bodyMode
   }, [bodyMode, browseScroll, stack.length])
 
-  const bangumiTitle
-    = detail?.title
-      ?? items.find(item => item.id === bangumiId)?.title
-      ?? bangumiId
-      ?? ''
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-background">
-      {top
-        ? (
-            <DiscoverModalHeader
-              start={(
-                <div className="flex min-w-0 flex-1 items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => mikan.popStack()}
-                  >
-                    <i className="i-mingcute-arrow-left-line mr-1" />
-                    <span>{t('discover.modal.mikan.back')}</span>
-                  </Button>
-                  <h2 className="min-w-0 truncate text-sm font-semibold">
-                    {top.type === 'subscriptions'
-                      ? t('discover.modal.mikan.subscriptionsTitle')
-                      : bangumiTitle}
-                  </h2>
-                </div>
-              )}
-              end={top.type === 'bangumi' ? <MikanBangumiHeaderActions /> : null}
-              provider={false}
-              onClose={onClose}
-            />
-          )
-        : (
-            <DiscoverModalHeader
-              start={<MikanSearchField />}
-              end={<MikanBrowseHeaderEnd />}
-              providerCompact
-              onClose={onClose}
-            />
-          )}
-
+      <MikanChrome />
       <ScrollArea
         ref={viewportRef}
         rootClassName="flex-1 h-0"
@@ -143,10 +99,10 @@ export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
       >
         {!providerReady && (
           <DiscoverEmptyState
+            actionLabel={t('discover.modal.configureProviders')}
+            description={t('discover.modal.noProviderDescription')}
             icon="i-mingcute-settings-4-line"
             title={t('discover.modal.noProviderTitle')}
-            description={t('discover.modal.noProviderDescription')}
-            actionLabel={t('discover.modal.configureProviders')}
             onAction={() => presentSettingsModal({ tab: 'discover' })}
           />
         )}
@@ -168,10 +124,10 @@ export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
 
             {searchError && items.length === 0 && !isSearching && (
               <DiscoverEmptyState
+                actionLabel={t('discover.modal.mikan.retry')}
+                description={t('discover.modal.mikan.emptyWallDescription')}
                 icon="i-mingcute-warning-line"
                 title={t('discover.messages.searchFailed')}
-                description={t('discover.modal.mikan.emptyWallDescription')}
-                actionLabel={t('discover.modal.mikan.retry')}
                 onAction={() => {
                   void search.performSearch()
                 }}
@@ -181,27 +137,25 @@ export const MikanWorkspace = ({ onClose }: { onClose: () => void }) => {
             {!isSearching && !searchError && items.length === 0 && (
               <DiscoverEmptyState
                 icon="i-mingcute-search-2-line"
-                title={
-                  showSearchResults
-                    ? t('discover.modal.mikan.emptySearchTitle')
-                    : t('discover.modal.mikan.emptyWallTitle')
-                }
                 description={
                   showSearchResults
                     ? t('discover.modal.mikan.emptySearchDescription')
                     : t('discover.modal.mikan.emptyWallDescription')
                 }
+                title={
+                  showSearchResults
+                    ? t('discover.modal.mikan.emptySearchTitle')
+                    : t('discover.modal.mikan.emptyWallTitle')
+                }
               />
             )}
 
-            {items.length > 0
-              && (showSearchResults
-                ? (
-                    <MikanSearchResults />
-                  )
-                : (
-                    <MikanSeasonWall />
-                  ))}
+            {items.length > 0 &&
+              (showSearchResults ? (
+                <MikanSearchResults />
+              ) : (
+                <MikanSeasonWall />
+              ))}
           </>
         )}
       </ScrollArea>

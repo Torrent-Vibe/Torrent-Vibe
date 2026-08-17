@@ -5,15 +5,15 @@ import type { MultiServerConfig } from '~/modules/multi-server/types/multi-serve
 import type { QBittorrentConfig } from './types/qbittorrent'
 
 export interface StoredConnectionConfig {
-  host: string
-  port: number
-  username: string
-  useHttps: boolean
-  rememberPassword: boolean
   /**
    * Optional persisted baseUrl override (can be absolute or relative like '/api')
    */
   baseUrl?: string
+  host: string
+  port: number
+  rememberPassword: boolean
+  useHttps: boolean
+  username: string
 }
 
 export function loadStoredConnectionConfig(): {
@@ -89,10 +89,10 @@ export function checkHasPersistConnectionConfig(): boolean {
   const { stored } = loadStoredConnectionConfig()
   return Boolean(
     stored &&
-      stored.username &&
-      stored.useHttps !== undefined &&
-      // Either a baseUrl is stored, or host/port are present
-      (stored.baseUrl || (stored.host && stored.port)),
+    stored.username &&
+    stored.useHttps !== undefined &&
+    // Either a baseUrl is stored, or host/port are present
+    (stored.baseUrl || (stored.host && stored.port)),
   )
 }
 

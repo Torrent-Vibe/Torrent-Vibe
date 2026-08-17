@@ -2,10 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { SettingsSection } from '../configs'
-import {
-  getTabConfig,
-  SIDEBAR_GROUPS,
-} from '../configs'
+import { getTabConfig, SIDEBAR_GROUPS } from '../configs'
 import {
   createMobileSettingsSection,
   MobileSettingsCells,
@@ -15,9 +12,9 @@ import { MobileSettingsScreen } from './MobileSettingsScreen'
 import { useStackNavigation } from './MobileStackNavigator'
 
 interface MobileSettingsRootProps {
-  onClose?: () => void
   className?: string
   hideHeader?: boolean
+  onClose?: () => void
 }
 
 export const MobileSettingsRoot: React.FC<MobileSettingsRootProps> = ({
@@ -75,11 +72,11 @@ export const MobileSettingsRoot: React.FC<MobileSettingsRootProps> = ({
 
   return (
     <MobileSettingsScreen
-      title="Settings"
-      showCloseButton={true}
-      onClose={onClose}
       className={className}
       paddingY={false}
+      showCloseButton={true}
+      title="Settings"
+      onClose={onClose}
     >
       <div className="py-6">
         <MobileSettingsList sections={sections} />

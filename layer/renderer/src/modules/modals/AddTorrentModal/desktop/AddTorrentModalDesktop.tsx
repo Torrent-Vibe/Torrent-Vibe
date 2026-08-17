@@ -50,14 +50,14 @@ export const AddTorrentModalDesktop = ({
       <DialogClose />
 
       <form
-        onSubmit={handleSubmit}
         className="min-w-0 pt-2 flex-1 flex flex-col min-h-0"
+        onSubmit={handleSubmit}
       >
         <m.div
-          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={Spring.presets.smooth}
           className="min-w-0 flex-1 flex flex-col min-h-0"
+          initial={{ opacity: 0, y: 10 }}
+          transition={Spring.presets.smooth}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0">
             {/* Left side - Input area */}
@@ -65,9 +65,9 @@ export const AddTorrentModalDesktop = ({
 
             {/* Right side - Settings area */}
             <SettingsSection
+              categories={categories}
               formData={formData}
               handlers={handlers}
-              categories={categories}
             />
           </div>
         </m.div>
@@ -76,23 +76,23 @@ export const AddTorrentModalDesktop = ({
       <DialogFooter>
         <DialogClose asChild>
           <Button
-            variant="ghost"
-            size="sm"
             className="h-full inline-block"
             disabled={isLoading}
+            size="sm"
+            variant="ghost"
           >
             {t('buttons.cancel')}
           </Button>
         </DialogClose>
         <Button
+          className="min-w-[100px]"
+          disabled={!isFormValid}
+          isLoading={isLoading}
+          loadingText={t('modals.addTorrent.addingText')}
           size="sm"
           type="submit"
           variant="primary"
           onClick={handleSubmit}
-          disabled={!isFormValid}
-          isLoading={isLoading}
-          loadingText={t('modals.addTorrent.addingText')}
-          className="min-w-[100px]"
         >
           {t('modals.addTorrent.titlePlural')}
         </Button>

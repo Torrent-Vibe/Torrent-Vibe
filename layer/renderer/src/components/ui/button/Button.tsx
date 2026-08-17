@@ -103,7 +103,8 @@ const buttonVariants = tv({
 })
 
 interface ButtonProps
-  extends React.ComponentPropsWithoutRef<'button'>,
+  extends
+    React.ComponentPropsWithoutRef<'button'>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
   isLoading?: boolean
@@ -127,17 +128,17 @@ const Button = ({
   const Component = asChild ? Slot : 'button'
   return (
     <Component
-      ref={forwardedRef}
       className={cx(buttonVariants({ variant, size }), className)}
       disabled={disabled || isLoading}
+      ref={forwardedRef}
       tremor-id="tremor-raw"
       {...props}
     >
       {isLoading ? (
         <span className="pointer-events-none flex shrink-0 items-center justify-center gap-1.5">
           <i
-            className="size-4 shrink-0 animate-spin i-mingcute-loading-3-line"
             aria-hidden="true"
+            className="size-4 shrink-0 animate-spin i-mingcute-loading-3-line"
           />
           <span className="sr-only">{loadingText ?? t('common.loading')}</span>
           {loadingText ?? children}

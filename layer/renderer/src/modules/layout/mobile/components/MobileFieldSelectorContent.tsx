@@ -95,7 +95,7 @@ export const MobileFieldSelectorContent = ({
           }
 
           return (
-            <div key={groupKey} className="space-y-3">
+            <div className="space-y-3" key={groupKey}>
               <h4 className="text-xs font-medium text-placeholder-text uppercase tracking-wide">
                 {groupLabels[groupKey as keyof typeof groupLabels]}
               </h4>
@@ -109,14 +109,14 @@ export const MobileFieldSelectorContent = ({
 
                   return (
                     <m.div
+                      layout
                       key={field.id}
+                      transition={Spring.presets.smooth}
                       className={cn(
                         'flex items-center justify-between p-3 rounded-lg border border-border',
                         'bg-material-medium hover:bg-fill-secondary transition-colors',
                         isDisabled && 'opacity-50',
                       )}
-                      layout
-                      transition={Spring.presets.smooth}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {field.icon && (
@@ -138,10 +138,10 @@ export const MobileFieldSelectorContent = ({
 
                       <Switch
                         checked={isChecked}
+                        disabled={isDisabled}
                         onCheckedChange={() =>
                           !isDisabled && handleFieldToggle(field.id)
                         }
-                        disabled={isDisabled}
                       />
                     </m.div>
                   )
@@ -166,8 +166,8 @@ export const MobileFieldSelectorContent = ({
               .filter((f) => f.visible)
               .map((field) => (
                 <span
-                  key={field.id}
                   className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-fill-secondary text-text border border-border"
+                  key={field.id}
                 >
                   {field.icon && <i className={cn('mr-1', field.icon)} />}
                   {field.label}
@@ -180,18 +180,18 @@ export const MobileFieldSelectorContent = ({
       {/* Action buttons */}
       <div className="flex items-center justify-between gap-3 px-6 pb-6 pt-2 border-t border-border mt-auto">
         <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleReset}
           className="flex-1"
+          size="sm"
+          variant="secondary"
+          onClick={handleReset}
         >
           Reset to Default
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleCancel}>
+          <Button size="sm" variant="ghost" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button size="sm" onClick={handleApply} className="min-w-[80px]">
+          <Button className="min-w-[80px]" size="sm" onClick={handleApply}>
             Apply
           </Button>
         </div>

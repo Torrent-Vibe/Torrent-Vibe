@@ -1,50 +1,50 @@
 import type { ReactNode } from 'react'
 
 export interface LayoutPreferences {
+  compactMode: boolean
   detailPanelVisible: boolean
   detailPanelWidth: number
-  compactMode: boolean
 }
 
 // StatusIndicator types
 interface FilterStat {
-  label: string
+  color: string
   count: number
   icon: string
-  color: string
+  label: string
 }
 
 export interface HeaderProps {
   className?: string
-  showSearch?: boolean
+  currentFilterStat?: FilterStat
   hasSelection?: boolean
-  onTorrentAction?: (action: 'pause' | 'resume' | 'delete') => void
+  isFilteredView?: boolean
   // StatusIndicator props
   isLoading?: boolean
-  currentFilterStat?: FilterStat
+  onTorrentAction?: (action: 'pause' | 'resume' | 'delete') => void
+  showSearch?: boolean
   totalStats?: number
-  isFilteredView?: boolean
 }
 
 export interface MainPanelProps {
-  className?: string
   children: ReactNode
+  className?: string
 }
 
 export interface DetailPanelProps {
-  className?: string
-  visible?: boolean
-  onVisibleChange?: (visible: boolean) => void
   children: ReactNode
+  className?: string
+  onVisibleChange?: (visible: boolean) => void
+  visible?: boolean
 }
 
 export interface ResizablePanelProps {
-  direction: 'horizontal' | 'vertical'
-  minSize: number
-  maxSize: number
-  defaultSize: number
-  onResize?: (size: number) => void
   children: ReactNode
+  defaultSize: number
+  direction: 'horizontal' | 'vertical'
+  maxSize: number
+  minSize: number
+  onResize?: (size: number) => void
 }
 
 // Sidebar types removed - functionality moved to toolbar

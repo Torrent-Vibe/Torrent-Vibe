@@ -4,10 +4,10 @@ import { TorrentSettings } from '../TorrentSettings'
 import type { TorrentFormData, TorrentFormHandlers } from '../types'
 
 interface SettingsSectionProps {
-  formData: TorrentFormData
-  handlers: TorrentFormHandlers
   categories?: Record<string, any> | null
   className?: string
+  formData: TorrentFormData
+  handlers: TorrentFormHandlers
   showScrollArea?: boolean
 }
 
@@ -20,9 +20,9 @@ export const SettingsSection = ({
 }: SettingsSectionProps) => {
   const content = (
     <TorrentSettings
+      categories={categories}
       formData={formData}
       handlers={handlers}
-      categories={categories}
     />
   )
 
@@ -33,10 +33,10 @@ export const SettingsSection = ({
   return (
     <div className={`min-w-0 h-full relative ${className}`}>
       <ScrollArea
-        rootClassName="flex-1 -mr-6 !absolute inset-0 lg:border-l lg:border-border/50 pl-6"
         flex
-        viewportClassName="pr-6"
+        rootClassName="flex-1 -mr-6 !absolute inset-0 lg:border-l lg:border-border/50 pl-6"
         scrollbarClassName="mr-2"
+        viewportClassName="pr-6"
       >
         {content}
       </ScrollArea>

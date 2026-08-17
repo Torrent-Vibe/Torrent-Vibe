@@ -2,12 +2,12 @@ import { getI18n } from '~/i18n'
 
 export interface OnboardingFormData {
   host: string
-  port?: number
-  username: string
   password: string
-  useHttps: boolean
+  port?: number
   rememberPassword: boolean
   useCurrentPath?: boolean
+  useHttps: boolean
+  username: string
 }
 
 export const ONBOARDING_FORM_STORAGE_KEY = 'onboarding-form-data'

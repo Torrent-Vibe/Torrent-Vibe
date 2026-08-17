@@ -8,11 +8,11 @@ import { getI18n } from '~/i18n'
 import { useTorrentDataStore } from '../stores'
 
 interface DateTimeCellProps {
-  rowIndex: number
   field: 'added_on' | 'completion_on' | 'last_activity'
   format?: 'datetime' | 'relative'
   /** When format is 'relative', show absolute time after this many days */
   relativeMaxDays?: number
+  rowIndex: number
 }
 
 const selectTorrentDateTime = (state: any, rowIndex: number, field: string) => {

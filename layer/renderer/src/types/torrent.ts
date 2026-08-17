@@ -24,77 +24,77 @@ export type TorrentState =
   | 'unknown'
 
 export interface TorrentInfo {
-  hash: string
-  name: string
-  size: number
-  progress: number
-  dlspeed: number
-  upspeed: number
-  priority: number
-  num_seeds: number
-  num_leechs: number
-  ratio: number
-  eta: number
-  state: TorrentState
-  category: string
-  tags: string
   added_on: number
-  completion_on: number
-  last_activity: number
-  dl_limit: number
-  up_limit: number
-  downloaded: number
-  uploaded: number
-  downloaded_session: number
-  uploaded_session: number
   amount_left: number
   auto_tmm: boolean
   availability: number
+  category: string
   completed: number
+  completion_on: number
   content_path: string
+  dl_limit: number
+  dlspeed: number
+  downloaded: number
+  downloaded_session: number
+  eta: number
   f_l_piece_prio: boolean
   force_start: boolean
+  hash: string
+  isPrivate?: boolean
+  last_activity: number
   magnet_uri: string
   max_ratio: number
   max_seeding_time: number
+  name: string
   num_complete: number
   num_incomplete: number
+  num_leechs: number
+  num_seeds: number
+  priority: number
+  progress: number
+  ratio: number
   ratio_limit: number
   save_path: string
   seeding_time: number
   seeding_time_limit: number
   seen_complete: number
   seq_dl: boolean
+  size: number
+  state: TorrentState
   super_seeding: boolean
+  tags: string
   time_active: number
   total_size: number
   tracker: string
-  isPrivate?: boolean
+  up_limit: number
+  uploaded: number
+  uploaded_session: number
+  upspeed: number
 }
 
 export interface TorrentTableColumn {
+  align?: 'left' | 'center' | 'right'
   key: keyof TorrentInfo | 'select'
   label: string
   sortable?: boolean
   width?: string
-  align?: 'left' | 'center' | 'right'
 }
 
 export interface TorrentTableProps {
-  torrents: TorrentInfo[]
   loading?: boolean
-  selectedTorrents?: string[]
   onSelectionChange?: (selectedHashes: string[]) => void
   onSort?: (key: keyof TorrentInfo, direction: 'asc' | 'desc') => void
-  sortKey?: keyof TorrentInfo
+  selectedTorrents?: string[]
   sortDirection?: 'asc' | 'desc'
+  sortKey?: keyof TorrentInfo
+  torrents: TorrentInfo[]
 }
 
 export interface ServerState {
-  connection_status: 'connected' | 'firewalled' | 'disconnected'
   alltime_dl: number
   alltime_ul: number
   average_time_queue: number
+  connection_status: 'connected' | 'firewalled' | 'disconnected'
 
   dht_nodes: number
   dl_info_data: number
@@ -120,26 +120,26 @@ export interface ServerState {
 }
 
 export interface MainData {
-  rid: number
-  full_update: boolean
-  torrents: Record<string, Partial<TorrentInfo>>
-  torrents_removed: string[]
   categories: Record<string, any>
   categories_removed: string[]
+  full_update: boolean
+  rid: number
+  server_state: ServerState
   tags: string[]
   tags_removed: string[]
-  server_state: ServerState
+  torrents: Record<string, Partial<TorrentInfo>>
+  torrents_removed: string[]
 }
 
 export interface TorrentFile {
-  index: number
-  name: string
-  size: number
-  progress: number
-  priority: number
-  is_seed?: boolean
-  piece_range: [number, number]
   availability: number
+  index: number
+  is_seed?: boolean
+  name: string
+  piece_range: [number, number]
+  priority: number
+  progress: number
+  size: number
 }
 
 export interface TorrentPeer {
@@ -161,14 +161,14 @@ export interface TorrentPeer {
 }
 
 export interface TorrentTracker {
-  url: string
-  status: number
-  tier: number
+  msg: string
+  num_downloaded: number
+  num_leeches: number
   num_peers: number
   num_seeds: number
-  num_leeches: number
-  num_downloaded: number
-  msg: string
+  status: number
+  tier: number
+  url: string
 }
 
 export interface TorrentProperties {

@@ -2,28 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export interface RelativeTimeProps {
-  /** UNIX timestamp in seconds */
-  timestampSeconds: number | null | undefined
-  /** Formatting style for Intl.RelativeTimeFormat */
-  style?: 'long' | 'short' | 'narrow'
+  className?: string
   /** Numeric option for Intl.RelativeTimeFormat */
   numeric?: 'always' | 'auto'
-  className?: string
+  /** Formatting style for Intl.RelativeTimeFormat */
+  style?: 'long' | 'short' | 'narrow'
+  /** UNIX timestamp in seconds */
+  timestampSeconds: number | null | undefined
 }
 
 type RelativeUnit =
-  | 'second'
-  | 'minute'
-  | 'hour'
-  | 'day'
-  | 'week'
-  | 'month'
-  | 'year'
+  'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
 
 interface RelativeComputationResult {
-  value: number
-  unit: RelativeUnit
   nextUpdateInMs: number
+  unit: RelativeUnit
+  value: number
 }
 
 const SECOND = 1

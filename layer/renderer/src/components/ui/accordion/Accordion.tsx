@@ -25,9 +25,9 @@ const useCollapseContext = () => {
 }
 
 interface CollapseGroupProps {
+  children: React.ReactNode
   defaultOpenId?: string
   onOpenChange?: (state: Record<string, boolean>) => void
-  children: React.ReactNode
 }
 
 export const CollapseCssGroup: FC<CollapseGroupProps> = ({
@@ -62,16 +62,16 @@ export const CollapseCssGroup: FC<CollapseGroupProps> = ({
 }
 
 interface CollapseProps {
-  title: React.ReactNode
-  hideArrow?: boolean
-  defaultOpen?: boolean
-  isOpened?: boolean // For controlled usage
-  collapseId?: string
-  onOpenChange?: (isOpened: boolean) => void
-  contentClassName?: string
-  className?: string
   children: React.ReactNode
+  className?: string
+  collapseId?: string
+  contentClassName?: string
+  defaultOpen?: boolean
+  hideArrow?: boolean
   innerClassName?: string
+  isOpened?: boolean // For controlled usage
+  onOpenChange?: (isOpened: boolean) => void
+  title: React.ReactNode
 }
 
 export const CollapseCss: FC<CollapseProps> = ({
@@ -124,9 +124,9 @@ export const CollapseCss: FC<CollapseProps> = ({
         )}
       </div>
       <CollapseCssContent
-        isOpened={isOpened}
         className={contentClassName}
         innerClassName={innerClassName}
+        isOpened={isOpened}
       >
         {children}
       </CollapseCssContent>
@@ -135,10 +135,10 @@ export const CollapseCss: FC<CollapseProps> = ({
 }
 
 interface CollapseContentProps {
-  isOpened: boolean
-  className?: string
   children: React.ReactNode
+  className?: string
   innerClassName?: string
+  isOpened: boolean
 }
 
 const CollapseCssContent: FC<CollapseContentProps> = ({
@@ -151,6 +151,7 @@ const CollapseCssContent: FC<CollapseContentProps> = ({
 
   return (
     <div
+      data-state={isOpened ? 'open' : 'closed'}
       ref={contentRef}
       className={cn(
         'overflow-hidden [interpolate-size:allow-keywords] [transition-behavior:allow-discrete]',
@@ -161,7 +162,6 @@ const CollapseCssContent: FC<CollapseContentProps> = ({
           ? 'block h-[calc-size(auto)] opacity-100'
           : 'hidden h-0 opacity-0',
       )}
-      data-state={isOpened ? 'open' : 'closed'}
     >
       <div
         className={cn(
