@@ -2,10 +2,14 @@ import { app } from 'electron'
 import log from 'electron-log'
 import { join } from 'pathe'
 
+import { installStdioEpipeGuard } from '../utils/stdio-epipe'
+
 /**
  * Configure electron-log for the update services and other main process logging
  */
 export function configureLogging() {
+  installStdioEpipeGuard()
+
   // Set log level based on environment
   const isDev = process.env.NODE_ENV === 'development'
   log.transports.console.level = isDev ? 'debug' : 'info'
@@ -15,8 +19,8 @@ export function configureLogging() {
   const logDir = join(app.getPath('logs'))
   log.transports.file.resolvePathFn = () => join(logDir, 'main.log')
   log.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
-  log.transports.file.format =
-    '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}'
+  log.transports.file.format
+    = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {scope} {text}'
 
   // Configure console transport
   log.transports.console.format = '[{h}:{i}:{s}.{ms}] [{level}] {scope} {text}'

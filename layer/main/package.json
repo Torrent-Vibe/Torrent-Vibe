@@ -11,6 +11,7 @@
   "types": "./dist/exports.d.ts",
   "scripts": {
     "build": "node -e \"console.log('skip: @torrent-vibe/main build is handled by root electron build')\"",
+    "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -35,5 +36,8 @@
     "tar": "7.5.22",
     "utf-8-validate": "6.0.6",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7"
   }
 }
