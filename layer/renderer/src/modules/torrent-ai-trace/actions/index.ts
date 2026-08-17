@@ -39,6 +39,13 @@ const createRun = (event: AiTraceEvent): AiTraceRun => {
 }
 
 const createTorrentAiTraceActions = () => {
+  const findRunIdBySessionId = (sessionId: string): string | undefined => {
+    const state = torrentAiTraceStore.getState()
+    return state.runOrder.find(
+      (runId) => state.runs[runId]?.sessionId === sessionId,
+    )
+  }
+
   const ingest = (event: AiTraceEvent) => {
     torrentAiTraceStore.setState((draft) => {
       let run = draft.runs[event.runId]
@@ -52,8 +59,7 @@ const createTorrentAiTraceActions = () => {
             delete draft.runs[evicted]
           }
         }
-      }
-      else {
+      } else {
         applyEvent(run, event)
       }
       if (!draft.selectedRunId || draft.selectedRunId === event.runId) {
@@ -70,56 +76,72 @@ const createTorrentAiTraceActions = () => {
       const snapshot = await ipcServices?.torrentAi.getTraceSnapshot?.()
       const runs = snapshot?.runs ?? []
       torrentAiTraceStore.setState((draft) => {
-        draft.runs = Object.fromEntries(runs.map(run => [run.runId, run]))
-        draft.runOrder = runs.map(run => run.runId)
+        draft.runs = Object.fromEntries(runs.map((run) => [run.runId, run]))
+        draft.runOrder = runs.map((run) => run.runId)
         draft.selectedRunId = runs.at(-1)?.runId ?? null
       })
       return { ok: true }
-    }
-    catch {
+    } catch {
       return { ok: false, error: 'loadFailed' }
+    }
+  }
+
+  const exportRun = async (
+    runId: string,
+  ): Promise<TorrentAiTraceActionResult<{ filePath?: string }>> => {
+    try {
+      const payload = await ipcServices?.torrentAi.getTraceExport?.({ runId })
+      if (!payload) {
+        return { ok: false, error: 'exportEmpty' }
+      }
+      const stamp = new Date().toISOString().replaceAll(':', '-')
+      const safeName = payload.run.rawName
+        .replaceAll(/[^\w.-]+/g, '-')
+        .slice(0, 48)
+      const filename = `torrent-ai-trace-${payload.run.runId}-${safeName || 'run'}-${stamp}.json`
+      const content = `${JSON.stringify(payload, null, 2)}\n`
+      const result = await ipcServices?.fileSystem.saveTextFile?.({
+        title: 'Export AI trace',
+        defaultPath: filename,
+        filters: [
+          { name: 'JSON', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+        content,
+      })
+      if (!result || result.canceled) {
+        return { ok: false, error: 'canceled' }
+      }
+      return { ok: true, data: { filePath: result.filePath } }
+    } catch {
+      return { ok: false, error: 'exportFailed' }
     }
   }
 
   return {
     configure,
+    exportRun,
+    exportSession: async (sessionId: string) => {
+      const runId = findRunIdBySessionId(sessionId)
+      if (!runId) {
+        return { ok: false, error: 'runNotFound' }
+      }
+      return exportRun(runId)
+    },
     ingest,
     selectRun: (runId: string | null) => {
       torrentAiTraceStore.setState((draft) => {
         draft.selectedRunId = runId
       })
     },
-    exportRun: async (
-      runId: string,
-    ): Promise<TorrentAiTraceActionResult<{ filePath?: string }>> => {
-      try {
-        const payload = await ipcServices?.torrentAi.getTraceExport?.({ runId })
-        if (!payload) {
-          return { ok: false, error: 'exportEmpty' }
-        }
-        const stamp = new Date().toISOString().replaceAll(':', '-')
-        const safeName = payload.run.rawName
-          .replaceAll(/[^\w.-]+/g, '-')
-          .slice(0, 48)
-        const filename = `torrent-ai-trace-${payload.run.runId}-${safeName || 'run'}-${stamp}.json`
-        const content = `${JSON.stringify(payload, null, 2)}\n`
-        const result = await ipcServices?.fileSystem.saveTextFile?.({
-          title: 'Export AI trace',
-          defaultPath: filename,
-          filters: [
-            { name: 'JSON', extensions: ['json'] },
-            { name: 'All Files', extensions: ['*'] },
-          ],
-          content,
-        })
-        if (!result || result.canceled) {
-          return { ok: false, error: 'canceled' }
-        }
-        return { ok: true, data: { filePath: result.filePath } }
+    selectSession: (sessionId: string) => {
+      const runId = findRunIdBySessionId(sessionId)
+      if (!runId) {
+        return
       }
-      catch {
-        return { ok: false, error: 'exportFailed' }
-      }
+      torrentAiTraceStore.setState((draft) => {
+        draft.selectedRunId = runId
+      })
     },
   }
 }

@@ -237,6 +237,13 @@ body {
   overscroll-behavior: none;
 }
 
+.torrent-ai-devtools.me-devtools {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
 @layer utilities {
   .drag-region {
     -webkit-app-region: drag;

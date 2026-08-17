@@ -17,7 +17,7 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.84.2",
     "@earendil-works/pi-ai": "0.84.2",
-    "@innei/message-engine": "0.2.0",
+    "@innei/message-engine": "0.3.1",
     "@mozilla/readability": "0.6.0",
     "@torrent-vibe/qb-client": "workspace:*",
     "@torrent-vibe/shared": "workspace:*",

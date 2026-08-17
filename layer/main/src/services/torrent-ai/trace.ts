@@ -149,6 +149,7 @@ export const projectTurnSnapshot = (
     unchangedTokens,
     cacheBroke: extras?.cacheBroke === true,
     segments,
+    tokenSnapshot: snapshot,
   }
   if (extras?.brokeAt) {
     projected.brokeAt = extras.brokeAt

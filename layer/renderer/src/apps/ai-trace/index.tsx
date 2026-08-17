@@ -1,35 +1,59 @@
+import type { TelemetryCacheHint } from '@innei/message-engine/devtools'
+import { MessageEngineDevtools } from '@innei/message-engine/devtools/react'
 import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { Button } from '~/components/ui/button'
-import { ResponsiveSelect } from '~/components/ui/select/ResponsiveSelect'
 import { useBridgeEvent } from '~/hooks/common/useBridgeEvent'
+import { useThemeAtomValue } from '~/hooks/common/useDark'
 import { TorrentAiTraceActions } from '~/modules/torrent-ai-trace'
-import { TorrentAiTraceChart } from '~/modules/torrent-ai-trace/components/TorrentAiTraceChart'
+import { torrentAiTraceDevtoolsSource } from '~/modules/torrent-ai-trace/devtools-source'
 import { useTorrentAiTraceStore } from '~/modules/torrent-ai-trace/store'
+
+const HINT_KEYS: Record<TelemetryCacheHint['kind'], I18nKeys> = {
+  'below-floor': 'torrent.ai.trace.hintBelowFloor',
+  'missed-after-prefix': 'torrent.ai.trace.hintMissedAfterPrefix',
+  'near-floor': 'torrent.ai.trace.hintNearFloor',
+  'page-remainder': 'torrent.ai.trace.hintPageRemainder',
+}
+
+const formatTokens = (value: number): string => {
+  if (value < 1000) {
+    return String(value)
+  }
+  return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, '')}k`
+}
 
 export const TorrentAiTraceApp = () => {
   const { t } = useTranslation()
-  const selectedRunId = useTorrentAiTraceStore((state) => state.selectedRunId)
-  const runOrder = useTorrentAiTraceStore((state) => state.runOrder)
-  const runs = useTorrentAiTraceStore((state) => state.runs)
-  const selected = selectedRunId ? runs[selectedRunId] : undefined
-  const runItems = useMemo(
-    () =>
-      runOrder.flatMap((id) => {
-        const run = runs[id]
-        if (!run) {
-          return []
-        }
-        return [
-          {
-            value: id,
-            label: `${run.rawName || id} · ${run.provider}/${run.model}`,
-          },
-        ]
-      }),
-    [runOrder, runs],
+  const theme = useThemeAtomValue()
+  const selectedSessionId = useTorrentAiTraceStore((state) => {
+    if (!state.selectedRunId) {
+      return undefined
+    }
+    return state.runs[state.selectedRunId]?.sessionId
+  })
+  const labels = useMemo(
+    () => ({
+      activities: t('torrent.ai.trace.activities'),
+      anatomy: t('torrent.ai.trace.prompt'),
+      cache: t('torrent.ai.trace.cache'),
+      calls: t('torrent.ai.trace.calls'),
+      emptyDescription: t('torrent.ai.trace.emptyDescription'),
+      emptyTitle: t('torrent.ai.trace.empty'),
+      export: t('torrent.ai.trace.export'),
+      input: t('torrent.ai.trace.input'),
+      output: t('torrent.ai.trace.output'),
+      overview: t('torrent.ai.trace.overview'),
+      prompt: t('torrent.ai.trace.prompt'),
+      raw: t('torrent.ai.trace.raw'),
+      runs: t('torrent.ai.trace.runs'),
+      searchRuns: t('torrent.ai.trace.searchRuns'),
+      selectRun: t('torrent.ai.trace.selectRun'),
+      timeline: t('torrent.ai.trace.timeline'),
+      title: 'Message Engine',
+    }),
+    [t],
   )
 
   useEffect(() => {
@@ -41,72 +65,39 @@ export const TorrentAiTraceApp = () => {
   })
 
   return (
-    <div className="flex h-screen flex-col bg-background text-text">
-      <header className="drag-region flex shrink-0 items-center gap-2 border-b border-border px-4 pt-10 pb-3">
-        <p className="no-drag-region text-sm font-medium">
-          {t('torrent.ai.trace.title')}
-        </p>
-        <div className="no-drag-region min-w-0 flex-1">
-          <ResponsiveSelect
-            items={runItems}
-            placeholder={t('torrent.ai.trace.selectRun')}
-            size="sm"
-            triggerClassName="bg-material-medium"
-            value={selectedRunId ?? ''}
-            onValueChange={(value) => {
-              TorrentAiTraceActions.shared.selectRun(value || null)
-            }}
-          />
-        </div>
-        <Button
-          disabled={!selected}
-          size="sm"
-          variant="secondary"
-          onClick={async () => {
-            if (!selected) {
-              return
-            }
-            const result = await TorrentAiTraceActions.shared.exportRun(
-              selected.runId,
-            )
-            if (result.ok) {
-              toast.success(t('torrent.ai.trace.exportSaved'))
-              return
-            }
-            if (result.error === 'canceled') {
-              return
-            }
-            toast.error(t('torrent.ai.trace.exportFailed'))
-          }}
-        >
-          {t('torrent.ai.trace.export')}
-        </Button>
-      </header>
-      <main className="min-h-0 flex-1 overflow-auto px-4 py-4">
-        {selected ? (
-          <TorrentAiTraceChart run={selected} />
-        ) : (
-          <p className="py-16 text-center text-sm text-text-tertiary">
-            {t('torrent.ai.trace.empty')}
-          </p>
-        )}
-      </main>
-      {selected ? (
-        <footer className="shrink-0 border-t border-border px-4 py-2 text-[11px] text-text-secondary">
-          {t('torrent.ai.trace.cacheSummary', {
-            broke: selected.events.filter(
-              (event) => event.type === 'cache_broke',
-            ).length,
-            total: new Set(
-              selected.events
-                .filter((event) => event.type === 'call_compiled')
-                .map((event) =>
-                  event.type === 'call_compiled' ? event.callIndex : null,
-                ),
-            ).size,
-          })}
-        </footer>
-      ) : null}
+    <div className="relative h-screen overflow-hidden bg-background macos:pt-8">
+      <div
+        aria-hidden
+        className="drag-region absolute inset-x-0 top-0 z-20 hidden h-8 macos:block"
+      />
+      <MessageEngineDevtools
+        cachePolicy={{ minimumCacheTokens: 1024 }}
+        className="torrent-ai-devtools"
+        labels={labels}
+        selectedRunId={selectedSessionId}
+        source={torrentAiTraceDevtoolsSource}
+        theme={theme}
+        formatCacheHint={(hint) =>
+          t(HINT_KEYS[hint.kind], { tokens: formatTokens(hint.tokens) })
+        }
+        onExport={(run) => {
+          void TorrentAiTraceActions.shared
+            .exportSession(run.sessionId)
+            .then((result) => {
+              if (result.ok) {
+                toast.success(t('torrent.ai.trace.exportSaved'))
+                return
+              }
+              if (result.error === 'canceled') {
+                return
+              }
+              toast.error(t('torrent.ai.trace.exportFailed'))
+            })
+        }}
+        onSelectedRunChange={(sessionId) => {
+          TorrentAiTraceActions.shared.selectSession(sessionId)
+        }}
+      />
     </div>
   )
 }

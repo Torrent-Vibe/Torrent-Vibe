@@ -20,6 +20,7 @@
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
     "@headlessui/react": "2.2.10",
+    "@innei/message-engine": "0.3.1",
     "@innei/qbittorrent-browser": "9.6.7",
     "@pastel-palette/tailwindcss": "1.0.0-canary.3",
     "@radix-ui/react-accordion": "1.2.20",

@@ -26,7 +26,7 @@ const MAX_RETRY_DELAY_MS = 15_000
 const logger = getLogger('[torrent-ai.trace]')
 
 const serializeTools = (tools: AgentTool[]): AiTraceExportTool[] =>
-  tools.map(tool => ({
+  tools.map((tool) => ({
     name: tool.name,
     label: tool.label,
     description: tool.description,
@@ -38,7 +38,7 @@ const sanitizeExportValue = (value: unknown): unknown => {
     return value
   }
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeExportValue(item))
+    return value.map((item) => sanitizeExportValue(item))
   }
   const record = value as Record<string, unknown>
   if (record.type === 'image') {
@@ -121,7 +121,7 @@ export async function runAnalysisAgent(input: {
   tools: AgentTool[]
   sessionId: string
   runId: string
-}): Promise<{ text: string, payload: unknown | null, errorMessage?: string }> {
+}): Promise<{ text: string; payload: unknown | null; errorMessage?: string }> {
   const skillIndex = loadSkillIndex()
   const catalog = renderAvailableSkillsXml(skillIndex)
   const systemPrompt = [
@@ -143,7 +143,7 @@ export async function runAnalysisAgent(input: {
   let turns = 0
   let lastTurnId = `${input.sessionId}:0`
   let usageWarned = false
-  let lastCacheBroke: { processorId?: string, reason: string } | undefined
+  let lastCacheBroke: { processorId?: string; reason: string } | undefined
   const toolStartedAt = new Map<string, number>()
   let retryPending = false
   let retryAttempt = 0
@@ -158,7 +158,7 @@ export async function runAnalysisAgent(input: {
       tokenizer: {
         id: 'estimate/chars-div-4',
         accuracy: 'estimated',
-        count: content => Math.max(0, Math.ceil(content.length / 4)),
+        count: (content) => Math.max(0, Math.ceil(content.length / 4)),
       },
       retainTurns: 50,
     },
@@ -176,6 +176,7 @@ export async function runAnalysisAgent(input: {
           ...(event.processorId ? { processorId: event.processorId } : {}),
           reason: event.reason,
           firstChangedIndex: event.firstChangedIndex,
+          mutation: event,
         })
       },
     },
@@ -222,12 +223,12 @@ export async function runAnalysisAgent(input: {
           onResponse: async (response, responseModel) => {
             await options?.onResponse?.(response, responseModel)
             const retryAfterMs = parseRetryAfterMs(response.headers)
-            const remaining
-              = headerValue(response.headers, 'x-ratelimit-remaining')
-                ?? headerValue(response.headers, 'x-ratelimit-remaining-requests')
-            const reset
-              = headerValue(response.headers, 'x-ratelimit-reset')
-                ?? headerValue(response.headers, 'x-ratelimit-reset-requests')
+            const remaining =
+              headerValue(response.headers, 'x-ratelimit-remaining') ??
+              headerValue(response.headers, 'x-ratelimit-remaining-requests')
+            const reset =
+              headerValue(response.headers, 'x-ratelimit-reset') ??
+              headerValue(response.headers, 'x-ratelimit-reset-requests')
             if (retryAfterMs != null || remaining != null || reset != null) {
               sink.emit({
                 type: 'rate_limit',
@@ -278,8 +279,8 @@ export async function runAnalysisAgent(input: {
       step: () => ({ iteration: turns }),
       onCompiled: (result) => {
         systemPromptBridge.capture(result)
-        lastTurnId
-          = result.tokenSnapshot?.turnId ?? `${input.sessionId}:${turns}`
+        lastTurnId =
+          result.tokenSnapshot?.turnId ?? `${input.sessionId}:${turns}`
         sink.addCompiledCall(input.runId, {
           callIndex: turns,
           systemPrompt: result.systemPrompt,
@@ -362,9 +363,9 @@ export async function runAnalysisAgent(input: {
       return
     }
     if (
-      message.role !== 'assistant'
-      || !('usage' in message)
-      || !message.usage
+      message.role !== 'assistant' ||
+      !('usage' in message) ||
+      !message.usage
     ) {
       return
     }
@@ -386,8 +387,7 @@ export async function runAnalysisAgent(input: {
         callIndex: turns,
         snapshot: projectTurnSnapshot(snapshot, { callIndex: turns }),
       })
-    }
-    catch (error) {
+    } catch (error) {
       if (!usageWarned) {
         usageWarned = true
         logger.warn('Failed to record token usage', {
@@ -410,8 +410,7 @@ export async function runAnalysisAgent(input: {
       payload: extractSubmitMetadataArguments(messages),
       errorMessage: agent.state.errorMessage,
     }
-  }
-  finally {
+  } finally {
     await engine.destroy()
   }
 }

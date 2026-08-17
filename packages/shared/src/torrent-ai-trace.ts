@@ -1,3 +1,8 @@
+import type {
+  PrefixMutationEvent,
+  TurnTokenSnapshot,
+} from '@innei/message-engine'
+
 export const AI_TRACE_PREVIEW_LIMIT = 2048
 export const AI_TRACE_RUN_LIMIT = 20
 export const AI_TRACE_EVENTS_PER_RUN = 400
@@ -6,12 +11,10 @@ export const truncateAiTracePreview = (value: unknown): string => {
   let text: string
   if (typeof value === 'string') {
     text = value
-  }
-  else {
+  } else {
     try {
       text = JSON.stringify(value) ?? String(value)
-    }
-    catch {
+    } catch {
       text = String(value)
     }
   }
@@ -41,20 +44,20 @@ export const AI_CALL_SOURCES = [
 export type AiCallSource = (typeof AI_CALL_SOURCES)[number]
 
 export const AI_CALL_SOURCE_COLORS: Record<AiCallSource, string> = {
-  'assistant': '#9a7df0',
-  'document': '#d99b39',
+  assistant: '#9a7df0',
+  document: '#d99b39',
   'history-summary': '#5e9ce6',
-  'knowledge': '#56b9a5',
-  'memory': '#c77dd4',
+  knowledge: '#56b9a5',
+  memory: '#c77dd4',
   'message-overhead': '#727b70',
   'runtime-state': '#dd7834',
-  'skill': '#d45e87',
-  'system': '#e67a2e',
+  skill: '#d45e87',
+  system: '#e67a2e',
   'tool-call': '#f0b82f',
   'tool-result': '#8fcf2e',
   'tool-schema': '#37bdb4',
-  'unattributed': '#778078',
-  'user': '#3d9a5f',
+  unattributed: '#778078',
+  user: '#3d9a5f',
 }
 
 export const isAiCallSource = (value: string): value is AiCallSource =>
@@ -78,6 +81,7 @@ export type AiCallSnapshot = {
   cacheBroke: boolean
   brokeAt?: string
   segments: AiCallSegment[]
+  tokenSnapshot?: TurnTokenSnapshot
   usage?: {
     input: number
     output: number
@@ -119,6 +123,7 @@ export type AiTraceCacheBrokeEvent = AiTraceBase & {
   processorId?: string
   reason: string
   firstChangedIndex: number
+  mutation?: PrefixMutationEvent
 }
 
 export type AiTraceToolStartEvent = AiTraceBase & {
@@ -171,17 +176,17 @@ export type AiTraceRunEndEvent = AiTraceBase & {
   confidence?: number
 }
 
-export type AiTraceEvent
-  = | AiTraceRunStartEvent
-    | AiTraceCallCompiledEvent
-    | AiTraceCallUsageEvent
-    | AiTraceCacheBrokeEvent
-    | AiTraceToolStartEvent
-    | AiTraceToolEndEvent
-    | AiTraceRetryScheduledEvent
-    | AiTraceRetryAttemptEvent
-    | AiTraceRateLimitEvent
-    | AiTraceRunEndEvent
+export type AiTraceEvent =
+  | AiTraceRunStartEvent
+  | AiTraceCallCompiledEvent
+  | AiTraceCallUsageEvent
+  | AiTraceCacheBrokeEvent
+  | AiTraceToolStartEvent
+  | AiTraceToolEndEvent
+  | AiTraceRetryScheduledEvent
+  | AiTraceRetryAttemptEvent
+  | AiTraceRateLimitEvent
+  | AiTraceRunEndEvent
 
 export type AiTraceRun = {
   runId: string
