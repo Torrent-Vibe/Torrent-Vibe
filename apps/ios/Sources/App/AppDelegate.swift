@@ -15,4 +15,3 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     return configuration
   }
 }
-

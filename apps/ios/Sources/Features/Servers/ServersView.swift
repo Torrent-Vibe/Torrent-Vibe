@@ -29,10 +29,22 @@ final class ServersViewController: SwiftUIHostingViewController {
     navigationItem.rightBarButtonItem?.accessibilityIdentifier = "server-toolbar-add"
 
     host(
-      ServersContentView { [weak self] in
-        self?.presentAddServer()
-      }
+      ServersContentView(
+        onAddServer: { [weak self] in
+          self?.presentAddServer()
+        },
+        onOpenServer: { [weak self] serverID in
+          self?.showServer(serverID)
+        }
+      )
       .environment(model)
+    )
+  }
+
+  private func showServer(_ serverID: UUID) {
+    navigationController?.pushViewController(
+      ServerDetailViewController(model: model, serverID: serverID),
+      animated: true
     )
   }
 
@@ -48,6 +60,7 @@ private struct ServersContentView: View {
   @Environment(AppModel.self) private var model
 
   let onAddServer: () -> Void
+  let onOpenServer: (UUID) -> Void
 
   var body: some View {
     Group {
@@ -66,22 +79,22 @@ private struct ServersContentView: View {
           Section("qBittorrent") {
             ForEach(model.servers) { server in
               Button {
-                model.selectServer(server)
+                onOpenServer(server.id)
               } label: {
                 ServerRow(
                   server: server,
                   isActive: server.id == model.activeServerID,
-                  isDemo: model.isDemoMode
+                  connectionStatus: model.connectionStatusText(for: server.id),
+                  helperStatus: model.helperStatusText(for: server.id)
                 )
               }
               .buttonStyle(.plain)
               .accessibilityIdentifier("server-row-\(server.id.uuidString)")
             }
-            .onDelete(perform: model.removeServers)
           }
 
           Section {
-            Text("当前阶段仅持久化名称、地址与用户名。密码和会话令牌必须在 Keychain 服务接入后保存。")
+            Text("密码仅保存在本机 Keychain；服务器配置不会包含明文凭据。")
               .font(.footnote)
               .foregroundStyle(.secondary)
           }
@@ -94,7 +107,8 @@ private struct ServersContentView: View {
 private struct ServerRow: View {
   let server: ServerConfiguration
   let isActive: Bool
-  let isDemo: Bool
+  let connectionStatus: String
+  let helperStatus: String
 
   var body: some View {
     HStack(spacing: 12) {
@@ -120,9 +134,13 @@ private struct ServerRow: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
 
-        Label(helperStatus, systemImage: server.helperBaseURL == nil ? "shippingbox" : "link")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+          Label(connectionStatus, systemImage: "network")
+          Label(helperStatus, systemImage: modelHelperImage)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
       }
 
       Spacer()
@@ -131,14 +149,158 @@ private struct ServerRow: View {
         Image(systemName: "checkmark.circle.fill")
           .foregroundStyle(.blue)
       }
+      Image(systemName: "chevron.right")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.tertiary)
     }
     .contentShape(Rectangle())
     .padding(.vertical, 4)
   }
 
-  private var helperStatus: String {
-    if isDemo { return "Helper 演示端点" }
-    return server.helperBaseURL == nil ? "未配置 Helper" : "等待 Helper 配对"
+  private var modelHelperImage: String {
+    helperStatus.hasPrefix("已连接") || helperStatus == "已配对" ? "link" : "shippingbox"
+  }
+}
+
+private final class ServerDetailViewController: SwiftUIHostingViewController {
+  private let model: AppModel
+  private let serverID: UUID
+
+  init(model: AppModel, serverID: UUID) {
+    self.model = model
+    self.serverID = serverID
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    title = model.servers.first(where: { $0.id == serverID })?.name ?? "服务器"
+    view.backgroundColor = .systemGroupedBackground
+    navigationItem.largeTitleDisplayMode = .never
+    host(
+      ServerDetailContentView(
+        serverID: serverID,
+        onOpenHelper: { [weak self] in
+          self?.showHelper()
+        },
+        onDelete: { [weak self] in
+          self?.confirmDelete()
+        }
+      )
+      .environment(model)
+    )
+  }
+
+  private func showHelper() {
+    navigationController?.pushViewController(
+      HelperConnectionViewController(model: model, serverID: serverID),
+      animated: true
+    )
+  }
+
+  private func confirmDelete() {
+    guard let server = model.servers.first(where: { $0.id == serverID }) else { return }
+    let isCurrent = server.id == model.activeServerID
+    let message =
+      isCurrent
+      ? "这是当前服务器。删除后将切换到其他服务器；如无其他服务器，App 将进入无服务器状态。"
+      : "服务器凭据和本地配置将一并移除；远端 Torrent 不受影响。"
+    let alert = UIAlertController(
+      title: "删除“\(server.name)”？",
+      message: message,
+      preferredStyle: .alert
+    )
+    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(
+      UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
+        guard let self else { return }
+        model.removeServer(id: serverID)
+        navigationController?.popViewController(animated: true)
+      })
+    present(alert, animated: true)
+  }
+}
+
+private struct ServerDetailContentView: View {
+  @Environment(AppModel.self) private var model
+
+  let serverID: UUID
+  let onOpenHelper: () -> Void
+  let onDelete: () -> Void
+
+  var body: some View {
+    Group {
+      if let server = model.servers.first(where: { $0.id == serverID }) {
+        Form {
+          Section("状态") {
+            LabeledContent(
+              "当前服务器",
+              value: server.id == model.activeServerID ? "是" : "否"
+            )
+            LabeledContent(
+              "连接",
+              value: model.isDemoMode
+                ? "演示环境"
+                : model.connectionStatusText(for: server.id)
+            )
+            if !model.isDemoMode {
+              Button(model.isRefreshing ? "正在测试连接" : "测试连接") {
+                Task { await model.testConnection(for: server) }
+              }
+              .disabled(model.isRefreshing)
+              .accessibilityIdentifier("server-test-connection")
+            }
+            if server.id != model.activeServerID {
+              Button("设为当前服务器") {
+                model.selectServer(server)
+              }
+              .accessibilityIdentifier("server-set-active")
+            }
+          }
+
+          Section("qBittorrent") {
+            LabeledContent("地址", value: server.baseURL.absoluteString)
+            LabeledContent("用户名", value: server.username.isEmpty ? "未设置" : server.username)
+            LabeledContent(
+              "密码",
+              value: model.hasStoredPassword(for: server.id) ? "已存入 Keychain" : "未保存"
+            )
+          }
+
+          Section("Helper") {
+            Button(action: onOpenHelper) {
+              HStack(spacing: 12) {
+                Label("Helper", systemImage: "shippingbox")
+                  .foregroundStyle(.primary)
+                Spacer(minLength: 12)
+                Text(model.helperStatusText(for: server.id))
+                  .font(.subheadline)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+                Image(systemName: "chevron.right")
+                  .font(.caption.weight(.semibold))
+                  .foregroundStyle(.tertiary)
+              }
+              .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("server-helper-open")
+          }
+
+          Section {
+            Button("删除服务器", role: .destructive, action: onDelete)
+              .accessibilityIdentifier("server-delete")
+          }
+        }
+      } else {
+        ContentUnavailableView("服务器不存在", systemImage: "externaldrive.badge.xmark")
+      }
+    }
   }
 }
 
@@ -148,6 +310,7 @@ private final class AddServerFormState {
   var name = ""
   var baseURL = "http://"
   var username = ""
+  var password = ""
   var helperURL = ""
 }
 
@@ -159,13 +322,19 @@ private struct AddServerFormView: View {
       Section("服务器") {
         TextField("名称，例如：家庭 NAS", text: $form.name)
           .textContentType(.organizationName)
+          .accessibilityIdentifier("server-add-name")
         TextField("qBittorrent WebUI 地址", text: $form.baseURL)
           .textContentType(.URL)
           .textInputAutocapitalization(.never)
           .keyboardType(.URL)
+          .accessibilityIdentifier("server-add-base-url")
         TextField("用户名", text: $form.username)
           .textContentType(.username)
           .textInputAutocapitalization(.never)
+          .accessibilityIdentifier("server-add-username")
+        SecureField("密码", text: $form.password)
+          .textContentType(.password)
+          .accessibilityIdentifier("server-add-password")
       }
 
       Section {
@@ -173,6 +342,7 @@ private struct AddServerFormView: View {
           .textContentType(.URL)
           .textInputAutocapitalization(.never)
           .keyboardType(.URL)
+          .accessibilityIdentifier("server-add-helper-url")
       } header: {
         Text("可选 Helper")
       } footer: {
@@ -180,7 +350,7 @@ private struct AddServerFormView: View {
       }
 
       Section {
-        Label("凭据输入与 Keychain 保存将在连接服务接入后实现。", systemImage: "key")
+        Label("密码仅写入本机 Keychain，不进入服务器配置或日志。", systemImage: "key")
           .font(.footnote)
           .foregroundStyle(.secondary)
       }
@@ -231,6 +401,7 @@ private final class AddServerViewController: SwiftUIHostingViewController {
         name: form.name,
         baseURLText: form.baseURL,
         username: form.username,
+        password: form.password,
         helperURLText: form.helperURL
       )
       dismiss(animated: true)

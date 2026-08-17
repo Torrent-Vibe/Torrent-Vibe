@@ -1,0 +1,454 @@
+import Foundation
+import XCTest
+
+@testable import Torrent_Vibe
+
+final class HelperServiceTests: XCTestCase {
+  override func tearDown() {
+    StubURLProtocol.handler = nil
+    super.tearDown()
+  }
+
+  func testV2PairStatusAndUnpairContract() async throws {
+    StubURLProtocol.handler = { request in
+      let path = request.url?.path
+      switch path {
+      case "/discover":
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "version": "2.1.0",
+            "clientCount": 3,
+            "requiresPairingCode": true,
+          ]
+        )
+      case "/pair":
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
+        XCTAssertEqual(json["code"], "ABC234")
+        XCTAssertEqual(json["clientId"], "ios-client")
+        XCTAssertEqual(json["clientName"], "Torrent Vibe iOS")
+        return Self.response(
+          request,
+          status: 200,
+          json: ["clientId": "ios-client", "token": "token-value"]
+        )
+      case "/status":
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "replicas": [
+              [
+                "id": "sub-1",
+                "bangumiId": "4101",
+                "title": "夏日观测站",
+                "subgroupId": "583",
+                "subgroupName": "ANi",
+                "rssUrl": "https://mikan.test/RSS/Bangumi?bangumiId=4101&subgroupid=583",
+                "episodes": [
+                  ["episodeId": "ep-1", "title": "Episode 1", "state": "done"],
+                  ["episodeId": "ep-2", "title": "Episode 2", "state": "downloading"],
+                ],
+              ],
+              [
+                "id": "sub-2",
+                "bangumiId": "4102",
+                "title": "星海列车",
+                "subgroupId": "370",
+                "subgroupName": "LoliHouse",
+                "rssUrl": "https://mikan.test/RSS/Bangumi?bangumiId=4102&subgroupid=370",
+                "episodes": [],
+              ],
+            ],
+            "jobs": [
+              [
+                "bangumiId": "4103",
+                "subgroupId": "583",
+                "episodes": [
+                  ["episodeId": "ep-3", "title": "Episode 3", "state": "needs-manual"]
+                ],
+              ]
+            ],
+          ]
+        )
+      case "/unpair":
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+        return Self.response(request, status: 200, json: ["ok": true])
+      default:
+        XCTFail("Unexpected Helper path: \(path ?? "nil")")
+        return Self.response(request, status: 404, json: ["error": "not found"])
+      }
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let discovery = try await service.discover(at: baseURL)
+    XCTAssertEqual(discovery.version, "2.1.0")
+    XCTAssertEqual(discovery.clientCount, 3)
+
+    let credential = try await service.pair(
+      at: baseURL,
+      code: "ABC234",
+      clientID: "ios-client",
+      clientName: "Torrent Vibe iOS"
+    )
+    XCTAssertEqual(credential.clientID, "ios-client")
+    XCTAssertEqual(credential.token, "token-value")
+
+    let status = try await service.status(at: baseURL, token: credential.token)
+    XCTAssertEqual(status.version, "2.1.0")
+    XCTAssertEqual(status.clientCount, 3)
+    XCTAssertEqual(status.subscriptionCount, 2)
+    XCTAssertEqual(status.pendingItems, 2)
+
+    try await service.unpair(at: baseURL, token: credential.token)
+  }
+
+  func testSubscriptionBackfillAndRetryContract() async throws {
+    StubURLProtocol.handler = { request in
+      switch (request.httpMethod, request.url?.path) {
+      case ("GET", "/subscriptions"):
+        return Self.response(request, status: 200, json: ["revision": 7, "replicas": []])
+      case ("PUT", "/subscriptions"):
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["revision"] as? Int, 7)
+        XCTAssertEqual(
+          (json["replicas"] as? [[String: Any]])?.first?["id"] as? String, "mikan:4101:583")
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "revision": 8,
+            "replicas": [
+              [
+                "id": "mikan:4101:583",
+                "bangumiId": "4101",
+                "title": "夏日观测站",
+                "subgroupId": "583",
+                "subgroupName": "ANi",
+                "rssUrl": "https://mikan.test/RSS/Bangumi?bangumiId=4101&subgroupid=583",
+              ]
+            ],
+          ]
+        )
+      case ("POST", "/backfill"):
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["bangumiId"] as? String, "4101")
+        XCTAssertEqual((json["episodes"] as? [[String: Any]])?.count, 1)
+        return Self.response(
+          request,
+          status: 200,
+          json: ["episodes": [["episodeId": "ep-1", "title": "Episode 1", "state": "pending"]]]
+        )
+      case ("POST", "/retry"):
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["episodeId"] as? String, "ep-1")
+        return Self.response(
+          request,
+          status: 200,
+          json: ["episodes": [["episodeId": "ep-1", "title": "Episode 1", "state": "pending"]]]
+        )
+      default:
+        XCTFail(
+          "Unexpected Helper request: \(request.httpMethod ?? "nil") \(request.url?.path ?? "nil")")
+        return Self.response(request, status: 404, json: ["error": "not found"])
+      }
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let current = try await service.subscriptions(at: baseURL, token: "token-value")
+    XCTAssertEqual(current.revision, 7)
+
+    let desired = HelperReplica(
+      id: "mikan:4101:583",
+      bangumiId: "4101",
+      title: "夏日观测站",
+      bangumiSubjectId: nil,
+      subgroupId: "583",
+      subgroupName: "ANi",
+      rssUrl: "https://mikan.test/RSS/Bangumi?bangumiId=4101&subgroupid=583"
+    )
+    let saved = try await service.replaceSubscriptions(
+      at: baseURL,
+      token: "token-value",
+      revision: current.revision,
+      replicas: [desired]
+    )
+    XCTAssertEqual(saved.revision, 8)
+    XCTAssertEqual(saved.replicas, [desired])
+
+    let imported = try await service.backfill(
+      at: baseURL,
+      token: "token-value",
+      bangumiID: "4101",
+      subgroupID: "583",
+      episodes: [
+        HelperBackfillEpisode(
+          episodeId: "ep-1",
+          title: "Episode 1",
+          torrentUrl: "https://mikan.test/episode-1.torrent",
+          publishedAt: nil,
+          sizeBytes: nil
+        )
+      ]
+    )
+    XCTAssertEqual(imported.episodes.first?.state, .pending)
+
+    let retried = try await service.retry(
+      at: baseURL,
+      token: "token-value",
+      request: HelperRetryRequest(
+        bangumiId: "4101",
+        subgroupId: "583",
+        episodeId: "ep-1",
+        title: "Episode 1",
+        torrentUrl: nil
+      )
+    )
+    XCTAssertEqual(retried.episodes.first?.state, .pending)
+  }
+
+  func testRevisionConflictIncludesLatestSnapshot() async throws {
+    StubURLProtocol.handler = { request in
+      Self.response(
+        request,
+        status: 409,
+        json: [
+          "error": "revision conflict",
+          "revision": 9,
+          "replicas": [
+            [
+              "id": "remote",
+              "bangumiId": "4102",
+              "title": "星海列车",
+              "subgroupId": "583",
+              "subgroupName": "ANi",
+              "rssUrl": "https://mikan.test/rss",
+            ]
+          ],
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    do {
+      _ = try await service.replaceSubscriptions(
+        at: baseURL,
+        token: "token-value",
+        revision: 8,
+        replicas: []
+      )
+      XCTFail("Expected revision conflict")
+    } catch HelperServiceError.revisionConflict(let latest) {
+      XCTAssertEqual(latest.revision, 9)
+      XCTAssertEqual(latest.replicas.map(\.id), ["remote"])
+    }
+  }
+
+  func testCoordinatorMergesLatestRemoteSnapshotAfterConflict() async throws {
+    let service = DemoHelperService()
+    let coordinator = HelperSubscriptionCoordinator(service: service)
+    let proposed = HelperReplica(
+      id: "mikan:4101:583",
+      bangumiId: "4101",
+      title: "夏日观测站",
+      bangumiSubjectId: "500001",
+      subgroupId: "583",
+      subgroupName: "ANi",
+      rssUrl: "https://mikan.test/rss"
+    )
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+
+    let mutation = try await coordinator.upsert(
+      proposed,
+      at: baseURL,
+      token: "token-value"
+    )
+
+    XCTAssertTrue(mutation.mergedConflict)
+    XCTAssertEqual(mutation.snapshot.revision, 6)
+    XCTAssertEqual(
+      Set(mutation.snapshot.replicas.map(\.title)),
+      Set(["星海列车", "雨后通信", "夏日观测站"])
+    )
+  }
+
+  @MainActor
+  func testEditingTargetsKeepsOneLogicalSubscriptionAcrossHelpers() async throws {
+    let suiteName = "HelperServiceTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let credentialStore = InMemoryHelperCredentialStore()
+    let service = DemoHelperService()
+    let model = AppModel(
+      launchArguments: ["tests", "-ui-demo", "-ui-helper-demo-paired"],
+      defaults: defaults,
+      helperCredentialStore: credentialStore,
+      helperService: service,
+      torrentRepository: DemoTorrentRepository()
+    )
+
+    await model.refreshAllHelperSubscriptions()
+    let initial = try XCTUnwrap(model.helperSubscriptionGroups.first)
+    XCTAssertEqual(model.helperSubscriptionGroups.count, 1)
+    XCTAssertEqual(initial.replica.title, "星海列车")
+    XCTAssertEqual(initial.targets.map(\.serverName), ["家庭 NAS"])
+
+    let allTargetIDs = Set(model.pairedHelperServers.map(\.id))
+    let outcome = try await model.updateMikanSubscriptionTargets(
+      group: initial,
+      targetServerIDs: allTargetIDs
+    )
+
+    XCTAssertEqual(outcome.serverNames, ["家庭 NAS", "书房 Mac"])
+    XCTAssertFalse(outcome.mergedConflict)
+    XCTAssertEqual(model.helperSubscriptionGroups.count, 1)
+    let updated = try XCTUnwrap(model.helperSubscriptionGroups.first)
+    XCTAssertEqual(Set(updated.targets.map(\.serverName)), Set(["家庭 NAS", "书房 Mac"]))
+  }
+
+  func testUnauthorizedStatusMapsToExpiredCredential() async throws {
+    StubURLProtocol.handler = { request in
+      if request.url?.path == "/discover" {
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "version": "2.1.0",
+            "clientCount": 1,
+            "requiresPairingCode": true,
+          ]
+        )
+      }
+      return Self.response(request, status: 401, json: ["error": "unauthorized"])
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    do {
+      _ = try await service.status(at: baseURL, token: "expired")
+      XCTFail("Expected unauthorized error")
+    } catch {
+      XCTAssertEqual(error as? HelperServiceError, .unauthorized)
+    }
+  }
+
+  private func makeService() -> URLSessionHelperService {
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [StubURLProtocol.self]
+    return URLSessionHelperService(session: URLSession(configuration: configuration))
+  }
+
+  private static func response(
+    _ request: URLRequest,
+    status: Int,
+    json: Any
+  ) -> (HTTPURLResponse, Data) {
+    let response = HTTPURLResponse(
+      url: request.url!,
+      statusCode: status,
+      httpVersion: nil,
+      headerFields: ["Content-Type": "application/json"]
+    )!
+    let data = try! JSONSerialization.data(withJSONObject: json)
+    return (response, data)
+  }
+
+  private static func requestBody(_ request: URLRequest) -> Data? {
+    if let body = request.httpBody {
+      return body
+    }
+    guard let stream = request.httpBodyStream else { return nil }
+    stream.open()
+    defer { stream.close() }
+    var result = Data()
+    var buffer = [UInt8](repeating: 0, count: 1_024)
+    while stream.hasBytesAvailable {
+      let count = stream.read(&buffer, maxLength: buffer.count)
+      guard count > 0 else { break }
+      result.append(buffer, count: count)
+    }
+    return result
+  }
+}
+
+final class TorrentRepositoryTests: XCTestCase {
+  func testDemoRepositoryPersistsPauseAndResumeState() async throws {
+    let repository = DemoTorrentRepository()
+    let server = ServerConfiguration(
+      name: "Demo",
+      baseURL: try XCTUnwrap(URL(string: "https://demo.example.test")),
+      username: "demo"
+    )
+
+    let initial = try await repository.snapshot(for: server)
+    let torrent = try XCTUnwrap(initial.torrents.first)
+    XCTAssertEqual(torrent.status, .downloading)
+
+    try await repository.setPaused(true, torrentID: torrent.id, on: server)
+    let paused = try await repository.snapshot(for: server)
+    XCTAssertEqual(paused.torrents.first?.status, .paused)
+    XCTAssertEqual(paused.torrents.first?.eta, "已暂停")
+
+    try await repository.setPaused(false, torrentID: torrent.id, on: server)
+    let resumed = try await repository.snapshot(for: server)
+    XCTAssertEqual(resumed.torrents.first?.status, .downloading)
+    XCTAssertEqual(resumed.torrents.first?.downloadSpeed, "18.4 MB/s")
+  }
+}
+
+private final class InMemoryHelperCredentialStore: HelperCredentialStore, @unchecked Sendable {
+  private let lock = NSLock()
+  private var tokens: [UUID: String] = [:]
+
+  func deleteToken(for serverID: UUID) throws {
+    lock.lock()
+    defer { lock.unlock() }
+    tokens[serverID] = nil
+  }
+
+  func setToken(_ token: String, for serverID: UUID) throws {
+    lock.lock()
+    defer { lock.unlock() }
+    tokens[serverID] = token
+  }
+
+  func token(for serverID: UUID) throws -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+    return tokens[serverID]
+  }
+}
+
+private final class StubURLProtocol: URLProtocol, @unchecked Sendable {
+  nonisolated(unsafe) static var handler:
+    (@Sendable (URLRequest) throws -> (HTTPURLResponse, Data))?
+
+  override class func canInit(with request: URLRequest) -> Bool { true }
+
+  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+  override func startLoading() {
+    do {
+      let handler = try XCTUnwrap(Self.handler)
+      let (response, data) = try handler(request)
+      client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+      client?.urlProtocol(self, didLoad: data)
+      client?.urlProtocolDidFinishLoading(self)
+    } catch {
+      client?.urlProtocol(self, didFailWithError: error)
+    }
+  }
+
+  override func stopLoading() {}
+}

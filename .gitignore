@@ -25,3 +25,4 @@ resources/security/update_privkey.pem
 .worktrees/
 apps/helper-go/torrent-vibe-helper
 apps/helper-go/torrent-vibe-helper_*
+apps/ios/TorrentVibe.xcodeproj/project.xcworkspace/xcuserdata/

@@ -3,7 +3,7 @@ name: TorrentVibe
 options:
   bundleIdPrefix: com.innei
   deploymentTarget:
-    iOS: "18.0"
+    iOS: '26.0'
   groupSortPosition: top
 
 settings:
@@ -27,6 +27,11 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSBonjourServices:
+          - _torrentvibe-helper._tcp
+        NSLocalNetworkUsageDescription: 用于发现并连接同一局域网中的 Torrent Vibe Helper。
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:
@@ -36,16 +41,36 @@ targets:
         UILaunchScreen: {}
     sources:
       - path: Sources
+      - path: Resources
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe
         DEVELOPMENT_TEAM: KAMM5N88X3
+  TorrentVibeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: TorrentVibe
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_NAME: TorrentVibeTests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.tests
+        DEVELOPMENT_TEAM: KAMM5N88X3
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Torrent Vibe.app/Torrent Vibe
 
 schemes:
   TorrentVibe:
     build:
       targets:
         TorrentVibe: all
+        TorrentVibeTests: [test]
+    test:
+      targets:
+        - TorrentVibeTests
     run:
       config: Debug
     archive:

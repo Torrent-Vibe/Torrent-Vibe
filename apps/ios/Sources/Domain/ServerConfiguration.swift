@@ -21,4 +21,3 @@ struct ServerConfiguration: Codable, Hashable, Identifiable, Sendable {
     self.helperBaseURL = helperBaseURL
   }
 }
-

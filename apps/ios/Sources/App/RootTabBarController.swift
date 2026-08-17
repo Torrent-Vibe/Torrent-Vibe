@@ -4,9 +4,15 @@ final class RootTabBarController: UITabBarController {
   var onAppearanceModeChange: ((AppearanceMode) -> Void)?
 
   private let model: AppModel
+  private let mikanRuntime: MikanRuntimeInstallation
 
   init(model: AppModel) {
     self.model = model
+    do {
+      mikanRuntime = .available(try MikanJavaScriptRuntime())
+    } catch {
+      mikanRuntime = .unavailable(error.localizedDescription)
+    }
     super.init(nibName: nil, bundle: nil)
   }
 
@@ -23,12 +29,12 @@ final class RootTabBarController: UITabBarController {
 
   private func makeViewControllers() -> [UIViewController] {
     let torrents = TorrentViewController(model: model)
-    let discover = DiscoverViewController(model: model)
-    let servers = ServersViewController(model: model)
-    let settings = SettingsViewController()
+    let discover = DiscoverViewController(model: model, mikanRuntime: mikanRuntime)
+    let settings = SettingsViewController(model: model, mikanRuntime: mikanRuntime)
 
     torrents.onOpenServers = { [weak self] in
       self?.selectedIndex = 2
+      settings.showServers()
     }
     settings.onAppearanceModeChange = { [weak self] mode in
       self?.onAppearanceModeChange?(mode)
@@ -46,12 +52,6 @@ final class RootTabBarController: UITabBarController {
         title: "发现",
         systemImage: "safari",
         accessibilityIdentifier: "tab-discover"
-      ),
-      makeNavigationController(
-        root: servers,
-        title: "服务器",
-        systemImage: "externaldrive.connected.to.line.below",
-        accessibilityIdentifier: "tab-servers"
       ),
       makeNavigationController(
         root: settings,
@@ -79,4 +79,3 @@ final class RootTabBarController: UITabBarController {
     return navigationController
   }
 }
-

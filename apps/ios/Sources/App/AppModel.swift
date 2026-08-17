@@ -10,34 +10,82 @@ final class AppModel {
   private(set) var isRefreshing = false
   private(set) var lastUpdated: Date?
   private(set) var integrationNotice: String?
+  private(set) var totalDownloadSpeed = "—"
+  private(set) var totalUploadSpeed = "—"
+  private(set) var serverConnectionStates: [UUID: ServerConnectionState] = [:]
+  private(set) var helperConnectionStates: [UUID: HelperConnectionState] = [:]
+  private(set) var helperSubscriptionStates: [UUID: HelperSubscriptionLoadState] = [:]
 
   let isDemoMode: Bool
 
+  private let credentialStore: any ServerCredentialStore
+  private let helperCredentialStore: any HelperCredentialStore
+  private let helperService: any HelperService
+  private let helperSubscriptionCoordinator: HelperSubscriptionCoordinator
+  private let helperClientID: String
   private let torrentRepository: any TorrentRepository
   private let defaults: UserDefaults
   private static let serversStorageKey = "torrentVibe.servers"
   private static let activeServerStorageKey = "torrentVibe.activeServer"
+  private static let helperClientIDStorageKey = "torrentVibe.helper.clientID"
+  private static let demoServerID = UUID(uuidString: "8ED0F2A8-F72B-49E2-B2D2-22671F367995")!
+  private static let demoSecondaryServerID = UUID(
+    uuidString: "A925BB90-A242-48DA-B984-6DA12D56DB1E"
+  )!
 
   init(
     launchArguments: [String] = ProcessInfo.processInfo.arguments,
-    defaults: UserDefaults = .standard
+    defaults: UserDefaults = .standard,
+    credentialStore: any ServerCredentialStore = KeychainServerCredentialStore(),
+    helperCredentialStore: any HelperCredentialStore = KeychainHelperCredentialStore(),
+    helperService: (any HelperService)? = nil,
+    torrentRepository: (any TorrentRepository)? = nil
   ) {
     let demoMode = launchArguments.contains("-ui-demo")
     isDemoMode = demoMode
     self.defaults = defaults
-    torrentRepository = demoMode
-      ? DemoTorrentRepository()
-      : IntegrationPlaceholderTorrentRepository()
+    self.credentialStore = credentialStore
+    self.helperCredentialStore = helperCredentialStore
+    let resolvedHelperService: any HelperService =
+      helperService ?? (demoMode ? DemoHelperService() : URLSessionHelperService())
+    self.helperService = resolvedHelperService
+    helperSubscriptionCoordinator = HelperSubscriptionCoordinator(service: resolvedHelperService)
+    helperClientID = Self.loadOrCreateHelperClientID(from: defaults)
+    self.torrentRepository =
+      torrentRepository
+      ?? (demoMode
+        ? DemoTorrentRepository()
+        : QBittorrentTorrentRepository(credentialStore: credentialStore))
 
     if demoMode {
       let demoServer = ServerConfiguration(
+        id: Self.demoServerID,
         name: "家庭 NAS",
         baseURL: URL(string: "https://nas.example.test:8080")!,
         username: "demo",
-        helperBaseURL: URL(string: "https://nas.example.test:17890")
+        helperBaseURL: URL(string: "http://nas.example.test:17890")
       )
-      servers = [demoServer]
+      let demoSecondaryServer = ServerConfiguration(
+        id: Self.demoSecondaryServerID,
+        name: "书房 Mac",
+        baseURL: URL(string: "https://mac.example.test:8080")!,
+        username: "demo",
+        helperBaseURL: URL(string: "http://mac.example.test:17890")
+      )
+      servers = [demoServer, demoSecondaryServer]
       activeServerID = demoServer.id
+      totalDownloadSpeed = "18.4 MB/s"
+      totalUploadSpeed = "5.9 MB/s"
+      if launchArguments.contains("-ui-helper-reset") {
+        try? helperCredentialStore.deleteToken(for: demoServer.id)
+        try? helperCredentialStore.deleteToken(for: demoSecondaryServer.id)
+      } else if launchArguments.contains("-ui-helper-demo-paired") {
+        try? helperCredentialStore.setToken("simulator-helper-token", for: demoServer.id)
+        try? helperCredentialStore.setToken(
+          "simulator-helper-token-secondary",
+          for: demoSecondaryServer.id
+        )
+      }
     } else {
       servers = Self.loadServers(from: defaults)
       activeServerID = Self.loadActiveServerID(from: defaults)
@@ -53,16 +101,56 @@ final class AppModel {
     return servers.first { $0.id == activeServerID }
   }
 
-  var totalDownloadSpeed: String {
-    isDemoMode ? "18.4 MB/s" : "—"
+  var pairedHelperServers: [ServerConfiguration] {
+    servers.filter { server in
+      server.helperBaseURL != nil && hasStoredHelperToken(for: server.id)
+    }
   }
 
-  var totalUploadSpeed: String {
-    isDemoMode ? "5.9 MB/s" : "—"
+  var helperSubscriptionGroups: [HelperSubscriptionGroup] {
+    var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
+
+    for server in pairedHelperServers {
+      guard case .loaded(let snapshot, let status) = helperSubscriptionState(for: server.id)
+      else { continue }
+
+      for replica in snapshot.replicas {
+        let key = "\(replica.bangumiId):\(replica.subgroupId)"
+        let runtime = status.replicas.first {
+          $0.id == replica.id
+            || ($0.bangumiId == replica.bangumiId && $0.subgroupId == replica.subgroupId)
+        }
+        let target = HelperSubscriptionTarget(
+          serverID: server.id,
+          serverName: server.name,
+          replicaID: replica.id,
+          episodes: runtime?.episodes ?? []
+        )
+        if var existing = groups[key] {
+          existing.targets.append(target)
+          groups[key] = existing
+        } else {
+          groups[key] = (replica, [target])
+        }
+      }
+    }
+
+    return groups.values
+      .map { value in
+        HelperSubscriptionGroup(
+          replica: value.replica,
+          targets: value.targets
+        )
+      }
+      .sorted { $0.replica.title.localizedCompare($1.replica.title) == .orderedAscending }
   }
 
   func selectServer(_ server: ServerConfiguration) {
     activeServerID = server.id
+    torrents = []
+    integrationNotice = nil
+    totalDownloadSpeed = "—"
+    totalUploadSpeed = "—"
     persistActiveServerID()
   }
 
@@ -70,6 +158,7 @@ final class AppModel {
     name: String,
     baseURLText: String,
     username: String,
+    password: String,
     helperURLText: String
   ) throws {
     let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,9 +167,13 @@ final class AppModel {
     }
 
     let baseURL = try Self.validatedHTTPURL(baseURLText, fieldName: "qBittorrent 地址")
-    let helperURL = helperURLText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let helperURL =
+      helperURLText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       ? nil
       : try Self.validatedHTTPURL(helperURLText, fieldName: "Helper 地址")
+    guard !password.isEmpty else {
+      throw ServerValidationError.missingPassword
+    }
 
     let server = ServerConfiguration(
       name: trimmedName,
@@ -89,6 +182,7 @@ final class AppModel {
       helperBaseURL: helperURL
     )
 
+    try credentialStore.setPassword(password, for: server.id)
     servers.append(server)
     activeServerID = server.id
     persistServers()
@@ -112,6 +206,442 @@ final class AppModel {
     persistActiveServerID()
   }
 
+  func removeServer(id: UUID) {
+    guard let index = servers.firstIndex(where: { $0.id == id }) else { return }
+    try? credentialStore.deletePassword(for: id)
+    try? helperCredentialStore.deleteToken(for: id)
+    serverConnectionStates[id] = nil
+    helperConnectionStates[id] = nil
+    helperSubscriptionStates[id] = nil
+    removeServers(atOffsets: IndexSet(integer: index))
+  }
+
+  func hasStoredPassword(for serverID: UUID) -> Bool {
+    guard let password = try? credentialStore.password(for: serverID) else { return false }
+    return !password.isEmpty
+  }
+
+  func connectionStatusText(for serverID: UUID) -> String {
+    switch serverConnectionStates[serverID] ?? .idle {
+    case .idle:
+      "尚未测试"
+    case .connecting:
+      "正在连接"
+    case .connected(let version):
+      version.map { "已连接 · \($0)" } ?? "已连接"
+    case .failed(let message):
+      message
+    }
+  }
+
+  func helperConnectionState(for serverID: UUID) -> HelperConnectionState {
+    helperConnectionStates[serverID] ?? .idle
+  }
+
+  func helperStatusText(for serverID: UUID) -> String {
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      return "未配置"
+    }
+    switch helperConnectionState(for: serverID) {
+    case .connected(let status):
+      return "已连接 · v\(status.version)"
+    case .connecting:
+      return "正在连接"
+    case .failed(let message):
+      return message
+    case .idle:
+      if hasStoredHelperToken(for: serverID) {
+        return "已配对"
+      }
+      return server.helperBaseURL == nil ? "未配置" : "未配对"
+    }
+  }
+
+  func hasStoredHelperToken(for serverID: UUID) -> Bool {
+    do {
+      return try helperCredentialStore.token(for: serverID)?.isEmpty == false
+    } catch {
+      return false
+    }
+  }
+
+  func refreshHelperStatus(for serverID: UUID) async {
+    guard let server = servers.first(where: { $0.id == serverID }),
+      let baseURL = server.helperBaseURL
+    else {
+      helperConnectionStates[serverID] = .idle
+      return
+    }
+
+    let token: String
+    do {
+      guard let storedToken = try helperCredentialStore.token(for: serverID), !storedToken.isEmpty
+      else {
+        helperConnectionStates[serverID] = .idle
+        return
+      }
+      token = storedToken
+    } catch {
+      helperConnectionStates[serverID] = .failed(error.localizedDescription)
+      return
+    }
+
+    helperConnectionStates[serverID] = .connecting
+    do {
+      let status = try await helperService.status(at: baseURL, token: token)
+      helperConnectionStates[serverID] = .connected(status)
+    } catch {
+      if error as? HelperServiceError == .unauthorized {
+        try? helperCredentialStore.deleteToken(for: serverID)
+      }
+      helperConnectionStates[serverID] = .failed(error.localizedDescription)
+    }
+  }
+
+  func pairHelper(serverID: UUID, baseURLText: String, pairingCode: String) async {
+    guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
+    helperConnectionStates[serverID] = .connecting
+    do {
+      let baseURL = try Self.validatedHTTPURL(baseURLText, fieldName: "Helper 地址")
+      let code =
+        pairingCode
+        .uppercased()
+        .filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
+      guard code.count == 6 else {
+        throw HelperPairingError.invalidCode
+      }
+
+      _ = try await helperService.discover(at: baseURL)
+      let credential = try await helperService.pair(
+        at: baseURL,
+        code: code,
+        clientID: helperClientID,
+        clientName: "Torrent Vibe iOS"
+      )
+      do {
+        try helperCredentialStore.setToken(credential.token, for: serverID)
+      } catch {
+        try? await helperService.unpair(at: baseURL, token: credential.token)
+        throw error
+      }
+      servers[index].helperBaseURL = baseURL
+      persistServers()
+
+      let status = try await helperService.status(at: baseURL, token: credential.token)
+      helperConnectionStates[serverID] = .connected(status)
+    } catch {
+      helperConnectionStates[serverID] = .failed(error.localizedDescription)
+    }
+  }
+
+  func unpairHelper(for serverID: UUID) async {
+    guard let server = servers.first(where: { $0.id == serverID }) else { return }
+    helperConnectionStates[serverID] = .connecting
+    do {
+      if let baseURL = server.helperBaseURL,
+        let token = try helperCredentialStore.token(for: serverID),
+        !token.isEmpty
+      {
+        do {
+          try await helperService.unpair(at: baseURL, token: token)
+        } catch HelperServiceError.unauthorized {
+          // A previously revoked credential is already unpaired remotely.
+        }
+      }
+      try helperCredentialStore.deleteToken(for: serverID)
+      helperConnectionStates[serverID] = .idle
+      helperSubscriptionStates[serverID] = nil
+    } catch {
+      helperConnectionStates[serverID] = .failed(error.localizedDescription)
+    }
+  }
+
+  func helperSubscriptionState(for serverID: UUID) -> HelperSubscriptionLoadState {
+    helperSubscriptionStates[serverID] ?? .idle
+  }
+
+  func refreshAllHelperSubscriptions() async {
+    let pairedIDs = Set(pairedHelperServers.map(\.id))
+    helperSubscriptionStates = helperSubscriptionStates.filter { pairedIDs.contains($0.key) }
+    for server in pairedHelperServers {
+      await refreshHelperSubscriptions(for: server.id)
+    }
+  }
+
+  func refreshHelperSubscriptions(for serverID: UUID) async {
+    helperSubscriptionStates[serverID] = .loading
+    do {
+      let authorization = try helperAuthorization(for: serverID)
+      async let snapshot = helperService.subscriptions(
+        at: authorization.baseURL,
+        token: authorization.token
+      )
+      async let status = helperService.runtimeStatus(
+        at: authorization.baseURL,
+        token: authorization.token
+      )
+      let loaded = try await (snapshot, status)
+      helperSubscriptionStates[serverID] = .loaded(
+        snapshot: loaded.0,
+        status: loaded.1
+      )
+    } catch {
+      handleHelperContentError(error, serverID: serverID)
+    }
+  }
+
+  func subscribeToMikan(
+    detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup,
+    baseURL: URL,
+    serverIDs: Set<UUID>
+  ) async throws -> HelperSubscriptionOutcome {
+    guard !serverIDs.isEmpty else { throw HelperContentError.noTarget }
+    let rssURL = try Self.mikanRSSURL(
+      baseURL: baseURL,
+      bangumiID: detail.bangumiId,
+      subgroupID: subgroup.id
+    )
+    let replica = HelperReplica(
+      id: "mikan:\(detail.bangumiId):\(subgroup.id)",
+      bangumiId: detail.bangumiId,
+      title: detail.title,
+      bangumiSubjectId: detail.bangumiSubjectId,
+      subgroupId: subgroup.id,
+      subgroupName: subgroup.name,
+      rssUrl: rssURL.absoluteString
+    )
+
+    var serverNames: [String] = []
+    var mergedConflict = false
+    for serverID in serverIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
+      let authorization = try helperAuthorization(for: serverID)
+      do {
+        let mutation = try await helperSubscriptionCoordinator.upsert(
+          replica,
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        mergedConflict = mergedConflict || mutation.mergedConflict
+        let status = try await helperService.runtimeStatus(
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        helperSubscriptionStates[serverID] = .loaded(
+          snapshot: mutation.snapshot,
+          status: status
+        )
+        serverNames.append(authorization.server.name)
+      } catch {
+        handleHelperContentError(error, serverID: serverID)
+        throw error
+      }
+    }
+
+    return HelperSubscriptionOutcome(
+      serverNames: serverNames,
+      mergedConflict: mergedConflict
+    )
+  }
+
+  func updateMikanSubscriptionTargets(
+    group: HelperSubscriptionGroup,
+    targetServerIDs: Set<UUID>
+  ) async throws -> HelperSubscriptionOutcome {
+    guard !targetServerIDs.isEmpty else { throw HelperContentError.noTarget }
+
+    var mergedConflict = false
+    let addedServerIDs = targetServerIDs.subtracting(group.targetServerIDs)
+    for serverID in addedServerIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
+      let authorization = try helperAuthorization(for: serverID)
+      do {
+        let mutation = try await helperSubscriptionCoordinator.upsert(
+          group.replica,
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        mergedConflict = mergedConflict || mutation.mergedConflict
+        let status = try await helperService.runtimeStatus(
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        helperSubscriptionStates[serverID] = .loaded(snapshot: mutation.snapshot, status: status)
+      } catch {
+        handleHelperContentError(error, serverID: serverID)
+        throw error
+      }
+    }
+
+    let removedTargets = group.targets.filter { !targetServerIDs.contains($0.serverID) }
+    for target in removedTargets.sorted(by: { $0.serverID.uuidString < $1.serverID.uuidString }) {
+      let authorization = try helperAuthorization(for: target.serverID)
+      do {
+        let mutation = try await helperSubscriptionCoordinator.remove(
+          replicaID: target.replicaID,
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        mergedConflict = mergedConflict || mutation.mergedConflict
+        let status = try await helperService.runtimeStatus(
+          at: authorization.baseURL,
+          token: authorization.token
+        )
+        helperSubscriptionStates[target.serverID] = .loaded(
+          snapshot: mutation.snapshot,
+          status: status
+        )
+      } catch {
+        handleHelperContentError(error, serverID: target.serverID)
+        throw error
+      }
+    }
+
+    let names =
+      pairedHelperServers
+      .filter { targetServerIDs.contains($0.id) }
+      .map(\.name)
+    return HelperSubscriptionOutcome(serverNames: names, mergedConflict: mergedConflict)
+  }
+
+  func backfillMikan(
+    detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup,
+    serverID: UUID
+  ) async throws -> HelperBackfillOutcome {
+    let episodes = detail.episodes
+      .filter { $0.subgroupId == subgroup.id }
+      .map { episode in
+        HelperBackfillEpisode(
+          episodeId: episode.episodeId,
+          title: episode.title,
+          torrentUrl: episode.torrentUrl,
+          publishedAt: episode.publishedAt,
+          sizeBytes: episode.sizeBytes
+        )
+      }
+    guard !episodes.isEmpty else { throw HelperContentError.noEpisodes }
+
+    let authorization = try helperAuthorization(for: serverID)
+    do {
+      let result = try await helperService.backfill(
+        at: authorization.baseURL,
+        token: authorization.token,
+        bangumiID: detail.bangumiId,
+        subgroupID: subgroup.id,
+        episodes: episodes
+      )
+      await refreshHelperSubscriptions(for: serverID)
+      return HelperBackfillOutcome(
+        serverName: authorization.server.name,
+        episodeCount: result.episodes.count
+      )
+    } catch {
+      handleHelperContentError(error, serverID: serverID)
+      throw error
+    }
+  }
+
+  func retryHelperEpisode(
+    serverID: UUID,
+    bangumiID: String,
+    subgroupID: String,
+    episode: HelperEpisodeStatus
+  ) async throws {
+    let authorization = try helperAuthorization(for: serverID)
+    do {
+      _ = try await helperService.retry(
+        at: authorization.baseURL,
+        token: authorization.token,
+        request: HelperRetryRequest(
+          bangumiId: bangumiID,
+          subgroupId: subgroupID,
+          episodeId: episode.episodeId,
+          title: episode.title,
+          torrentUrl: nil
+        )
+      )
+      await refreshHelperSubscriptions(for: serverID)
+    } catch {
+      handleHelperContentError(error, serverID: serverID)
+      throw error
+    }
+  }
+
+  func unsubscribeFromHelper(serverID: UUID, replicaID: String) async throws {
+    let authorization = try helperAuthorization(for: serverID)
+    do {
+      let mutation = try await helperSubscriptionCoordinator.remove(
+        replicaID: replicaID,
+        at: authorization.baseURL,
+        token: authorization.token
+      )
+      let status = try await helperService.runtimeStatus(
+        at: authorization.baseURL,
+        token: authorization.token
+      )
+      helperSubscriptionStates[serverID] = .loaded(
+        snapshot: mutation.snapshot,
+        status: status
+      )
+    } catch {
+      handleHelperContentError(error, serverID: serverID)
+      throw error
+    }
+  }
+
+  func unsubscribeMikanSubscription(_ group: HelperSubscriptionGroup) async throws {
+    for target in group.targets {
+      try await unsubscribeFromHelper(
+        serverID: target.serverID,
+        replicaID: target.replicaID
+      )
+    }
+  }
+
+  func testConnection(for server: ServerConfiguration) async {
+    await loadSnapshot(for: server, applyTorrents: server.id == activeServerID)
+  }
+
+  @discardableResult
+  func addTorrent(sourceText: String, to serverID: UUID) async throws -> ServerConfiguration {
+    let source = try Self.validatedTorrentSource(sourceText)
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentImportError.serverUnavailable
+    }
+
+    try await torrentRepository.addTorrent(TorrentAddRequest(source: source), to: server)
+    if server.id == activeServerID {
+      try? await Task.sleep(for: .milliseconds(500))
+      await loadSnapshot(for: server, applyTorrents: true)
+    }
+    return server
+  }
+
+  @discardableResult
+  func setTorrentPaused(
+    torrentID: String,
+    paused: Bool,
+    serverID: UUID
+  ) async throws -> TorrentSummary {
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    try await torrentRepository.setPaused(
+      paused,
+      torrentID: torrentID,
+      on: server
+    )
+
+    if server.id == activeServerID {
+      await loadSnapshot(for: server, applyTorrents: true)
+      guard let updated = torrents.first(where: { $0.id == torrentID }) else {
+        throw TorrentActionError.torrentUnavailable
+      }
+      return updated
+    }
+    throw TorrentActionError.torrentUnavailable
+  }
+
   func refreshTorrents() async {
     guard let activeServer else {
       torrents = []
@@ -119,15 +649,32 @@ final class AppModel {
       return
     }
 
+    await loadSnapshot(for: activeServer, applyTorrents: true)
+  }
+
+  private func loadSnapshot(for server: ServerConfiguration, applyTorrents: Bool) async {
     isRefreshing = true
+    serverConnectionStates[server.id] = .connecting
     defer { isRefreshing = false }
 
     do {
-      torrents = try await torrentRepository.torrents(for: activeServer)
-      integrationNotice = nil
-      lastUpdated = .now
+      let snapshot = try await torrentRepository.snapshot(for: server)
+      if applyTorrents {
+        torrents = snapshot.torrents
+        totalDownloadSpeed = snapshot.totalDownloadSpeed
+        totalUploadSpeed = snapshot.totalUploadSpeed
+        integrationNotice = nil
+        lastUpdated = .now
+      }
+      serverConnectionStates[server.id] = .connected(version: snapshot.serverVersion)
     } catch {
-      integrationNotice = error.localizedDescription
+      if applyTorrents {
+        torrents = []
+        totalDownloadSpeed = "—"
+        totalUploadSpeed = "—"
+        integrationNotice = error.localizedDescription
+      }
+      serverConnectionStates[server.id] = .failed(message: error.localizedDescription)
     }
   }
 
@@ -145,6 +692,71 @@ final class AppModel {
     return url
   }
 
+  private static func validatedTorrentSource(_ text: String) throws -> String {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else {
+      throw TorrentImportError.missingSource
+    }
+
+    guard let components = URLComponents(string: trimmed), let scheme = components.scheme else {
+      throw TorrentImportError.invalidSource
+    }
+
+    switch scheme.lowercased() {
+    case "http", "https":
+      guard components.host != nil else { throw TorrentImportError.invalidSource }
+    case "magnet":
+      guard components.query?.isEmpty == false else { throw TorrentImportError.invalidSource }
+    default:
+      throw TorrentImportError.invalidSource
+    }
+    return trimmed
+  }
+
+  private func helperAuthorization(for serverID: UUID) throws -> HelperAuthorization {
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw HelperContentError.serverUnavailable
+    }
+    guard let baseURL = server.helperBaseURL else {
+      throw HelperContentError.helperUnavailable
+    }
+    guard
+      let token = try helperCredentialStore.token(for: serverID),
+      !token.isEmpty
+    else {
+      throw HelperContentError.helperUnavailable
+    }
+    return HelperAuthorization(server: server, baseURL: baseURL, token: token)
+  }
+
+  private func handleHelperContentError(_ error: Error, serverID: UUID) {
+    if error as? HelperServiceError == .unauthorized {
+      try? helperCredentialStore.deleteToken(for: serverID)
+    }
+    helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
+  }
+
+  private static func mikanRSSURL(
+    baseURL: URL,
+    bangumiID: String,
+    subgroupID: String
+  ) throws -> URL {
+    guard
+      var components = URLComponents(
+        url: baseURL.appending(path: "RSS/Bangumi"),
+        resolvingAgainstBaseURL: true
+      )
+    else {
+      throw HelperContentError.invalidMikanURL
+    }
+    components.queryItems = [
+      URLQueryItem(name: "bangumiId", value: bangumiID),
+      URLQueryItem(name: "subgroupid", value: subgroupID),
+    ]
+    guard let url = components.url else { throw HelperContentError.invalidMikanURL }
+    return url
+  }
+
   private static func loadServers(from defaults: UserDefaults) -> [ServerConfiguration] {
     guard
       let data = defaults.data(forKey: serversStorageKey),
@@ -159,6 +771,15 @@ final class AppModel {
     defaults.string(forKey: activeServerStorageKey).flatMap(UUID.init(uuidString:))
   }
 
+  private static func loadOrCreateHelperClientID(from defaults: UserDefaults) -> String {
+    if let stored = defaults.string(forKey: helperClientIDStorageKey), !stored.isEmpty {
+      return stored
+    }
+    let clientID = UUID().uuidString.lowercased()
+    defaults.set(clientID, forKey: helperClientIDStorageKey)
+    return clientID
+  }
+
   private func persistServers() {
     guard let data = try? JSONEncoder().encode(servers) else { return }
     defaults.set(data, forKey: Self.serversStorageKey)
@@ -171,14 +792,109 @@ final class AppModel {
 
 enum ServerValidationError: LocalizedError {
   case missingName
+  case missingPassword
   case invalidURL(String)
 
   var errorDescription: String? {
     switch self {
     case .missingName:
       "服务器名称不能为空。"
+    case .missingPassword:
+      "qBittorrent 密码不能为空。"
     case .invalidURL(let fieldName):
       "\(fieldName)必须是完整的 http:// 或 https:// 地址。"
+    }
+  }
+}
+
+enum ServerConnectionState: Equatable, Sendable {
+  case connected(version: String?)
+  case connecting
+  case failed(message: String)
+  case idle
+}
+
+enum HelperConnectionState: Equatable, Sendable {
+  case connected(HelperStatus)
+  case connecting
+  case failed(String)
+  case idle
+}
+
+enum HelperPairingError: LocalizedError {
+  case invalidCode
+
+  var errorDescription: String? {
+    "请输入 Helper 主机上显示的六位配对码。"
+  }
+}
+
+struct HelperSubscriptionOutcome: Equatable, Sendable {
+  let serverNames: [String]
+  let mergedConflict: Bool
+}
+
+struct HelperBackfillOutcome: Equatable, Sendable {
+  let serverName: String
+  let episodeCount: Int
+}
+
+private struct HelperAuthorization: Sendable {
+  let server: ServerConfiguration
+  let baseURL: URL
+  let token: String
+}
+
+enum HelperContentError: LocalizedError {
+  case helperUnavailable
+  case invalidMikanURL
+  case noEpisodes
+  case noTarget
+  case serverUnavailable
+
+  var errorDescription: String? {
+    switch self {
+    case .helperUnavailable:
+      "目标服务器尚未配对 Helper。"
+    case .invalidMikanURL:
+      "无法生成当前字幕组的 Mikan RSS 地址。"
+    case .noEpisodes:
+      "当前字幕组没有可导入的剧集。"
+    case .noTarget:
+      "请至少选择一个目标服务器。"
+    case .serverUnavailable:
+      "目标服务器已不可用。"
+    }
+  }
+}
+
+enum TorrentImportError: LocalizedError {
+  case invalidSource
+  case missingSource
+  case serverUnavailable
+
+  var errorDescription: String? {
+    switch self {
+    case .invalidSource:
+      "请输入有效的 Magnet 或 HTTP(S) Torrent URL。"
+    case .missingSource:
+      "Torrent 来源不能为空。"
+    case .serverUnavailable:
+      "目标服务器已不可用，请重新选择。"
+    }
+  }
+}
+
+enum TorrentActionError: LocalizedError {
+  case serverUnavailable
+  case torrentUnavailable
+
+  var errorDescription: String? {
+    switch self {
+    case .serverUnavailable:
+      "目标服务器已不可用。"
+    case .torrentUnavailable:
+      "任务状态已变化，请返回列表后重试。"
     }
   }
 }

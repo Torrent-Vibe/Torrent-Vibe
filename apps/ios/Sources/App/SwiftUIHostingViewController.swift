@@ -22,4 +22,3 @@ class SwiftUIHostingViewController: UIViewController {
     self.hostingController = hostingController
   }
 }
-

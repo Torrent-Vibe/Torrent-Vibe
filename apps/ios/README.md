@@ -6,14 +6,18 @@ used only as embedded feature content.
 ## Current scope
 
 - UIKit application lifecycle, `UITabBarController`, and `UINavigationController` shell.
-- Torrent, Discover, Servers, and Settings feature boundaries.
+- Tasks, Discover, and Settings root tabs with independent UIKit navigation stacks.
+- Server management nested under Settings.
 - SwiftUI leaf content embedded by UIKit-owned view controllers through `UIHostingController`.
 - Local persistence for non-sensitive server metadata.
-- Explicit service protocols for qBittorrent tasks and the host Helper JSON API.
+- Native qBittorrent Web API login and task loading, with passwords stored only in Keychain.
+- A shared Add Torrent sheet for task URLs and direct Mikan episode imports.
+- Helper discovery, pairing, Keychain credentials, revision-safe subscriptions, backfill, and retry.
+- A bundled JavaScriptCore bridge that reuses the repository Mikan parsers.
+- Live Mikan wall, search, and detail requests through native `URLSession`.
 - A deterministic `-ui-demo` launch mode for Simulator review.
 
-Authentication, Keychain storage, live qBittorrent requests, Mikan content, and
-Helper pairing are intentionally outside this foundation change.
+Helper remains the subscription source of truth; iOS caches snapshots for presentation only.
 
 ## Generate and build
 
@@ -49,6 +53,7 @@ UIKit feature view controller
 UIHostingController<SwiftUI leaf content>
       │
       ▼
-AppModel ─┬─> TorrentRepository ──> qBittorrent WebAPI (next phase)
-          └─> HelperService ──────> Helper plain JSON API (next phase)
+AppModel ─┬─> TorrentRepository ──> qBittorrent WebAPI + Keychain
+          ├─> HelperService ──────> Helper v2 JSON API + Helper Keychain
+          └─> MikanContentService ─> URLSession ─> MikanParser.js / JavaScriptCore
 ```
