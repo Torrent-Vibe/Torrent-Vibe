@@ -8,10 +8,11 @@ import type { ModalComponent } from '~/components/ui/modal/types'
 import { useServerHelperTargets } from '~/modules/helper-client/hooks'
 
 export const MikanSubscribeTargetsModal: ModalComponent<{
-  title?: string
+  allowEmpty?: boolean
   initialIds: string[]
   onConfirm: (serverIds: string[]) => void | Promise<void>
-}> = ({ dismiss, title, initialIds, onConfirm }) => {
+  title?: string
+}> = ({ dismiss, title, initialIds, onConfirm, allowEmpty = false }) => {
   const { t } = useTranslation('app')
   const targets = useServerHelperTargets().filter((target) => target.paired)
   const [selected, setSelected] = useState<string[]>(() =>
@@ -59,7 +60,8 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
           {t('common.cancel')}
         </Button>
         <Button
-          disabled={selected.length === 0 || submitting}
+          disabled={(!allowEmpty && selected.length === 0) || submitting}
+          variant={selected.length === 0 ? 'destructive' : undefined}
           onClick={async () => {
             setSubmitting(true)
             try {
@@ -70,7 +72,9 @@ export const MikanSubscribeTargetsModal: ModalComponent<{
             }
           }}
         >
-          {t('common.confirm')}
+          {selected.length === 0
+            ? t('discover.modal.mikan.unsubscribe')
+            : t('common.confirm')}
         </Button>
       </DialogFooter>
     </div>

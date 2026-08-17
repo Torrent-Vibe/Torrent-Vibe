@@ -18,7 +18,7 @@ export const sameHostDiscoverUrl = (hostname: string, port = 17890): string =>
   `http://${hostname}:${port}`
 
 const jsonHeaders = {
-  'accept': 'application/json',
+  accept: 'application/json',
   'content-type': 'application/json',
 }
 
@@ -53,9 +53,9 @@ const request = async (
   const body = await readJson(response)
   if (!response.ok) {
     const error = new Error(`helper ${response.status}`)
-    ;(error as Error & { status: number, body: unknown }).status
-      = response.status
-    ;(error as Error & { status: number, body: unknown }).body = body
+    ;(error as Error & { status: number; body: unknown }).status =
+      response.status
+    ;(error as Error & { status: number; body: unknown }).body = body
     throw error
   }
   return body
@@ -92,9 +92,9 @@ export const pairHelper = async (
     body: JSON.stringify({ code }),
   })
   if (
-    !body
-    || typeof body !== 'object'
-    || typeof (body as { token?: unknown }).token !== 'string'
+    !body ||
+    typeof body !== 'object' ||
+    typeof (body as { token?: unknown }).token !== 'string'
   ) {
     throw new Error('invalid pair payload')
   }
@@ -112,9 +112,9 @@ export const getHelperSubscriptions = async (
     token,
   )
   if (
-    !body
-    || typeof body !== 'object'
-    || !Array.isArray((body as { replicas?: unknown }).replicas)
+    !body ||
+    typeof body !== 'object' ||
+    !Array.isArray((body as { replicas?: unknown }).replicas)
   ) {
     throw new Error('invalid subscriptions payload')
   }
@@ -125,20 +125,29 @@ export const putHelperSubscriptions = async (
   baseUrl: string,
   token: string,
   replicas: HelperReplica[],
+  options?: { deleteFiles?: boolean; removeTorrents?: boolean },
 ): Promise<HelperReplica[]> => {
   const body = await request(
     baseUrl,
     '/subscriptions',
     {
       method: 'PUT',
-      body: JSON.stringify({ replicas }),
+      body: JSON.stringify(
+        options?.removeTorrents
+          ? {
+              replicas,
+              removeTorrents: true,
+              deleteFiles: options.deleteFiles === true,
+            }
+          : { replicas },
+      ),
     },
     token,
   )
   if (
-    !body
-    || typeof body !== 'object'
-    || !Array.isArray((body as { replicas?: unknown }).replicas)
+    !body ||
+    typeof body !== 'object' ||
+    !Array.isArray((body as { replicas?: unknown }).replicas)
   ) {
     throw new Error('invalid subscriptions payload')
   }
@@ -155,8 +164,8 @@ const parseEpisodes = (value: unknown): HelperEpisodeStatus[] => {
     }
     const episode = entry as Record<string, unknown>
     if (
-      typeof episode.episodeId !== 'string'
-      || typeof episode.title !== 'string'
+      typeof episode.episodeId !== 'string' ||
+      typeof episode.title !== 'string'
     ) {
       return []
     }
@@ -187,12 +196,12 @@ const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
   }
   const record = value as Record<string, unknown>
   if (
-    typeof record.id !== 'string'
-    || typeof record.bangumiId !== 'string'
-    || typeof record.title !== 'string'
-    || typeof record.subgroupId !== 'string'
-    || typeof record.subgroupName !== 'string'
-    || typeof record.rssUrl !== 'string'
+    typeof record.id !== 'string' ||
+    typeof record.bangumiId !== 'string' ||
+    typeof record.title !== 'string' ||
+    typeof record.subgroupId !== 'string' ||
+    typeof record.subgroupName !== 'string' ||
+    typeof record.rssUrl !== 'string'
   ) {
     return null
   }
@@ -216,8 +225,8 @@ const parseJobStatus = (value: unknown): HelperJobStatus | null => {
   }
   const record = value as Record<string, unknown>
   if (
-    typeof record.bangumiId !== 'string'
-    || typeof record.subgroupId !== 'string'
+    typeof record.bangumiId !== 'string' ||
+    typeof record.subgroupId !== 'string'
   ) {
     return null
   }
@@ -234,13 +243,13 @@ export const getHelperStatus = async (
 ): Promise<HelperStatusResponse> => {
   const body = await request(baseUrl, '/status', { method: 'GET' }, token)
   if (
-    !body
-    || typeof body !== 'object'
-    || !Array.isArray((body as { replicas?: unknown }).replicas)
+    !body ||
+    typeof body !== 'object' ||
+    !Array.isArray((body as { replicas?: unknown }).replicas)
   ) {
     throw new Error('invalid status payload')
   }
-  const record = body as { replicas: unknown[], jobs?: unknown }
+  const record = body as { replicas: unknown[]; jobs?: unknown }
   const replicas = record.replicas
     .map(parseReplicaStatus)
     .filter((item): item is HelperReplicaStatus => item !== null)

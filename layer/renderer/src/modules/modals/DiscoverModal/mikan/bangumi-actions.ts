@@ -3,13 +3,13 @@ import { bangumiRssUrl } from '@torrent-vibe/mikan'
 import { toast } from 'sonner'
 
 import { getDiscoverProviderConfig } from '~/atoms/settings/discover'
-import { Prompt } from '~/components/ui/prompts'
 import { getI18n } from '~/i18n'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
 import { SubscriptionActions } from '~/modules/subscriptions'
 
 import { presentSubscribeTargets } from './subscribe-flow'
+import { UnsubscribePrompt } from './UnsubscribePrompt'
 
 export const openHelperSettings = () => {
   presentSettingsModal({
@@ -58,13 +58,16 @@ export const presentBangumiUnsubscribe = (
   title: string,
 ) => {
   const t = getI18n().t
-  Prompt.prompt({
-    title: t('discover.modal.mikan.unsubscribeTitle'),
-    description: t('discover.modal.mikan.unsubscribeConfirm', { title }),
-    variant: 'danger',
-    onConfirmText: t('discover.modal.mikan.unsubscribe'),
-    onConfirm: async () => {
-      await SubscriptionActions.shared.unsubscribe(subscription.id)
+  UnsubscribePrompt.show({
+    title,
+    onConfirm: async (deleteFiles) => {
+      const result = await SubscriptionActions.shared.unsubscribe(
+        subscription.id,
+        { deleteFiles },
+      )
+      if (!result.ok) {
+        toast.error(t('discover.modal.mikan.unsubscribeFailed'))
+      }
     },
   })
 }
@@ -78,7 +81,7 @@ export const backfillReleasedEpisodes = async (
   const result = await SubscriptionActions.shared.backfill({
     bangumiId,
     subgroupId,
-    episodes: episodes.map(episode => ({
+    episodes: episodes.map((episode) => ({
       episodeId: episode.episodeId,
       title: episode.title,
       torrentUrl: episode.torrentUrl,

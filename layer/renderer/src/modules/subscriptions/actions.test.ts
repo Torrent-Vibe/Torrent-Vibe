@@ -7,7 +7,7 @@ import {
   setHelperBinding,
   useHelperBindingsStore,
 } from '../helper-client'
-import type { HelperSyncClient } from './actions'
+import type { HelperSyncClient, SubscriptionPushOptions } from './actions'
 import { createSubscriptionActions } from './actions'
 import { desiredReplicasForServer } from './desired-set'
 import type { PersistedSubscriptions } from './persist'
@@ -30,11 +30,19 @@ function createFakeHelper(options?: {
   current?: Record<string, HelperReplica[]>
   fail?: Set<string>
 }): HelperSyncClient & {
-  puts: Array<{ serverId: string; replicas: HelperReplica[] }>
+  puts: Array<{
+    options?: SubscriptionPushOptions
+    replicas: HelperReplica[]
+    serverId: string
+  }>
 } {
   const current = { ...options?.current }
   const fail = options?.fail ?? new Set<string>()
-  const puts: Array<{ serverId: string; replicas: HelperReplica[] }> = []
+  const puts: Array<{
+    options?: SubscriptionPushOptions
+    replicas: HelperReplica[]
+    serverId: string
+  }> = []
   return {
     puts,
     async getSubscriptions(serverId) {
@@ -43,11 +51,15 @@ function createFakeHelper(options?: {
       }
       return current[serverId] ?? []
     },
-    async putSubscriptions(serverId, replicas) {
+    async putSubscriptions(serverId, replicas, putOptions) {
       if (fail.has(serverId)) {
         throw new Error(`put failed ${serverId}`)
       }
-      puts.push({ serverId, replicas: structuredClone(replicas) })
+      puts.push({
+        serverId,
+        replicas: structuredClone(replicas),
+        options: putOptions,
+      })
       current[serverId] = structuredClone(replicas)
     },
   }
@@ -155,9 +167,181 @@ describe('subscription actions', () => {
           subscriptionStore.getState().items,
           'srv-a',
         ),
+        options: { removeTorrents: true, deleteFiles: false },
       },
     ])
     expect(persist.snapshot().items.map((item) => item.id)).toEqual(['keep'])
+  })
+
+  it('unsubscribe puts remaining set with removeTorrents and deleteFiles', async () => {
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'drop',
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-drop',
+      title: 'Drop',
+      subgroupId: 'sg-2',
+      subgroupName: 'Kitauji',
+      rssUrl:
+        'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-drop&subgroupid=sg-2',
+      targetServerIds: ['srv-a'],
+    })
+
+    helper.puts.length = 0
+    const result = await actions.unsubscribe('drop', { deleteFiles: true })
+    expect(result.ok).toBe(true)
+    expect(helper.puts).toEqual([
+      {
+        serverId: 'srv-a',
+        replicas: [],
+        options: { removeTorrents: true, deleteFiles: true },
+      },
+    ])
+  })
+
+  it('deletes leftover job hashes after unsubscribe', async () => {
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const deleted: Array<{
+      deleteFiles: boolean
+      hashes: string[]
+      serverId: string
+    }> = []
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'drop',
+      loadHelperStatus: async () => ({
+        replicas: [],
+        jobs: [
+          {
+            bangumiId: 'bgm-drop',
+            subgroupId: 'sg-2',
+            episodes: [
+              {
+                episodeId: 'e1',
+                title: 'E1',
+                season: 1,
+                episode: 1,
+                state: 'done',
+                infohash: 'aaa',
+              },
+              {
+                episodeId: 'e2',
+                title: 'E2',
+                season: 1,
+                episode: 2,
+                state: 'pending',
+              },
+            ],
+          },
+        ],
+      }),
+      deleteTorrents: async (input) => {
+        deleted.push(input)
+      },
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-drop',
+      title: 'Drop',
+      subgroupId: 'sg-2',
+      subgroupName: 'Kitauji',
+      rssUrl:
+        'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-drop&subgroupid=sg-2',
+      targetServerIds: ['srv-a'],
+    })
+
+    const result = await actions.unsubscribe('drop', { deleteFiles: false })
+    expect(result.ok).toBe(true)
+    expect(deleted).toEqual([
+      { serverId: 'srv-a', hashes: ['aaa'], deleteFiles: false },
+    ])
+  })
+
+  it('marks partialSync when leftover torrent delete fails', async () => {
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'drop',
+      loadHelperStatus: async () => ({
+        replicas: [],
+        jobs: [
+          {
+            bangumiId: 'bgm-drop',
+            subgroupId: 'sg-2',
+            episodes: [
+              {
+                episodeId: 'e1',
+                title: 'E1',
+                season: 1,
+                episode: 1,
+                state: 'done',
+                infohash: 'aaa',
+              },
+            ],
+          },
+        ],
+      }),
+      deleteTorrents: async () => {
+        throw new Error('qbit down')
+      },
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-drop',
+      title: 'Drop',
+      subgroupId: 'sg-2',
+      subgroupName: 'Kitauji',
+      rssUrl:
+        'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-drop&subgroupid=sg-2',
+      targetServerIds: ['srv-a'],
+    })
+
+    const result = await actions.unsubscribe('drop')
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('partialSync')
+    expect(subscriptionStore.getState().items).toEqual([])
+  })
+
+  it('subscribe and retarget puts omit removeTorrents', async () => {
+    const persist = createMemoryPersist()
+    const helper = createFakeHelper()
+    const actions = createSubscriptionActions({
+      persist,
+      helper,
+      now: () => stamp,
+      id: () => 'sub-1',
+    })
+
+    await actions.subscribe({
+      bangumiId: 'bgm-1',
+      title: 'Frieren',
+      subgroupId: 'sg-1',
+      subgroupName: 'ANi',
+      rssUrl: 'https://mikanani.me/RSS/Bangumi?bangumiId=bgm-1&subgroupid=sg-1',
+      targetServerIds: ['srv-a'],
+    })
+    expect(
+      helper.puts.every((entry) => entry.options?.removeTorrents !== true),
+    ).toBe(true)
+
+    helper.puts.length = 0
+    await actions.retarget('sub-1', ['srv-b'])
+    expect(helper.puts.length).toBeGreaterThan(0)
+    expect(
+      helper.puts.every((entry) => entry.options?.removeTorrents !== true),
+    ).toBe(true)
   })
 
   it('retargets by pushing every gained and lost helper', async () => {

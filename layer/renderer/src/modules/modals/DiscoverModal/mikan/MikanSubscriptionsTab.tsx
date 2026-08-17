@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '~/components/ui/button'
-import { Prompt } from '~/components/ui/prompts'
 import type { DiscoverItem } from '~/modules/discover'
 import { useServerHelperTargets } from '~/modules/helper-client/hooks'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
@@ -11,6 +10,7 @@ import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { DiscoverModalActions } from '../actions'
 import { DiscoverEmptyState } from '../components'
+import { presentBangumiUnsubscribe } from './bangumi-actions'
 import { resolveMikanCoverUrl } from './helpers'
 import { presentSubscribeTargets } from './subscribe-flow'
 import {
@@ -164,8 +164,13 @@ export const MikanSubscriptionsTab = () => {
                   variant="secondary"
                   onClick={() => {
                     presentSubscribeTargets({
+                      allowEmpty: true,
                       initialIds: item.targetServerIds,
                       onConfirm: async (serverIds) => {
+                        if (serverIds.length === 0) {
+                          presentBangumiUnsubscribe(item, item.title)
+                          return
+                        }
                         await SubscriptionActions.shared.retarget(
                           item.id,
                           serverIds,
@@ -180,18 +185,7 @@ export const MikanSubscriptionsTab = () => {
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    Prompt.prompt({
-                      title: t('discover.modal.mikan.unsubscribeTitle'),
-                      description: t(
-                        'discover.modal.mikan.unsubscribeConfirm',
-                        { title: item.title },
-                      ),
-                      variant: 'danger',
-                      onConfirmText: t('discover.modal.mikan.unsubscribe'),
-                      onConfirm: async () => {
-                        await SubscriptionActions.shared.unsubscribe(item.id)
-                      },
-                    })
+                    presentBangumiUnsubscribe(item, item.title)
                   }}
                 >
                   {t('discover.modal.mikan.unsubscribe')}

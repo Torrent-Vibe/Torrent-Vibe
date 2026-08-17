@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -194,6 +195,31 @@ func (c *HTTPClient) RenameFile(hash, oldPath, newPath string) error {
 	defer res.Body.Close()
 	if res.StatusCode >= 400 {
 		return fmt.Errorf("qBittorrent rename failed: %d", res.StatusCode)
+	}
+	return nil
+}
+
+func (c *HTTPClient) DeleteTorrents(hashes []string, deleteFiles bool) error {
+	lower := make([]string, 0, len(hashes))
+	for _, hash := range hashes {
+		if hash != "" {
+			lower = append(lower, strings.ToLower(hash))
+		}
+	}
+	if len(lower) == 0 {
+		return nil
+	}
+	form := url.Values{
+		"hashes":      {strings.Join(lower, "|")},
+		"deleteFiles": {strconv.FormatBool(deleteFiles)},
+	}
+	res, err := c.request(http.MethodPost, "/api/v2/torrents/delete", strings.NewReader(form.Encode()), "application/x-www-form-urlencoded", true)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 400 {
+		return fmt.Errorf("qBittorrent delete failed: %d", res.StatusCode)
 	}
 	return nil
 }
