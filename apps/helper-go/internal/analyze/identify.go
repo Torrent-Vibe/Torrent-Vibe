@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -56,7 +55,6 @@ type Client struct {
 	Chat      func(context.Context, ChatRequest) (ChatResponse, error)
 	Get       func(rawURL string) ([]byte, error)
 	WebSearch func(ctx context.Context, query string, maxResults int) ([]WebHit, error)
-	rawName   string
 }
 
 func New(provider Provider, tmdbClient *tmdb.Client, post PostJSON, get func(string) ([]byte, error)) *Client {
@@ -72,7 +70,6 @@ func (c *Client) Identify(ctx context.Context, request Request) (*Identity, erro
 	if c == nil || strings.TrimSpace(c.Provider.APIKey) == "" || c.Chat == nil {
 		return nil, nil
 	}
-	c.rawName = request.TorrentName
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -194,12 +191,8 @@ func (c *Client) runTool(ctx context.Context, name, rawArgs string) (string, err
 		if c.TMDB == nil {
 			return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
 		}
-		query := stringArg(args, "query")
-		if !tmdbQueryAllowed(query, c.rawName) {
-			return `{"ok":false,"error":"tmdbSearch requires a cleaned title, not the raw release name"}`, nil
-		}
 		hits, err := c.TMDB.Search(tmdb.SearchQuery{
-			Query:     query,
+			Query:     stringArg(args, "query"),
 			MediaType: stringArg(args, "mediaType"),
 			Year:      intArg(args, "year"),
 			Language:  stringArg(args, "language"),
@@ -320,34 +313,6 @@ func firstEpisode(values []int) *int {
 	}
 	return nil
 }
-
-func tmdbQueryAllowed(query, rawName string) bool {
-	query = strings.TrimSpace(query)
-	if query == "" || looksLikeRawRelease(query) {
-		return false
-	}
-	raw := strings.TrimSpace(rawName)
-	if raw == "" {
-		return true
-	}
-	return !strings.EqualFold(query, raw) && !strings.Contains(strings.ToLower(query), strings.ToLower(raw))
-}
-
-func looksLikeRawRelease(query string) bool {
-	lower := strings.ToLower(strings.TrimSpace(query))
-	if lower == "" {
-		return true
-	}
-	if strings.Contains(lower, "www.") || strings.Contains(lower, ".com.") || strings.Contains(lower, ".net.") || strings.Contains(lower, ".org.") {
-		return true
-	}
-	if releaseJunk.MatchString(query) {
-		return true
-	}
-	return !strings.Contains(query, " ") && strings.Count(query, ".") >= 3
-}
-
-var releaseJunk = regexp.MustCompile(`(?i)\b(?:\d{3,4}p|4k|uhd|hdr10(?:\+|plus)?|hdr|dovi|dolby.?vision|bluray|blu-ray|bdrip|web-?dl|webrip|hdtv|dvdrip|remux|x264|x265|h\.?264|h\.?265|hevc|avc)\b`)
 
 func chatTools() []ChatTool {
 	return []ChatTool{

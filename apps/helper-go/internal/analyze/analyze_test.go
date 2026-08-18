@@ -124,17 +124,6 @@ func TestIdentifyWebSearchThenCleanTmdb(t *testing.T) {
 				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
 					FinishReason: "tool_calls",
 					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-						toolCall("call-raw", "tmdbSearch", `{"query":"`+messy+`","mediaType":"movie"}`),
-					}},
-				}}}, nil
-			case 3:
-				last := request.Messages[len(request.Messages)-1].Content
-				if !strings.Contains(last, "cleaned title") {
-					t.Fatalf("raw tmdb query was not rejected: %s", last)
-				}
-				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-					FinishReason: "tool_calls",
-					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
 						toolCall("call-tmdb", "tmdbSearch", `{"query":"The Matrix","year":1999,"mediaType":"movie"}`),
 					}},
 				}}}, nil

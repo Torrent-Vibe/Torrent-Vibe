@@ -41,13 +41,23 @@ func (f *fakeQB) RenameFile(string, string, string) error { return nil }
 
 func profileWithTmdb(t *testing.T, key string) *store.ProfileStore {
 	t.Helper()
+	return profileWithKeys(t, key, "")
+}
+
+func profileWithKeys(t *testing.T, tmdbKey, openaiKey string) *store.ProfileStore {
+	t.Helper()
 	profile := store.NewProfileStore(t.TempDir())
-	if key == "" {
+	var mutations []store.ProfileMutation
+	if tmdbKey != "" {
+		mutations = append(mutations, store.ProfileMutation{Operation: "set", Key: "metadata.tmdb.apiKey", Value: tmdbKey, Secret: true})
+	}
+	if openaiKey != "" {
+		mutations = append(mutations, store.ProfileMutation{Operation: "set", Key: "ai.openai.apiKey", Value: openaiKey, Secret: true})
+	}
+	if len(mutations) == 0 {
 		return profile
 	}
-	if _, err := profile.Apply(0, "test", []store.ProfileMutation{{
-		Operation: "set", Key: "metadata.tmdb.apiKey", Value: key, Secret: true,
-	}}); err != nil {
+	if _, err := profile.Apply(0, "test", mutations); err != nil {
 		t.Fatal(err)
 	}
 	return profile
@@ -173,10 +183,18 @@ func TestPlanReadyMovieAndNeedsManualNoUnique(t *testing.T) {
 }
 
 func TestPlanMessyNameAnalyzesBeforeTmdb(t *testing.T) {
-	const messy = "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP"
+	planAnalyzeFirst(t, "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP")
+}
+
+func TestPlanCleanDottedNameAnalyzesWhenLLMKey(t *testing.T) {
+	planAnalyzeFirst(t, "The.Matrix.1999.1080p.BluRay.x264")
+}
+
+func planAnalyzeFirst(t *testing.T, name string) {
+	t.Helper()
 	qbClient := &fakeQB{torrents: []qb.Torrent{{
-		Hash: movieHash, Name: messy, SavePath: "/downloads", Progress: 1,
-	}}, files: map[string][]qb.File{movieHash: {{Name: messy + ".mkv", Size: 10}}}}
+		Hash: movieHash, Name: name, SavePath: "/downloads", Progress: 1,
+	}}, files: map[string][]qb.File{movieHash: {{Name: name + ".mkv", Size: 10}}}}
 	var tmdbURLs []string
 	searchedBeforeAnalyze := false
 	analyzeCalls := 0
@@ -185,20 +203,17 @@ func TestPlanMessyNameAnalyzesBeforeTmdb(t *testing.T) {
 		Episodes:    store.New(t.TempDir()),
 		Organized:   store.NewOrganizedStore(t.TempDir()),
 		LibraryRoot: "/library",
-		Profile:     profileWithTmdb(t, "k"),
+		Profile:     profileWithKeys(t, "k", "sk-test"),
 		Fetch: func(rawURL string) ([]byte, error) {
 			tmdbURLs = append(tmdbURLs, rawURL)
 			if analyzeCalls == 0 && strings.Contains(rawURL, "/search/") {
 				searchedBeforeAnalyze = true
 			}
-			if looksRawTmdbQuery(rawURL) {
-				t.Fatalf("tmdb searched raw release: %s", rawURL)
-			}
 			return movieFetch(rawURL)
 		},
 		Analyze: func(_ context.Context, request analyze.Request) (*analyze.Identity, error) {
 			analyzeCalls++
-			if !strings.Contains(request.TorrentName, "www.Site.com") {
+			if request.TorrentName != name {
 				t.Fatalf("%+v", request)
 			}
 			return &analyze.Identity{
@@ -209,25 +224,38 @@ func TestPlanMessyNameAnalyzesBeforeTmdb(t *testing.T) {
 	})
 	got := svc.Plan(movieHash)
 	if searchedBeforeAnalyze || analyzeCalls != 1 {
-		t.Fatalf("order: analyzeCalls=%d searchedBefore=%v urls=%v", analyzeCalls, searchedBeforeAnalyze, tmdbURLs)
+		t.Fatalf("order: analyzeCalls=%d searchedBefore=%v urls=%v name=%s", analyzeCalls, searchedBeforeAnalyze, tmdbURLs, name)
 	}
 	if got.Status != organize.StatusReady || got.TmdbID != 603 || !strings.Contains(got.LibraryRelPath, "The Matrix (1999)") {
 		t.Fatalf("%+v", got)
 	}
-	for _, rawURL := range tmdbURLs {
-		if looksRawTmdbQuery(rawURL) {
-			t.Fatalf("raw tmdb query after analyze: %s", rawURL)
-		}
-	}
 }
 
-func looksRawTmdbQuery(rawURL string) bool {
-	lower := strings.ToLower(rawURL)
-	return strings.Contains(lower, "www") ||
-		strings.Contains(lower, "site.com") ||
-		strings.Contains(lower, "1080p") ||
-		strings.Contains(lower, "bluray") ||
-		strings.Contains(lower, "x264")
+func TestPlanLLMKeyDoesNotUniqueMatchParsedTitle(t *testing.T) {
+	qbClient := &fakeQB{torrents: []qb.Torrent{{
+		Hash: movieHash, Name: "The.Matrix.1999.1080p.BluRay.x264", SavePath: "/downloads", Progress: 1,
+	}}, files: map[string][]qb.File{movieHash: {{Name: "The.Matrix.1999.1080p.BluRay.x264.mkv", Size: 10}}}}
+	searched := false
+	svc := organize.New(organize.Deps{
+		QB:          qbClient,
+		Episodes:    store.New(t.TempDir()),
+		Organized:   store.NewOrganizedStore(t.TempDir()),
+		LibraryRoot: "/library",
+		Profile:     profileWithKeys(t, "k", "sk-test"),
+		Fetch: func(rawURL string) ([]byte, error) {
+			if strings.Contains(rawURL, "/search/") {
+				searched = true
+			}
+			return movieFetch(rawURL)
+		},
+	})
+	got := svc.Plan(movieHash)
+	if searched {
+		t.Fatal("unique TMDB ran on the parsed title while an LLM key was present")
+	}
+	if got.Status != organize.StatusNeedsManual || got.Reason != organize.ReasonNoUniqueTmdb {
+		t.Fatalf("%+v", got)
+	}
 }
 
 func TestPlanNeedsManualWhenUniqueAndLLMFail(t *testing.T) {
