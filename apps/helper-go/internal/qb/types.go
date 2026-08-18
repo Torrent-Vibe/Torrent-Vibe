@@ -12,6 +12,19 @@ type Torrent struct {
 	Category string
 	Tags     string
 	Progress float64
+	SavePath string
+}
+
+func IsComplete(torrent Torrent) bool {
+	if torrent.Progress >= 1 {
+		return true
+	}
+	switch torrent.State {
+	case "uploading", "pausedUP", "stoppedUP", "stalledUP", "queuedUP", "forcedUP", "checkingUP":
+		return true
+	default:
+		return false
+	}
 }
 
 type File struct {

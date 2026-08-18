@@ -22,9 +22,24 @@ var (
 	subExt = map[string]struct{}{
 		".srt": {}, ".ass": {}, ".ssa": {}, ".sub": {}, ".vtt": {}, ".idx": {}, ".sup": {},
 	}
-	extraToken = regexp.MustCompile(`(?i)(^|[\\/._\-\s])(sample|ncop|nced)($|[\\/._\-\s])`)
+	extraToken = regexp.MustCompile(`(?i)(^|[\\/._\-\s])(sample|ncop|nced|extras?)($|[\\/._\-\s])`)
 	unsafeSeg  = regexp.MustCompile(`[\\/:*?"<>|]`)
 )
+
+func IsVideo(filePath string) bool {
+	_, ok := videoExt[extname(filePath)]
+	return ok
+}
+
+func IsSkippedExtra(filePath string) bool {
+	return isSkippedExtra(filePath)
+}
+
+func SanitizeTitle(title string) string {
+	safe := unsafeSeg.ReplaceAllString(title, "_")
+	safe = strings.TrimSpace(safe)
+	return strings.TrimRight(safe, " .")
+}
 
 func FormatEpisodeName(title string, season, episode int) string {
 	return fmt.Sprintf("%s - S%02dE%02d", title, season, episode)

@@ -19,8 +19,9 @@ type File struct {
 	QbitPass       string `json:"qbitPass"`
 	PollIntervalMs int    `json:"pollIntervalMs"`
 	ProxyURL       string `json:"proxyUrl"`
-	VariantPrefer  string `json:"variantPrefer"`
-	TmdbAPIKey     string `json:"tmdbApiKey"`
+	VariantPrefer      string `json:"variantPrefer"`
+	TmdbAPIKey         string `json:"tmdbApiKey"`
+	OrganizeOnComplete bool   `json:"organizeOnComplete"`
 }
 
 type Public struct {
@@ -31,8 +32,9 @@ type Public struct {
 	HasQbitPass    bool   `json:"hasQbitPass"`
 	PollIntervalMs int    `json:"pollIntervalMs"`
 	ProxyURL       string `json:"proxyUrl"`
-	VariantPrefer  string `json:"variantPrefer"`
-	HasTmdbAPIKey  bool   `json:"hasTmdbApiKey"`
+	VariantPrefer      string `json:"variantPrefer"`
+	HasTmdbAPIKey      bool   `json:"hasTmdbApiKey"`
+	OrganizeOnComplete bool   `json:"organizeOnComplete"`
 }
 
 func (f File) Public() Public {
@@ -44,8 +46,9 @@ func (f File) Public() Public {
 		HasQbitPass:    f.QbitPass != "",
 		PollIntervalMs: f.PollIntervalMs,
 		ProxyURL:       f.ProxyURL,
-		VariantPrefer:  mikan.EffectiveVariantPrefer(f.VariantPrefer),
-		HasTmdbAPIKey:  f.TmdbAPIKey != "",
+		VariantPrefer:      mikan.EffectiveVariantPrefer(f.VariantPrefer),
+		HasTmdbAPIKey:      f.TmdbAPIKey != "",
+		OrganizeOnComplete: f.OrganizeOnComplete,
 	}
 }
 

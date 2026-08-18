@@ -10,6 +10,7 @@ import (
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/organize"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
@@ -28,6 +29,8 @@ type Runtime struct {
 	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
 	ProbeQbit        func(url, user, pass string) error
 	ApplyConfig      func(config.File)
+	OnOrganizePlan   func(hash string) organize.Result
+	OnOrganizeApply  func(hash string) organize.Result
 	mu               sync.Mutex
 	subscriptionsMu  sync.Mutex
 }
@@ -48,6 +51,8 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("GET /profile", rt.authed(rt.getProfile))
 	mux.HandleFunc("PATCH /profile", rt.authed(rt.patchProfile))
 	mux.HandleFunc("POST /retry", rt.authed(rt.retry))
+	mux.HandleFunc("GET /organize", rt.authed(rt.getOrganize))
+	mux.HandleFunc("POST /organize", rt.authed(rt.postOrganize))
 	return mux
 }
 

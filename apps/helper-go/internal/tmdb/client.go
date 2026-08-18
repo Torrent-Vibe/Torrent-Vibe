@@ -42,12 +42,22 @@ func defaultFetch(rawURL string) ([]byte, error) {
 	return io.ReadAll(res.Body)
 }
 
-func (c *Client) ResolveSeason(ident mikan.Identity) *int {
-	if c == nil || c.key == "" || !ident.SeasonAmbiguous || ident.Series == "" || ident.Kind != mikan.KindEpisode {
-		return nil
-	}
-	id, err := c.searchUnique(ident.Series)
-	if err != nil || id == 0 {
+type Match struct {
+	ID    int
+	Title string
+	Year  int
+}
+
+func (c *Client) SearchUniqueMovie(query string) (*Match, error) {
+	return c.searchUnique("movie", query)
+}
+
+func (c *Client) SearchUniqueTV(query string) (*Match, error) {
+	return c.searchUnique("tv", query)
+}
+
+func (c *Client) PickSeason(id int, ident mikan.Identity) *int {
+	if c == nil || c.key == "" || id == 0 {
 		return nil
 	}
 	seasons, err := c.seasons(id)
@@ -57,31 +67,76 @@ func (c *Client) ResolveSeason(ident mikan.Identity) *int {
 	return pickSeason(seasons, ident)
 }
 
-func (c *Client) searchUnique(series string) (int, error) {
-	raw, err := c.fetch("https://api.themoviedb.org/3/search/tv?api_key=" + url.QueryEscape(c.key) + "&language=zh-CN&query=" + url.QueryEscape(series))
+func (c *Client) ResolveSeason(ident mikan.Identity) *int {
+	if c == nil || c.key == "" || !ident.SeasonAmbiguous || ident.Series == "" || ident.Kind != mikan.KindEpisode {
+		return nil
+	}
+	match, err := c.searchUnique("tv", ident.Series)
+	if err != nil || match == nil {
+		return nil
+	}
+	return c.PickSeason(match.ID, ident)
+}
+
+func (c *Client) searchUnique(kind, query string) (*Match, error) {
+	if c == nil || c.key == "" || strings.TrimSpace(query) == "" {
+		return nil, nil
+	}
+	path := "/3/search/tv"
+	if kind == "movie" {
+		path = "/3/search/movie"
+	}
+	raw, err := c.fetch("https://api.themoviedb.org" + path + "?api_key=" + url.QueryEscape(c.key) + "&language=zh-CN&query=" + url.QueryEscape(query))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var payload struct {
 		Results []struct {
-			ID           int    `json:"id"`
-			Name         string `json:"name"`
-			OriginalName string `json:"original_name"`
+			ID             int    `json:"id"`
+			Name           string `json:"name"`
+			Title          string `json:"title"`
+			OriginalName   string `json:"original_name"`
+			OriginalTitle  string `json:"original_title"`
+			FirstAirDate   string `json:"first_air_date"`
+			ReleaseDate    string `json:"release_date"`
 		} `json:"results"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return 0, err
+		return nil, err
 	}
-	var hits []int
+	var hits []Match
 	for _, item := range payload.Results {
-		if namesFoldEqual(series, item.Name) || namesFoldEqual(series, item.OriginalName) {
-			hits = append(hits, item.ID)
+		title := firstNonEmpty(item.Name, item.Title)
+		original := firstNonEmpty(item.OriginalName, item.OriginalTitle)
+		if namesFoldEqual(query, title) || namesFoldEqual(query, original) {
+			year := yearFromDate(firstNonEmpty(item.ReleaseDate, item.FirstAirDate))
+			hits = append(hits, Match{ID: item.ID, Title: firstNonEmpty(title, original, query), Year: year})
 		}
 	}
 	if len(hits) != 1 {
-		return 0, nil
+		return nil, nil
 	}
-	return hits[0], nil
+	return &hits[0], nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func yearFromDate(raw string) int {
+	if len(raw) < 4 {
+		return 0
+	}
+	year, err := strconv.Atoi(raw[:4])
+	if err != nil || year < 1900 || year > 2100 {
+		return 0
+	}
+	return year
 }
 
 func (c *Client) seasons(id int) ([]season, error) {

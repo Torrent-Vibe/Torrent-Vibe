@@ -104,6 +104,7 @@ func (c *HTTPClient) ListTorrents() ([]Torrent, error) {
 		State    string  `json:"state"`
 		Category string  `json:"category"`
 		Tags     string  `json:"tags"`
+		SavePath string  `json:"save_path"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		return nil, err
@@ -117,6 +118,7 @@ func (c *HTTPClient) ListTorrents() ([]Torrent, error) {
 			State:    item.State,
 			Category: item.Category,
 			Tags:     item.Tags,
+			SavePath: item.SavePath,
 		})
 	}
 	return out, nil

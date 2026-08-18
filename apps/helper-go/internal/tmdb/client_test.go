@@ -61,6 +61,29 @@ func TestResolveSeasonTimeout(t *testing.T) {
 	}
 }
 
+func TestSearchUniqueMovie(t *testing.T) {
+	client := tmdb.New("k", func(rawURL string) ([]byte, error) {
+		if !strings.Contains(rawURL, "/search/movie") {
+			t.Fatal(rawURL)
+		}
+		return []byte(`{"results":[{"id":603,"title":"The Matrix","original_title":"The Matrix","release_date":"1999-03-31"}]}`), nil
+	})
+	got, err := client.SearchUniqueMovie("The Matrix")
+	if err != nil || got == nil || got.ID != 603 || got.Year != 1999 {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
+
+func TestSearchUniqueMovieTwoHits(t *testing.T) {
+	client := tmdb.New("k", func(string) ([]byte, error) {
+		return []byte(`{"results":[{"id":1,"title":"The Matrix"},{"id":2,"title":"The Matrix Reloaded"}]}`), nil
+	})
+	got, err := client.SearchUniqueMovie("The Matrix")
+	if err != nil || got != nil {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
+
 func TestResolveSeasonSkippedWhenClear(t *testing.T) {
 	called := false
 	client := tmdb.New("k", func(string) ([]byte, error) {

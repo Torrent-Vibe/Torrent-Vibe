@@ -28,6 +28,14 @@ namespaced keys such as `discover.mteam.apiKey` and `ai.openai.apiKey`.
 - Stale revisions receive `409` with the latest profile snapshot.
 - `profile.json` is written atomically with owner-only (`0600`) permissions. Every paired client can read the profile, including records marked `secret`.
 
+## Organize on complete
+
+One-off movie / TV / anime torrents can be hard-linked into `libraryRoot` after they finish. Helper-managed Mikan episodes are skipped. Auto-organize is off by default (`organizeOnComplete` on `PUT /config`).
+
+- TMDB is read from the existing Profile key `metadata.tmdb.apiKey` (upload the `tmdb` group via 凭证同步). Missing key → `needs-manual`.
+- `GET /organize?hash=` plans; `POST /organize` `{ "hash" }` applies. qB `save_path` is not moved.
+- `organized.json` stores `hash`, `status`, `libraryRelPath`, `tmdbId`, `at`.
+
 ## Flags / env
 
 | Flag             | Env                | Default                 |
