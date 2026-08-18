@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
 func Install(spec Spec) error {
@@ -25,11 +27,11 @@ func Install(spec Spec) error {
 		spec.Port = 17890
 	}
 	if spec.DataDir == "" {
-		home, err := os.UserHomeDir()
+		dir, err := DefaultDataDir()
 		if err != nil {
 			return err
 		}
-		spec.DataDir = filepath.Join(home, ".local/share/torrent-vibe-helper")
+		spec.DataDir = dir
 	}
 	if err := os.MkdirAll(spec.DataDir, 0o755); err != nil {
 		return err
@@ -44,6 +46,11 @@ func Install(spec Spec) error {
 	}
 	unitPath := filepath.Join(unitDir, "torrent-vibe-helper.service")
 	if err := os.WriteFile(unitPath, []byte(UserUnitFile(spec)), 0o644); err != nil {
+		return err
+	}
+
+	code, err := store.LoadOrCreatePairingCode(spec.DataDir)
+	if err != nil {
 		return err
 	}
 
@@ -65,6 +72,8 @@ func Install(spec Spec) error {
 	}
 
 	fmt.Println("[helper] daemon installed:", unitPath)
+	fmt.Println("[helper] pairing code:", code)
+	fmt.Println("[helper] show it again with:", spec.Binary, "code")
 	return nil
 }
 

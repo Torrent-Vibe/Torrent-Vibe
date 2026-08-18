@@ -6,12 +6,29 @@ Sidecar for a local qBittorrent. Pair from Torrent Vibe.
 go run ./cmd/torrent-vibe-helper
 ```
 
-Default port `17890`. Pairing code is printed at boot.
+Default port `17890`.
+
+## Pairing code
+
+The six-character code lives in `<data-dir>/pairing-code` (`0600`) and survives
+restarts. It is printed at boot, printed once more when `install` finishes, and
+can be read back at any time on the host:
+
+```bash
+~/.local/bin/torrent-vibe-helper code            # print the current code
+~/.local/bin/torrent-vibe-helper code --rotate   # replace it, no restart needed
+```
+
+Without `-data-dir`/`DATA_DIR`, `code` resolves the data dir from the installed
+systemd unit, so it matches the running daemon.
+
+`/pair` reads the file on every request, so a rotation takes effect immediately.
 
 ## Client pairing
 
 - `GET /discover` reports reachability and client count, but never returns the pairing code.
 - `POST /pair` accepts the host-displayed code plus `clientId` and `clientName`, and returns an independent Bearer token for that client.
+- Wrong codes are throttled: 5 failures per source address per minute, plus a 50-per-minute cap across all addresses. Blocked requests receive `429` with `Retry-After`. A successful pair clears the source address.
 - `POST /unpair` revokes only the authenticated client. Other clients and subscription data remain active.
 - Existing bound `pairing.json` files migrate to schema v2 on boot; the previous token remains valid, while only its SHA-256 hash is retained on disk.
 
@@ -39,6 +56,8 @@ namespaced keys such as `discover.mteam.apiKey` and `ai.openai.apiKey`.
 | `-qbit-user`     | `QBIT_USER`        | `admin`                 |
 | `-qbit-pass`     | `QBIT_PASS`        | empty                   |
 | `-poll-interval` | `POLL_INTERVAL_MS` | `600000`                |
+
+Subcommands: `install` (user systemd unit), `code` (print the pairing code, `--rotate` to replace it).
 
 `MIKAN_HELPER_DISABLE_MDNS=1` skips `_torrentvibe-helper._tcp`.
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -18,7 +20,6 @@ type Runtime struct {
 	Version          string
 	Port             int
 	AdvertisedQbit   string
-	PairingCode      string
 	Pairings         *store.PairingStore
 	ProfileStore     *store.ProfileStore
 	Store            *store.Store
@@ -30,6 +31,8 @@ type Runtime struct {
 	ApplyConfig      func(config.File)
 	mu               sync.Mutex
 	subscriptionsMu  sync.Mutex
+	pairAttempts     *attemptLimiter
+	pairAttemptsOnce sync.Once
 }
 
 type clientContextKey struct{}
@@ -88,16 +91,39 @@ func (rt *Runtime) discover(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
+func (rt *Runtime) limiter() *attemptLimiter {
+	rt.pairAttemptsOnce.Do(func() {
+		if rt.pairAttempts == nil {
+			rt.pairAttempts = newAttemptLimiter(pairAttemptLimit, pairGlobalAttemptLimit, pairAttemptWindow)
+		}
+	})
+	return rt.pairAttempts
+}
+
 func (rt *Runtime) pair(w http.ResponseWriter, r *http.Request) {
+	limiter := rt.limiter()
+	key := clientKey(r)
+	if wait, blocked := limiter.retryAfter(key); blocked {
+		w.Header().Set("retry-after", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "tooManyAttempts"})
+		return
+	}
 	body, ok := readJSON(w, r)
 	if !ok {
 		return
 	}
+	expected, err := store.LoadOrCreatePairingCode(rt.DataDir)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
 	code, _ := body["code"].(string)
-	if !safeEqual(code, rt.PairingCode) {
+	if !safeEqual(strings.ToUpper(strings.TrimSpace(code)), expected) {
+		limiter.fail(key)
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 		return
 	}
+	limiter.succeed(key)
 	clientID, _ := body["clientId"].(string)
 	clientName, _ := body["clientName"].(string)
 	if rt.Pairings == nil {

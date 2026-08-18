@@ -217,17 +217,3 @@ func randomToken() (string, error) {
 	}
 	return hex.EncodeToString(buf), nil
 }
-
-const pairingAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
-func GeneratePairingCode() (string, error) {
-	buf := make([]byte, 6)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
-	out := make([]byte, 6)
-	for i, b := range buf {
-		out[i] = pairingAlphabet[int(b)%len(pairingAlphabet)]
-	}
-	return string(out), nil
-}

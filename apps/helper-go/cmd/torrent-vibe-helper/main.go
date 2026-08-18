@@ -40,6 +40,10 @@ func run() error {
 		os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
 		return installDaemon()
 	}
+	if len(os.Args) > 1 && os.Args[1] == "code" {
+		os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
+		return showPairingCode()
+	}
 
 	port := flag.Int("port", atoiDefault(os.Getenv("PORT"), 17890), "")
 	dataDir := flag.String("data-dir", envOr("DATA_DIR", "./data"), "")
@@ -74,7 +78,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	code, err := store.GeneratePairingCode()
+	code, err := store.LoadOrCreatePairingCode(*dataDir)
 	if err != nil {
 		return err
 	}
@@ -119,7 +123,6 @@ func run() error {
 		Version:        version,
 		Port:           *port,
 		AdvertisedQbit: cfg.QbitURL,
-		PairingCode:    code,
 		Pairings:       pairings,
 		ProfileStore:   profileStore,
 		Store:          st,
@@ -181,6 +184,45 @@ func run() error {
 	mu.Unlock()
 	advert.Stop()
 	return server.Close()
+}
+
+func showPairingCode() error {
+	dataDir := flag.String("data-dir", os.Getenv("DATA_DIR"), "")
+	rotate := flag.Bool("rotate", false, "")
+	flag.Parse()
+
+	dir, err := resolvePairingDataDir(*dataDir)
+	if err != nil {
+		return err
+	}
+	code, err := store.LoadOrCreatePairingCode(dir)
+	if err != nil {
+		return err
+	}
+	if *rotate {
+		if code, err = store.RotatePairingCode(dir); err != nil {
+			return err
+		}
+	}
+	fmt.Println(code)
+	return nil
+}
+
+func resolvePairingDataDir(explicit string) (string, error) {
+	if explicit != "" {
+		return explicit, nil
+	}
+	if dir := daemon.InstalledDataDir(); dir != "" {
+		return dir, nil
+	}
+	dir, err := daemon.DefaultDataDir()
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(store.PairingCodePath(dir)); err == nil {
+		return dir, nil
+	}
+	return "./data", nil
 }
 
 func installDaemon() error {

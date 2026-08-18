@@ -53,3 +53,20 @@ func TestCronRebootLineRunsBinaryWithEnv(t *testing.T) {
 		}
 	}
 }
+
+func TestDataDirFromUnitReadsEnvironmentLine(t *testing.T) {
+	unit := UserUnitFile(Spec{
+		Binary:  "/home/user/.local/bin/torrent-vibe-helper",
+		DataDir: "/home/user/.local/share/torrent-vibe-helper",
+		Port:    17890,
+	})
+	if got := DataDirFromUnit(unit); got != "/home/user/.local/share/torrent-vibe-helper" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestDataDirFromUnitReturnsEmptyWhenAbsent(t *testing.T) {
+	if got := DataDirFromUnit("[Service]\nExecStart=/bin/true\n"); got != "" {
+		t.Fatalf("got %q", got)
+	}
+}

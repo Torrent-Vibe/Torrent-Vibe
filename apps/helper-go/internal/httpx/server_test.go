@@ -38,11 +38,11 @@ func start(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server {
 	dir := t.TempDir()
 	st := store.New(dir)
 	pairings := pairingStoreWithToken(t, dir, token)
+	seedPairingCode(t, dir)
 	rt := &httpx.Runtime{
 		Version:        "0.0.1-test",
 		Port:           17890,
 		AdvertisedQbit: "http://127.0.0.1:8080",
-		PairingCode:    pairingCode,
 		Pairings:       pairings,
 		ProfileStore:   store.NewProfileStore(dir),
 		Store:          st,
@@ -61,11 +61,11 @@ func startUnpaired(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server 
 	if err != nil {
 		t.Fatal(err)
 	}
+	seedPairingCode(t, dir)
 	rt := &httpx.Runtime{
 		Version:        "0.0.1-test",
 		Port:           17890,
 		AdvertisedQbit: "http://127.0.0.1:8080",
-		PairingCode:    pairingCode,
 		Pairings:       pairings,
 		ProfileStore:   store.NewProfileStore(dir),
 		Store:          store.New(dir),
@@ -75,6 +75,13 @@ func startUnpaired(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server 
 		opt(rt)
 	}
 	return httptest.NewServer(httpx.New(rt))
+}
+
+func seedPairingCode(t *testing.T, dir string) {
+	t.Helper()
+	if err := store.WritePairingCode(dir, pairingCode); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func pairingStoreWithToken(t *testing.T, dir, rawToken string) *store.PairingStore {
@@ -141,6 +148,85 @@ func TestPairRejectsWrongCode(t *testing.T) {
 		t.Fatal(res.Status)
 	}
 	res.Body.Close()
+}
+
+func TestPairThrottlesRepeatedWrongCodes(t *testing.T) {
+	srv := startUnpaired(t)
+	defer srv.Close()
+	for attempt := 1; attempt <= 5; attempt++ {
+		res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ZZZZZZ"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusForbidden {
+			t.Fatalf("attempt %d status=%s", attempt, res.Status)
+		}
+	}
+	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"ABC234","clientId":"desktop"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("status=%s", res.Status)
+	}
+	if res.Header.Get("retry-after") == "" {
+		t.Fatal("missing retry-after header")
+	}
+	body := decode(t, res)
+	if body["error"] != "tooManyAttempts" {
+		t.Fatalf("%+v", body)
+	}
+}
+
+func TestPairAcceptsRotatedCodeWithoutRestart(t *testing.T) {
+	dir := t.TempDir()
+	pairings, err := store.OpenPairingStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedPairingCode(t, dir)
+	rt := &httpx.Runtime{
+		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
+		Pairings: pairings, ProfileStore: store.NewProfileStore(dir), Store: store.New(dir), DataDir: dir,
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+
+	rotated, err := store.RotatePairingCode(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"`+pairingCode+`","clientId":"desktop"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("stale code status=%s", res.Status)
+	}
+	res, err = http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":"`+rotated+`","clientId":"desktop"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("rotated code status=%s", res.Status)
+	}
+}
+
+func TestPairAcceptsLowercaseAndPaddedCode(t *testing.T) {
+	srv := startUnpaired(t)
+	defer srv.Close()
+	res, err := http.Post(srv.URL+"/pair", "application/json", bytes.NewBufferString(`{"code":" abc234 ","clientId":"desktop"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status=%s", res.Status)
+	}
 }
 
 func TestPairReturnsIndependentClientTokens(t *testing.T) {
@@ -242,7 +328,7 @@ func TestStatusIncludesJobs(t *testing.T) {
 	})
 	rt := &httpx.Runtime{
 		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
-		PairingCode: pairingCode, Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
 	}
 	srv := httptest.NewServer(httpx.New(rt))
 	defer srv.Close()
