@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0
+
+- After pairing, you can upload or pull provider credentials (Mikan,
+  TMDB, M-Team, OpenAI, and others) through the helper so other devices
+  share the same keys.
+- One helper can pair with several Torrent Vibe clients at once. Each
+  client gets its own token; unpairing one does not kick the others.
+- Discover's Mikan workspace now shares one Browse surface for the
+  season wall and search. Bangumi detail is a stack instead of tabs.
+- Unsubscribing from a Mikan show removes its torrents from qBittorrent
+  and asks whether to delete the files on disk.
+- The helper now fetches torrent bytes before adding, picks one
+  language/resolution per episode, and names paths as series/season.
+- Fixed a crash where writing to a closed stdout or stderr pipe could
+  take down the Electron process.
+
 ## 1.0.4
 
 - Added a download-host helper you can install as a single Linux binary. Pair
