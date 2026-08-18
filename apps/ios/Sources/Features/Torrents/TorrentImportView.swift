@@ -5,11 +5,63 @@ import UniformTypeIdentifiers
 
 struct TorrentImportDraft: Sendable {
   let displayTitle: String?
+  let fileData: Data?
+  let fileName: String?
   let locksSource: Bool
+  let sourceFooterText: String?
   let sourceText: String
+
+  init(
+    displayTitle: String?,
+    locksSource: Bool,
+    sourceText: String,
+    fileName: String? = nil,
+    fileData: Data? = nil,
+    sourceFooterText: String? = nil
+  ) {
+    self.displayTitle = displayTitle
+    self.fileData = fileData
+    self.fileName = fileName
+    self.locksSource = locksSource
+    self.sourceFooterText = sourceFooterText
+    self.sourceText = sourceText
+  }
 
   static var empty: TorrentImportDraft {
     TorrentImportDraft(displayTitle: nil, locksSource: false, sourceText: "")
+  }
+
+  static func shared(_ payload: TorrentSharePayload) -> TorrentImportDraft {
+    switch payload.source {
+    case .link(let value):
+      TorrentImportDraft(
+        displayTitle: "来自系统分享",
+        locksSource: true,
+        sourceText: value,
+        sourceFooterText: "此链接来自系统分享；确认目标服务器后再提交。"
+      )
+    case .file(let name, let data):
+      TorrentImportDraft(
+        displayTitle: "来自系统分享",
+        locksSource: true,
+        sourceText: "",
+        fileName: name,
+        fileData: data,
+        sourceFooterText: "此文件来自系统分享；确认目标服务器后再提交。"
+      )
+    }
+  }
+
+  static func shortcut(_ payload: TorrentSharePayload) -> TorrentImportDraft {
+    guard case .link(let value) = payload.source else {
+      return .shared(payload)
+    }
+    return TorrentImportDraft(
+      displayTitle: "来自系统指令",
+      locksSource: true,
+      sourceText: value,
+      sourceFooterText: "此 Magnet 来自系统指令；确认目标服务器后再提交。"
+    )
   }
 }
 
@@ -30,6 +82,8 @@ private final class TorrentImportState {
   var uploadLimitText = ""
 
   init(draft: TorrentImportDraft, selectedServerID: UUID?) {
+    fileData = draft.fileData
+    fileName = draft.fileName
     sourceText = draft.sourceText
     self.selectedServerID = selectedServerID
   }
@@ -235,23 +289,26 @@ private struct TorrentImportContentView: View {
         if let displayTitle = draft.displayTitle {
           Text(displayTitle)
             .font(.body)
+            .accessibilityIdentifier("torrent-import-origin")
         }
 
-        if draft.locksSource {
-          Text(state.sourceText)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-            .accessibilityIdentifier("torrent-import-source")
-        } else if let fileName = state.fileName {
+        if let fileName = state.fileName {
           LabeledContent("Torrent 文件") {
             Text(fileName)
               .lineLimit(2)
               .multilineTextAlignment(.trailing)
           }
           .accessibilityIdentifier("torrent-import-file-name")
-          Button("移除所选文件", role: .destructive, action: onClearFile)
-            .accessibilityIdentifier("torrent-import-file-clear")
+          if !draft.locksSource {
+            Button("移除所选文件", role: .destructive, action: onClearFile)
+              .accessibilityIdentifier("torrent-import-file-clear")
+          }
+        } else if draft.locksSource {
+          Text(state.sourceText)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+            .accessibilityIdentifier("torrent-import-source")
         } else {
           TextField("Magnet 或 Torrent URL", text: $state.sourceText, axis: .vertical)
             .lineLimit(3...6)
@@ -269,9 +326,10 @@ private struct TorrentImportContentView: View {
         Text("来源")
       } footer: {
         Text(
-          draft.locksSource
-            ? "此链接来自当前剧集，提交后由目标服务器下载。"
-            : "支持 Magnet、HTTP(S) Torrent URL 与本地 .torrent 文件。"
+          draft.sourceFooterText
+            ?? (draft.locksSource
+              ? "此链接来自当前剧集，提交后由目标服务器下载。"
+              : "支持 Magnet、HTTP(S) Torrent URL 与本地 .torrent 文件。")
         )
       }
 

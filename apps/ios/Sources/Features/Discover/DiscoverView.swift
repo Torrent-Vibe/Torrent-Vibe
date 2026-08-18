@@ -2,13 +2,30 @@ import Observation
 import SwiftUI
 import UIKit
 
+enum DiscoverProvider: String, CaseIterable, Hashable, Identifiable, Sendable {
+  case mikan
+  case mteam
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .mikan: "Mikan"
+    case .mteam: "M-Team"
+    }
+  }
+}
+
 @MainActor
 @Observable
 private final class DiscoverState {
+  var availableProviders: [DiscoverProvider] = []
   var baseURL: URL?
   var errorMessage: String?
   var isLoading = false
   var parserStatus = "正在加载 Mikan 内容"
+  var provider = DiscoverProvider.mikan
+  var providerAvailabilityMessage = "正在读取内容来源配置"
   var query = ""
   var searchResults: [MikanBangumiCard] = []
   var seasonWall: MikanSeasonWall?
@@ -29,15 +46,40 @@ private final class DiscoverState {
   }
 }
 
-final class DiscoverViewController: SwiftUIHostingViewController, UISearchResultsUpdating {
+final class DiscoverViewController: SwiftUIHostingViewController, UISearchResultsUpdating,
+  UISearchBarDelegate
+{
+  var onOpenContentSources: (() -> Void)?
+
+  private let credentialStore: any MTeamCredentialStore
+  private let defaults: UserDefaults
   private let model: AppModel
+  private let mteamService: any MTeamService
+  private let mteamState: MTeamDiscoverState
   private let runtime: MikanJavaScriptRuntime?
   private let contentService: MikanContentService?
   private let state = DiscoverState()
   private var searchTask: Task<Void, Never>?
+  private lazy var mteamSelectButton = UIBarButtonItem(
+    image: UIImage(systemName: "checkmark.circle"),
+    style: .plain,
+    target: self,
+    action: #selector(beginMTeamSelection)
+  )
 
-  init(model: AppModel, mikanRuntime: MikanRuntimeInstallation) {
+  init(
+    model: AppModel,
+    mikanRuntime: MikanRuntimeInstallation,
+    defaults: UserDefaults = .standard,
+    credentialStore: any MTeamCredentialStore = KeychainMTeamCredentialStore(),
+    mteamService: (any MTeamService)? = nil
+  ) {
     self.model = model
+    self.defaults = defaults
+    self.credentialStore = credentialStore
+    self.mteamService =
+      mteamService ?? (model.isDemoMode ? DemoMTeamService() : URLSessionMTeamService())
+    mteamState = MTeamDiscoverState(defaults: defaults)
     switch mikanRuntime {
     case .available(let runtime):
       self.runtime = runtime
@@ -57,35 +99,51 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
   override func viewDidLoad() {
     super.viewDidLoad()
     title = "发现"
-    navigationItem.subtitle = "Mikan"
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .always
-    navigationItem.rightBarButtonItem = UIBarButtonItem(
-      image: UIImage(systemName: "bookmark"),
-      style: .plain,
-      target: self,
-      action: #selector(showSubscriptions)
-    )
-    navigationItem.rightBarButtonItem?.accessibilityLabel = "我的订阅"
-    navigationItem.rightBarButtonItem?.accessibilityIdentifier = "discover-subscriptions"
 
     host(
-      DiscoverContentView(
+      DiscoverRootContentView(
+        onLoadMoreMTeam: { [weak self] in
+          self?.loadMoreMTeam()
+        },
         onOpenBangumi: { [weak self] card in
           self?.showDetail(card)
         },
-        onRetry: { [weak self] in
-          self?.retryCurrentRequest()
+        onOpenContentSources: { [weak self] in
+          self?.onOpenContentSources?()
+        },
+        onOpenMTeamTorrent: { [weak self] torrent in
+          self?.showMTeamDetail(torrent)
+        },
+        onRetryMTeam: { [weak self] in
+          self?.retryMTeamSearch()
+        },
+        onRetryMikan: { [weak self] in
+          self?.retryMikanRequest()
         },
         onSelectSeason: { [weak self] year, season in
           self?.selectSeason(year: year, season: season)
+        },
+        onSubmitMTeamSearch: { [weak self] in
+          self?.submitMTeamSearch()
+        },
+        onToggleMTeamSelection: { [weak self] torrent in
+          self?.toggleMTeamSelection(torrent)
         }
       )
       .environment(state)
+      .environment(mteamState)
     )
     configureSearchController()
+    mteamSelectButton.accessibilityLabel = "选择 M-Team Torrent"
+    mteamSelectButton.accessibilityIdentifier = "mteam-select"
+    refreshProviderAvailability()
+  }
 
-    Task { await loadInitialContent() }
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    refreshProviderAvailability()
   }
 
   deinit {
@@ -94,6 +152,20 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
 
   func updateSearchResults(for searchController: UISearchController) {
     let query = searchController.searchBar.text ?? ""
+    if state.provider == .mteam {
+      mteamState.query = query
+      let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+      if trimmed.isEmpty {
+        mteamState.errorMessage = nil
+        mteamState.hasMore = false
+        mteamState.items = []
+        mteamState.page = 0
+        mteamState.submittedQuery = ""
+        mteamState.total = 0
+      }
+      return
+    }
+
     state.query = query
     searchTask?.cancel()
 
@@ -112,14 +184,31 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     searchTask = Task { [weak self] in
       try? await Task.sleep(for: .milliseconds(350))
       guard !Task.isCancelled else { return }
-      await self?.search(trimmed)
+      await self?.searchMikan(trimmed)
+    }
+  }
+
+  func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    guard state.provider == .mteam else { return }
+    submitMTeamSearch()
+  }
+
+  private func submitMTeamSearch() {
+    let query = mteamState.query.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard state.provider == .mteam, !query.isEmpty else { return }
+    navigationItem.searchController?.searchBar.resignFirstResponder()
+    searchTask?.cancel()
+    searchTask = Task { [weak self] in
+      await self?.searchMTeam(query: query, page: 1, appending: false)
     }
   }
 
   private func configureSearchController() {
     let searchController = UISearchController(searchResultsController: nil)
+    searchController.hidesNavigationBarDuringPresentation = false
     searchController.obscuresBackgroundDuringPresentation = false
     searchController.searchResultsUpdater = self
+    searchController.searchBar.delegate = self
     searchController.searchBar.placeholder = "搜索番组"
     searchController.searchBar.accessibilityIdentifier = "discover-search"
     navigationItem.searchController = searchController
@@ -128,6 +217,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
   }
 
   private func loadInitialContent() async {
+    guard state.provider == .mikan else { return }
     guard let runtime else {
       state.errorMessage = "Mikan JavaScriptCore Bridge 不可用。"
       state.parserStatus = "解析器不可用"
@@ -173,7 +263,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     }
   }
 
-  private func search(_ query: String) async {
+  private func searchMikan(_ query: String) async {
     guard let service = contentService, let baseURL = state.baseURL ?? configuredBaseURL() else {
       return
     }
@@ -214,7 +304,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
 
   private func configuredBaseURL() -> URL? {
     let value =
-      UserDefaults.standard.string(forKey: "discover.mikan.baseURL")
+      defaults.string(forKey: "discover.mikan.baseURL")
       ?? "https://mikanani.me"
     guard
       let url = URL(string: value.trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -234,14 +324,310 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     searchTask = Task { await loadSeasonWall() }
   }
 
-  private func retryCurrentRequest() {
+  private func retryMikanRequest() {
     searchTask?.cancel()
     let query = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
     searchTask = Task {
       if query.isEmpty {
         await loadSeasonWall()
       } else {
-        await search(query)
+        await searchMikan(query)
+      }
+    }
+  }
+
+  private func refreshProviderAvailability() {
+    var providers: [DiscoverProvider] = []
+    let mikanEnabled =
+      model.isDemoMode
+      || defaults.object(forKey: "discover.mikan.enabled") == nil
+      || defaults.bool(forKey: "discover.mikan.enabled")
+    if mikanEnabled {
+      providers.append(.mikan)
+    }
+
+    let mteamEnabled = model.isDemoMode || defaults.bool(forKey: "discover.mteam.enabled")
+    if mteamEnabled {
+      do {
+        if model.isDemoMode {
+          providers.append(.mteam)
+        } else if try credentialStore.apiKey()?.isEmpty == false {
+          providers.append(.mteam)
+        }
+      } catch {
+        state.providerAvailabilityMessage = error.localizedDescription
+      }
+    }
+
+    state.availableProviders = providers
+    guard !providers.isEmpty else {
+      state.providerAvailabilityMessage = "请先在设置中启用并完成至少一个内容来源。"
+      navigationItem.subtitle = nil
+      navigationItem.rightBarButtonItems = []
+      navigationItem.searchController?.searchBar.isUserInteractionEnabled = false
+      return
+    }
+
+    let forcedMTeam = ProcessInfo.processInfo.arguments.contains("-ui-mteam-demo")
+    let remembered = defaults.string(forKey: "discover.lastProvider").flatMap(DiscoverProvider.init)
+    let preferred: DiscoverProvider = forcedMTeam ? .mteam : (remembered ?? state.provider)
+    if providers.contains(preferred) {
+      state.provider = preferred
+    } else if !providers.contains(state.provider) {
+      state.provider = providers[0]
+    }
+    navigationItem.searchController?.searchBar.isUserInteractionEnabled = true
+    configureProviderChrome()
+    loadProviderIfNeeded()
+  }
+
+  private func configureProviderChrome() {
+    navigationItem.subtitle = state.provider.title
+    guard let searchBar = navigationItem.searchController?.searchBar else { return }
+    searchBar.placeholder = state.provider == .mikan ? "搜索番组" : "搜索 M-Team Torrent"
+    searchBar.text = state.provider == .mikan ? state.query : mteamState.query
+    searchBar.returnKeyType = .search
+
+    var items: [UIBarButtonItem] = []
+    if state.provider == .mikan {
+      let subscriptions = UIBarButtonItem(
+        image: UIImage(systemName: "bookmark"),
+        style: .plain,
+        target: self,
+        action: #selector(showSubscriptions)
+      )
+      subscriptions.accessibilityLabel = "我的订阅"
+      subscriptions.accessibilityIdentifier = "discover-subscriptions"
+      items.append(subscriptions)
+    } else {
+      mteamSelectButton.isEnabled = !mteamState.items.isEmpty
+      items.append(mteamSelectButton)
+      let filters = UIBarButtonItem(
+        image: UIImage(systemName: "line.3.horizontal.decrease"),
+        style: .plain,
+        target: self,
+        action: #selector(showMTeamFilters)
+      )
+      filters.accessibilityLabel = "M-Team 筛选"
+      filters.accessibilityIdentifier = "mteam-filters"
+      items.append(filters)
+    }
+
+    if state.availableProviders.count > 1 {
+      let providerItem = UIBarButtonItem(
+        title: state.provider.title,
+        image: UIImage(systemName: "chevron.up.chevron.down"),
+        menu: UIMenu(
+          title: "内容来源",
+          children: state.availableProviders.map { provider in
+            UIAction(
+              title: provider.title,
+              state: provider == state.provider ? .on : .off
+            ) { [weak self] _ in
+              self?.selectProvider(provider)
+            }
+          }
+        )
+      )
+      providerItem.accessibilityIdentifier = "discover-provider-menu"
+      items.append(providerItem)
+    }
+    navigationItem.rightBarButtonItems = items
+  }
+
+  private func selectProvider(_ provider: DiscoverProvider) {
+    guard state.availableProviders.contains(provider), provider != state.provider else { return }
+    searchTask?.cancel()
+    state.provider = provider
+    defaults.set(provider.rawValue, forKey: "discover.lastProvider")
+    configureProviderChrome()
+    loadProviderIfNeeded()
+  }
+
+  private func loadProviderIfNeeded() {
+    guard state.provider == .mikan, state.seasonWall == nil, !state.isLoading else { return }
+    searchTask?.cancel()
+    searchTask = Task { [weak self] in
+      await self?.loadInitialContent()
+    }
+  }
+
+  private func mteamConfiguration() throws -> MTeamProviderConfiguration {
+    if model.isDemoMode {
+      return try MTeamProviderConfiguration(
+        baseURLText: "https://api.m-team.example.test/api",
+        apiKey: "demo-key",
+        pageSize: 20
+      )
+    }
+    let apiKey = try credentialStore.apiKey() ?? ""
+    let pageSize = defaults.integer(forKey: "discover.mteam.pageSize")
+    return try MTeamProviderConfiguration(
+      baseURLText: defaults.string(forKey: "discover.mteam.baseURL")
+        ?? "https://api.m-team.cc/api",
+      apiKey: apiKey,
+      pageSize: pageSize == 0 ? 20 : pageSize
+    )
+  }
+
+  private func searchMTeam(query: String, page: Int, appending: Bool) async {
+    guard state.provider == .mteam else { return }
+    mteamState.isLoading = true
+    mteamState.errorMessage = nil
+    defer { mteamState.isLoading = false }
+
+    do {
+      let result = try await mteamService.search(
+        configuration: mteamConfiguration(),
+        query: query,
+        filters: mteamState.filters,
+        page: page
+      )
+      guard !Task.isCancelled, state.provider == .mteam else { return }
+      mteamState.items = appending ? mteamState.items + result.items : result.items
+      mteamState.hasMore = result.hasMore
+      mteamState.page = result.page
+      mteamState.query = query
+      mteamState.submittedQuery = query
+      mteamState.total = result.total
+      mteamSelectButton.isEnabled = !mteamState.items.isEmpty
+    } catch is CancellationError {
+      return
+    } catch {
+      if !appending {
+        mteamState.items = []
+      }
+      mteamState.errorMessage = error.localizedDescription
+    }
+  }
+
+  private func loadMoreMTeam() {
+    guard !mteamState.isLoading, mteamState.hasMore, !mteamState.submittedQuery.isEmpty else {
+      return
+    }
+    searchTask?.cancel()
+    searchTask = Task { [weak self] in
+      guard let self else { return }
+      await searchMTeam(
+        query: mteamState.submittedQuery,
+        page: mteamState.page + 1,
+        appending: true
+      )
+    }
+  }
+
+  private func retryMTeamSearch() {
+    let query = mteamState.submittedQuery.isEmpty ? mteamState.query : mteamState.submittedQuery
+    guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    searchTask?.cancel()
+    searchTask = Task { [weak self] in
+      await self?.searchMTeam(query: query, page: 1, appending: false)
+    }
+  }
+
+  private func showMTeamDetail(_ torrent: MTeamTorrent) {
+    do {
+      navigationController?.pushViewController(
+        MTeamDetailViewController(
+          torrent: torrent,
+          configuration: try mteamConfiguration(),
+          service: mteamService,
+          model: model
+        ),
+        animated: true
+      )
+    } catch {
+      mteamState.errorMessage = error.localizedDescription
+    }
+  }
+
+  @objc private func beginMTeamSelection() {
+    guard state.provider == .mteam, !mteamState.items.isEmpty else { return }
+    mteamState.beginSelection()
+    navigationItem.searchController?.searchBar.isUserInteractionEnabled = false
+    navigationItem.leftBarButtonItem?.isEnabled = false
+    let done = UIBarButtonItem(
+      title: "完成",
+      style: .prominent,
+      target: self,
+      action: #selector(endMTeamSelection)
+    )
+    done.accessibilityIdentifier = "mteam-select-done"
+    navigationItem.rightBarButtonItems = [done]
+    tabBarController?.setTabBarHidden(true, animated: false)
+    configureMTeamSelectionToolbar()
+  }
+
+  @objc private func endMTeamSelection() {
+    mteamState.endSelection()
+    navigationItem.searchController?.searchBar.isUserInteractionEnabled = true
+    navigationItem.leftBarButtonItem?.isEnabled = true
+    navigationController?.setToolbarHidden(true, animated: false)
+    configureProviderChrome()
+    DispatchQueue.main.async { [weak self] in
+      guard let self, !mteamState.isSelecting else { return }
+      tabBarController?.setTabBarHidden(false, animated: false)
+    }
+  }
+
+  private func toggleMTeamSelection(_ torrent: MTeamTorrent) {
+    mteamState.toggleSelection(for: torrent.id)
+    updateMTeamSelectionToolbar()
+  }
+
+  private func configureMTeamSelectionToolbar() {
+    let count = UIBarButtonItem(title: "已选择 0 项", style: .plain, target: nil, action: nil)
+    count.tag = 1
+    let importItem = UIBarButtonItem(
+      title: "批量导入",
+      style: .prominent,
+      target: self,
+      action: #selector(presentMTeamBatchImport)
+    )
+    importItem.accessibilityIdentifier = "mteam-batch-import"
+    importItem.tag = 2
+    toolbarItems = [count, UIBarButtonItem(systemItem: .flexibleSpace), importItem]
+    DispatchQueue.main.async { [weak self] in
+      guard let self, mteamState.isSelecting else { return }
+      navigationController?.setToolbarHidden(false, animated: false)
+    }
+    updateMTeamSelectionToolbar()
+  }
+
+  private func updateMTeamSelectionToolbar() {
+    let count = mteamState.selectedIDs.count
+    toolbarItems?.first(where: { $0.tag == 1 })?.title = "已选择 \(count) 项"
+    toolbarItems?.first(where: { $0.tag == 2 })?.isEnabled = count > 0
+  }
+
+  @objc private func presentMTeamBatchImport() {
+    let selected = mteamState.items.filter { mteamState.selectedIDs.contains($0.id) }
+    guard !selected.isEmpty else { return }
+    do {
+      MTeamBatchImportViewController.present(
+        from: self,
+        torrents: selected,
+        configuration: try mteamConfiguration(),
+        service: mteamService,
+        model: model
+      ) { [weak self] in
+        self?.endMTeamSelection()
+      }
+    } catch {
+      mteamState.errorMessage = error.localizedDescription
+    }
+  }
+
+  @objc private func showMTeamFilters() {
+    MTeamFilterViewController.present(
+      from: self,
+      filters: mteamState.filters
+    ) { [weak self] filters in
+      guard let self else { return }
+      mteamState.filters = filters
+      defaults.set(filters.mode, forKey: "discover.mteam.mode")
+      if !mteamState.submittedQuery.isEmpty {
+        retryMTeamSearch()
       }
     }
   }
@@ -299,7 +685,50 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     """
 }
 
-private struct DiscoverContentView: View {
+private struct DiscoverRootContentView: View {
+  @Environment(DiscoverState.self) private var state
+
+  let onLoadMoreMTeam: () -> Void
+  let onOpenBangumi: (MikanBangumiCard) -> Void
+  let onOpenContentSources: () -> Void
+  let onOpenMTeamTorrent: (MTeamTorrent) -> Void
+  let onRetryMTeam: () -> Void
+  let onRetryMikan: () -> Void
+  let onSelectSeason: (Int, String) -> Void
+  let onSubmitMTeamSearch: () -> Void
+  let onToggleMTeamSelection: (MTeamTorrent) -> Void
+
+  var body: some View {
+    if state.availableProviders.isEmpty {
+      ContentUnavailableView {
+        Label("没有可用的内容来源", systemImage: "safari")
+      } description: {
+        Text(state.providerAvailabilityMessage)
+      } actions: {
+        Button("前往设置", action: onOpenContentSources)
+      }
+    } else {
+      switch state.provider {
+      case .mikan:
+        MikanDiscoverContentView(
+          onOpenBangumi: onOpenBangumi,
+          onRetry: onRetryMikan,
+          onSelectSeason: onSelectSeason
+        )
+      case .mteam:
+        MTeamDiscoverContentView(
+          onLoadMore: onLoadMoreMTeam,
+          onOpenTorrent: onOpenMTeamTorrent,
+          onRetry: onRetryMTeam,
+          onSubmitSearch: onSubmitMTeamSearch,
+          onToggleSelection: onToggleMTeamSelection
+        )
+      }
+    }
+  }
+}
+
+private struct MikanDiscoverContentView: View {
   @Environment(DiscoverState.self) private var state
 
   let onOpenBangumi: (MikanBangumiCard) -> Void

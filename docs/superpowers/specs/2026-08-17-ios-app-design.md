@@ -27,34 +27,44 @@
 
 ## 任务看板
 
-| ID         | 任务                                | 状态   | 章节或产物                              | 下一步               |
-| ---------- | ----------------------------------- | ------ | --------------------------------------- | -------------------- |
-| IOS-D01    | 全局产品、架构与 iOS 26 视觉基础    | 已确认 | [全局基础](ios-app/foundation.md)       | 实现前复核           |
-| IOS-D02    | 任务 Tab 页面布局与功能承载         | 已确认 | [任务 Tab](ios-app/tasks-tab.md)        | 后续进入实现拆解     |
-| IOS-D03    | 发现 Tab 页面布局与功能承载         | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 后续进入实现拆解     |
-| IOS-D04    | 设置 Tab 页面布局与功能承载         | 已确认 | [设置 Tab](ios-app/settings-tab.md)     | 后续进入实现拆解     |
-| IOS-R01    | 调研 Mikan 官方开放 API             | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01     |
-| IOS-R02    | 验证 Mikan 解析器的 JSC 兼容性      | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01     |
-| IOS-A01    | iOS Discover 内容服务契约           | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 实现由 IOS-E03 承接  |
-| IOS-E01    | 将工程最低目标从 iOS 18 改为 iOS 26 | 已完成 | `apps/ios/project.yml`                  | —                    |
-| IOS-E02    | 按最终信息架构调整三个根 Tab        | 已完成 | `apps/ios/Sources/App`                  | —                    |
-| IOS-E03    | 构建 Mikan JavaScriptCore 运行时    | 已完成 | `packages/mikan`、`apps/ios`            | —                    |
-| IOS-E04    | 接入 Mikan 原生网络内容服务         | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | —                    |
-| IOS-E05    | 接入真实 qBittorrent 任务服务       | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                    |
-| IOS-E06    | 共享 Add Torrent Sheet 与单集导入   | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                    |
-| IOS-R03    | 核对 Helper 多客户端契约            | 已完成 | [Helper](ios-app/helper-integration.md) | 结论并入 IOS-D05     |
-| IOS-D05    | Helper 配对与订阅所有权             | 已确认 | [Helper](ios-app/helper-integration.md) | 已由 HELPER-E01 承接 |
-| HELPER-E01 | Helper 多客户端协议升级             | 已完成 | [Helper](ios-app/helper-integration.md) | —                    |
-| IOS-E07    | Helper 配对与只读状态               | 已完成 | [Helper](ios-app/helper-integration.md) | —                    |
-| IOS-E08    | 批量导入与持续订阅                  | 已完成 | [Helper](ios-app/helper-integration.md) | —                    |
-| IOS-E09    | 订阅目标编辑与详情回跳              | 已完成 | [Helper](ios-app/helper-integration.md) | —                    |
-| IOS-E10    | 任务筛选、基础详情与暂停/继续       | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                    |
-| IOS-E11    | 服务器管理与 iPhone 内测交付        | 已完成 | `apps/ios`、TestFlight                  | —                    |
-| IOS-E12    | 文件导入、安全删除与批量管理        | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                    |
+| ID         | 任务                                | 状态   | 章节或产物                              | 下一步                |
+| ---------- | ----------------------------------- | ------ | --------------------------------------- | --------------------- |
+| IOS-D01    | 全局产品、架构与 iOS 26 视觉基础    | 已确认 | [全局基础](ios-app/foundation.md)       | 实现前复核            |
+| IOS-D02    | 任务 Tab 页面布局与功能承载         | 已确认 | [任务 Tab](ios-app/tasks-tab.md)        | 后续进入实现拆解      |
+| IOS-D03    | 发现 Tab 页面布局与功能承载         | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 后续进入实现拆解      |
+| IOS-D04    | 设置 Tab 页面布局与功能承载         | 已确认 | [设置 Tab](ios-app/settings-tab.md)     | 后续进入实现拆解      |
+| IOS-D06    | iOS 内容密度与语义间距规范          | 已确认 | [全局基础](ios-app/foundation.md)       | 已由 IOS-E16 修正落地 |
+| IOS-R01    | 调研 Mikan 官方开放 API             | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01      |
+| IOS-R02    | 验证 Mikan 解析器的 JSC 兼容性      | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01      |
+| IOS-A01    | iOS Discover 内容服务契约           | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 实现由 IOS-E03 承接   |
+| IOS-E01    | 将工程最低目标从 iOS 18 改为 iOS 26 | 已完成 | `apps/ios/project.yml`                  | —                     |
+| IOS-E02    | 按最终信息架构调整三个根 Tab        | 已完成 | `apps/ios/Sources/App`                  | —                     |
+| IOS-E03    | 构建 Mikan JavaScriptCore 运行时    | 已完成 | `packages/mikan`、`apps/ios`            | —                     |
+| IOS-E04    | 接入 Mikan 原生网络内容服务         | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | —                     |
+| IOS-E05    | 接入真实 qBittorrent 任务服务       | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E06    | 共享 Add Torrent Sheet 与单集导入   | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-R03    | 核对 Helper 多客户端契约            | 已完成 | [Helper](ios-app/helper-integration.md) | 结论并入 IOS-D05      |
+| IOS-D05    | Helper 配对与订阅所有权             | 已确认 | [Helper](ios-app/helper-integration.md) | 已由 HELPER-E01 承接  |
+| HELPER-E01 | Helper 多客户端协议升级             | 已完成 | [Helper](ios-app/helper-integration.md) | —                     |
+| IOS-E07    | Helper 配对与只读状态               | 已完成 | [Helper](ios-app/helper-integration.md) | —                     |
+| IOS-E08    | 批量导入与持续订阅                  | 已完成 | [Helper](ios-app/helper-integration.md) | —                     |
+| IOS-E09    | 订阅目标编辑与详情回跳              | 已完成 | [Helper](ios-app/helper-integration.md) | —                     |
+| IOS-E10    | 任务筛选、基础详情与暂停/继续       | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E11    | 服务器管理与 iPhone 内测交付        | 已完成 | `apps/ios`、TestFlight                  | —                     |
+| IOS-E12    | 文件导入、安全删除与批量管理        | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E13    | 任务文件、Tracker 与 Peer 检查器    | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E14    | 顺序下载与首尾分片优先控制          | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E15    | 系统 Share Extension 导入闭环       | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E16    | M-Team 搜索、详情与导入闭环         | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | —                     |
+| IOS-E17    | 内容来源连接测试与显式保存边界      | 已完成 | [设置 Tab](ios-app/settings-tab.md)     | —                     |
+| IOS-E18    | M-Team 多选与批量导入               | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | —                     |
+| IOS-E19    | 后台任务状态与下载完成通知          | 已完成 | [设置 Tab](ios-app/settings-tab.md)     | —                     |
+| IOS-E20    | App Intents 与系统快捷指令          | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
+| IOS-E21    | 实时活动与灵动岛                    | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
 
 ## 当前焦点
 
-`IOS-E12` 已完成。下一实施任务待讨论确认。
+`IOS-E21` 已完成。下一实施任务待讨论确认。
 
 ## 执行记录
 
@@ -89,3 +99,13 @@
 | 2026-08-18 | 完成任务管理纵向闭环        | 状态筛选、原生详情、暂停与继续均已验证                 | IOS-E10 → 已完成                   |
 | 2026-08-18 | 收口服务器与内测交付        | 服务器增删改、连接验证、App 图标与 TestFlight 均已验收 | IOS-E11 → 已完成                   |
 | 2026-08-18 | 完成任务管理第二阶段        | 文件导入、安全删除、管理选项与批量工具栏均已验证       | IOS-E12 → 已完成                   |
+| 2026-08-18 | 完成任务内容检查器          | 文件、Tracker 与 Peer 按需加载子页面均已验证           | IOS-E13 → 已完成                   |
+| 2026-08-18 | 完成任务下载策略控制        | 顺序下载与首尾分片优先状态、切换和重新进入均已验证     | IOS-E14 → 已完成                   |
+| 2026-08-18 | 完成系统分享导入闭环        | Magnet 与 Torrent 文件经 Share Extension 进入既有导入  | IOS-E15 → 已完成                   |
+| 2026-08-18 | 完成 M-Team Discover 接入   | 提交搜索、筛选、Push 详情和共享导入流程均已验证        | IOS-E16 → 已完成                   |
+| 2026-08-18 | 完成内容来源连接测试        | Mikan 可达性、M-Team 只读检索与显式保存边界均已验证    | IOS-E17 → 已完成                   |
+| 2026-08-18 | 建立全局内容密度规范        | 语义间距、单一间距所有者与紧凑指标组件已落地           | IOS-D06 → 已确认                   |
+| 2026-08-18 | 完成 M-Team 批量导入        | 系统多选、公共选项、逐项结果与失败重试均已验证         | IOS-E18 → 已完成                   |
+| 2026-08-18 | 完成后台状态与本地通知      | 系统调度、完成状态基线、显式授权与立即检查均已验证     | IOS-E19 → 已完成                   |
+| 2026-08-18 | 完成系统快捷指令            | 三个 App Intents、系统元数据与 Magnet 确认交接已验证   | IOS-E20 → 已完成                   |
+| 2026-08-18 | 完成实时活动与灵动岛        | 单任务跟踪、锁屏卡片、灵动岛与完成收尾均已验证         | IOS-E21 → 已完成                   |

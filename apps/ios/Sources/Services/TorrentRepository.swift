@@ -56,11 +56,22 @@ protocol TorrentRepository: Sendable {
     torrentIDs: [String],
     on server: ServerConfiguration
   ) async throws
+  func toggleDownloadStrategy(
+    _ strategy: TorrentDownloadStrategy,
+    torrentIDs: [String],
+    on server: ServerConfiguration
+  ) async throws
   func updateTorrents(
     ids: [String],
     request: TorrentManagementRequest,
     on server: ServerConfiguration
   ) async throws
+  func files(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentFileSummary]
+  func trackers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentTrackerSummary]
+  func peers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentPeerSummary]
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot
 }
 
@@ -202,6 +213,58 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     )
   }
 
+  func files(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentFileSummary]
+  {
+    try validateTorrentIDs([torrentID])
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    let data = try await get(
+      session: session,
+      server: server,
+      path: "/torrents/files",
+      queryItems: [URLQueryItem(name: "hash", value: torrentID)]
+    )
+    return try JSONDecoder().decode([QBittorrentFile].self, from: data).map(\.summary)
+  }
+
+  func trackers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentTrackerSummary]
+  {
+    try validateTorrentIDs([torrentID])
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    let data = try await get(
+      session: session,
+      server: server,
+      path: "/torrents/trackers",
+      queryItems: [URLQueryItem(name: "hash", value: torrentID)]
+    )
+    return try JSONDecoder().decode([QBittorrentTracker].self, from: data)
+      .enumerated()
+      .map { index, tracker in tracker.summary(index: index) }
+  }
+
+  func peers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentPeerSummary]
+  {
+    try validateTorrentIDs([torrentID])
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    let data = try await get(
+      session: session,
+      server: server,
+      path: "/sync/torrentPeers",
+      queryItems: [
+        URLQueryItem(name: "hash", value: torrentID),
+        URLQueryItem(name: "rid", value: "0"),
+      ]
+    )
+    let response = try JSONDecoder().decode(QBittorrentPeerResponse.self, from: data)
+    return response.peers.map { endpoint, peer in peer.summary(id: endpoint) }
+      .sorted { $0.endpoint.localizedStandardCompare($1.endpoint) == .orderedAscending }
+  }
+
   func setPaused(
     _ paused: Bool,
     torrentIDs: [String],
@@ -214,6 +277,27 @@ actor QBittorrentTorrentRepository: TorrentRepository {
       session: session,
       server: server,
       path: paused ? "/torrents/stop" : "/torrents/start",
+      items: [URLQueryItem(name: "hashes", value: torrentIDs.joined(separator: "|"))]
+    )
+  }
+
+  func toggleDownloadStrategy(
+    _ strategy: TorrentDownloadStrategy,
+    torrentIDs: [String],
+    on server: ServerConfiguration
+  ) async throws {
+    try validateTorrentIDs(torrentIDs)
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    let path =
+      switch strategy {
+      case .sequential: "/torrents/toggleSequentialDownload"
+      case .firstLastPiecePriority: "/torrents/toggleFirstLastPiecePrio"
+      }
+    try await postForm(
+      session: session,
+      server: server,
+      path: path,
       items: [URLQueryItem(name: "hashes", value: torrentIDs.joined(separator: "|"))]
     )
   }
@@ -324,9 +408,18 @@ actor QBittorrentTorrentRepository: TorrentRepository {
   private func get(
     session: URLSession,
     server: ServerConfiguration,
-    path: String
+    path: String,
+    queryItems: [URLQueryItem] = []
   ) async throws -> Data {
-    let request = URLRequest(url: try endpoint(server: server, path: path))
+    var components = URLComponents(
+      url: try endpoint(server: server, path: path),
+      resolvingAgainstBaseURL: false
+    )
+    components?.queryItems = queryItems.isEmpty ? nil : queryItems
+    guard let url = components?.url else {
+      throw QBittorrentRepositoryError.invalidServerURL
+    }
+    let request = URLRequest(url: url)
     let (data, response) = try await session.data(for: request)
     let httpResponse = try Self.validatedHTTPResponse(response)
     if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
@@ -454,7 +547,8 @@ actor DemoTorrentRepository: TorrentRepository {
       savePath: "/Media/Documentary/The Blue Planet II",
       category: "documentary",
       tags: ["4K", "TV"],
-      addedAt: Date(timeIntervalSince1970: 1_786_377_600)
+      addedAt: Date(timeIntervalSince1970: 1_786_377_600),
+      isSequentialDownloadEnabled: true
     ),
     TorrentSummary(
       id: "demo-frieren",
@@ -556,6 +650,27 @@ actor DemoTorrentRepository: TorrentRepository {
     }
   }
 
+  func toggleDownloadStrategy(
+    _ strategy: TorrentDownloadStrategy,
+    torrentIDs: [String],
+    on server: ServerConfiguration
+  ) async throws {
+    try await Task.sleep(for: .milliseconds(300))
+    let selected = Set(torrentIDs)
+    guard torrents.contains(where: { selected.contains($0.id) }) else {
+      throw QBittorrentRepositoryError.missingTorrentSelection
+    }
+    for index in torrents.indices where selected.contains(torrents[index].id) {
+      let torrent = torrents[index]
+      let enabled =
+        switch strategy {
+        case .sequential: !torrent.isSequentialDownloadEnabled
+        case .firstLastPiecePriority: !torrent.isFirstLastPiecePriorityEnabled
+        }
+      torrents[index] = torrent.updatingDownloadStrategy(strategy, enabled: enabled)
+    }
+  }
+
   func updateTorrents(
     ids: [String],
     request: TorrentManagementRequest,
@@ -576,12 +691,227 @@ actor DemoTorrentRepository: TorrentRepository {
     }
   }
 
+  func files(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentFileSummary]
+  {
+    try requireTorrent(torrentID)
+    try await Task.sleep(for: .milliseconds(180))
+    return [
+      TorrentFileSummary(
+        id: 0,
+        name: "The Blue Planet II/Blue.Planet.II.S01E01.2160p.mkv",
+        size: 18_962_710_528,
+        progress: 0.72,
+        priority: 1
+      ),
+      TorrentFileSummary(
+        id: 1,
+        name: "The Blue Planet II/Subtitles/zh-Hans.ass",
+        size: 194_560,
+        progress: 1,
+        priority: 7
+      ),
+      TorrentFileSummary(
+        id: 2,
+        name: "The Blue Planet II/Behind the Scenes.mp4",
+        size: 6_591_873_024,
+        progress: 0.31,
+        priority: 6
+      ),
+    ]
+  }
+
+  func trackers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentTrackerSummary]
+  {
+    try requireTorrent(torrentID)
+    try await Task.sleep(for: .milliseconds(180))
+    return [
+      TorrentTrackerSummary(
+        id: "0|https://tracker.example.test/announce",
+        url: "https://tracker.example.test/announce",
+        status: 2,
+        tier: 0,
+        message: "Announce succeeded",
+        peerCount: 48,
+        seedCount: 31,
+        leechCount: 17,
+        downloadedCount: 204
+      ),
+      TorrentTrackerSummary(
+        id: "1|udp://backup.example.test:6969/announce",
+        url: "udp://backup.example.test:6969/announce",
+        status: 1,
+        tier: 1,
+        message: "Waiting for announce",
+        peerCount: 0,
+        seedCount: 0,
+        leechCount: 0,
+        downloadedCount: 0
+      ),
+    ]
+  }
+
+  func peers(for torrentID: String, on server: ServerConfiguration) async throws
+    -> [TorrentPeerSummary]
+  {
+    try requireTorrent(torrentID)
+    try await Task.sleep(for: .milliseconds(180))
+    return [
+      TorrentPeerSummary(
+        id: "192.0.2.18:51413",
+        ip: "192.0.2.18",
+        port: 51_413,
+        client: "Transmission 4.1",
+        progress: 1,
+        downloadSpeed: 0,
+        uploadSpeed: 2_621_440,
+        connection: "µTP",
+        flags: "U E",
+        flagsDescription: "上传中、加密连接",
+        country: "测试网络"
+      ),
+      TorrentPeerSummary(
+        id: "198.51.100.42:6881",
+        ip: "198.51.100.42",
+        port: 6_881,
+        client: "qBittorrent 5.1",
+        progress: 0.84,
+        downloadSpeed: 6_291_456,
+        uploadSpeed: 458_752,
+        connection: "BT",
+        flags: "D U E",
+        flagsDescription: "下载中、上传中、加密连接",
+        country: "测试网络"
+      ),
+      TorrentPeerSummary(
+        id: "[2001:db8::23]:51413",
+        ip: "2001:db8::23",
+        port: 51_413,
+        client: "libtorrent 2.0",
+        progress: 0.53,
+        downloadSpeed: 1_048_576,
+        uploadSpeed: 0,
+        connection: "µTP",
+        flags: "D",
+        flagsDescription: "下载中",
+        country: "测试网络"
+      ),
+    ]
+  }
+
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot {
     TorrentSnapshot(
       torrents: torrents,
       totalDownloadSpeed: "18.4 MB/s",
       totalUploadSpeed: "5.9 MB/s",
       serverVersion: "v5.1.2"
+    )
+  }
+
+  private func requireTorrent(_ torrentID: String) throws {
+    guard torrents.contains(where: { $0.id == torrentID }) else {
+      throw QBittorrentRepositoryError.missingTorrentSelection
+    }
+  }
+}
+
+private struct QBittorrentFile: Decodable {
+  let index: Int
+  let name: String
+  let size: Int64
+  let progress: Double
+  let priority: Int
+
+  var summary: TorrentFileSummary {
+    TorrentFileSummary(
+      id: index,
+      name: name,
+      size: size,
+      progress: progress,
+      priority: priority
+    )
+  }
+}
+
+private struct QBittorrentTracker: Decodable {
+  let url: String
+  let status: Int
+  let tier: Int
+  let message: String?
+  let peerCount: Int?
+  let seedCount: Int?
+  let leechCount: Int?
+  let downloadedCount: Int?
+
+  enum CodingKeys: String, CodingKey {
+    case url
+    case status
+    case tier
+    case message = "msg"
+    case peerCount = "num_peers"
+    case seedCount = "num_seeds"
+    case leechCount = "num_leeches"
+    case downloadedCount = "num_downloaded"
+  }
+
+  func summary(index: Int) -> TorrentTrackerSummary {
+    TorrentTrackerSummary(
+      id: "\(index)|\(url)",
+      url: url,
+      status: status,
+      tier: tier,
+      message: message.flatMap { $0.isEmpty ? nil : $0 },
+      peerCount: peerCount ?? 0,
+      seedCount: seedCount ?? 0,
+      leechCount: leechCount ?? 0,
+      downloadedCount: downloadedCount ?? 0
+    )
+  }
+}
+
+private struct QBittorrentPeerResponse: Decodable {
+  let peers: [String: QBittorrentPeer]
+}
+
+private struct QBittorrentPeer: Decodable {
+  let ip: String?
+  let port: Int?
+  let client: String?
+  let progress: Double?
+  let downloadSpeed: Int64?
+  let uploadSpeed: Int64?
+  let connection: String?
+  let flags: String?
+  let flagsDescription: String?
+  let country: String?
+
+  enum CodingKeys: String, CodingKey {
+    case ip
+    case port
+    case client
+    case progress
+    case downloadSpeed = "dl_speed"
+    case uploadSpeed = "up_speed"
+    case connection
+    case flags
+    case flagsDescription = "flags_desc"
+    case country
+  }
+
+  func summary(id: String) -> TorrentPeerSummary {
+    TorrentPeerSummary(
+      id: id,
+      ip: ip ?? id,
+      port: port ?? 0,
+      client: client.flatMap { $0.isEmpty ? nil : $0 } ?? "未知客户端",
+      progress: progress ?? 0,
+      downloadSpeed: downloadSpeed ?? 0,
+      uploadSpeed: uploadSpeed ?? 0,
+      connection: connection.flatMap { $0.isEmpty ? nil : $0 },
+      flags: flags.flatMap { $0.isEmpty ? nil : $0 },
+      flagsDescription: flagsDescription.flatMap { $0.isEmpty ? nil : $0 },
+      country: country.flatMap { $0.isEmpty ? nil : $0 }
     )
   }
 }
@@ -614,6 +944,8 @@ private struct QBittorrentTorrent: Decodable {
   let totalSize: Int64?
   let uploadLimit: Int64?
   let uploadSpeed: Int64
+  let isSequentialDownloadEnabled: Bool?
+  let isFirstLastPiecePriorityEnabled: Bool?
 
   enum CodingKeys: String, CodingKey {
     case addedOn = "added_on"
@@ -633,6 +965,8 @@ private struct QBittorrentTorrent: Decodable {
     case totalSize = "total_size"
     case uploadLimit = "up_limit"
     case uploadSpeed = "upspeed"
+    case isSequentialDownloadEnabled = "seq_dl"
+    case isFirstLastPiecePriorityEnabled = "f_l_piece_prio"
   }
 }
 
@@ -657,7 +991,9 @@ extension TorrentSummary {
       addedAt: Self.date(from: torrent.addedOn),
       completedAt: Self.date(from: torrent.completionOn),
       downloadLimit: torrent.downloadLimit ?? 0,
-      uploadLimit: torrent.uploadLimit ?? 0
+      uploadLimit: torrent.uploadLimit ?? 0,
+      isSequentialDownloadEnabled: torrent.isSequentialDownloadEnabled ?? false,
+      isFirstLastPiecePriorityEnabled: torrent.isFirstLastPiecePriorityEnabled ?? false
     )
   }
 

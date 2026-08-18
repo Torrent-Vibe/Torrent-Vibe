@@ -715,6 +715,31 @@ final class AppModel {
     }
   }
 
+  @discardableResult
+  func toggleTorrentDownloadStrategy(
+    _ strategy: TorrentDownloadStrategy,
+    torrentID: String,
+    serverID: UUID
+  ) async throws -> TorrentSummary {
+    let torrentIDs = try Self.validatedTorrentIDs([torrentID])
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    try await torrentRepository.toggleDownloadStrategy(
+      strategy,
+      torrentIDs: torrentIDs,
+      on: server
+    )
+    if server.id == activeServerID {
+      await loadSnapshot(for: server, applyTorrents: true)
+      guard let updated = torrents.first(where: { $0.id == torrentID }) else {
+        throw TorrentActionError.torrentUnavailable
+      }
+      return updated
+    }
+    throw TorrentActionError.torrentUnavailable
+  }
+
   func deleteTorrents(
     torrentIDs: [String],
     deleteFiles: Bool,
@@ -759,7 +784,29 @@ final class AppModel {
     throw TorrentActionError.torrentUnavailable
   }
 
+  func torrentFiles(torrentID: String, serverID: UUID) async throws
+    -> [TorrentFileSummary]
+  {
+    let server = try torrentServer(for: serverID)
+    return try await torrentRepository.files(for: torrentID, on: server)
+  }
+
+  func torrentTrackers(torrentID: String, serverID: UUID) async throws
+    -> [TorrentTrackerSummary]
+  {
+    let server = try torrentServer(for: serverID)
+    return try await torrentRepository.trackers(for: torrentID, on: server)
+  }
+
+  func torrentPeers(torrentID: String, serverID: UUID) async throws
+    -> [TorrentPeerSummary]
+  {
+    let server = try torrentServer(for: serverID)
+    return try await torrentRepository.peers(for: torrentID, on: server)
+  }
+
   func refreshTorrents() async {
+    guard !isRefreshing else { return }
     guard let activeServer else {
       torrents = []
       integrationNotice = nil
@@ -782,6 +829,10 @@ final class AppModel {
         totalUploadSpeed = snapshot.totalUploadSpeed
         integrationNotice = nil
         lastUpdated = .now
+        await TorrentLiveActivityCoordinator.shared.synchronize(
+          torrents: snapshot.torrents,
+          server: server
+        )
       }
       serverConnectionStates[server.id] = .connected(version: snapshot.serverVersion)
     } catch {
@@ -793,6 +844,13 @@ final class AppModel {
       }
       serverConnectionStates[server.id] = .failed(message: error.localizedDescription)
     }
+  }
+
+  private func torrentServer(for serverID: UUID) throws -> ServerConfiguration {
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    return server
   }
 
   private static func validatedServerDraft(

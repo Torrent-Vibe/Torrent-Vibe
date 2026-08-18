@@ -1,6 +1,6 @@
 # 任务 Tab
 
-状态：已确认 · IOS-E12 已完成 · 更新：2026-08-18 · 任务：IOS-D02、IOS-E05、IOS-E10、IOS-E12
+状态：已确认 · IOS-E21 已完成 · 更新：2026-08-18 · 任务：IOS-D02、IOS-E05、IOS-E10、IOS-E12、IOS-E13、IOS-E14、IOS-E15、IOS-E19、IOS-E20、IOS-E21
 
 返回 [设计总览](../2026-08-17-ios-app-design.md)。
 
@@ -117,11 +117,12 @@
 
 ## 功能阶段
 
-| 阶段         | 功能                                                                   |
-| ------------ | ---------------------------------------------------------------------- |
-| 首个纵向闭环 | 连接、列表、刷新、搜索、筛选、暂停/继续、添加 Magnet、基础详情         |
-| 第二阶段     | 文件导入、删除文件选择、分类、标签、限速、多选                         |
-| 后续         | 文件、Tracker、Peer、顺序下载、Share Extension、后台状态、系统快捷指令 |
+| 阶段         | 功能                                                           |
+| ------------ | -------------------------------------------------------------- |
+| 首个纵向闭环 | 连接、列表、刷新、搜索、筛选、暂停/继续、添加 Magnet、基础详情 |
+| 第二阶段     | 文件导入、删除文件选择、分类、标签、限速、多选                 |
+| 第三阶段     | 后台状态、下载完成通知、系统快捷指令                           |
+| 第四阶段     | 实时活动、锁屏任务进度与灵动岛                                 |
 
 ## 实现状态
 
@@ -148,3 +149,48 @@
 - 删除操作必须在最终确认中区分“仅移除任务，保留文件”和“移除任务并删除文件”。
 - 任务详情的 More Menu 可编辑分类、标签与上下行限速，并回显当前值。
 - 多选模式提供暂停、继续和删除工具栏；进入多选时暂时隐藏根 Tab Bar，退出后恢复，避免两层底部控件重叠。
+
+### IOS-E13 任务内容检查器
+
+- 基础详情继续使用单页纵向摘要，不引入桌面式多 Tab Inspector。
+- 文件、Tracker 与 Peer 由 UIKit 导航栈分别 Push；进入子页面后才向 qBittorrent 请求对应数据。
+- 文件页展示目录、逐文件进度、大小与优先级；Tracker 页展示工作状态、消息与群组数据；Peer 页展示端点、客户端、进度和实时速度。
+- 真实服务分别接入 `torrents/files`、`torrents/trackers` 与 `sync/torrentPeers`；Simulator 验收使用 Demo Repository，不代表已验证用户服务器的实时数据。
+
+Tracker 与 Peer 列表项遵循[全局内容密度与语义间距](foundation.md#内容密度与语义间距)。身份、传输和连接分别组成语义组；指标统一使用共享紧凑指标组件。检查器仅通过一次 `listRowInsets` 设定扫描行边距，不在行根容器继续叠加垂直 `padding`。
+
+### IOS-E14 下载策略控制
+
+- 任务详情使用系统 Toggle 展示“顺序下载”和“首尾分片优先”，并提供简短用途说明。
+- 当前状态由 `torrents/info` 的 `seq_dl` 与 `f_l_piece_prio` 字段提供，不在 App 侧维护第二份持久状态。
+- 真实服务分别调用 `torrents/toggleSequentialDownload` 与 `torrents/toggleFirstLastPiecePrio`；操作完成后重新读取任务快照。
+- 操作期间使用乐观状态以保持开关响应，并在请求失败时恢复原值；成功或失败反馈显示在下载策略分组内，不要求用户回到详情顶部查看。
+- Simulator 验收使用 Demo Repository 验证初始值、切换反馈和重新进入详情后的状态保留，不代表已修改用户服务器上的真实任务。
+
+### IOS-E15 系统分享导入
+
+- App 内嵌独立 Share Extension，系统分享面板仅对单个 `.torrent` 文件、文本和网页链接声明可用。
+- 扩展负责识别并预览 Magnet、HTTP(S) Torrent URL 或 `.torrent` 文件，不读取服务器配置，也不持有 qBittorrent 凭据。
+- 扩展与主 App 通过 App Group 共享单次待处理载荷；文件数据使用共享容器，清单最后原子写入，主 App 成功读取后立即移除。
+- 用户点击“在 Torrent Vibe 中继续”后由系统深链打开主 App，并复用现有 Add Torrent Sheet；来源锁定，但仍需用户确认目标服务器和最终提交。
+- Simulator 验收从独立来源 App 调起系统 Share Sheet，分别验证 Magnet 与 `.torrent` 文件进入 Demo Repository 的导入 Sheet；未执行真实下载提交。
+
+### IOS-E19 后台状态与通知
+
+- 后台刷新使用系统 `BGAppRefreshTask`，不自建常驻进程；通知开关、系统权限、调度结果和立即检查位于设置。
+- 首次状态读取建立基线，后续以 Torrent ID 检测新完成任务；本地通知只包含任务名和服务器显示名。
+- 后台刷新与本地通知不要求额外 Provisioning Profile；现有 App Group 继续只服务 Share Extension。
+
+### IOS-E20 系统快捷指令
+
+- 系统注册打开任务、刷新任务和添加 Magnet 三个 App Intents，并由构建期元数据提取验证注册结果。
+- 指令通过 `torrentvibe://tasks`、`torrentvibe://refresh` 与参数化 Magnet 深链进入 UIKit 路由。
+- 添加 Magnet 只打开既有 Add Torrent Sheet；用户仍需确认目标服务器和最终提交。
+
+### IOS-E21 实时活动与灵动岛
+
+- 未完成任务的详情页提供显式启动与停止入口；同一时间只跟踪一个任务，切换时先结束旧活动。
+- 锁屏卡片显示任务名、服务器、进度、下载速度、ETA 与状态；灵动岛提供最小、紧凑与展开形态，并通过 `torrentvibe://tasks` 返回任务页。
+- ActivityKit 状态在任务快照刷新时同步；前台按用户配置的刷新间隔更新，进入后台后依赖系统批准的 `BGAppRefreshTask`，不承诺秒级常驻轮询。
+- 任务完成后提交最终状态并保留 60 秒，再由系统收起；任务从服务器消失时立即结束活动。
+- ActivityKit 不新增受管 entitlement。Widget Extension 使用独立 Bundle ID；自动签名可直接管理，手动签名或真机分发时必须为扩展准备对应 Provisioning Profile。

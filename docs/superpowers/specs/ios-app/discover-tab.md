@@ -1,6 +1,6 @@
 # 发现 Tab
 
-状态：已确认 · 更新：2026-08-18 · 任务：IOS-D03、IOS-A01、IOS-E04
+状态：已确认 · 更新：2026-08-18 · 任务：IOS-D03、IOS-A01、IOS-E04、IOS-E16
 
 返回 [设计总览](../2026-08-17-ios-app-design.md)。
 
@@ -139,6 +139,23 @@ URLSession → HTML / XML → App 内置 MikanParser.js → JSContext → JSON �
 - `URLSession` 已接入季度 wall、即时搜索和番组详情 HTML。
 - Bundle 内 JavaScriptCore 解析器负责 wall/search/detail；Swift 负责 URL、网络和模型解码。
 - 番组详情使用 UIKit 导航 Push；单集直连导入已接入，Helper 批量导入与订阅留到后续批次。
+
+### IOS-E16 M-Team Discover
+
+- M-Team 与 Mikan 共用 Discover 导航壳层，但分别保留查询、筛选和结果状态；M-Team 仅在用户显式提交时发起搜索。
+- 搜索接入 M-Team `/torrent/search`，Filter Sheet 承载模式、优惠和分类，结果列表支持继续加载。
+- Torrent 详情通过 UIKit 导航 Push 展示指标、简介、截图、文件、媒体信息和外部链接。
+- 折扣使用无图标的小型 Badge，附着在 Torrent 标题尾部；不在指标下方占用独立上下文行。
+- 导入前调用 `/torrent/genDlToken` 生成临时链接，再进入既有 Add Torrent Sheet；目标服务器仍由用户确认，不自动提交下载。
+- API Key 只存入 Keychain；UserDefaults 仅保存启用状态、Base URL、模式和分页大小，诊断信息不暴露凭据。
+- Simulator Demo Repository 仅验证原生交互和渲染，不代表真实 M-Team 账号或 Tracker 网络已通过验收；请求契约由 URLProtocol 行为测试覆盖。
+
+### IOS-E18 M-Team 多选与批量导入
+
+- M-Team 结果页使用系统编辑模式；进入多选后隐藏根 Tab Bar，并由 UIKit Toolbar 显示选择数量和批量导入动作。
+- 批量确认页统一选择目标服务器、保存路径、分类、标签和上下行限速；临时下载链接只在最终确认后逐项生成。
+- 每项独立记录成功或失败；失败重试只处理未成功项目，不重复生成或提交已成功资源。
+- Demo Repository 验证原生多选、确认和反馈；行为测试验证确认边界与部分失败重试语义。
 
 ### IOS-E06 单集导入
 

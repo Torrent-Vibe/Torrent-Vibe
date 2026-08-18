@@ -17,6 +17,8 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
   let completedAt: Date?
   let downloadLimit: Int64
   let uploadLimit: Int64
+  let isSequentialDownloadEnabled: Bool
+  let isFirstLastPiecePriorityEnabled: Bool
 
   init(
     id: String,
@@ -34,7 +36,9 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     addedAt: Date? = nil,
     completedAt: Date? = nil,
     downloadLimit: Int64 = 0,
-    uploadLimit: Int64 = 0
+    uploadLimit: Int64 = 0,
+    isSequentialDownloadEnabled: Bool = false,
+    isFirstLastPiecePriorityEnabled: Bool = false
   ) {
     self.id = id
     self.name = name
@@ -52,6 +56,8 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     self.completedAt = completedAt
     self.downloadLimit = downloadLimit
     self.uploadLimit = uploadLimit
+    self.isSequentialDownloadEnabled = isSequentialDownloadEnabled
+    self.isFirstLastPiecePriorityEnabled = isFirstLastPiecePriorityEnabled
   }
 
   var isPaused: Bool { status == .paused }
@@ -89,7 +95,9 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       addedAt: addedAt,
       completedAt: completedAt,
       downloadLimit: downloadLimit,
-      uploadLimit: uploadLimit
+      uploadLimit: uploadLimit,
+      isSequentialDownloadEnabled: isSequentialDownloadEnabled,
+      isFirstLastPiecePriorityEnabled: isFirstLastPiecePriorityEnabled
     )
   }
 
@@ -115,9 +123,44 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       addedAt: addedAt,
       completedAt: completedAt,
       downloadLimit: downloadLimit,
-      uploadLimit: uploadLimit
+      uploadLimit: uploadLimit,
+      isSequentialDownloadEnabled: isSequentialDownloadEnabled,
+      isFirstLastPiecePriorityEnabled: isFirstLastPiecePriorityEnabled
     )
   }
+
+  func updatingDownloadStrategy(
+    _ strategy: TorrentDownloadStrategy,
+    enabled: Bool
+  ) -> TorrentSummary {
+    TorrentSummary(
+      id: id,
+      name: name,
+      progress: progress,
+      size: size,
+      downloadSpeed: downloadSpeed,
+      uploadSpeed: uploadSpeed,
+      eta: eta,
+      status: status,
+      shareRatio: shareRatio,
+      savePath: savePath,
+      category: category,
+      tags: tags,
+      addedAt: addedAt,
+      completedAt: completedAt,
+      downloadLimit: downloadLimit,
+      uploadLimit: uploadLimit,
+      isSequentialDownloadEnabled: strategy == .sequential
+        ? enabled : isSequentialDownloadEnabled,
+      isFirstLastPiecePriorityEnabled: strategy == .firstLastPiecePriority
+        ? enabled : isFirstLastPiecePriorityEnabled
+    )
+  }
+}
+
+enum TorrentDownloadStrategy: Hashable, Sendable {
+  case sequential
+  case firstLastPiecePriority
 }
 
 enum TorrentStatus: String, Hashable, Sendable {

@@ -102,6 +102,10 @@ private final class TorrentSelectionState {
 final class TorrentViewController: SwiftUIHostingViewController, UISearchResultsUpdating {
   var onOpenServers: (() -> Void)?
 
+  private var didPresentLiveActivityDemo = false
+  private let launchesLiveActivityDemo = ProcessInfo.processInfo.arguments.contains(
+    "-ui-live-activity-demo"
+  )
   private let model: AppModel
   private let searchState = TorrentSearchState()
   private let selectionState = TorrentSelectionState()
@@ -477,6 +481,14 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     await model.refreshTorrents()
     refreshButton.isEnabled = model.activeServer != nil
     selectButton.isEnabled = !model.torrents.isEmpty
+
+    if launchesLiveActivityDemo,
+      !didPresentLiveActivityDemo,
+      let torrent = model.torrents.first(where: { $0.status == .downloading })
+    {
+      didPresentLiveActivityDemo = true
+      showDetail(for: torrent)
+    }
   }
 }
 
@@ -747,282 +759,6 @@ private struct TorrentRow: View {
 
   private var statusSymbol: String {
     switch torrent.status {
-    case .downloading: "arrow.down.circle.fill"
-    case .seeding: "arrow.up.circle.fill"
-    case .completed: "checkmark.circle.fill"
-    case .paused: "pause.circle.fill"
-    case .queued: "clock.fill"
-    case .error: "exclamationmark.circle.fill"
-    }
-  }
-}
-
-@MainActor
-@Observable
-private final class TorrentDetailState {
-  var errorMessage: String?
-  var isPerformingAction = false
-  var notice: String?
-  var torrent: TorrentSummary
-
-  init(torrent: TorrentSummary) {
-    self.torrent = torrent
-  }
-}
-
-private final class TorrentDetailViewController: SwiftUIHostingViewController {
-  private let model: AppModel
-  private let serverID: UUID
-  private let state: TorrentDetailState
-
-  init(model: AppModel, torrent: TorrentSummary, serverID: UUID) {
-    self.model = model
-    self.serverID = serverID
-    state = TorrentDetailState(torrent: torrent)
-    super.init(nibName: nil, bundle: nil)
-  }
-
-  @available(*, unavailable)
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    title = "任务详情"
-    navigationItem.largeTitleDisplayMode = .never
-    view.backgroundColor = .systemGroupedBackground
-    navigationItem.rightBarButtonItem = UIBarButtonItem(
-      image: UIImage(systemName: "ellipsis.circle"),
-      menu: UIMenu(children: [
-        UIAction(
-          title: "分类、标签与限速",
-          image: UIImage(systemName: "slider.horizontal.3")
-        ) { [weak self] _ in
-          self?.presentManagement()
-        },
-        UIAction(
-          title: "删除任务",
-          image: UIImage(systemName: "trash"),
-          attributes: .destructive
-        ) { [weak self] _ in
-          self?.confirmDelete()
-        },
-      ])
-    )
-    navigationItem.rightBarButtonItem?.accessibilityIdentifier = "torrent-detail-more"
-    host(
-      TorrentDetailContentView { [weak self] in
-        self?.togglePause()
-      }
-      .environment(state)
-    )
-  }
-
-  override func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    if let updated = model.torrents.first(where: { $0.id == state.torrent.id }) {
-      state.torrent = updated
-    }
-  }
-
-  private func togglePause() {
-    let shouldPause = !state.torrent.isPaused
-    state.errorMessage = nil
-    state.notice = nil
-    state.isPerformingAction = true
-    Task {
-      do {
-        state.torrent = try await model.setTorrentPaused(
-          torrentID: state.torrent.id,
-          paused: shouldPause,
-          serverID: serverID
-        )
-        state.notice = shouldPause ? "任务已暂停" : "任务已继续"
-      } catch {
-        state.errorMessage = error.localizedDescription
-      }
-      state.isPerformingAction = false
-    }
-  }
-
-  private func presentManagement() {
-    TorrentManagementViewController.present(
-      from: self,
-      model: model,
-      torrent: state.torrent,
-      serverID: serverID
-    ) { [weak self] updated in
-      self?.state.torrent = updated
-      self?.state.notice = "任务选项已更新"
-    }
-  }
-
-  private func confirmDelete() {
-    let alert = UIAlertController(
-      title: "移除“\(state.torrent.name)”？",
-      message: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。",
-      preferredStyle: .actionSheet
-    )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-    alert.addAction(
-      UIAlertAction(title: "仅移除任务，保留文件", style: .default) { [weak self] _ in
-        self?.deleteTorrent(deleteFiles: false)
-      })
-    alert.addAction(
-      UIAlertAction(title: "移除任务并删除文件", style: .destructive) { [weak self] _ in
-        self?.deleteTorrent(deleteFiles: true)
-      })
-    alert.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
-    present(alert, animated: true)
-  }
-
-  private func deleteTorrent(deleteFiles: Bool) {
-    state.isPerformingAction = true
-    state.errorMessage = nil
-    Task {
-      do {
-        try await model.deleteTorrents(
-          torrentIDs: [state.torrent.id],
-          deleteFiles: deleteFiles,
-          serverID: serverID
-        )
-        navigationController?.popViewController(animated: true)
-      } catch {
-        state.isPerformingAction = false
-        state.errorMessage = error.localizedDescription
-      }
-    }
-  }
-}
-
-private struct TorrentDetailContentView: View {
-  @Environment(TorrentDetailState.self) private var state
-
-  let onTogglePause: () -> Void
-
-  var body: some View {
-    List {
-      Section {
-        VStack(alignment: .leading, spacing: 12) {
-          Text(state.torrent.name)
-            .font(.title2.weight(.bold))
-            .accessibilityIdentifier("torrent-detail-title")
-
-          HStack {
-            Label(state.torrent.statusTitle, systemImage: statusSymbol)
-              .foregroundStyle(statusColor)
-              .accessibilityIdentifier("torrent-detail-status")
-            Spacer()
-            Text(state.torrent.progress, format: .percent.precision(.fractionLength(0)))
-              .font(.headline.monospacedDigit())
-          }
-          ProgressView(value: state.torrent.progress)
-            .tint(statusColor)
-        }
-        .padding(.vertical, 6)
-      }
-
-      if let notice = state.notice {
-        Section {
-          Label(notice, systemImage: "checkmark.circle.fill")
-            .foregroundStyle(.green)
-            .accessibilityIdentifier("torrent-detail-notice")
-        }
-      }
-
-      if let errorMessage = state.errorMessage {
-        Section {
-          Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-            .foregroundStyle(.red)
-            .accessibilityIdentifier("torrent-detail-error")
-        }
-      }
-
-      Section {
-        Button(action: onTogglePause) {
-          if state.isPerformingAction {
-            ProgressView()
-              .frame(maxWidth: .infinity)
-          } else {
-            Label(
-              state.torrent.isPaused ? "继续任务" : "暂停任务",
-              systemImage: state.torrent.isPaused ? "play.fill" : "pause.fill"
-            )
-            .frame(maxWidth: .infinity)
-          }
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(state.isPerformingAction)
-        .accessibilityIdentifier("torrent-detail-action")
-      }
-      .listRowBackground(Color.clear)
-
-      Section("传输") {
-        LabeledContent("下载速度", value: state.torrent.downloadSpeed)
-        LabeledContent("上传速度", value: state.torrent.uploadSpeed)
-        LabeledContent("ETA", value: state.torrent.eta)
-        LabeledContent("分享率", value: String(format: "%.2f", state.torrent.shareRatio))
-        LabeledContent("总大小", value: state.torrent.size)
-        LabeledContent(
-          "下载限速",
-          value: TorrentInput.formattedSpeedLimit(state.torrent.downloadLimit)
-        )
-        LabeledContent(
-          "上传限速",
-          value: TorrentInput.formattedSpeedLimit(state.torrent.uploadLimit)
-        )
-      }
-
-      Section("位置与标识") {
-        detailRow(title: "保存路径", value: state.torrent.savePath)
-        LabeledContent("分类", value: state.torrent.category ?? "无")
-        detailRow(
-          title: "标签",
-          value: state.torrent.tags.isEmpty ? "无" : state.torrent.tags.joined(separator: "、")
-        )
-        detailRow(title: "哈希", value: state.torrent.id, monospaced: true)
-        if let addedAt = state.torrent.addedAt {
-          LabeledContent("添加时间", value: formatted(addedAt))
-        }
-        if let completedAt = state.torrent.completedAt {
-          LabeledContent("完成时间", value: formatted(completedAt))
-        }
-      }
-    }
-    .accessibilityIdentifier("torrent-detail-page")
-  }
-
-  private func detailRow(
-    title: String,
-    value: String,
-    monospaced: Bool = false
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 5) {
-      Text(title)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      Text(value)
-        .font(monospaced ? .footnote.monospaced() : .body)
-        .textSelection(.enabled)
-    }
-  }
-
-  private func formatted(_ date: Date) -> String {
-    date.formatted(date: .abbreviated, time: .shortened)
-  }
-
-  private var statusColor: Color {
-    switch state.torrent.status {
-    case .downloading: .blue
-    case .seeding, .completed: .green
-    case .paused, .queued: .secondary
-    case .error: .red
-    }
-  }
-
-  private var statusSymbol: String {
-    switch state.torrent.status {
     case .downloading: "arrow.down.circle.fill"
     case .seeding: "arrow.up.circle.fill"
     case .completed: "checkmark.circle.fill"

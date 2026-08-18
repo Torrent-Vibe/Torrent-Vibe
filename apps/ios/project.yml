@@ -25,9 +25,17 @@ targets:
       properties:
         CFBundleDisplayName: Torrent Vibe
         CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes:
+              - torrentvibe
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        BGTaskSchedulerPermittedIdentifiers:
+          - dev.innei.torrent-vibe.refresh
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.utilities
+        NSSupportsLiveActivities: true
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSBonjourServices:
@@ -35,6 +43,16 @@ targets:
         NSLocalNetworkUsageDescription: 用于扫描局域网、连接同一网络上的 qBittorrent，并发现 Torrent Vibe Helper。
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UTExportedTypeDeclarations:
+          - UTTypeConformsTo:
+              - public.data
+            UTTypeDescription: BitTorrent Metadata
+            UTTypeIdentifier: dev.innei.torrent
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - torrent
+              public.mime-type:
+                - application/x-bittorrent
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:
@@ -42,15 +60,86 @@ targets:
               - UISceneConfigurationName: Default Configuration
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - fetch
     sources:
       - path: Sources
+      - path: Shared
+      - path: LiveActivityShared
       - path: Resources
         buildPhase: resources
+    dependencies:
+      - target: TorrentVibeShare
+        embed: true
+      - target: TorrentVibeLiveActivity
+        embed: true
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Support/TorrentVibe.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe
         DEVELOPMENT_TEAM: KAMM5N88X3
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        SUPPORTS_MACCATALYST: false
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
+        TARGETED_DEVICE_FAMILY: 1
+  TorrentVibeShare:
+    type: app-extension
+    platform: iOS
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Torrent Vibe
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsFileWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+    sources:
+      - path: ShareExtension
+      - path: Shared
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/TorrentVibeShare.entitlements
+        DEVELOPMENT_TEAM: KAMM5N88X3
+        PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.share
+        PRODUCT_MODULE_NAME: TorrentVibeShare
+        PRODUCT_NAME: TorrentVibeShare
+        SKIP_INSTALL: true
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        SUPPORTS_MACCATALYST: false
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
+        TARGETED_DEVICE_FAMILY: 1
+  TorrentVibeLiveActivity:
+    type: app-extension
+    platform: iOS
+    info:
+      path: LiveActivityExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Torrent Vibe
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    sources:
+      - path: LiveActivityExtension
+      - path: LiveActivityShared
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        DEVELOPMENT_TEAM: KAMM5N88X3
+        PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.live-activity
+        PRODUCT_MODULE_NAME: TorrentVibeLiveActivity
+        PRODUCT_NAME: TorrentVibeLiveActivity
+        SKIP_INSTALL: true
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         SUPPORTS_MACCATALYST: false
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false

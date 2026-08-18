@@ -461,6 +461,111 @@ final class TorrentRepositoryTests: XCTestCase {
     XCTAssertFalse(snapshot.torrents.contains { $0.id == imported.id })
   }
 
+  func testDemoRepositoryProvidesInspectableTorrentContent() async throws {
+    let repository = DemoTorrentRepository()
+    let server = ServerConfiguration(
+      name: "Demo",
+      baseURL: try XCTUnwrap(URL(string: "https://demo.example.test")),
+      username: "demo"
+    )
+    let snapshot = try await repository.snapshot(for: server)
+    let torrent = try XCTUnwrap(snapshot.torrents.first)
+
+    let files = try await repository.files(for: torrent.id, on: server)
+    XCTAssertEqual(files.count, 3)
+    XCTAssertEqual(files.first?.displayName, "Blue.Planet.II.S01E01.2160p.mkv")
+    XCTAssertEqual(files.last?.priorityTitle, "高")
+
+    let trackers = try await repository.trackers(for: torrent.id, on: server)
+    XCTAssertEqual(trackers.first?.statusTitle, "工作中")
+    XCTAssertEqual(trackers.first?.seedCount, 31)
+
+    let peers = try await repository.peers(for: torrent.id, on: server)
+    XCTAssertEqual(peers.count, 3)
+    XCTAssertTrue(peers.contains { $0.endpoint == "[2001:db8::23]:51413" })
+    XCTAssertTrue(peers.allSatisfy { $0.country == "测试网络" })
+  }
+
+  func testDemoRepositoryPersistsTorrentDownloadStrategies() async throws {
+    let repository = DemoTorrentRepository()
+    let server = ServerConfiguration(
+      name: "Demo",
+      baseURL: try XCTUnwrap(URL(string: "https://demo.example.test")),
+      username: "demo"
+    )
+    let initial = try await repository.snapshot(for: server)
+    let torrent = try XCTUnwrap(initial.torrents.first)
+    XCTAssertTrue(torrent.isSequentialDownloadEnabled)
+    XCTAssertFalse(torrent.isFirstLastPiecePriorityEnabled)
+
+    try await repository.toggleDownloadStrategy(
+      .sequential,
+      torrentIDs: [torrent.id],
+      on: server
+    )
+    try await repository.toggleDownloadStrategy(
+      .firstLastPiecePriority,
+      torrentIDs: [torrent.id],
+      on: server
+    )
+
+    let updatedSnapshot = try await repository.snapshot(for: server)
+    let updated = try XCTUnwrap(updatedSnapshot.torrents.first)
+    XCTAssertFalse(updated.isSequentialDownloadEnabled)
+    XCTAssertTrue(updated.isFirstLastPiecePriorityEnabled)
+  }
+
+  func testQBittorrentRepositoryDecodesDownloadStrategiesFromSnapshot() async throws {
+    StubURLProtocol.handler = { request in
+      let path = request.url?.path ?? ""
+      let body: Data
+      if path.hasSuffix("/auth/login") {
+        body = Data("Ok.".utf8)
+      } else if path.hasSuffix("/torrents/info") {
+        body = Data(
+          """
+          [{"hash":"strategy-hash","name":"Strategy Demo","progress":0.5,"size":1048576,"dlspeed":1024,"upspeed":0,"eta":60,"state":"downloading","seq_dl":true,"f_l_piece_prio":false}]
+          """.utf8
+        )
+      } else if path.hasSuffix("/transfer/info") {
+        body = Data("{\"dl_info_speed\":1024,\"up_info_speed\":0}".utf8)
+      } else if path.hasSuffix("/app/version") {
+        body = Data("v5.1.2".utf8)
+      } else {
+        throw URLError(.badServerResponse)
+      }
+      let response = HTTPURLResponse(
+        url: request.url!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+      )!
+      return (response, body)
+    }
+    defer { StubURLProtocol.handler = nil }
+
+    let credentials = TorrentTestCredentialStore()
+    let server = ServerConfiguration(
+      name: "NAS",
+      baseURL: try XCTUnwrap(URL(string: "https://nas.example.test:8080")),
+      username: "admin"
+    )
+    try credentials.setPassword("secret", for: server.id)
+    let repository = QBittorrentTorrentRepository(
+      credentialStore: credentials,
+      sessionFactory: {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: configuration)
+      }
+    )
+
+    let snapshot = try await repository.snapshot(for: server)
+    let torrent = try XCTUnwrap(snapshot.torrents.first)
+    XCTAssertTrue(torrent.isSequentialDownloadEnabled)
+    XCTAssertFalse(torrent.isFirstLastPiecePriorityEnabled)
+  }
+
   func testQBittorrentRepositorySendsFileOptionsAndSafeManagementRequests() async throws {
     let recorder = TorrentRequestRecorder()
     StubURLProtocol.handler = { request in
@@ -546,6 +651,106 @@ final class TorrentRepositoryTests: XCTestCase {
     )
     XCTAssertTrue(uploadLimit.body.contains("hashes=aaa%7Cbbb"))
     XCTAssertTrue(uploadLimit.body.contains("limit=524288"))
+
+    try await repository.toggleDownloadStrategy(
+      .sequential,
+      torrentIDs: ["aaa", "bbb"],
+      on: server
+    )
+    try await repository.toggleDownloadStrategy(
+      .firstLastPiecePriority,
+      torrentIDs: ["aaa", "bbb"],
+      on: server
+    )
+    let sequential = try XCTUnwrap(
+      recorder.requests.last { $0.path.hasSuffix("/torrents/toggleSequentialDownload") }
+    )
+    let firstLast = try XCTUnwrap(
+      recorder.requests.last { $0.path.hasSuffix("/torrents/toggleFirstLastPiecePrio") }
+    )
+    XCTAssertTrue(sequential.body.contains("hashes=aaa%7Cbbb"))
+    XCTAssertTrue(firstLast.body.contains("hashes=aaa%7Cbbb"))
+  }
+
+  func testQBittorrentRepositoryLoadsFilesTrackersAndPeersWithEncodedHash() async throws {
+    let recorder = TorrentRequestRecorder()
+    StubURLProtocol.handler = { request in
+      recorder.append(request)
+      let path = request.url?.path ?? ""
+      let body: Data
+      if path.hasSuffix("/auth/login") {
+        body = Data("Ok.".utf8)
+      } else if path.hasSuffix("/torrents/files") {
+        body = Data(
+          """
+          [{"index":4,"name":"Season/Episode.mkv","size":1048576,"progress":0.75,"priority":6}]
+          """.utf8
+        )
+      } else if path.hasSuffix("/torrents/trackers") {
+        body = Data(
+          """
+          [{"url":"https://tracker.example/announce","status":2,"tier":0,"msg":"Working","num_peers":12,"num_seeds":8,"num_leeches":4,"num_downloaded":31}]
+          """.utf8
+        )
+      } else if path.hasSuffix("/sync/torrentPeers") {
+        body = Data(
+          """
+          {"rid":1,"full_update":true,"peers":{"203.0.113.9:6881":{"ip":"203.0.113.9","port":6881,"client":"qBittorrent 5.1","progress":0.6,"dl_speed":2048,"up_speed":1024,"connection":"BT","flags":"D E","flags_desc":"Downloading, encrypted","country":"Test"}}}
+          """.utf8
+        )
+      } else {
+        throw URLError(.badServerResponse)
+      }
+      let response = HTTPURLResponse(
+        url: request.url!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+      )!
+      return (response, body)
+    }
+    defer { StubURLProtocol.handler = nil }
+
+    let credentials = TorrentTestCredentialStore()
+    let server = ServerConfiguration(
+      name: "NAS",
+      baseURL: try XCTUnwrap(URL(string: "https://nas.example.test:8080")),
+      username: "admin"
+    )
+    try credentials.setPassword("secret", for: server.id)
+    let repository = QBittorrentTorrentRepository(
+      credentialStore: credentials,
+      sessionFactory: {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: configuration)
+      }
+    )
+    let torrentID = "hash with + reserved"
+
+    let files = try await repository.files(for: torrentID, on: server)
+    let trackers = try await repository.trackers(for: torrentID, on: server)
+    let peers = try await repository.peers(for: torrentID, on: server)
+
+    XCTAssertEqual(files.first?.id, 4)
+    XCTAssertEqual(files.first?.progress, 0.75)
+    XCTAssertEqual(trackers.first?.peerCount, 12)
+    XCTAssertEqual(trackers.first?.message, "Working")
+    XCTAssertEqual(peers.first?.client, "qBittorrent 5.1")
+    XCTAssertEqual(peers.first?.downloadSpeed, 2_048)
+
+    let contentRequests = recorder.requests.filter { !$0.path.hasSuffix("/auth/login") }
+    XCTAssertEqual(contentRequests.count, 3)
+    XCTAssertTrue(
+      contentRequests.allSatisfy { request in
+        var components = URLComponents()
+        components.percentEncodedQuery = request.query
+        return components.queryItems?.first(where: { $0.name == "hash" })?.value == torrentID
+      })
+    let peerRequest = try XCTUnwrap(
+      contentRequests.first { $0.path.hasSuffix("/sync/torrentPeers") }
+    )
+    XCTAssertTrue(peerRequest.query.contains("rid=0"))
   }
 }
 
@@ -553,6 +758,7 @@ private struct TorrentRecordedRequest: Sendable {
   let body: String
   let contentType: String
   let path: String
+  let query: String
 }
 
 private final class TorrentRequestRecorder: @unchecked Sendable {
@@ -569,7 +775,10 @@ private final class TorrentRequestRecorder: @unchecked Sendable {
     let recorded = TorrentRecordedRequest(
       body: String(decoding: requestBodyData(request), as: UTF8.self),
       contentType: request.value(forHTTPHeaderField: "Content-Type") ?? "",
-      path: request.url?.path ?? ""
+      path: request.url?.path ?? "",
+      query: request.url.flatMap {
+        URLComponents(url: $0, resolvingAgainstBaseURL: false)?.percentEncodedQuery
+      } ?? ""
     )
     lock.lock()
     storage.append(recorded)
