@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -97,6 +99,7 @@ func run() error {
 			LibraryRoot: next.LibraryRoot,
 			Profile:     profileStore,
 			Fetch:       out.fetchTorrent,
+			PostJSON:    out.postJSON,
 		})
 	}
 	makeDeps := func(next config.File) loop.Deps {
@@ -273,6 +276,36 @@ func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
 	client := h.client
 	h.mu.Unlock()
 	return fetchBytes(client, rawURL)
+}
+
+func (h *outboundHold) postJSON(ctx context.Context, rawURL string, headers map[string]string, body []byte) ([]byte, error) {
+	h.mu.Lock()
+	client := h.client
+	h.mu.Unlock()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rawURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("user-agent", "torrent-vibe-helper/"+version)
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	if req.Header.Get("content-type") == "" {
+		req.Header.Set("content-type", "application/json")
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("http %d", res.StatusCode)
+	}
+	return raw, nil
 }
 
 func fetchBytes(client *http.Client, rawURL string) ([]byte, error) {

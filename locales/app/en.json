@@ -516,7 +516,7 @@
   "servers.helper.mdnsEmpty": "None found",
   "servers.helper.mdnsTitle": "Helpers on this LAN",
   "servers.helper.organizeOnComplete": "Organize when complete",
-  "servers.helper.organizeOnCompleteHint": "Hard-links finished one-off movies and series into the library root. Requires the TMDB group uploaded through credential sync. Helper-managed episodes are skipped.",
+  "servers.helper.organizeOnCompleteHint": "Hard-links finished one-off movies and series into the library root. Requires the TMDB group uploaded through credential sync. Messy names can use a synced OpenAI or OpenRouter key. Helper-managed episodes are skipped.",
   "servers.helper.pairFailed": "Could not connect to that helper.",
   "servers.helper.pairOk": "Helper connected.",
   "servers.helper.paired": "Connected · {{url}}",

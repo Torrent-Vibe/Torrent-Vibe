@@ -1,6 +1,7 @@
 package organize_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/analyze"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/organize"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
@@ -26,7 +28,9 @@ type fakeQB struct {
 	files    map[string][]qb.File
 }
 
-func (f *fakeQB) ListTorrents() ([]qb.Torrent, error) { return append([]qb.Torrent(nil), f.torrents...), nil }
+func (f *fakeQB) ListTorrents() ([]qb.Torrent, error) {
+	return append([]qb.Torrent(nil), f.torrents...), nil
+}
 func (f *fakeQB) AddTorrent(qb.AddRequest) (string, error) {
 	return "", errors.New("unused")
 }
@@ -61,6 +65,10 @@ func movieFetch(rawURL string) ([]byte, error) {
 
 func twoMovieFetch(string) ([]byte, error) {
 	return []byte(`{"results":[{"id":1,"title":"The Matrix"},{"id":2,"title":"The Matrix Reloaded"}]}`), nil
+}
+
+func noUniqueFetch(string) ([]byte, error) {
+	return []byte(`{"results":[{"id":1,"title":"Unrelated"},{"id":2,"title":"Also Unrelated"}]}`), nil
 }
 
 func serviceFor(t *testing.T, qbClient *fakeQB, key string, fetch func(string) ([]byte, error), library string) *organize.Service {
@@ -102,6 +110,37 @@ func TestPlanSkippedHelperEpisode(t *testing.T) {
 	}
 }
 
+func TestPlanSkippedHelperManagedIgnoresLLM(t *testing.T) {
+	dir := t.TempDir()
+	episodes := store.New(dir)
+	if err := episodes.SaveEpisodes(map[string][]store.Episode{
+		store.EpisodeKey("b", "s"): {{
+			EpisodeID: "e", Title: "ep", Infohash: subHash, State: protocol.StateDone,
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	svc := organize.New(organize.Deps{
+		QB: &fakeQB{torrents: []qb.Torrent{{
+			Hash: subHash, Name: "Show.S01E01", SavePath: dir, Progress: 1,
+		}}},
+		Episodes:    episodes,
+		Organized:   store.NewOrganizedStore(t.TempDir()),
+		LibraryRoot: dir,
+		Profile:     profileWithTmdb(t, "k"),
+		Fetch:       twoMovieFetch,
+		Analyze: func(context.Context, analyze.Request) (*analyze.Identity, error) {
+			called = true
+			return &analyze.Identity{Title: "Show", MediaType: "tv", TMDBID: 1, Confidence: 0.99}, nil
+		},
+	})
+	got := svc.Plan(subHash)
+	if got.Status != organize.StatusSkipped || called {
+		t.Fatalf("%+v called=%v", got, called)
+	}
+}
+
 func TestPlanNeedsManualLibraryAndKey(t *testing.T) {
 	qbClient := &fakeQB{torrents: []qb.Torrent{{
 		Hash: movieHash, Name: "The.Matrix.1999.1080p.BluRay.x264", SavePath: "/dl", Progress: 1,
@@ -120,14 +159,76 @@ func TestPlanReadyMovieAndNeedsManualNoUnique(t *testing.T) {
 	qbClient := &fakeQB{torrents: []qb.Torrent{{
 		Hash: movieHash, Name: "The.Matrix.1999.1080p.BluRay.x264", SavePath: "/downloads", Progress: 1,
 	}}, files: map[string][]qb.File{movieHash: {{Name: "The.Matrix.1999.1080p.BluRay.x264.mkv", Size: 10}}}}
-	got := serviceFor(t, qbClient, "k", movieFetch, "/library").Plan(movieHash)
+	analyzeCalls := 0
+	svc := organize.New(organize.Deps{
+		QB:          qbClient,
+		Episodes:    store.New(t.TempDir()),
+		Organized:   store.NewOrganizedStore(t.TempDir()),
+		LibraryRoot: "/library",
+		Profile:     profileWithTmdb(t, "k"),
+		Fetch:       movieFetch,
+		Analyze: func(context.Context, analyze.Request) (*analyze.Identity, error) {
+			analyzeCalls++
+			return nil, errors.New("llm should not run on unique TMDB match")
+		},
+		Now: func() time.Time { return time.Date(2026, 8, 19, 0, 0, 0, 0, time.UTC) },
+	})
+	got := svc.Plan(movieHash)
 	if got.Status != organize.StatusReady || got.TmdbID != 603 || !strings.HasSuffix(got.LibraryRelPath, "The Matrix (1999).mkv") {
 		t.Fatalf("%+v", got)
 	}
-	if !strings.HasPrefix(got.LibraryRelPath, "Movies/") {
-		t.Fatalf("%+v", got)
+	if !strings.HasPrefix(got.LibraryRelPath, "Movies/") || analyzeCalls != 0 {
+		t.Fatalf("%+v analyzeCalls=%d", got, analyzeCalls)
 	}
 	got = serviceFor(t, qbClient, "k", twoMovieFetch, "/library").Plan(movieHash)
+	if got.Status != organize.StatusNeedsManual || got.Reason != organize.ReasonNoUniqueTmdb {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestPlanLLMFallbackReady(t *testing.T) {
+	qbClient := &fakeQB{torrents: []qb.Torrent{{
+		Hash: movieHash, Name: "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP", SavePath: "/downloads", Progress: 1,
+	}}, files: map[string][]qb.File{movieHash: {{Name: "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv", Size: 10}}}}
+	svc := organize.New(organize.Deps{
+		QB:          qbClient,
+		Episodes:    store.New(t.TempDir()),
+		Organized:   store.NewOrganizedStore(t.TempDir()),
+		LibraryRoot: "/library",
+		Profile:     profileWithTmdb(t, "k"),
+		Fetch:       noUniqueFetch,
+		Analyze: func(_ context.Context, request analyze.Request) (*analyze.Identity, error) {
+			if !strings.Contains(request.TorrentName, "www.Site.com") {
+				t.Fatalf("%+v", request)
+			}
+			return &analyze.Identity{
+				Title: "The Matrix", Year: 1999, MediaType: "movie", TMDBID: 603, Confidence: 0.94,
+			}, nil
+		},
+		Now: func() time.Time { return time.Date(2026, 8, 19, 0, 0, 0, 0, time.UTC) },
+	})
+	got := svc.Plan(movieHash)
+	if got.Status != organize.StatusReady || got.TmdbID != 603 || !strings.Contains(got.LibraryRelPath, "The Matrix (1999)") {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestPlanNeedsManualWhenUniqueAndLLMFail(t *testing.T) {
+	qbClient := &fakeQB{torrents: []qb.Torrent{{
+		Hash: movieHash, Name: "The.Matrix.1999.1080p.BluRay.x264", SavePath: "/downloads", Progress: 1,
+	}}, files: map[string][]qb.File{movieHash: {{Name: "The.Matrix.1999.1080p.BluRay.x264.mkv", Size: 10}}}}
+	svc := organize.New(organize.Deps{
+		QB:          qbClient,
+		Episodes:    store.New(t.TempDir()),
+		Organized:   store.NewOrganizedStore(t.TempDir()),
+		LibraryRoot: "/library",
+		Profile:     profileWithTmdb(t, "k"),
+		Fetch:       noUniqueFetch,
+		Analyze: func(context.Context, analyze.Request) (*analyze.Identity, error) {
+			return &analyze.Identity{Title: "Maybe", MediaType: "movie", TMDBID: 1, Confidence: 0.2}, nil
+		},
+	})
+	got := svc.Plan(movieHash)
 	if got.Status != organize.StatusNeedsManual || got.Reason != organize.ReasonNoUniqueTmdb {
 		t.Fatalf("%+v", got)
 	}

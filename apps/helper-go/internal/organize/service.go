@@ -1,6 +1,7 @@
 package organize
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/analyze"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/tmdb"
@@ -60,6 +62,8 @@ type Deps struct {
 	LibraryRoot string
 	Profile     *store.ProfileStore
 	Fetch       func(rawURL string) ([]byte, error)
+	PostJSON    analyze.PostJSON
+	Analyze     func(ctx context.Context, request analyze.Request) (*analyze.Identity, error)
 	Now         func() time.Time
 	Link        func(oldName, newName string) error
 	Copy        func(oldName, newName string) error
@@ -215,7 +219,18 @@ func (s *Service) plan(hash string) planned {
 		}
 	}
 	if err != nil || match == nil {
-		return next.manual(ReasonNoUniqueTmdb)
+		ident, _ := s.identify(torrent.Name, files, parsed)
+		if ident != nil && ident.Unsupported() {
+			return next.manual(ReasonUnsupportedKind)
+		}
+		if ident == nil || !ident.Ready() {
+			return next.manual(ReasonNoUniqueTmdb)
+		}
+		parsed = applyIdentity(parsed, ident)
+		if (parsed.Kind == KindTV || parsed.Kind == KindAnime) && parsed.Episode == nil {
+			return next.manual(ReasonMissingEpisode)
+		}
+		match = &tmdb.Match{ID: ident.TMDBID, Title: ident.Title, Year: ident.Year}
 	}
 	title := firstNonEmpty(match.Title, parsed.Title)
 	year := match.Year
@@ -309,6 +324,62 @@ func (s *Service) tmdbKey() string {
 		return ""
 	}
 	return s.deps.Profile.Value("metadata.tmdb.apiKey")
+}
+
+func (s *Service) identify(name string, files []qb.File, parsed Parsed) (*analyze.Identity, error) {
+	request := analyze.Request{
+		TorrentName: name,
+		Files:       fileNames(files),
+		ParsedTitle: parsed.Title,
+		ParsedYear:  parsed.Year,
+		ParsedKind:  string(parsed.Kind),
+		Season:      parsed.Season,
+		Episode:     parsed.Episode,
+	}
+	if s.deps.Analyze != nil {
+		return s.deps.Analyze(context.Background(), request)
+	}
+	provider := analyze.SelectProvider(s.deps.Profile)
+	if provider == nil || s.deps.PostJSON == nil {
+		return nil, nil
+	}
+	return analyze.New(*provider, tmdb.New(s.tmdbKey(), s.deps.Fetch), s.deps.PostJSON).Identify(context.Background(), request)
+}
+
+func applyIdentity(parsed Parsed, ident *analyze.Identity) Parsed {
+	if ident == nil {
+		return parsed
+	}
+	if strings.TrimSpace(ident.Title) != "" {
+		parsed.Title = ident.Title
+	}
+	if ident.Year > 0 {
+		parsed.Year = ident.Year
+	}
+	if ident.Season != nil {
+		parsed.Season = ident.Season
+		parsed.SeasonAmbiguous = false
+	}
+	if ident.Episode != nil {
+		parsed.Episode = ident.Episode
+	}
+	switch ident.MediaType {
+	case "movie":
+		parsed.Kind = KindMovie
+	case "tv":
+		parsed.Kind = KindTV
+	case "anime":
+		parsed.Kind = KindAnime
+	}
+	return parsed
+}
+
+func fileNames(files []qb.File) []string {
+	out := make([]string, 0, len(files))
+	for _, file := range files {
+		out = append(out, file.Name)
+	}
+	return out
 }
 
 func (s *Service) lookup(hash string) (qb.Torrent, []qb.File, bool) {

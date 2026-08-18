@@ -136,7 +136,7 @@ private struct HelperConnectionContentView: View {
             Task { await saveOrganizeOnComplete(enabled) }
           }
       } footer: {
-        Text("完成后将一次性电影/剧集硬链接到媒体库根目录，需要已通过凭证同步上传 TMDB。")
+        Text("完成后将一次性电影/剧集硬链接到媒体库根目录，需要已通过凭证同步上传 TMDB。难认的发布名可用已同步的 OpenAI / OpenRouter。")
       }
 
       if let organizeError {

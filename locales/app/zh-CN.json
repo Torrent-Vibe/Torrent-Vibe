@@ -515,7 +515,7 @@
   "servers.helper.mdnsEmpty": "未发现",
   "servers.helper.mdnsTitle": "局域网中的 Helper",
   "servers.helper.organizeOnComplete": "完成后自动整理",
-  "servers.helper.organizeOnCompleteHint": "完成后将一次性电影/剧集硬链接到媒体库根目录，需要已通过凭证同步上传 TMDB。Helper 追更剧集会被跳过。",
+  "servers.helper.organizeOnCompleteHint": "完成后将一次性电影/剧集硬链接到媒体库根目录，需要已通过凭证同步上传 TMDB。难认的发布名可用已同步的 OpenAI / OpenRouter。Helper 追更剧集会被跳过。",
   "servers.helper.pairFailed": "无法连接该 Helper。",
   "servers.helper.pairOk": "Helper 已连接。",
   "servers.helper.paired": "已连接 · {{url}}",

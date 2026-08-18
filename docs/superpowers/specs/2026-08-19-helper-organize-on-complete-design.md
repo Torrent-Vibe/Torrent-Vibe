@@ -31,10 +31,10 @@ Auto-organize is off by default. Desktop/iOS can still fire `POST /organize` for
 - TMDB: `metadata.tmdb.apiKey` from Profile. Required
 - LLM: Not required. Do not block on `ai.openai.apiKey`
 - How keys get there: User uploads the `tmdb` group via 凭证同步. Not implicit on pair
-- Identity: Title parse + TMDB, same spirit as helper identity scrape (`docs/superpowers/specs/2026-08-17-helper-identity-scrape-design.md`)
+- Identity: Title parse + TMDB unique match, then optional Profile LLM fallback (same spirit as desktop `analyzeName`, Helper-go only)
 - In scope: one-off `movie` / `tv` / `anime`
 - Out: Helper subscription episodes; `music` / `other`; collections
-- Gate: Unique TMDB match. No match → `needs-manual`
+- Gate: Unique or high-confidence TMDB match. Otherwise `needs-manual`
 - Auto: `organizeOnComplete` on Helper config, default false
 - Manual: `POST /organize` `{ hash }`
 - Persist `hash → libraryRelPath` in Helper store
@@ -79,10 +79,12 @@ Do not ship the Electron agent.
 1. Parse torrent name + qB file list for title, year, SxxEyy, kind.
 2. TMDB search movie or tv with `metadata.tmdb.apiKey`.
 3. Keep a candidate only when name / original_name matches after stripping spaces and punctuation, or one contains the other.
-4. If the kept set is not size 1, `needs-manual`.
-5. Series season rules stay with the identity scrape spec (clear token wins; TMDB only when seasonAmbiguous).
+4. If the kept set is size 1, that identity is used.
+5. If not, and Profile has `ai.openai.apiKey` or `ai.openrouter.apiKey`, run a thin Helper LLM loop (TMDB tools + `submitMetadata`). Codex is not used (no API key on Profile). Missing LLM key is OK.
+6. Apply only when the payload is a unique TMDB fold-match or a high-confidence TMDB id (`confidence >= 0.8`). Otherwise `needs-manual`.
+7. Series season rules stay with the identity scrape spec (clear token wins; TMDB only when seasonAmbiguous).
 
-No LLM, no web search, no submitMetadata schema on Helper.
+No Electron torrent-ai package, no web search, no agent-browser.
 
 ### Plan / Apply
 
@@ -99,6 +101,6 @@ Sanitize titles for the filesystem. Year omitted if unknown. Specials → Season
 
 ### Desktop UI
 
-- Helper config: toggle 完成后自动整理 (maps to `organizeOnComplete`), short note that this hard-links into libraryRoot and needs TMDB synced
+- Helper config: toggle 完成后自动整理 (maps to `organizeOnComplete`), short note that this hard-links into libraryRoot, needs TMDB synced, and may use a synced OpenAI / OpenRouter key for messy names
 - Completed one-off torrent: 「整理」 calling `POST /organize`
 - Show needs-manual reason; on ok show dest / reveal if you already have path actions
