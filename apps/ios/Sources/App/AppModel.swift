@@ -349,6 +349,28 @@ final class AppModel {
     }
   }
 
+  func helperProfile(for serverID: UUID) async throws -> HelperProfileSnapshot {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.profile(
+      at: authorization.baseURL,
+      token: authorization.token
+    )
+  }
+
+  func updateHelperProfile(
+    for serverID: UUID,
+    revision: UInt64,
+    mutations: [HelperProfileMutation]
+  ) async throws -> HelperProfileSnapshot {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.updateProfile(
+      at: authorization.baseURL,
+      token: authorization.token,
+      revision: revision,
+      mutations: mutations
+    )
+  }
+
   func pairHelper(serverID: UUID, baseURLText: String, pairingCode: String) async {
     guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
     helperConnectionStates[serverID] = .connecting

@@ -1,6 +1,6 @@
 # Helper 集成边界
 
-状态：已确认 · HELPER-E01 / IOS-E07–E09 已完成 · 更新：2026-08-18 · 任务：IOS-D05
+状态：已确认 · HELPER-E01 / IOS-E07–E09 / IOS-E22 已完成 · 更新：2026-08-19 · 任务：IOS-D05
 
 返回 [设计总览](../2026-08-17-ios-app-design.md)。
 
@@ -46,6 +46,8 @@
 | `POST /unpair`       | 当前 Bearer Token                              | 只撤销当前客户端                             |
 | `GET /subscriptions` | —                                              | `{ revision, replicas }`                     |
 | `PUT /subscriptions` | `revision`、完整 `replicas`                    | 成功递增 revision；过期返回 `409` 与当前快照 |
+| `GET /profile`       | 当前 Bearer Token                              | `{ revision, records }`                      |
+| `PATCH /profile`     | `revision`、显式 `set/delete` mutations        | 只修改列出的配置；过期返回 `409` 与当前快照  |
 
 旧版 `bound: true + token` 在首次启动时迁移为 `legacy-desktop` 客户端；旧 Token 继续有效，磁盘只保留 Token Hash。旧版未绑定 Token 不获得客户端权限。
 
@@ -55,14 +57,25 @@
 2. `IOS-E07`（已完成）：Helper 发现、手动 URL、用户输入配对码、独立凭据、只读状态。
 3. `IOS-E08`（已完成）：订阅、目标服务器、一次性批量导入、状态与重试。
 4. `IOS-E09`（已完成）：聚合同一订阅的多 Helper 副本，编辑目标并回到 Mikan 详情。
-5. Helper 远程配置与危险重置操作后置，不与首次配对同时实现。
+5. `IOS-E22`（已完成）：Helper 保存通用凭证 Profile；桌面端与 iOS 选择分组后显式上传或拉取。
+6. Helper 危险重置操作后置，不与配对或凭证同步同时实现。
 
 ## 页面承载
 
 - 设置 → 服务器详情 → Helper：负责发现、配对、状态和管理。
+- Desktop 的 Helper 卡片只显示“凭证同步”入口，点击后在二级 Modal 中选择分组并显式上传或拉取。
+- 设置 → 服务器详情 → Helper → 凭证同步：iOS 在二级页面选择 M-Team 或 Mikan 后显式上传或拉取；每次覆盖前再次确认。
 - Mikan 详情：“导入已出”调用一次性批量导入；“订阅”管理持续追更目标。
 - 我的订阅：从 Helper 汇总活动副本与剧集状态，不以 iOS 本地集合覆盖远端。
 
+## 凭证 Profile 边界
+
+- Helper 是跨设备 Profile 的真相源，但不自动同步，也不在配对时隐式复制数据。
+- 客户端只发送用户所选分组的已有记录；未选择或来源端缺失的记录不会被删除。
+- 桌面端可同步 M-Team、Mikan、AI、OMDb 与 TMDB 配置；iOS 当前只应用 M-Team 与 Mikan，其他记录原样保留在 Helper。
+- M-Team 请求仍由当前客户端直连 M-Team；Helper 不承担请求代理。
+- `secret` 是分类与 UI 语义，不是字段级加密。Helper 以 `0600` 文件保存 Profile，所有已配对客户端具有读取能力。
+
 ## 已确认结论
 
-Helper 是每台服务器的订阅真相。iOS 已接入多客户端凭据、revision 合并、持续订阅、一次性批量导入、状态、重试、目标编辑与详情回跳。
+Helper 是每台服务器的订阅与跨设备 Profile 真相。iOS 已接入多客户端凭据、显式 Profile 上传/拉取、revision 合并、持续订阅、一次性批量导入、状态、重试、目标编辑与详情回跳。

@@ -80,6 +80,7 @@ func run() error {
 	}
 
 	st := store.New(*dataDir)
+	profileStore := store.NewProfileStore(*dataDir)
 	out := &outboundHold{}
 	if err := out.apply(cfg.ProxyURL); err != nil {
 		return err
@@ -120,6 +121,7 @@ func run() error {
 		AdvertisedQbit: cfg.QbitURL,
 		PairingCode:    code,
 		Pairings:       pairings,
+		ProfileStore:   profileStore,
 		Store:          st,
 		DataDir:        *dataDir,
 		Config:         cfg,

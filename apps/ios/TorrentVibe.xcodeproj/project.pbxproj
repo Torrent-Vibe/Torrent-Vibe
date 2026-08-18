@@ -21,6 +21,7 @@
 		24957C73F4F943F83BFDB77A /* TorrentLiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB1FC4982F670959DFC149A /* TorrentLiveActivityCoordinator.swift */; };
 		2BF41BB13CFA3D94AF14B807 /* TorrentInspectorKindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4E557F8572DDB0F4268B65 /* TorrentInspectorKindTests.swift */; };
 		42CBBE956B327CAF3D9F8F66 /* RootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229627CA1BCF12DE066581DC /* RootTabBarController.swift */; };
+		42D55E38C69DB6B5738029E8 /* HelperProfileSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */; };
 		4CED85FA59EF8F8F562ACC7C /* TorrentSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E69881D46153D487A181E0F /* TorrentSummary.swift */; };
 		4DA26BBCEA867A12A0AC0B10 /* AppContentLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2D27817126601C4E5C8D5A /* AppContentLayout.swift */; };
 		554D0020A9A1F5ED27DAB88E /* MikanDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2785CB74ECAC4C80AB91DEF0 /* MikanDetailView.swift */; };
@@ -175,6 +176,7 @@
 		F0F67E9C29A84D3ADFDD5C96 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F3941630C73DB54F301038BE /* TorrentShareInboxTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentShareInboxTests.swift; sourceTree = "<group>"; };
 		F56BCBF3EDE5E2FAA0B786B7 /* ServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfiguration.swift; sourceTree = "<group>"; };
+		FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProfileSyncView.swift; sourceTree = "<group>"; };
 		FDFAFD5BC7BB234FAACF8CD2 /* AppearanceMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceMode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -191,6 +193,7 @@
 			isa = PBXGroup;
 			children = (
 				CA44D4CD2D72EA0E0C6A9844 /* HelperConnectionView.swift */,
+				FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */,
 				843F8023B76EE8DC16A7B6CC /* ServerEditorView.swift */,
 				C88815B5DDEF6C616AF1A8A2 /* ServersView.swift */,
 			);
@@ -565,6 +568,7 @@
 				6D026E17D91E69B9AC4B14D9 /* HelperContent.swift in Sources */,
 				16CBA00AB033F0F25A2C2A00 /* HelperCredentialStore.swift in Sources */,
 				B728EFD7AAAB892DEF532806 /* HelperDiscovery.swift in Sources */,
+				42D55E38C69DB6B5738029E8 /* HelperProfileSyncView.swift in Sources */,
 				1B3AE2EC4D34BF18FE5FC42E /* HelperService.swift in Sources */,
 				6710EE0B5DC6028549A80198 /* HelperSubscriptionCoordinator.swift in Sources */,
 				8AAB053704234E55B9A39969 /* MTeamBatchImportView.swift in Sources */,

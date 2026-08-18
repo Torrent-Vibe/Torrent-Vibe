@@ -10,6 +10,9 @@ import type {
   HelperDiscoverInfo,
   HelperEpisodeStatus,
   HelperJobStatus,
+  HelperProfileMutation,
+  HelperProfileRecord,
+  HelperProfileSnapshot,
   HelperReplicaStatus,
   HelperStatusResponse,
 } from './types'
@@ -80,11 +83,75 @@ export const discoverHelper = async (
       typeof record.advertisedQbitUrl === 'string'
         ? record.advertisedQbitUrl
         : '',
+    capabilities: Array.isArray(record.capabilities)
+      ? record.capabilities.filter(
+          (capability): capability is string => typeof capability === 'string',
+        )
+      : [],
     clientCount:
       typeof record.clientCount === 'number' ? record.clientCount : 0,
     port: typeof record.port === 'number' ? record.port : 17890,
     requiresPairingCode: record.requiresPairingCode !== false,
   }
+}
+
+const parseProfileSnapshot = (body: unknown): HelperProfileSnapshot => {
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    typeof (body as { revision?: unknown }).revision !== 'number' ||
+    !Array.isArray((body as { records?: unknown }).records)
+  ) {
+    throw new Error('invalid profile payload')
+  }
+  const records = (body as { records: unknown[] }).records.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+    const record = entry as Record<string, unknown>
+    if (typeof record.key !== 'string' || typeof record.value !== 'string') {
+      return []
+    }
+    return [
+      {
+        key: record.key,
+        value: record.value,
+        secret: record.secret === true,
+        updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : '',
+        updatedBy: typeof record.updatedBy === 'string' ? record.updatedBy : '',
+      } satisfies HelperProfileRecord,
+    ]
+  })
+  return {
+    revision: (body as { revision: number }).revision,
+    records,
+  }
+}
+
+export const getHelperProfile = async (
+  baseUrl: string,
+  token: string,
+): Promise<HelperProfileSnapshot> => {
+  const body = await request(baseUrl, '/profile', { method: 'GET' }, token)
+  return parseProfileSnapshot(body)
+}
+
+export const patchHelperProfile = async (
+  baseUrl: string,
+  token: string,
+  revision: number,
+  mutations: HelperProfileMutation[],
+): Promise<HelperProfileSnapshot> => {
+  const body = await request(
+    baseUrl,
+    '/profile',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ revision, mutations }),
+    },
+    token,
+  )
+  return parseProfileSnapshot(body)
 }
 
 export const pairHelper = async (

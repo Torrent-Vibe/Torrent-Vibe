@@ -116,6 +116,32 @@ struct HelperSubscriptionMutation: Hashable, Sendable {
   let mergedConflict: Bool
 }
 
+struct HelperProfileRecord: Codable, Hashable, Identifiable, Sendable {
+  let key: String
+  let value: String
+  let secret: Bool
+  let updatedAt: String
+  let updatedBy: String
+
+  var id: String { key }
+}
+
+struct HelperProfileSnapshot: Codable, Hashable, Sendable {
+  let revision: UInt64
+  let records: [HelperProfileRecord]
+}
+
+struct HelperProfileMutation: Codable, Hashable, Sendable {
+  let operation: String
+  let key: String
+  let value: String?
+  let secret: Bool?
+
+  static func set(key: String, value: String, secret: Bool) -> Self {
+    Self(operation: "set", key: key, value: value, secret: secret)
+  }
+}
+
 struct HelperSubscriptionTarget: Hashable, Identifiable, Sendable {
   let serverID: UUID
   let serverName: String

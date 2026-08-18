@@ -10,10 +10,31 @@ export const WEB_SERVER_ID = 'web'
 export interface HelperDiscoverInfo {
   advertisedQbitUrl: string
   bindState: 'bound' | 'unbound' | string
+  capabilities: string[]
   clientCount: number
   port: number
   requiresPairingCode: boolean
   version: string
+}
+
+export interface HelperProfileRecord {
+  key: string
+  secret: boolean
+  updatedAt: string
+  updatedBy: string
+  value: string
+}
+
+export interface HelperProfileSnapshot {
+  records: HelperProfileRecord[]
+  revision: number
+}
+
+export interface HelperProfileMutation {
+  key: string
+  operation: 'delete' | 'set'
+  secret?: boolean
+  value?: string
 }
 
 export interface HelperBinding {

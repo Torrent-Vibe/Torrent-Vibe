@@ -44,6 +44,7 @@ func start(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server {
 		AdvertisedQbit: "http://127.0.0.1:8080",
 		PairingCode:    pairingCode,
 		Pairings:       pairings,
+		ProfileStore:   store.NewProfileStore(dir),
 		Store:          st,
 		DataDir:        dir,
 	}
@@ -66,6 +67,7 @@ func startUnpaired(t *testing.T, opts ...func(*httpx.Runtime)) *httptest.Server 
 		AdvertisedQbit: "http://127.0.0.1:8080",
 		PairingCode:    pairingCode,
 		Pairings:       pairings,
+		ProfileStore:   store.NewProfileStore(dir),
 		Store:          store.New(dir),
 		DataDir:        dir,
 	}

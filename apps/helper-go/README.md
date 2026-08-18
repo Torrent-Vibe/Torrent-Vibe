@@ -17,6 +17,17 @@ Default port `17890`. Pairing code is printed at boot.
 
 Subscription reads return `{ revision, replicas }`. A full-set `PUT /subscriptions` must include the revision it read; stale writes receive `409` with the current snapshot.
 
+## Credential profile sync
+
+Paired clients may use `GET /profile` and revision-checked `PATCH /profile` to
+store selected application configuration on the Helper. Records use stable
+namespaced keys such as `discover.mteam.apiKey` and `ai.openai.apiKey`.
+
+- Synchronization is always initiated by the user; pairing does not upload or pull data.
+- A patch changes only its explicit `set` or `delete` mutations. Omitted records remain unchanged.
+- Stale revisions receive `409` with the latest profile snapshot.
+- `profile.json` is written atomically with owner-only (`0600`) permissions. Every paired client can read the profile, including records marked `secret`.
+
 ## Flags / env
 
 | Flag             | Env                | Default                 |

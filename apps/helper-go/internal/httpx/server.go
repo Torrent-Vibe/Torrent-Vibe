@@ -20,6 +20,7 @@ type Runtime struct {
 	AdvertisedQbit   string
 	PairingCode      string
 	Pairings         *store.PairingStore
+	ProfileStore     *store.ProfileStore
 	Store            *store.Store
 	DataDir          string
 	Config           config.File
@@ -44,6 +45,8 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("POST /unpair", rt.authed(rt.unpair))
 	mux.HandleFunc("GET /config", rt.authed(rt.getConfig))
 	mux.HandleFunc("PUT /config", rt.authed(rt.putConfig))
+	mux.HandleFunc("GET /profile", rt.authed(rt.getProfile))
+	mux.HandleFunc("PATCH /profile", rt.authed(rt.patchProfile))
 	mux.HandleFunc("POST /retry", rt.authed(rt.retry))
 	return mux
 }
@@ -76,6 +79,7 @@ func (rt *Runtime) discover(w http.ResponseWriter, _ *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"version":             rt.Version,
+		"capabilities":        []string{"profile-sync-v1"},
 		"bindState":           state,
 		"advertisedQbitUrl":   rt.AdvertisedQbit,
 		"clientCount":         clientCount,

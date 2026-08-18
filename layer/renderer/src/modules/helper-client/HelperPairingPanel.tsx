@@ -11,6 +11,7 @@ import { connectHelper, helperOwnerName } from './connect'
 import { HelperConfigForm } from './HelperConfigForm'
 import { HelperInstallSnippet } from './HelperInstallSnippet'
 import { HelperMdnsList } from './HelperMdnsList'
+import { HelperProfileSyncPanel } from './HelperProfileSyncPanel'
 
 export const HelperPairingPanel = ({
   serverId,
@@ -108,15 +109,18 @@ export const HelperPairingPanel = ({
       </div>
 
       {binding ? (
-        <details className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-text [&::-webkit-details-marker]:hidden">
-            <i className="i-mingcute-down-line text-sm transition-transform duration-200 group-open:rotate-180" />
-            {t('servers.helper.configTitle')}
-          </summary>
-          <div className="mt-3 ml-1 border-l border-border/60 pl-4">
-            <HelperConfigForm serverId={serverId} />
-          </div>
-        </details>
+        <>
+          <HelperProfileSyncPanel serverId={serverId} />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-text [&::-webkit-details-marker]:hidden">
+              <i className="i-mingcute-down-line text-sm transition-transform duration-200 group-open:rotate-180" />
+              {t('servers.helper.configTitle')}
+            </summary>
+            <div className="mt-3 ml-1 border-l border-border/60 pl-4">
+              <HelperConfigForm serverId={serverId} />
+            </div>
+          </details>
+        </>
       ) : (
         <>
           {electron && (

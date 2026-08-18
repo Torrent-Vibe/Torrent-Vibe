@@ -255,6 +255,155 @@ final class HelperServiceTests: XCTestCase {
     }
   }
 
+  func testProfileGetAndSelectivePatchContract() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+      switch (request.httpMethod, request.url?.path) {
+      case ("GET", "/profile"):
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "revision": 4,
+            "records": [
+              [
+                "key": "ai.openai.apiKey",
+                "value": "remote-openai-key",
+                "secret": true,
+                "updatedAt": "2026-08-19T12:00:00Z",
+                "updatedBy": "desktop-client",
+              ]
+            ],
+          ]
+        )
+      case ("PATCH", "/profile"):
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["revision"] as? Int, 4)
+        let mutations = try XCTUnwrap(json["mutations"] as? [[String: Any]])
+        XCTAssertEqual(mutations.count, 1)
+        XCTAssertEqual(mutations[0]["operation"] as? String, "set")
+        XCTAssertEqual(mutations[0]["key"] as? String, "discover.mteam.apiKey")
+        XCTAssertEqual(mutations[0]["value"] as? String, "ios-mteam-key")
+        XCTAssertEqual(mutations[0]["secret"] as? Bool, true)
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "revision": 5,
+            "records": [
+              [
+                "key": "ai.openai.apiKey",
+                "value": "remote-openai-key",
+                "secret": true,
+                "updatedAt": "2026-08-19T12:00:00Z",
+                "updatedBy": "desktop-client",
+              ],
+              [
+                "key": "discover.mteam.apiKey",
+                "value": "ios-mteam-key",
+                "secret": true,
+                "updatedAt": "2026-08-19T12:01:00Z",
+                "updatedBy": "ios-client",
+              ],
+            ],
+          ]
+        )
+      default:
+        XCTFail(
+          "Unexpected Helper request: \(request.httpMethod ?? "nil") \(request.url?.path ?? "nil")")
+        return Self.response(request, status: 404, json: ["error": "not found"])
+      }
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let current = try await service.profile(at: baseURL, token: "token-value")
+    XCTAssertEqual(current.revision, 4)
+    XCTAssertEqual(current.records.map(\.key), ["ai.openai.apiKey"])
+    XCTAssertTrue(try XCTUnwrap(current.records.first).secret)
+
+    let updated = try await service.updateProfile(
+      at: baseURL,
+      token: "token-value",
+      revision: current.revision,
+      mutations: [
+        .set(key: "discover.mteam.apiKey", value: "ios-mteam-key", secret: true)
+      ]
+    )
+    XCTAssertEqual(updated.revision, 5)
+    XCTAssertEqual(
+      Set(updated.records.map(\.key)),
+      Set(["ai.openai.apiKey", "discover.mteam.apiKey"])
+    )
+  }
+
+  func testProfileRevisionConflictIncludesLatestRecords() async throws {
+    StubURLProtocol.handler = { request in
+      Self.response(
+        request,
+        status: 409,
+        json: [
+          "error": "revision conflict",
+          "revision": 8,
+          "records": [
+            [
+              "key": "ai.openrouter.apiKey",
+              "value": "latest-key",
+              "secret": true,
+              "updatedAt": "2026-08-19T12:00:00Z",
+              "updatedBy": "desktop-client",
+            ]
+          ],
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    do {
+      _ = try await service.updateProfile(
+        at: baseURL,
+        token: "token-value",
+        revision: 7,
+        mutations: [.set(key: "discover.mteam.enabled", value: "true", secret: false)]
+      )
+      XCTFail("Expected profile revision conflict")
+    } catch HelperServiceError.profileRevisionConflict(let latest) {
+      XCTAssertEqual(latest.revision, 8)
+      XCTAssertEqual(latest.records.map(\.key), ["ai.openrouter.apiKey"])
+    }
+  }
+
+  func testDemoProfilePatchPreservesUnselectedAIRecords() async throws {
+    let service = DemoHelperService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let current = try await service.profile(at: baseURL, token: "token-value")
+
+    let updated = try await service.updateProfile(
+      at: baseURL,
+      token: "token-value",
+      revision: current.revision,
+      mutations: [
+        .set(
+          key: "discover.mteam.baseUrl",
+          value: "https://m-team.example.test/api",
+          secret: false
+        )
+      ]
+    )
+
+    XCTAssertEqual(updated.revision, current.revision + 1)
+    XCTAssertEqual(
+      updated.records.first { $0.key == "ai.openai.apiKey" }?.value,
+      "demo-openai-key"
+    )
+    XCTAssertEqual(
+      updated.records.first { $0.key == "discover.mteam.baseUrl" }?.value,
+      "https://m-team.example.test/api"
+    )
+  }
+
   func testCoordinatorMergesLatestRemoteSnapshotAfterConflict() async throws {
     let service = DemoHelperService()
     let coordinator = HelperSubscriptionCoordinator(service: service)

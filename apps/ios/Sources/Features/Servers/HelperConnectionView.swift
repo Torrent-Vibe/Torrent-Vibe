@@ -29,6 +29,9 @@ final class HelperConnectionViewController: SwiftUIHostingViewController {
         discovery: discovery,
         onConfirmUnpair: { [weak self] in
           self?.confirmUnpair()
+        },
+        onOpenProfileSync: { [weak self] in
+          self?.showProfileSync()
         }
       )
       .environment(model)
@@ -59,6 +62,13 @@ final class HelperConnectionViewController: SwiftUIHostingViewController {
       })
     present(alert, animated: true)
   }
+
+  private func showProfileSync() {
+    navigationController?.pushViewController(
+      HelperProfileSyncViewController(model: model, serverID: serverID),
+      animated: true
+    )
+  }
 }
 
 private struct HelperConnectionContentView: View {
@@ -69,6 +79,7 @@ private struct HelperConnectionContentView: View {
   let serverID: UUID
   let discovery: HelperDiscoveryModel
   let onConfirmUnpair: () -> Void
+  let onOpenProfileSync: () -> Void
 
   var body: some View {
     Group {
@@ -109,6 +120,21 @@ private struct HelperConnectionContentView: View {
       Section("端点") {
         LabeledContent("地址", value: server?.helperBaseURL?.absoluteString ?? "—")
         LabeledContent("凭据", value: "本机 Keychain")
+      }
+
+      Section {
+        Button(action: onOpenProfileSync) {
+          HStack {
+            Label("凭证同步", systemImage: "arrow.triangle.2.circlepath")
+            Spacer()
+            Image(systemName: "chevron.right")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.tertiary)
+          }
+        }
+        .accessibilityIdentifier("helper-profile-sync")
+      } footer: {
+        Text("选择上传本机凭证，或从该下载机拉取凭证；不会自动覆盖。")
       }
 
       Section {
