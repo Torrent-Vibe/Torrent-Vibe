@@ -189,36 +189,15 @@ func (s *Service) plan(hash string) planned {
 	}
 	primary := primaryVideo(videos)
 	parsed := Parse(torrent.Name, files)
-	if parsed.Title == "" {
-		return next.manual(ReasonParseFailed)
-	}
 	switch parsed.Kind {
 	case KindMusic, KindOther:
 		return next.manual(ReasonUnsupportedKind)
 	case KindCollection:
 		return next.manual(ReasonCollection)
-	case KindTV, KindAnime:
-		if parsed.Episode == nil {
-			return next.manual(ReasonMissingEpisode)
-		}
 	}
 	client := tmdb.New(key, s.deps.Fetch)
-	var (
-		match *tmdb.Match
-		err   error
-	)
-	if parsed.Kind == KindMovie {
-		match, err = client.SearchUniqueMovie(parsed.Title)
-	} else {
-		match, err = client.SearchUniqueTV(parsed.Title)
-		if err == nil && match != nil && parsed.SeasonAmbiguous && parsed.Season == nil {
-			if season := client.PickSeason(match.ID, parsed.Identity); season != nil {
-				parsed.Season = season
-				parsed.SeasonAmbiguous = false
-			}
-		}
-	}
-	if err != nil || match == nil {
+	var match *tmdb.Match
+	if s.canAnalyze() {
 		ident, _ := s.identify(torrent.Name, files, parsed)
 		if ident != nil && ident.Unsupported() {
 			return next.manual(ReasonUnsupportedKind)
@@ -230,7 +209,24 @@ func (s *Service) plan(hash string) planned {
 		if (parsed.Kind == KindTV || parsed.Kind == KindAnime) && parsed.Episode == nil {
 			return next.manual(ReasonMissingEpisode)
 		}
-		match = &tmdb.Match{ID: ident.TMDBID, Title: ident.Title, Year: ident.Year}
+		if confirmed, nextParsed, _ := uniqueMatch(client, parsed); confirmed != nil {
+			parsed = nextParsed
+			match = confirmed
+		} else {
+			match = &tmdb.Match{ID: ident.TMDBID, Title: ident.Title, Year: ident.Year}
+		}
+	} else {
+		if parsed.Title == "" {
+			return next.manual(ReasonParseFailed)
+		}
+		if (parsed.Kind == KindTV || parsed.Kind == KindAnime) && parsed.Episode == nil {
+			return next.manual(ReasonMissingEpisode)
+		}
+		var err error
+		match, parsed, err = uniqueMatch(client, parsed)
+		if err != nil || match == nil {
+			return next.manual(ReasonNoUniqueTmdb)
+		}
 	}
 	title := firstNonEmpty(match.Title, parsed.Title)
 	year := match.Year
@@ -343,7 +339,30 @@ func (s *Service) identify(name string, files []qb.File, parsed Parsed) (*analyz
 	if provider == nil || s.deps.PostJSON == nil {
 		return nil, nil
 	}
-	return analyze.New(*provider, tmdb.New(s.tmdbKey(), s.deps.Fetch), s.deps.PostJSON).Identify(context.Background(), request)
+	return analyze.New(*provider, tmdb.New(s.tmdbKey(), s.deps.Fetch), s.deps.PostJSON, s.deps.Fetch).Identify(context.Background(), request)
+}
+
+func (s *Service) canAnalyze() bool {
+	return s.deps.Analyze != nil || analyze.SelectProvider(s.deps.Profile) != nil
+}
+
+func uniqueMatch(client *tmdb.Client, parsed Parsed) (*tmdb.Match, Parsed, error) {
+	var (
+		match *tmdb.Match
+		err   error
+	)
+	if parsed.Kind == KindMovie {
+		match, err = client.SearchUniqueMovie(parsed.Title)
+	} else {
+		match, err = client.SearchUniqueTV(parsed.Title)
+		if err == nil && match != nil && parsed.SeasonAmbiguous && parsed.Season == nil {
+			if season := client.PickSeason(match.ID, parsed.Identity); season != nil {
+				parsed.Season = season
+				parsed.SeasonAmbiguous = false
+			}
+		}
+	}
+	return match, parsed, err
 }
 
 func applyIdentity(parsed Parsed, ident *analyze.Identity) Parsed {

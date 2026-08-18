@@ -159,26 +159,12 @@ func TestPlanReadyMovieAndNeedsManualNoUnique(t *testing.T) {
 	qbClient := &fakeQB{torrents: []qb.Torrent{{
 		Hash: movieHash, Name: "The.Matrix.1999.1080p.BluRay.x264", SavePath: "/downloads", Progress: 1,
 	}}, files: map[string][]qb.File{movieHash: {{Name: "The.Matrix.1999.1080p.BluRay.x264.mkv", Size: 10}}}}
-	analyzeCalls := 0
-	svc := organize.New(organize.Deps{
-		QB:          qbClient,
-		Episodes:    store.New(t.TempDir()),
-		Organized:   store.NewOrganizedStore(t.TempDir()),
-		LibraryRoot: "/library",
-		Profile:     profileWithTmdb(t, "k"),
-		Fetch:       movieFetch,
-		Analyze: func(context.Context, analyze.Request) (*analyze.Identity, error) {
-			analyzeCalls++
-			return nil, errors.New("llm should not run on unique TMDB match")
-		},
-		Now: func() time.Time { return time.Date(2026, 8, 19, 0, 0, 0, 0, time.UTC) },
-	})
-	got := svc.Plan(movieHash)
+	got := serviceFor(t, qbClient, "k", movieFetch, "/library").Plan(movieHash)
 	if got.Status != organize.StatusReady || got.TmdbID != 603 || !strings.HasSuffix(got.LibraryRelPath, "The Matrix (1999).mkv") {
 		t.Fatalf("%+v", got)
 	}
-	if !strings.HasPrefix(got.LibraryRelPath, "Movies/") || analyzeCalls != 0 {
-		t.Fatalf("%+v analyzeCalls=%d", got, analyzeCalls)
+	if !strings.HasPrefix(got.LibraryRelPath, "Movies/") {
+		t.Fatalf("%+v", got)
 	}
 	got = serviceFor(t, qbClient, "k", twoMovieFetch, "/library").Plan(movieHash)
 	if got.Status != organize.StatusNeedsManual || got.Reason != organize.ReasonNoUniqueTmdb {
@@ -186,18 +172,32 @@ func TestPlanReadyMovieAndNeedsManualNoUnique(t *testing.T) {
 	}
 }
 
-func TestPlanLLMFallbackReady(t *testing.T) {
+func TestPlanMessyNameAnalyzesBeforeTmdb(t *testing.T) {
+	const messy = "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP"
 	qbClient := &fakeQB{torrents: []qb.Torrent{{
-		Hash: movieHash, Name: "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP", SavePath: "/downloads", Progress: 1,
-	}}, files: map[string][]qb.File{movieHash: {{Name: "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv", Size: 10}}}}
+		Hash: movieHash, Name: messy, SavePath: "/downloads", Progress: 1,
+	}}, files: map[string][]qb.File{movieHash: {{Name: messy + ".mkv", Size: 10}}}}
+	var tmdbURLs []string
+	searchedBeforeAnalyze := false
+	analyzeCalls := 0
 	svc := organize.New(organize.Deps{
 		QB:          qbClient,
 		Episodes:    store.New(t.TempDir()),
 		Organized:   store.NewOrganizedStore(t.TempDir()),
 		LibraryRoot: "/library",
 		Profile:     profileWithTmdb(t, "k"),
-		Fetch:       noUniqueFetch,
+		Fetch: func(rawURL string) ([]byte, error) {
+			tmdbURLs = append(tmdbURLs, rawURL)
+			if analyzeCalls == 0 && strings.Contains(rawURL, "/search/") {
+				searchedBeforeAnalyze = true
+			}
+			if looksRawTmdbQuery(rawURL) {
+				t.Fatalf("tmdb searched raw release: %s", rawURL)
+			}
+			return movieFetch(rawURL)
+		},
 		Analyze: func(_ context.Context, request analyze.Request) (*analyze.Identity, error) {
+			analyzeCalls++
 			if !strings.Contains(request.TorrentName, "www.Site.com") {
 				t.Fatalf("%+v", request)
 			}
@@ -208,9 +208,26 @@ func TestPlanLLMFallbackReady(t *testing.T) {
 		Now: func() time.Time { return time.Date(2026, 8, 19, 0, 0, 0, 0, time.UTC) },
 	})
 	got := svc.Plan(movieHash)
+	if searchedBeforeAnalyze || analyzeCalls != 1 {
+		t.Fatalf("order: analyzeCalls=%d searchedBefore=%v urls=%v", analyzeCalls, searchedBeforeAnalyze, tmdbURLs)
+	}
 	if got.Status != organize.StatusReady || got.TmdbID != 603 || !strings.Contains(got.LibraryRelPath, "The Matrix (1999)") {
 		t.Fatalf("%+v", got)
 	}
+	for _, rawURL := range tmdbURLs {
+		if looksRawTmdbQuery(rawURL) {
+			t.Fatalf("raw tmdb query after analyze: %s", rawURL)
+		}
+	}
+}
+
+func looksRawTmdbQuery(rawURL string) bool {
+	lower := strings.ToLower(rawURL)
+	return strings.Contains(lower, "www") ||
+		strings.Contains(lower, "site.com") ||
+		strings.Contains(lower, "1080p") ||
+		strings.Contains(lower, "bluray") ||
+		strings.Contains(lower, "x264")
 }
 
 func TestPlanNeedsManualWhenUniqueAndLLMFail(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,7 @@ import (
 
 const (
 	MinConfidence = 0.8
-	maxTurns      = 8
+	maxTurns      = 10
 	maxFiles      = 40
 )
 
@@ -50,16 +51,20 @@ type Request struct {
 }
 
 type Client struct {
-	Provider Provider
-	TMDB     *tmdb.Client
-	Chat     func(context.Context, ChatRequest) (ChatResponse, error)
+	Provider  Provider
+	TMDB      *tmdb.Client
+	Chat      func(context.Context, ChatRequest) (ChatResponse, error)
+	Get       func(rawURL string) ([]byte, error)
+	WebSearch func(ctx context.Context, query string, maxResults int) ([]WebHit, error)
+	rawName   string
 }
 
-func New(provider Provider, tmdbClient *tmdb.Client, post PostJSON) *Client {
+func New(provider Provider, tmdbClient *tmdb.Client, post PostJSON, get func(string) ([]byte, error)) *Client {
 	return &Client{
 		Provider: provider,
 		TMDB:     tmdbClient,
 		Chat:     HTTPChat(post, provider),
+		Get:      get,
 	}
 }
 
@@ -67,6 +72,7 @@ func (c *Client) Identify(ctx context.Context, request Request) (*Identity, erro
 	if c == nil || strings.TrimSpace(c.Provider.APIKey) == "" || c.Chat == nil {
 		return nil, nil
 	}
+	c.rawName = request.TorrentName
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -125,7 +131,7 @@ func (c *Client) Identify(ctx context.Context, request Request) (*Identity, erro
 				messages = append(messages, toolMessage(call.ID, `{"ok":true}`))
 				continue
 			}
-			payload, err := c.runTool(name, call.Function.Arguments)
+			payload, err := c.runTool(ctx, name, call.Function.Arguments)
 			if err != nil {
 				payload = fmt.Sprintf(`{"ok":false,"error":%q}`, err.Error())
 			}
@@ -166,20 +172,34 @@ func (c *Client) confirm(ident *Identity) (*Identity, error) {
 	return ident, nil
 }
 
-func (c *Client) runTool(name, rawArgs string) (string, error) {
+func (c *Client) runTool(ctx context.Context, name, rawArgs string) (string, error) {
 	var args map[string]any
 	if strings.TrimSpace(rawArgs) != "" {
 		if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
 			return "", err
 		}
 	}
-	if c.TMDB == nil {
-		return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
-	}
 	switch name {
+	case "webSearch":
+		hits, err := c.searchWeb(ctx, stringArg(args, "query"), intArg(args, "maxResults"))
+		if err != nil {
+			return "", err
+		}
+		raw, err := json.Marshal(map[string]any{"ok": true, "results": hits})
+		if err != nil {
+			return "", err
+		}
+		return string(raw), nil
 	case "tmdbSearch":
+		if c.TMDB == nil {
+			return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
+		}
+		query := stringArg(args, "query")
+		if !tmdbQueryAllowed(query, c.rawName) {
+			return `{"ok":false,"error":"tmdbSearch requires a cleaned title, not the raw release name"}`, nil
+		}
 		hits, err := c.TMDB.Search(tmdb.SearchQuery{
-			Query:     stringArg(args, "query"),
+			Query:     query,
 			MediaType: stringArg(args, "mediaType"),
 			Year:      intArg(args, "year"),
 			Language:  stringArg(args, "language"),
@@ -193,6 +213,9 @@ func (c *Client) runTool(name, rawArgs string) (string, error) {
 		}
 		return string(raw), nil
 	case "tmdbDetails":
+		if c.TMDB == nil {
+			return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
+		}
 		detail, err := c.TMDB.Details(intArg(args, "id"), stringArg(args, "mediaType"), stringArg(args, "language"))
 		if err != nil {
 			return "", err
@@ -298,13 +321,49 @@ func firstEpisode(values []int) *int {
 	return nil
 }
 
+func tmdbQueryAllowed(query, rawName string) bool {
+	query = strings.TrimSpace(query)
+	if query == "" || looksLikeRawRelease(query) {
+		return false
+	}
+	raw := strings.TrimSpace(rawName)
+	if raw == "" {
+		return true
+	}
+	return !strings.EqualFold(query, raw) && !strings.Contains(strings.ToLower(query), strings.ToLower(raw))
+}
+
+func looksLikeRawRelease(query string) bool {
+	lower := strings.ToLower(strings.TrimSpace(query))
+	if lower == "" {
+		return true
+	}
+	if strings.Contains(lower, "www.") || strings.Contains(lower, ".com.") || strings.Contains(lower, ".net.") || strings.Contains(lower, ".org.") {
+		return true
+	}
+	if releaseJunk.MatchString(query) {
+		return true
+	}
+	return !strings.Contains(query, " ") && strings.Count(query, ".") >= 3
+}
+
+var releaseJunk = regexp.MustCompile(`(?i)\b(?:\d{3,4}p|4k|uhd|hdr10(?:\+|plus)?|hdr|dovi|dolby.?vision|bluray|blu-ray|bdrip|web-?dl|webrip|hdtv|dvdrip|remux|x264|x265|h\.?264|h\.?265|hevc|avc)\b`)
+
 func chatTools() []ChatTool {
 	return []ChatTool{
 		{
 			Type: "function",
 			Function: ChatToolFnSpec{
+				Name:        "webSearch",
+				Description: "Search the public web. Returns title, url, and snippet. Use when the cleaned title is still uncertain before calling tmdbSearch.",
+				Parameters:  json.RawMessage(webSearchParams),
+			},
+		},
+		{
+			Type: "function",
+			Function: ChatToolFnSpec{
 				Name:        "tmdbSearch",
-				Description: "Search TMDB for candidate id, titles, year, and rating. Call tmdbDetails for overview and season counts.",
+				Description: "Search TMDB with a cleaned title only. Never pass the raw release name, site prefix, or codec tags.",
 				Parameters:  json.RawMessage(tmdbSearchParams),
 			},
 		},
@@ -388,7 +447,7 @@ func userPrompt(request Request) string {
 	var b strings.Builder
 	b.WriteString("INPUT:\n")
 	b.WriteString("- Torrent release name: " + request.TorrentName + "\n")
-	b.WriteString("- Parsed title: " + request.ParsedTitle + "\n")
+	b.WriteString("- Heuristic parse (may still contain site/group/codec junk; do not tmdbSearch this unless it is already a clean title): " + request.ParsedTitle + "\n")
 	b.WriteString("- Parsed year: " + strconv.Itoa(request.ParsedYear) + "\n")
 	b.WriteString("- Parsed kind: " + request.ParsedKind + "\n")
 	b.WriteString("- Parsed season: " + season + "\n")
@@ -414,12 +473,23 @@ func firstNonEmpty(values ...string) string {
 const systemPrompt = `You identify a torrent release for library placement. Write titles in zh-CN. Be concise and deterministic.
 
 Workflow:
-1. Parse the release name and file list for title, year, SxxEyy, and technical tags.
-2. Call tmdbSearch, then tmdbDetails on the best movie/tv candidate.
-3. Prefer tool results over guesses. Never invent a TMDB id.
-4. Finish by calling submitMetadata exactly once with title, year, season/episode, mediaType, tmdb id, and confidence.
+1. Decode the release name and file list. Strip site prefixes (www.*, *.com), group tags, codecs, resolution, source, and other junk. The raw release string is not a title.
+2. If the cleaned title is still uncertain, call webSearch with a human query (guessed title, year, or distinctive tokens). Use title/url/snippet results to identify the work.
+3. Only then call tmdbSearch with the cleaned title (and year when known). Never pass the raw release name, site prefix, or codec tags to tmdbSearch.
+4. Confirm the best candidate with tmdbDetails.
+5. Finish by calling submitMetadata exactly once with title, year, season/episode, mediaType, tmdb id, and confidence.
 
-Classify mediaType as movie, tv, anime, music, or other. Include tmdb only for a confirmed match. No web search. Do not emit assistant text.`
+Prefer tool results over guesses. Never invent a TMDB id. Classify mediaType as movie, tv, anime, music, or other. Include tmdb only for a confirmed match. Do not emit assistant text.`
+
+const webSearchParams = `{
+  "type": "object",
+  "properties": {
+    "query": {"type": "string"},
+    "language": {"type": "string"},
+    "maxResults": {"type": "integer"}
+  },
+  "required": ["query"]
+}`
 
 const tmdbSearchParams = `{
   "type": "object",

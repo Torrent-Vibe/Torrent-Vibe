@@ -69,48 +69,115 @@ func submitCall(args string) analyze.ToolCall {
 	return call
 }
 
-func TestIdentifyUsesTmdbToolsThenSubmit(t *testing.T) {
+func toolCall(id, name, args string) analyze.ToolCall {
+	var call analyze.ToolCall
+	call.ID = id
+	call.Type = "function"
+	call.Function.Name = name
+	call.Function.Arguments = args
+	return call
+}
+
+func TestIdentifyWebSearchThenCleanTmdb(t *testing.T) {
+	const messy = "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP"
 	var turns []analyze.ChatRequest
+	var tmdbQueries []string
+	usedWeb := false
 	client := &analyze.Client{
 		Provider: analyze.Provider{ID: "openai", APIKey: "k", Model: "m", BaseURL: analyze.DefaultOpenAIBaseURL},
-		TMDB:     tmdb.New("k", tmdbFetch),
+		TMDB: tmdb.New("k", func(rawURL string) ([]byte, error) {
+			if strings.Contains(rawURL, "/search/") {
+				tmdbQueries = append(tmdbQueries, rawURL)
+				lower := strings.ToLower(rawURL)
+				if strings.Contains(lower, "www") || strings.Contains(lower, "1080p") || strings.Contains(lower, "bluray") || strings.Contains(lower, "site.com") {
+					t.Fatalf("tmdb searched raw release: %s", rawURL)
+				}
+			}
+			return tmdbFetch(rawURL)
+		}),
+		WebSearch: func(_ context.Context, query string, _ int) ([]analyze.WebHit, error) {
+			usedWeb = true
+			if query == "" {
+				t.Fatal("empty web query")
+			}
+			return []analyze.WebHit{{
+				Title:   "The Matrix (1999 film)",
+				URL:     "https://en.wikipedia.org/wiki/The_Matrix",
+				Snippet: "A computer hacker learns about the true nature of reality.",
+			}}, nil
+		},
 		Chat: func(_ context.Context, request analyze.ChatRequest) (analyze.ChatResponse, error) {
 			turns = append(turns, request)
-			if len(turns) == 1 {
-				var call analyze.ToolCall
-				call.ID = "call-search"
-				call.Type = "function"
-				call.Function.Name = "tmdbSearch"
-				call.Function.Arguments = `{"query":"The Matrix","year":1999,"mediaType":"movie"}`
+			names := toolNames(request)
+			if !containsTool(names, "webSearch") || !containsTool(names, "tmdbSearch") {
+				t.Fatalf("tools=%v", names)
+			}
+			switch len(turns) {
+			case 1:
 				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
 					FinishReason: "tool_calls",
-					Message:      analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{call}},
+					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
+						toolCall("call-web", "webSearch", `{"query":"The Matrix 1999 film"}`),
+					}},
+				}}}, nil
+			case 2:
+				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
+					FinishReason: "tool_calls",
+					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
+						toolCall("call-raw", "tmdbSearch", `{"query":"`+messy+`","mediaType":"movie"}`),
+					}},
+				}}}, nil
+			case 3:
+				last := request.Messages[len(request.Messages)-1].Content
+				if !strings.Contains(last, "cleaned title") {
+					t.Fatalf("raw tmdb query was not rejected: %s", last)
+				}
+				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
+					FinishReason: "tool_calls",
+					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
+						toolCall("call-tmdb", "tmdbSearch", `{"query":"The Matrix","year":1999,"mediaType":"movie"}`),
+					}},
+				}}}, nil
+			default:
+				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
+					FinishReason: "tool_calls",
+					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
+						submitCall(`{"mediaType":"movie","title":{"canonicalTitle":"黑客帝国","releaseYear":1999},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-31"},"confidence":{"overall":0.94}}`),
+					}},
 				}}}, nil
 			}
-			return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-				FinishReason: "tool_calls",
-				Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-					submitCall(`{"mediaType":"movie","title":{"canonicalTitle":"黑客帝国","releaseYear":1999},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-31"},"confidence":{"overall":0.94}}`),
-				}},
-			}}}, nil
 		},
 	}
 	got, err := client.Identify(context.Background(), analyze.Request{
-		TorrentName: "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP",
-		Files:       []string{"www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv"},
+		TorrentName: messy,
+		Files:       []string{messy + ".mkv"},
 		ParsedTitle: "www Site com The Matrix",
 		ParsedYear:  1999,
 		ParsedKind:  "movie",
 	})
-	if err != nil || got == nil || !got.Ready() || got.TMDBID != 603 || got.Title != "The Matrix" || got.Year != 1999 {
+	if err != nil || got == nil || !got.Ready() || got.TMDBID != 603 || got.Title != "The Matrix" {
 		t.Fatalf("%+v %v", got, err)
 	}
-	if len(turns) != 2 {
-		t.Fatalf("turns=%d", len(turns))
+	if !usedWeb || len(tmdbQueries) == 0 {
+		t.Fatalf("usedWeb=%v tmdbQueries=%v turns=%d", usedWeb, tmdbQueries, len(turns))
 	}
-	if !strings.Contains(turns[1].Messages[len(turns[1].Messages)-1].Content, `"id":603`) {
-		t.Fatalf("search tool result missing: %+v", turns[1].Messages)
+}
+
+func toolNames(request analyze.ChatRequest) []string {
+	out := make([]string, 0, len(request.Tools))
+	for _, tool := range request.Tools {
+		out = append(out, tool.Function.Name)
 	}
+	return out
+}
+
+func containsTool(names []string, want string) bool {
+	for _, name := range names {
+		if name == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestIdentifyRejectsLowConfidence(t *testing.T) {

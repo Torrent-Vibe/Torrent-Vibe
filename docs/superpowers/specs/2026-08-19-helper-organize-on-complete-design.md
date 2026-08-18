@@ -31,7 +31,7 @@ Auto-organize is off by default. Desktop/iOS can still fire `POST /organize` for
 - TMDB: `metadata.tmdb.apiKey` from Profile. Required
 - LLM: Not required. Do not block on `ai.openai.apiKey`
 - How keys get there: User uploads the `tmdb` group via 凭证同步. Not implicit on pair
-- Identity: Title parse + TMDB unique match, then optional Profile LLM fallback (same spirit as desktop `analyzeName`, Helper-go only)
+- Identity: Profile LLM + web search first when an AI key exists; unique TMDB on parsed title only without an LLM key (same spirit as desktop `analyzeName`, Helper-go only)
 - In scope: one-off `movie` / `tv` / `anime`
 - Out: Helper subscription episodes; `music` / `other`; collections
 - Gate: Unique or high-confidence TMDB match. Otherwise `needs-manual`
@@ -76,15 +76,14 @@ Desktop (required) and iOS (if it fits existing helper UI patterns without a lar
 
 Do not ship the Electron agent.
 
-1. Parse torrent name + qB file list for title, year, SxxEyy, kind.
-2. TMDB search movie or tv with `metadata.tmdb.apiKey`.
-3. Keep a candidate only when name / original_name matches after stripping spaces and punctuation, or one contains the other.
-4. If the kept set is size 1, that identity is used.
-5. If not, and Profile has `ai.openai.apiKey` or `ai.openrouter.apiKey`, run a thin Helper LLM loop (TMDB tools + `submitMetadata`). Codex is not used (no API key on Profile). Missing LLM key is OK.
-6. Apply only when the payload is a unique TMDB fold-match or a high-confidence TMDB id (`confidence >= 0.8`). Otherwise `needs-manual`.
-7. Series season rules stay with the identity scrape spec (clear token wins; TMDB only when seasonAmbiguous).
+1. Parse torrent name + qB file list for title, year, SxxEyy, kind. Parsed title is a heuristic only.
+2. If Profile has `ai.openai.apiKey` or `ai.openrouter.apiKey`, run the Helper analyze loop first. The model strips site/group/codec junk, calls `webSearch` when the title is still uncertain, then `tmdbSearch` / `tmdbDetails` with the **cleaned** title only, then `submitMetadata`. Codex and agent-browser are not used. `webSearch` is DuckDuckGo HTML (no extra key) plus the same OpenAI-compatible provider already selected for analyze.
+3. Unique TMDB fold-match on the parsed title is only a fast path when there is **no** LLM key. After the loop, unique TMDB may confirm the cleaned title.
+4. Apply only when the payload has a TMDB id and `confidence >= 0.8` (details confirmed). Otherwise `needs-manual`.
+5. Missing LLM key is OK: fall back to unique TMDB on the parsed title.
+6. Series season rules stay with the identity scrape spec (clear token wins; TMDB only when seasonAmbiguous).
 
-No Electron torrent-ai package, no web search, no agent-browser.
+No Electron torrent-ai package, no agent-browser.
 
 ### Plan / Apply
 
