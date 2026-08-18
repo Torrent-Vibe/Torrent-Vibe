@@ -33,17 +33,29 @@ export const canOrganizeTorrent = (torrent: TorrentInfo): boolean => {
   )
 }
 
+const REASON_KEYS = {
+  collection: 'torrent.organize.reason.collection',
+  'dest-conflict': 'torrent.organize.reason.dest-conflict',
+  'missing-episode': 'torrent.organize.reason.missing-episode',
+  'missing-library-root': 'torrent.organize.reason.missing-library-root',
+  'missing-save-path': 'torrent.organize.reason.missing-save-path',
+  'missing-tmdb-key': 'torrent.organize.reason.missing-tmdb-key',
+  'no-unique-tmdb': 'torrent.organize.reason.no-unique-tmdb',
+  'no-video': 'torrent.organize.reason.no-video',
+  'parse-failed': 'torrent.organize.reason.parse-failed',
+  'unsupported-kind': 'torrent.organize.reason.unsupported-kind',
+} as const
+
 const reasonMessage = (result: HelperOrganizeResult): string => {
   const { t } = getI18n()
-  if (result.reason) {
-    const key = `torrent.organize.reason.${result.reason}`
-    const translated = t(key)
-    if (translated !== key) {
-      return translated
-    }
-    return result.reason
+  const key =
+    result.reason && result.reason in REASON_KEYS
+      ? REASON_KEYS[result.reason as keyof typeof REASON_KEYS]
+      : null
+  if (key) {
+    return t(key)
   }
-  return t('torrent.organize.needsManual')
+  return result.reason || t('torrent.organize.needsManual')
 }
 
 export const organizeHelperTorrent = async (hash: string): Promise<void> => {
