@@ -10,6 +10,7 @@ import type {
   HelperDiscoverInfo,
   HelperEpisodeStatus,
   HelperJobStatus,
+  HelperOrganizeResult,
   HelperProfileMutation,
   HelperProfileRecord,
   HelperProfileSnapshot,
@@ -398,6 +399,7 @@ export const getHelperConfig = async (
         ? record.variantPrefer
         : 'internal,sc,tc',
     hasTmdbApiKey: record.hasTmdbApiKey === true,
+    organizeOnComplete: record.organizeOnComplete === true,
   }
 }
 
@@ -413,6 +415,55 @@ export const putHelperConfig = async (
     token,
   )
   return getHelperConfig(baseUrl, token)
+}
+
+const parseOrganizeResult = (body: unknown): HelperOrganizeResult => {
+  if (!body || typeof body !== 'object') {
+    throw new Error('invalid organize payload')
+  }
+  const record = body as Record<string, unknown>
+  if (typeof record.hash !== 'string' || typeof record.status !== 'string') {
+    throw new Error('invalid organize payload')
+  }
+  return {
+    hash: record.hash,
+    status: record.status,
+    ...(typeof record.libraryRelPath === 'string'
+      ? { libraryRelPath: record.libraryRelPath }
+      : {}),
+    ...(typeof record.dest === 'string' ? { dest: record.dest } : {}),
+    ...(typeof record.reason === 'string' ? { reason: record.reason } : {}),
+    ...(typeof record.at === 'string' ? { at: record.at } : {}),
+    ...(typeof record.tmdbId === 'number' ? { tmdbId: record.tmdbId } : {}),
+  }
+}
+
+export const getHelperOrganize = async (
+  baseUrl: string,
+  token: string,
+  hash: string,
+): Promise<HelperOrganizeResult> => {
+  const body = await request(
+    baseUrl,
+    `/organize?hash=${encodeURIComponent(hash)}`,
+    { method: 'GET' },
+    token,
+  )
+  return parseOrganizeResult(body)
+}
+
+export const postHelperOrganize = async (
+  baseUrl: string,
+  token: string,
+  hash: string,
+): Promise<HelperOrganizeResult> => {
+  const body = await request(
+    baseUrl,
+    '/organize',
+    { method: 'POST', body: JSON.stringify({ hash }) },
+    token,
+  )
+  return parseOrganizeResult(body)
 }
 
 export const retryHelperEpisode = async (

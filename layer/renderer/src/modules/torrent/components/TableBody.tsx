@@ -26,6 +26,10 @@ import {
 } from '~/lib/format'
 import { CategorySelectPrompt } from '~/modules/dialogs/CategorySelectPrompt'
 import { TagsSelectPrompt } from '~/modules/dialogs/TagsSelectPrompt'
+import {
+  canOrganizeTorrent,
+  organizeHelperTorrent,
+} from '~/modules/helper-client/organize'
 import { ShareRatioLimitModal } from '~/modules/modals/ShareRatioLimitModal'
 import { DeleteTorrentPrompt } from '~/modules/prompts/DeleteTorrentPrompt'
 import {
@@ -1152,6 +1156,18 @@ const ActiveCellWrapper: FC<
               }),
               MENU_ITEM_SEPARATOR,
             ] as const)
+          : []),
+        ...(canOrganizeTorrent(currentTorrent)
+          ? [
+              new MenuItemText({
+                label: t('contextMenu.organize'),
+                icon: <i className="i-lucide-folder-symlink" />,
+                click: () => {
+                  void organizeHelperTorrent(currentTorrent.hash)
+                },
+              }),
+              MENU_ITEM_SEPARATOR,
+            ]
           : []),
         new MenuItemText({
           label: t('contextMenu.resume'),

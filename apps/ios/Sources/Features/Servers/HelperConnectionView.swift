@@ -75,6 +75,10 @@ private struct HelperConnectionContentView: View {
   @Environment(AppModel.self) private var model
   @State private var helperURL = ""
   @State private var pairingCode = ""
+  @State private var didLoadOrganize = false
+  @State private var isSavingOrganize = false
+  @State private var organizeOnComplete = false
+  @State private var organizeError: String?
 
   let serverID: UUID
   let discovery: HelperDiscoveryModel
@@ -101,6 +105,7 @@ private struct HelperConnectionContentView: View {
         helperURL = server?.helperBaseURL?.absoluteString ?? "http://"
       }
       await model.refreshHelperStatus(for: serverID)
+      await loadOrganizeConfig()
     }
   }
 
@@ -120,6 +125,25 @@ private struct HelperConnectionContentView: View {
       Section("端点") {
         LabeledContent("地址", value: server?.helperBaseURL?.absoluteString ?? "—")
         LabeledContent("凭据", value: "本机 Keychain")
+      }
+
+      Section {
+        Toggle("完成后自动整理", isOn: $organizeOnComplete)
+          .disabled(isSavingOrganize)
+          .accessibilityIdentifier("helper-organize-on-complete")
+          .onChange(of: organizeOnComplete) { _, enabled in
+            guard didLoadOrganize else { return }
+            Task { await saveOrganizeOnComplete(enabled) }
+          }
+      } footer: {
+        Text("完成后将一次性电影/剧集硬链接到媒体库根目录，需要已通过凭证同步上传 TMDB。")
+      }
+
+      if let organizeError {
+        Section {
+          Label(organizeError, systemImage: "exclamationmark.triangle")
+            .foregroundStyle(.orange)
+        }
       }
 
       Section {
@@ -280,6 +304,34 @@ private struct HelperConnectionContentView: View {
 
   private var server: ServerConfiguration? {
     model.servers.first { $0.id == serverID }
+  }
+
+  private func loadOrganizeConfig() async {
+    guard model.hasStoredHelperToken(for: serverID) else { return }
+    do {
+      let config = try await model.helperConfig(for: serverID)
+      organizeOnComplete = config.organizeOnComplete
+      organizeError = nil
+      didLoadOrganize = true
+    } catch {
+      organizeError = error.localizedDescription
+      didLoadOrganize = true
+    }
+  }
+
+  private func saveOrganizeOnComplete(_ enabled: Bool) async {
+    isSavingOrganize = true
+    defer { isSavingOrganize = false }
+    do {
+      let config = try await model.updateHelperOrganizeOnComplete(
+        for: serverID,
+        enabled: enabled
+      )
+      organizeOnComplete = config.organizeOnComplete
+      organizeError = nil
+    } catch {
+      organizeError = error.localizedDescription
+    }
   }
 
   private func discoveredHelperDetail(_ helper: DiscoveredHelper) -> String {

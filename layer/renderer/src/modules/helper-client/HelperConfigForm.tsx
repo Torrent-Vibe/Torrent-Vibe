@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '~/components/ui/button'
-import { SettingInputField } from '~/modules/modals/SettingsModal/tabs/components'
+import {
+  SettingInputField,
+  SettingSwitchField,
+} from '~/modules/modals/SettingsModal/tabs/components'
 
 import { getHelperConfig, putHelperConfig } from './api'
 import { getHelperBinding } from './bindings'
@@ -17,6 +20,7 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
   const [qbitPass, setQbitPass] = useState('')
   const [proxyUrl, setProxyUrl] = useState('')
   const [pollIntervalMs, setPollIntervalMs] = useState('600000')
+  const [organizeOnComplete, setOrganizeOnComplete] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -32,6 +36,7 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
         setQbitUser(config.qbitUser)
         setProxyUrl(config.proxyUrl)
         setPollIntervalMs(String(config.pollIntervalMs))
+        setOrganizeOnComplete(config.organizeOnComplete)
       })
       .catch(() => {
         toast.error(t('servers.helper.configSaveFailed'))
@@ -88,6 +93,13 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
         value={proxyUrl}
         onChange={setProxyUrl}
       />
+      <SettingSwitchField
+        checked={organizeOnComplete}
+        description={t('servers.helper.organizeOnCompleteHint')}
+        id="helper-organize-on-complete"
+        label={t('servers.helper.organizeOnComplete')}
+        onCheckedChange={setOrganizeOnComplete}
+      />
 
       <div className="flex justify-end border-t border-border/60 pt-3">
         <Button
@@ -106,6 +118,7 @@ export const HelperConfigForm = ({ serverId }: { serverId: string }) => {
               qbitUser,
               pollIntervalMs: Number(pollIntervalMs) || 600_000,
               proxyUrl,
+              organizeOnComplete,
               ...(qbitPass ? { qbitPass } : {}),
             })
               .then(() => {

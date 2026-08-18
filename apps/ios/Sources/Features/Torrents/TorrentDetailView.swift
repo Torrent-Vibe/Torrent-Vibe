@@ -53,21 +53,7 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
     pauseButton.action = #selector(togglePause)
     pauseButton.accessibilityIdentifier = "torrent-detail-action"
 
-    moreButton.menu = UIMenu(children: [
-      UIAction(
-        title: "分类、标签与限速",
-        image: UIImage(systemName: "slider.horizontal.3")
-      ) { [weak self] _ in
-        self?.presentManagement()
-      },
-      UIAction(
-        title: "删除任务",
-        image: UIImage(systemName: "trash"),
-        attributes: .destructive
-      ) { [weak self] _ in
-        self?.confirmDelete()
-      },
-    ])
+    moreButton.menu = moreMenu()
     moreButton.accessibilityIdentifier = "torrent-detail-more"
     navigationItem.rightBarButtonItems = [moreButton, pauseButton]
     updateNavigationItem()
@@ -119,6 +105,34 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
       state.isPerformingAction = false
       updateNavigationItem()
     }
+  }
+
+  private func organizeTorrent() {
+    state.errorMessage = nil
+    state.isPerformingAction = true
+    updateNavigationItem()
+    Task {
+      do {
+        let result = try await model.organizeTorrent(
+          hash: state.torrent.id,
+          serverID: serverID
+        )
+        state.errorMessage = result.isSuccess ? nil : result.userMessage
+        if result.isSuccess {
+          presentNotice(result.userMessage)
+        }
+      } catch {
+        state.errorMessage = error.localizedDescription
+      }
+      state.isPerformingAction = false
+      updateNavigationItem()
+    }
+  }
+
+  private func presentNotice(_ message: String) {
+    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "好", style: .default))
+    present(alert, animated: true)
   }
 
   private func presentManagement() {
@@ -243,6 +257,38 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
     )
     pauseButton.accessibilityLabel = state.torrent.isPaused ? "继续任务" : "暂停任务"
     pauseButton.isEnabled = !state.isPerformingAction
+    moreButton.menu = moreMenu()
+  }
+
+  private func moreMenu() -> UIMenu {
+    var actions: [UIAction] = [
+      UIAction(
+        title: "分类、标签与限速",
+        image: UIImage(systemName: "slider.horizontal.3")
+      ) { [weak self] _ in
+        self?.presentManagement()
+      }
+    ]
+    if state.torrent.canOrganize {
+      actions.append(
+        UIAction(
+          title: "整理",
+          image: UIImage(systemName: "folder.badge.plus")
+        ) { [weak self] _ in
+          self?.organizeTorrent()
+        }
+      )
+    }
+    actions.append(
+      UIAction(
+        title: "删除任务",
+        image: UIImage(systemName: "trash"),
+        attributes: .destructive
+      ) { [weak self] _ in
+        self?.confirmDelete()
+      }
+    )
+    return UIMenu(children: actions)
   }
 }
 

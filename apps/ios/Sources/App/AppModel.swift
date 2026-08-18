@@ -371,6 +371,35 @@ final class AppModel {
     )
   }
 
+  func helperConfig(for serverID: UUID) async throws -> HelperConfigPublic {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.config(
+      at: authorization.baseURL,
+      token: authorization.token
+    )
+  }
+
+  func updateHelperOrganizeOnComplete(
+    for serverID: UUID,
+    enabled: Bool
+  ) async throws -> HelperConfigPublic {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.updateConfig(
+      at: authorization.baseURL,
+      token: authorization.token,
+      organizeOnComplete: enabled
+    )
+  }
+
+  func organizeTorrent(hash: String, serverID: UUID) async throws -> HelperOrganizeResult {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.organize(
+      at: authorization.baseURL,
+      token: authorization.token,
+      hash: hash
+    )
+  }
+
   func pairHelper(serverID: UUID, baseURLText: String, pairingCode: String) async {
     guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
     helperConnectionStates[serverID] = .connecting

@@ -375,6 +375,72 @@ final class HelperServiceTests: XCTestCase {
     }
   }
 
+  func testOrganizeAndConfigContract() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+      switch (request.httpMethod, request.url?.path) {
+      case ("GET", "/config"):
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "libraryRoot": "/tv",
+            "organizeOnComplete": false,
+            "hasTmdbApiKey": true,
+          ]
+        )
+      case ("PUT", "/config"):
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["organizeOnComplete"] as? Bool, true)
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "libraryRoot": "/tv",
+            "organizeOnComplete": true,
+            "hasTmdbApiKey": true,
+          ]
+        )
+      case ("POST", "/organize"):
+        let body = try XCTUnwrap(Self.requestBody(request))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["hash"] as? String, "abc")
+        return Self.response(
+          request,
+          status: 200,
+          json: [
+            "hash": "abc",
+            "status": "ok",
+            "libraryRelPath": "Movies/Title (1999)/Title (1999).mkv",
+            "dest": "/tv/Movies/Title (1999)/Title (1999).mkv",
+          ]
+        )
+      default:
+        XCTFail(
+          "Unexpected Helper request: \(request.httpMethod ?? "nil") \(request.url?.path ?? "nil")")
+        return Self.response(request, status: 404, json: ["error": "not found"])
+      }
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let current = try await service.config(at: baseURL, token: "token-value")
+    XCTAssertFalse(current.organizeOnComplete)
+    XCTAssertTrue(current.hasTmdbApiKey)
+
+    let updated = try await service.updateConfig(
+      at: baseURL,
+      token: "token-value",
+      organizeOnComplete: true
+    )
+    XCTAssertTrue(updated.organizeOnComplete)
+
+    let organized = try await service.organize(at: baseURL, token: "token-value", hash: "abc")
+    XCTAssertEqual(organized.status, "ok")
+    XCTAssertEqual(organized.libraryRelPath, "Movies/Title (1999)/Title (1999).mkv")
+  }
+
   func testDemoProfilePatchPreservesUnselectedAIRecords() async throws {
     let service = DemoHelperService()
     let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
