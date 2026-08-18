@@ -31,8 +31,10 @@ jobs:
       IOS_APP_STORE_PROVISIONING_PROFILE: ${{ secrets.IOS_APP_STORE_PROVISIONING_PROFILE }}
       IOS_DISTRIBUTION_CERTIFICATE_P12: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12 }}
       IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      IOS_LIVE_ACTIVITY_APP_STORE_PROVISIONING_PROFILE: ${{ secrets.IOS_LIVE_ACTIVITY_APP_STORE_PROVISIONING_PROFILE }}
       IOS_PROJECT_PATH: apps/ios/TorrentVibe.xcodeproj
       IOS_SCHEME: TorrentVibe
+      IOS_SHARE_APP_STORE_PROVISIONING_PROFILE: ${{ secrets.IOS_SHARE_APP_STORE_PROVISIONING_PROFILE }}
 
     steps:
       - name: Checkout
@@ -55,7 +57,9 @@ jobs:
             APPLE_TEAM_ID \
             IOS_APP_STORE_PROVISIONING_PROFILE \
             IOS_DISTRIBUTION_CERTIFICATE_P12 \
-            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD
+            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
+            IOS_LIVE_ACTIVITY_APP_STORE_PROVISIONING_PROFILE \
+            IOS_SHARE_APP_STORE_PROVISIONING_PROFILE
           do
             if [ -z "${!variable:-}" ]; then
               missing+=("$variable")
@@ -76,15 +80,12 @@ jobs:
           key_path="$key_directory/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
           certificate_path="$RUNNER_TEMP/distribution.p12"
           keychain_path="$RUNNER_TEMP/testflight-signing.keychain-db"
-          profile_path="$RUNNER_TEMP/TorrentVibe.mobileprovision"
           mkdir -p "$key_directory"
           printf '%s' "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$key_path"
           printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_P12" | base64 --decode > "$certificate_path"
-          printf '%s' "$IOS_APP_STORE_PROVISIONING_PROFILE" | base64 --decode > "$profile_path"
-          chmod 600 "$key_path" "$certificate_path" "$profile_path"
+          chmod 600 "$key_path" "$certificate_path"
           test -s "$key_path"
           test -s "$certificate_path"
-          test -s "$profile_path"
 
           keychain_password="$(openssl rand -base64 32)"
           security create-keychain -p "$keychain_password" "$keychain_path"
@@ -103,14 +104,52 @@ jobs:
           security list-keychains -d user -s "$keychain_path"
           security find-identity -v -p codesigning "$keychain_path"
 
-          profile_plist="$RUNNER_TEMP/TorrentVibe-profile.plist"
-          security cms -D -i "$profile_path" > "$profile_plist"
-          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$profile_plist")"
-          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$profile_plist")"
           profile_install_directory="$HOME/Library/MobileDevice/Provisioning Profiles"
-          profile_install_path="$profile_install_directory/$profile_uuid.mobileprovision"
           mkdir -p "$profile_install_directory"
-          cp "$profile_path" "$profile_install_path"
+
+          install_profile() {
+            local encoded_profile="$1"
+            local output_prefix="$2"
+            local expected_bundle_id="$3"
+            local requires_app_group="$4"
+            local profile_path="$RUNNER_TEMP/$output_prefix.mobileprovision"
+            local profile_plist="$RUNNER_TEMP/$output_prefix-profile.plist"
+
+            printf '%s' "$encoded_profile" | base64 --decode > "$profile_path"
+            chmod 600 "$profile_path"
+            test -s "$profile_path"
+            security cms -D -i "$profile_path" > "$profile_plist"
+
+            local profile_name
+            local profile_uuid
+            local profile_app_identifier
+            profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$profile_plist")"
+            profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$profile_plist")"
+            profile_app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$profile_plist")"
+            if [ "$profile_app_identifier" != "$APPLE_TEAM_ID.$expected_bundle_id" ]; then
+              echo "::error::Provisioning profile for $expected_bundle_id has app identifier $profile_app_identifier"
+              exit 1
+            fi
+
+            if [ "$requires_app_group" = true ]; then
+              local profile_app_groups
+              profile_app_groups="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' "$profile_plist" 2>/dev/null || true)"
+              if [[ "$profile_app_groups" != *"group.dev.innei.torrent-vibe"* ]]; then
+                echo "::error::Provisioning profile for $expected_bundle_id does not include group.dev.innei.torrent-vibe"
+                exit 1
+              fi
+            fi
+
+            local profile_install_path="$profile_install_directory/$profile_uuid.mobileprovision"
+            cp "$profile_path" "$profile_install_path"
+
+            printf -v "${output_prefix}_profile_name" '%s' "$profile_name"
+            printf -v "${output_prefix}_profile_install_path" '%s' "$profile_install_path"
+          }
+
+          install_profile "$IOS_APP_STORE_PROVISIONING_PROFILE" app dev.innei.torrent-vibe true
+          install_profile "$IOS_SHARE_APP_STORE_PROVISIONING_PROFILE" share dev.innei.torrent-vibe.share true
+          install_profile "$IOS_LIVE_ACTIVITY_APP_STORE_PROVISIONING_PROFILE" live_activity dev.innei.torrent-vibe.live-activity false
 
           base_build_number=$((GITHUB_RUN_NUMBER + 1))
           if [ "$GITHUB_RUN_ATTEMPT" -eq 1 ]; then
@@ -123,8 +162,12 @@ jobs:
             echo "build_number=$build_number"
             echo "keychain_path=$keychain_path"
             echo "key_path=$key_path"
-            echo "profile_install_path=$profile_install_path"
-            echo "profile_name=$profile_name"
+            echo "app_profile_install_path=$app_profile_install_path"
+            echo "app_profile_name=$app_profile_name"
+            echo "live_activity_profile_install_path=$live_activity_profile_install_path"
+            echo "live_activity_profile_name=$live_activity_profile_name"
+            echo "share_profile_install_path=$share_profile_install_path"
+            echo "share_profile_name=$share_profile_name"
           } >> "$GITHUB_OUTPUT"
 
           {
@@ -149,7 +192,9 @@ jobs:
             CURRENT_PROJECT_VERSION="${{ steps.signing.outputs.build_number }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             OTHER_CODE_SIGN_FLAGS="--keychain ${{ steps.signing.outputs.keychain_path }}" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.profile_name }}" \
+            TORRENT_VIBE_LIVE_ACTIVITY_PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.live_activity_profile_name }}" \
+            TORRENT_VIBE_PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.app_profile_name }}" \
+            TORRENT_VIBE_SHARE_PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.share_profile_name }}" \
             clean archive
 
       - name: Configure internal TestFlight export
@@ -175,7 +220,11 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>dev.innei.torrent-vibe</key>
-              <string>${{ steps.signing.outputs.profile_name }}</string>
+              <string>${{ steps.signing.outputs.app_profile_name }}</string>
+              <key>dev.innei.torrent-vibe.live-activity</key>
+              <string>${{ steps.signing.outputs.live_activity_profile_name }}</string>
+              <key>dev.innei.torrent-vibe.share</key>
+              <string>${{ steps.signing.outputs.share_profile_name }}</string>
             </dict>
             <key>testFlightInternalTestingOnly</key>
             <true/>
@@ -244,7 +293,10 @@ jobs:
         run: |
           security delete-keychain "${{ steps.signing.outputs.keychain_path }}" 2>/dev/null || true
           rm -f "${{ steps.signing.outputs.key_path }}"
-          rm -f "${{ steps.signing.outputs.profile_install_path }}"
+          rm -f "${{ steps.signing.outputs.app_profile_install_path }}"
+          rm -f "${{ steps.signing.outputs.live_activity_profile_install_path }}"
+          rm -f "${{ steps.signing.outputs.share_profile_install_path }}"
           rm -f "$RUNNER_TEMP/distribution.p12"
-          rm -f "$RUNNER_TEMP/TorrentVibe.mobileprovision"
-          rm -f "$RUNNER_TEMP/TorrentVibe-profile.plist"
+          rm -f "$RUNNER_TEMP/app.mobileprovision" "$RUNNER_TEMP/app-profile.plist"
+          rm -f "$RUNNER_TEMP/live_activity.mobileprovision" "$RUNNER_TEMP/live_activity-profile.plist"
+          rm -f "$RUNNER_TEMP/share.mobileprovision" "$RUNNER_TEMP/share-profile.plist"

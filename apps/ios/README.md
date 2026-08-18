@@ -44,10 +44,11 @@ project changes. Markdown-only and test-only changes do not publish a build.
 The workflow can also be dispatched manually from `main`.
 
 The job uses the stable Xcode 26.6 toolchain on GitHub's `macos-26` runner. It
-archives with automatic cloud signing, uploads an internal-only TestFlight
-build, waits for App Store Connect processing, and associates the valid build
-with the existing `Internal Testing` group. Build numbers derive from the
-GitHub workflow run number; rerun attempts receive a distinct suffix.
+archives with explicit App Store provisioning profiles for the application,
+Share Extension, and Live Activity Extension; uploads an internal-only
+TestFlight build; waits for App Store Connect processing; and associates the
+valid build with the existing `Internal Testing` group. Build numbers derive
+from the GitHub workflow run number; rerun attempts receive a distinct suffix.
 
 Publishing credentials are scoped to the GitHub `testflight` Environment:
 
@@ -57,11 +58,15 @@ Publishing credentials are scoped to the GitHub `testflight` Environment:
 - `IOS_DISTRIBUTION_CERTIFICATE_P12`
 - `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`
 - `IOS_APP_STORE_PROVISIONING_PROFILE`
+- `IOS_LIVE_ACTIVITY_APP_STORE_PROVISIONING_PROFILE`
+- `IOS_SHARE_APP_STORE_PROVISIONING_PROFILE`
 
 `APPLE_TEAM_ID` remains a repository secret shared with the desktop release
-workflow. The API key uploads and distributes builds; the certificate and
-profile provide manual App Store signing without granting the CI key cloud
-signing access. No signing credentials are stored in the repository.
+workflow. The API key uploads and distributes builds; the certificate and three
+profiles provide manual App Store signing without granting the CI key cloud
+signing access. The application and Share Extension profiles must include
+`group.dev.innei.torrent-vibe`. No signing credentials are stored in the
+repository.
 
 ## Architecture seam
 

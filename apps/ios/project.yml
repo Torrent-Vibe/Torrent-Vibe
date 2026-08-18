@@ -77,7 +77,9 @@ targets:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Support/TorrentVibe.entitlements
+        CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe
+        PROVISIONING_PROFILE_SPECIFIER: $(TORRENT_VIBE_PROVISIONING_PROFILE_SPECIFIER)
         DEVELOPMENT_TEAM: KAMM5N88X3
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         SUPPORTS_MACCATALYST: false
@@ -108,10 +110,12 @@ targets:
       base:
         APPLICATION_EXTENSION_API_ONLY: true
         CODE_SIGN_ENTITLEMENTS: ShareExtension/TorrentVibeShare.entitlements
+        CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: KAMM5N88X3
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.share
         PRODUCT_MODULE_NAME: TorrentVibeShare
         PRODUCT_NAME: TorrentVibeShare
+        PROVISIONING_PROFILE_SPECIFIER: $(TORRENT_VIBE_SHARE_PROVISIONING_PROFILE_SPECIFIER)
         SKIP_INSTALL: true
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         SUPPORTS_MACCATALYST: false
@@ -135,10 +139,12 @@ targets:
     settings:
       base:
         APPLICATION_EXTENSION_API_ONLY: true
+        CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: KAMM5N88X3
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.live-activity
         PRODUCT_MODULE_NAME: TorrentVibeLiveActivity
         PRODUCT_NAME: TorrentVibeLiveActivity
+        PROVISIONING_PROFILE_SPECIFIER: $(TORRENT_VIBE_LIVE_ACTIVITY_PROVISIONING_PROFILE_SPECIFIER)
         SKIP_INSTALL: true
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         SUPPORTS_MACCATALYST: false
@@ -154,6 +160,7 @@ targets:
       - target: TorrentVibe
     settings:
       base:
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: true
         PRODUCT_NAME: TorrentVibeTests
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.tests
