@@ -53,9 +53,14 @@ Publishing credentials are scoped to the GitHub `testflight` Environment:
 - `APP_STORE_CONNECT_API_KEY_ID`
 - `APP_STORE_CONNECT_API_ISSUER_ID`
 - `APP_STORE_CONNECT_API_PRIVATE_KEY`
+- `IOS_DISTRIBUTION_CERTIFICATE_P12`
+- `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`
+- `IOS_APP_STORE_PROVISIONING_PROFILE`
 
 `APPLE_TEAM_ID` remains a repository secret shared with the desktop release
-workflow. No signing credentials are stored in the repository.
+workflow. The API key uploads and distributes builds; the certificate and
+profile provide manual App Store signing without granting the CI key cloud
+signing access. No signing credentials are stored in the repository.
 
 ## Architecture seam
 

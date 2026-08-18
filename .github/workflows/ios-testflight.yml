@@ -28,6 +28,9 @@ jobs:
       APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
       APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_APP_STORE_PROVISIONING_PROFILE: ${{ secrets.IOS_APP_STORE_PROVISIONING_PROFILE }}
+      IOS_DISTRIBUTION_CERTIFICATE_P12: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
       IOS_PROJECT_PATH: apps/ios/TorrentVibe.xcodeproj
       IOS_SCHEME: TorrentVibe
 
@@ -49,7 +52,10 @@ jobs:
             APP_STORE_CONNECT_API_ISSUER_ID \
             APP_STORE_CONNECT_API_KEY_ID \
             APP_STORE_CONNECT_API_PRIVATE_KEY \
-            APPLE_TEAM_ID
+            APPLE_TEAM_ID \
+            IOS_APP_STORE_PROVISIONING_PROFILE \
+            IOS_DISTRIBUTION_CERTIFICATE_P12 \
+            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD
           do
             if [ -z "${!variable:-}" ]; then
               missing+=("$variable")
@@ -68,10 +74,43 @@ jobs:
 
           key_directory="$RUNNER_TEMP/app-store-connect-private-keys"
           key_path="$key_directory/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          certificate_path="$RUNNER_TEMP/distribution.p12"
+          keychain_path="$RUNNER_TEMP/testflight-signing.keychain-db"
+          profile_path="$RUNNER_TEMP/TorrentVibe.mobileprovision"
           mkdir -p "$key_directory"
           printf '%s' "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$key_path"
-          chmod 600 "$key_path"
+          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_P12" | base64 --decode > "$certificate_path"
+          printf '%s' "$IOS_APP_STORE_PROVISIONING_PROFILE" | base64 --decode > "$profile_path"
+          chmod 600 "$key_path" "$certificate_path" "$profile_path"
           test -s "$key_path"
+          test -s "$certificate_path"
+          test -s "$profile_path"
+
+          keychain_password="$(openssl rand -base64 32)"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path"
+
+          profile_plist="$RUNNER_TEMP/TorrentVibe-profile.plist"
+          security cms -D -i "$profile_path" > "$profile_plist"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$profile_plist")"
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$profile_plist")"
+          profile_install_directory="$HOME/Library/MobileDevice/Provisioning Profiles"
+          profile_install_path="$profile_install_directory/$profile_uuid.mobileprovision"
+          mkdir -p "$profile_install_directory"
+          cp "$profile_path" "$profile_install_path"
 
           base_build_number=$((GITHUB_RUN_NUMBER + 1))
           if [ "$GITHUB_RUN_ATTEMPT" -eq 1 ]; then
@@ -82,7 +121,10 @@ jobs:
 
           {
             echo "build_number=$build_number"
+            echo "keychain_path=$keychain_path"
             echo "key_path=$key_path"
+            echo "profile_install_path=$profile_install_path"
+            echo "profile_name=$profile_name"
           } >> "$GITHUB_OUTPUT"
 
           {
@@ -100,14 +142,14 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$IOS_ARCHIVE_PATH" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "${{ steps.signing.outputs.key_path }}" \
-            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
             -hideShellScriptEnvironment \
             -quiet \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual \
             CURRENT_PROJECT_VERSION="${{ steps.signing.outputs.build_number }}" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ steps.signing.outputs.keychain_path }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.profile_name }}" \
             clean archive
 
       - name: Configure internal TestFlight export
@@ -119,15 +161,22 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>destination</key>
-            <string>upload</string>
+            <string>export</string>
             <key>manageAppVersionAndBuildNumber</key>
             <false/>
             <key>method</key>
             <string>app-store-connect</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>teamID</key>
             <string>$APPLE_TEAM_ID</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>dev.innei.torrent-vibe</key>
+              <string>${{ steps.signing.outputs.profile_name }}</string>
+            </dict>
             <key>testFlightInternalTestingOnly</key>
             <true/>
             <key>uploadSymbols</key>
@@ -137,7 +186,8 @@ jobs:
           PLIST
           plutil -lint "$IOS_EXPORT_OPTIONS_PATH"
 
-      - name: Upload to TestFlight
+      - name: Export signed IPA
+        id: export
         run: |
           set -euo pipefail
           env PATH=/usr/bin:/bin:/usr/sbin:/sbin \
@@ -146,11 +196,29 @@ jobs:
               -archivePath "$IOS_ARCHIVE_PATH" \
               -exportPath "$IOS_EXPORT_PATH" \
               -exportOptionsPlist "$IOS_EXPORT_OPTIONS_PATH" \
-              -allowProvisioningUpdates \
-              -authenticationKeyPath "${{ steps.signing.outputs.key_path }}" \
-              -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
-              -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
               -quiet
+
+          ipa_path="$(find "$IOS_EXPORT_PATH" -maxdepth 1 -name '*.ipa' -print -quit)"
+          if [ -z "$ipa_path" ]; then
+            echo "::error::No IPA was exported to $IOS_EXPORT_PATH"
+            exit 1
+          fi
+          echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
+
+      - name: Validate and upload to TestFlight
+        env:
+          API_PRIVATE_KEYS_DIR: ${{ runner.temp }}/app-store-connect-private-keys
+        run: |
+          set -euo pipefail
+          xcrun altool \
+            --validate-app "${{ steps.export.outputs.ipa_path }}" \
+            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
+            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID"
+          xcrun altool \
+            --upload-app \
+            -f "${{ steps.export.outputs.ipa_path }}" \
+            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
+            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID"
 
       - name: Publish build to internal testers
         env:
@@ -171,6 +239,12 @@ jobs:
             echo "- Commit: $GITHUB_SHA"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Remove temporary signing key
+      - name: Remove temporary signing material
         if: always()
-        run: rm -f "${{ steps.signing.outputs.key_path }}"
+        run: |
+          security delete-keychain "${{ steps.signing.outputs.keychain_path }}" 2>/dev/null || true
+          rm -f "${{ steps.signing.outputs.key_path }}"
+          rm -f "${{ steps.signing.outputs.profile_install_path }}"
+          rm -f "$RUNNER_TEMP/distribution.p12"
+          rm -f "$RUNNER_TEMP/TorrentVibe.mobileprovision"
+          rm -f "$RUNNER_TEMP/TorrentVibe-profile.plist"
