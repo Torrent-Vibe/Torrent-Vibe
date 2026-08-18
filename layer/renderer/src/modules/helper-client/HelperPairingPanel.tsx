@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -11,6 +11,7 @@ import { connectHelper, helperOwnerName } from './connect'
 import { HelperConfigForm } from './HelperConfigForm'
 import { HelperInstallSnippet } from './HelperInstallSnippet'
 import { HelperMdnsList } from './HelperMdnsList'
+import { HelperPairingCodeHelp } from './HelperPairingCodeHelp'
 import { HelperProfileSyncPanel } from './HelperProfileSyncPanel'
 
 export const HelperPairingPanel = ({
@@ -29,6 +30,8 @@ export const HelperPairingPanel = ({
   const [pairingCode, setPairingCode] = useState('')
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  const urlFieldId = useId()
+  const codeFieldId = useId()
   const electron = typeof ELECTRON !== 'undefined' && ELECTRON
 
   const connect = async (url: string, code: string) => {
@@ -53,6 +56,10 @@ export const HelperPairingPanel = ({
         toast.error(
           t('servers.helper.urlInUse', { name: helperOwnerName(result.owner) }),
         )
+        return
+      }
+      if (result.error === 'tooManyAttempts') {
+        toast.error(t('servers.helper.tooManyAttempts'))
         return
       }
       toast.error(
@@ -132,45 +139,65 @@ export const HelperPairingPanel = ({
             />
           )}
 
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
+          <div className="space-y-1.5">
+            <label
+              className="text-xs font-medium text-text"
+              htmlFor={urlFieldId}
+            >
+              {t('servers.helper.manualUrl')}
+            </label>
             <Input
-              aria-label={t('servers.helper.manualUrl')}
+              id={urlFieldId}
               placeholder={probeUrl}
               value={manualUrl}
               onChange={(event) => setManualUrl(event.target.value)}
             />
-            <Input
-              aria-label={t('servers.helper.pairingCode')}
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder={t('servers.helper.pairingCode')}
-              value={pairingCode}
-              onChange={(event) => {
-                setPairingCode(
-                  event.target.value.toUpperCase().replaceAll(/[^\dA-Z]/g, ''),
-                )
-              }}
-            />
-            <Button
-              size="sm"
-              disabled={
-                busy || !manualUrl.trim() || pairingCode.trim().length !== 6
-              }
-              onClick={() => {
-                void connect(manualUrl, pairingCode)
-              }}
-            >
-              {busy && (
-                <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
-              )}
-              {busy
-                ? t('servers.helper.connecting')
-                : t('servers.helper.connect')}
-            </Button>
           </div>
-          <p className="text-xs text-text-tertiary">
-            {t('servers.helper.pairingCodeHint')}
-          </p>
+
+          <div className="space-y-1.5">
+            <label
+              className="text-xs font-medium text-text"
+              htmlFor={codeFieldId}
+            >
+              {t('servers.helper.pairingCode')}
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                autoComplete="one-time-code"
+                className="w-44 shrink-0"
+                id={codeFieldId}
+                inputClassName="text-center font-mono text-base uppercase tracking-[0.35em]"
+                maxLength={6}
+                placeholder={t('servers.helper.pairingCodePlaceholder')}
+                value={pairingCode}
+                onChange={(event) => {
+                  setPairingCode(
+                    event.target.value
+                      .toUpperCase()
+                      .replaceAll(/[^\dA-Z]/g, ''),
+                  )
+                }}
+              />
+              <Button
+                size="sm"
+                disabled={
+                  busy || !manualUrl.trim() || pairingCode.trim().length !== 6
+                }
+                onClick={() => {
+                  void connect(manualUrl, pairingCode)
+                }}
+              >
+                {busy && (
+                  <i className="i-mingcute-loading-3-line mr-1 animate-spin" />
+                )}
+                {busy
+                  ? t('servers.helper.connecting')
+                  : t('servers.helper.connect')}
+              </Button>
+            </div>
+          </div>
+
+          <HelperPairingCodeHelp />
 
           {electron && <HelperInstallSnippet />}
         </>

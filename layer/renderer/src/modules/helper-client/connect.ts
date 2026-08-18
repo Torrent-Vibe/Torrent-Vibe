@@ -8,7 +8,8 @@ import {
   useHelperBindingsStore,
 } from './bindings'
 
-export type ConnectHelperError = 'urlInUse' | 'discoverFailed' | 'pairFailed'
+export type ConnectHelperError =
+  'urlInUse' | 'discoverFailed' | 'pairFailed' | 'tooManyAttempts'
 
 export type ConnectHelperResult =
   | { ok: true; url: string }
@@ -66,6 +67,9 @@ export const connectHelper = async (
   } catch (error) {
     if (error instanceof Error && error.message === 'helperUrlInUse') {
       return { ok: false, error: 'urlInUse', owner: normalized }
+    }
+    if ((error as { status?: number })?.status === 429) {
+      return { ok: false, error: 'tooManyAttempts' }
     }
     return { ok: false, error: 'pairFailed' }
   }
