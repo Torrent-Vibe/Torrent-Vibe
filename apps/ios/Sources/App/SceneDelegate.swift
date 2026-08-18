@@ -3,6 +3,7 @@ import UIKit
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
   private var appModel: AppModel?
+  private var launchDiscovery: HelperDiscoveryModel?
 
   func scene(
     _ scene: UIScene,
@@ -27,5 +28,19 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     appModel = model
     window = appWindow
+  }
+
+  func sceneDidBecomeActive(_ scene: UIScene) {
+    requestLaunchAccess()
+  }
+
+  private func requestLaunchAccess() {
+    guard let model = appModel, !model.isDemoMode else { return }
+    if launchDiscovery == nil {
+      let discovery = HelperDiscoveryModel(demoMode: false)
+      discovery.start()
+      launchDiscovery = discovery
+    }
+    Task { await model.refreshTorrents() }
   }
 }

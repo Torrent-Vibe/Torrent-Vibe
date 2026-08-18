@@ -1,6 +1,7 @@
 import Observation
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct TorrentImportDraft: Sendable {
   let displayTitle: String?
@@ -15,14 +16,51 @@ struct TorrentImportDraft: Sendable {
 @MainActor
 @Observable
 private final class TorrentImportState {
+  var categoryText = ""
+  var downloadLimitText = ""
   var errorMessage: String?
+  var fileData: Data?
+  var fileName: String?
+  var isAdvancedOptionsExpanded = false
   var isSubmitting = false
+  var savePathText = ""
   var selectedServerID: UUID?
   var sourceText: String
+  var tagsText = ""
+  var uploadLimitText = ""
 
   init(draft: TorrentImportDraft, selectedServerID: UUID?) {
     sourceText = draft.sourceText
     self.selectedServerID = selectedServerID
+  }
+
+  func selectFile(name: String, data: Data) {
+    fileName = name
+    fileData = data
+    sourceText = ""
+    errorMessage = nil
+  }
+
+  func clearFile() {
+    fileName = nil
+    fileData = nil
+  }
+
+  func request() throws -> TorrentAddRequest {
+    let source: TorrentAddSource
+    if let fileName, let fileData {
+      source = .file(name: fileName, data: fileData)
+    } else {
+      source = .url(sourceText)
+    }
+    return try TorrentAddRequest(
+      source: source,
+      savePath: savePathText,
+      category: categoryText,
+      tags: TorrentInput.tags(from: tagsText),
+      downloadLimit: TorrentInput.optionalBytesPerSecond(from: downloadLimitText),
+      uploadLimit: TorrentInput.optionalBytesPerSecond(from: uploadLimitText)
+    )
   }
 }
 
@@ -59,6 +97,12 @@ final class TorrentImportViewController: SwiftUIHostingViewController {
     host(
       TorrentImportContentView(
         draft: draft,
+        onClearFile: { [weak self] in
+          self?.state.clearFile()
+        },
+        onPickFile: { [weak self] in
+          self?.pickFile()
+        },
         onSubmit: { [weak self] in
           self?.submit()
         }
@@ -107,20 +151,70 @@ final class TorrentImportViewController: SwiftUIHostingViewController {
       return
     }
 
-    state.isSubmitting = true
-    state.errorMessage = nil
-    Task {
-      do {
-        let server = try await model.addTorrent(sourceText: state.sourceText, to: serverID)
-        state.isSubmitting = false
-        dismiss(animated: true) { [onCompletion] in
-          onCompletion?(server)
+    do {
+      let request = try state.request()
+      state.isSubmitting = true
+      state.errorMessage = nil
+      Task {
+        do {
+          let server = try await model.addTorrent(request, to: serverID)
+          state.isSubmitting = false
+          dismiss(animated: true) { [onCompletion] in
+            onCompletion?(server)
+          }
+        } catch {
+          state.isSubmitting = false
+          state.errorMessage = error.localizedDescription
         }
-      } catch {
-        state.isSubmitting = false
-        state.errorMessage = error.localizedDescription
+      }
+    } catch {
+      state.errorMessage = error.localizedDescription
+    }
+  }
+
+  private func pickFile() {
+    let torrentType = UTType(filenameExtension: "torrent") ?? .data
+    let picker = UIDocumentPickerViewController(
+      forOpeningContentTypes: [torrentType],
+      asCopy: true
+    )
+    picker.allowsMultipleSelection = false
+    picker.delegate = self
+    present(picker, animated: true)
+  }
+}
+
+extension TorrentImportViewController: UIDocumentPickerDelegate {
+  func documentPicker(
+    _ controller: UIDocumentPickerViewController,
+    didPickDocumentsAt urls: [URL]
+  ) {
+    guard let url = urls.first else { return }
+    let hasSecurityScope = url.startAccessingSecurityScopedResource()
+    defer {
+      if hasSecurityScope {
+        url.stopAccessingSecurityScopedResource()
       }
     }
+
+    do {
+      guard url.pathExtension.lowercased() == "torrent" else {
+        throw TorrentImportError.invalidFile
+      }
+      let values = try url.resourceValues(forKeys: [.fileSizeKey])
+      if let fileSize = values.fileSize, fileSize > 10 * 1024 * 1024 {
+        throw TorrentImportError.fileTooLarge
+      }
+      let data = try Data(contentsOf: url, options: .mappedIfSafe)
+      guard !data.isEmpty else { throw TorrentImportError.invalidFile }
+      state.selectFile(name: url.lastPathComponent, data: data)
+    } catch {
+      state.errorMessage = error.localizedDescription
+    }
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    state.errorMessage = nil
   }
 }
 
@@ -129,39 +223,56 @@ private struct TorrentImportContentView: View {
   @Environment(TorrentImportState.self) private var state
 
   let draft: TorrentImportDraft
+  let onClearFile: () -> Void
+  let onPickFile: () -> Void
   let onSubmit: () -> Void
 
   var body: some View {
     @Bindable var state = state
 
     Form {
-      Section("来源") {
+      Section {
         if let displayTitle = draft.displayTitle {
-          LabeledContent("条目") {
-            Text(displayTitle)
-              .lineLimit(2)
-              .multilineTextAlignment(.trailing)
-          }
+          Text(displayTitle)
+            .font(.body)
         }
 
         if draft.locksSource {
-          LabeledContent("Torrent URL") {
-            Text(state.sourceText)
-              .font(.caption.monospaced())
-              .foregroundStyle(.secondary)
-              .lineLimit(3)
+          Text(state.sourceText)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+            .accessibilityIdentifier("torrent-import-source")
+        } else if let fileName = state.fileName {
+          LabeledContent("Torrent 文件") {
+            Text(fileName)
+              .lineLimit(2)
               .multilineTextAlignment(.trailing)
-              .textSelection(.enabled)
           }
-          .accessibilityIdentifier("torrent-import-source")
+          .accessibilityIdentifier("torrent-import-file-name")
+          Button("移除所选文件", role: .destructive, action: onClearFile)
+            .accessibilityIdentifier("torrent-import-file-clear")
         } else {
           TextField("Magnet 或 Torrent URL", text: $state.sourceText, axis: .vertical)
-            .lineLimit(2...5)
+            .lineLimit(3...6)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .keyboardType(.URL)
+            .textContentType(.URL)
             .accessibilityIdentifier("torrent-import-source")
+          Button(action: onPickFile) {
+            Label("选取 .torrent 文件", systemImage: "doc.badge.plus")
+          }
+          .accessibilityIdentifier("torrent-import-file-picker")
         }
+      } header: {
+        Text("来源")
+      } footer: {
+        Text(
+          draft.locksSource
+            ? "此链接来自当前剧集，提交后由目标服务器下载。"
+            : "支持 Magnet、HTTP(S) Torrent URL 与本地 .torrent 文件。"
+        )
       }
 
       Section {
@@ -178,8 +289,29 @@ private struct TorrentImportContentView: View {
         }
       } header: {
         Text("目标服务器")
+      }
+
+      Section {
+        DisclosureGroup("高级选项", isExpanded: $state.isAdvancedOptionsExpanded) {
+          TextField("保存路径（使用服务器路径）", text: $state.savePathText)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .accessibilityIdentifier("torrent-import-save-path")
+          TextField("分类", text: $state.categoryText)
+            .textInputAutocapitalization(.never)
+            .accessibilityIdentifier("torrent-import-category")
+          TextField("标签，以逗号分隔", text: $state.tagsText)
+            .accessibilityIdentifier("torrent-import-tags")
+          TextField("下载限速（MB/s）", text: $state.downloadLimitText)
+            .keyboardType(.decimalPad)
+            .accessibilityIdentifier("torrent-import-download-limit")
+          TextField("上传限速（MB/s）", text: $state.uploadLimitText)
+            .keyboardType(.decimalPad)
+            .accessibilityIdentifier("torrent-import-upload-limit")
+        }
+        .accessibilityIdentifier("torrent-import-advanced")
       } footer: {
-        Text("本批使用服务器默认保存路径；保存路径、分类和标签将在高级选项批次接入。")
+        Text("路径留空时使用服务器默认值；限速留空时使用服务器设置，0 表示不限制。")
       }
 
       if let errorMessage = state.errorMessage {
@@ -193,33 +325,23 @@ private struct TorrentImportContentView: View {
     .accessibilityIdentifier("torrent-import-sheet")
     .safeAreaInset(edge: .bottom) {
       Button(action: onSubmit) {
-        HStack {
-          if state.isSubmitting {
-            ProgressView()
-              .tint(.white)
-          } else {
-            Image(systemName: "arrow.down.circle.fill")
-          }
-          Text(confirmTitle)
-            .fontWeight(.semibold)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        Text(confirmTitle)
+          .frame(maxWidth: .infinity)
       }
-      .buttonStyle(.borderedProminent)
+      .buttonStyle(.glassProminent)
       .controlSize(.large)
       .disabled(!canSubmit)
       .padding(.horizontal, 16)
-      .padding(.vertical, 10)
-      .background(.bar)
+      .padding(.vertical, 12)
       .accessibilityIdentifier("torrent-import-confirm")
     }
   }
 
   private var canSubmit: Bool {
-    !state.isSubmitting
-      && state.selectedServerID != nil
-      && !state.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let hasSource =
+      state.fileData != nil
+      || !state.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    return !state.isSubmitting && state.selectedServerID != nil && hasSource
   }
 
   private var confirmTitle: String {

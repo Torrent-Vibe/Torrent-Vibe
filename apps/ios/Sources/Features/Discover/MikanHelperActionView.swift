@@ -207,23 +207,14 @@ private struct MikanHelperActionContentView: View {
     .accessibilityIdentifier("mikan-helper-action-sheet")
     .safeAreaInset(edge: .bottom) {
       Button(action: onSubmit) {
-        HStack {
-          if state.isSubmitting {
-            ProgressView().tint(.white)
-          } else {
-            Image(systemName: action == .subscribe ? "bookmark.fill" : "tray.and.arrow.down.fill")
-          }
-          Text(confirmTitle).fontWeight(.semibold)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        Text(confirmTitle)
+          .frame(maxWidth: .infinity)
       }
-      .buttonStyle(.borderedProminent)
+      .buttonStyle(.glassProminent)
       .controlSize(.large)
       .disabled(!canSubmit)
       .padding(.horizontal, 16)
-      .padding(.vertical, 10)
-      .background(.bar)
+      .padding(.vertical, 12)
       .accessibilityIdentifier(
         action == .subscribe ? "mikan-helper-subscribe-confirm" : "mikan-helper-backfill-confirm"
       )

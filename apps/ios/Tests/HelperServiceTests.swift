@@ -395,16 +395,226 @@ final class TorrentRepositoryTests: XCTestCase {
     let torrent = try XCTUnwrap(initial.torrents.first)
     XCTAssertEqual(torrent.status, .downloading)
 
-    try await repository.setPaused(true, torrentID: torrent.id, on: server)
+    try await repository.setPaused(true, torrentIDs: [torrent.id], on: server)
     let paused = try await repository.snapshot(for: server)
     XCTAssertEqual(paused.torrents.first?.status, .paused)
     XCTAssertEqual(paused.torrents.first?.eta, "已暂停")
 
-    try await repository.setPaused(false, torrentID: torrent.id, on: server)
+    try await repository.setPaused(false, torrentIDs: [torrent.id], on: server)
     let resumed = try await repository.snapshot(for: server)
     XCTAssertEqual(resumed.torrents.first?.status, .downloading)
     XCTAssertEqual(resumed.torrents.first?.downloadSpeed, "18.4 MB/s")
   }
+
+  func testDemoRepositorySupportsAdvancedImportManagementAndDeletion() async throws {
+    let repository = DemoTorrentRepository()
+    let server = ServerConfiguration(
+      name: "Demo",
+      baseURL: try XCTUnwrap(URL(string: "https://demo.example.test")),
+      username: "demo"
+    )
+
+    try await repository.addTorrent(
+      TorrentAddRequest(
+        source: .file(name: "release.torrent", data: Data("torrent".utf8)),
+        savePath: "/Media/Incoming",
+        category: "review",
+        tags: ["iOS", "TestFlight"],
+        downloadLimit: 2 * 1_048_576,
+        uploadLimit: 1_048_576
+      ),
+      to: server
+    )
+
+    var snapshot = try await repository.snapshot(for: server)
+    let imported = try XCTUnwrap(snapshot.torrents.first)
+    XCTAssertEqual(imported.name, "release")
+    XCTAssertEqual(imported.savePath, "/Media/Incoming")
+    XCTAssertEqual(imported.category, "review")
+    XCTAssertEqual(imported.tags, ["iOS", "TestFlight"])
+    XCTAssertEqual(imported.downloadLimit, 2 * 1_048_576)
+    XCTAssertEqual(imported.uploadLimit, 1_048_576)
+
+    try await repository.updateTorrents(
+      ids: [imported.id],
+      request: TorrentManagementRequest(
+        category: "verified",
+        tags: ["mobile"],
+        downloadLimit: 0,
+        uploadLimit: 512 * 1_024
+      ),
+      on: server
+    )
+    snapshot = try await repository.snapshot(for: server)
+    let updated = try XCTUnwrap(snapshot.torrents.first { $0.id == imported.id })
+    XCTAssertEqual(updated.category, "verified")
+    XCTAssertEqual(updated.tags, ["mobile"])
+    XCTAssertEqual(updated.downloadLimit, 0)
+    XCTAssertEqual(updated.uploadLimit, 512 * 1_024)
+
+    try await repository.deleteTorrents(
+      ids: [imported.id],
+      deleteFiles: false,
+      on: server
+    )
+    snapshot = try await repository.snapshot(for: server)
+    XCTAssertFalse(snapshot.torrents.contains { $0.id == imported.id })
+  }
+
+  func testQBittorrentRepositorySendsFileOptionsAndSafeManagementRequests() async throws {
+    let recorder = TorrentRequestRecorder()
+    StubURLProtocol.handler = { request in
+      recorder.append(request)
+      let response = HTTPURLResponse(
+        url: request.url!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "text/plain"]
+      )!
+      let data =
+        request.url?.path.hasSuffix("/auth/login") == true
+        ? Data("Ok.".utf8) : Data("Ok.".utf8)
+      return (response, data)
+    }
+    defer { StubURLProtocol.handler = nil }
+
+    let credentials = TorrentTestCredentialStore()
+    let server = ServerConfiguration(
+      name: "NAS",
+      baseURL: try XCTUnwrap(URL(string: "https://nas.example.test:8080")),
+      username: "admin"
+    )
+    try credentials.setPassword("secret", for: server.id)
+    let repository = QBittorrentTorrentRepository(
+      credentialStore: credentials,
+      sessionFactory: {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: configuration)
+      }
+    )
+
+    try await repository.addTorrent(
+      TorrentAddRequest(
+        source: .file(name: "release.torrent", data: Data("torrent-data".utf8)),
+        savePath: "/Media/Incoming",
+        category: "review",
+        tags: ["iOS", "TestFlight"],
+        downloadLimit: 2_097_152,
+        uploadLimit: 1_048_576
+      ),
+      to: server
+    )
+    let add = try XCTUnwrap(recorder.requests.first { $0.path.hasSuffix("/torrents/add") })
+    XCTAssertTrue(add.contentType.hasPrefix("multipart/form-data; boundary="))
+    XCTAssertTrue(add.body.contains("name=\"torrents\"; filename=\"release.torrent\""))
+    XCTAssertTrue(add.body.contains("Content-Type: application/x-bittorrent"))
+    XCTAssertTrue(add.body.contains("torrent-data"))
+    XCTAssertTrue(add.body.contains("name=\"savepath\"\r\n\r\n/Media/Incoming"))
+    XCTAssertTrue(add.body.contains("name=\"category\"\r\n\r\nreview"))
+    XCTAssertTrue(add.body.contains("name=\"tags\"\r\n\r\niOS,TestFlight"))
+    XCTAssertTrue(add.body.contains("name=\"dlLimit\"\r\n\r\n2097152"))
+    XCTAssertTrue(add.body.contains("name=\"upLimit\"\r\n\r\n1048576"))
+
+    try await repository.deleteTorrents(
+      ids: ["aaa", "bbb"],
+      deleteFiles: false,
+      on: server
+    )
+    let delete = try XCTUnwrap(recorder.requests.last { $0.path.hasSuffix("/torrents/delete") })
+    XCTAssertTrue(delete.body.contains("hashes=aaa%7Cbbb"))
+    XCTAssertTrue(delete.body.contains("deleteFiles=false"))
+
+    try await repository.updateTorrents(
+      ids: ["aaa", "bbb"],
+      request: TorrentManagementRequest(
+        category: "verified",
+        tags: ["mobile"],
+        downloadLimit: 0,
+        uploadLimit: 524_288
+      ),
+      on: server
+    )
+    let paths = recorder.requests.map(\.path)
+    XCTAssertTrue(paths.contains { $0.hasSuffix("/torrents/setCategory") })
+    XCTAssertTrue(paths.contains { $0.hasSuffix("/torrents/removeTags") })
+    XCTAssertTrue(paths.contains { $0.hasSuffix("/torrents/addTags") })
+    XCTAssertTrue(paths.contains { $0.hasSuffix("/torrents/setDownloadLimit") })
+    XCTAssertTrue(paths.contains { $0.hasSuffix("/torrents/setUploadLimit") })
+    let uploadLimit = try XCTUnwrap(
+      recorder.requests.last { $0.path.hasSuffix("/torrents/setUploadLimit") }
+    )
+    XCTAssertTrue(uploadLimit.body.contains("hashes=aaa%7Cbbb"))
+    XCTAssertTrue(uploadLimit.body.contains("limit=524288"))
+  }
+}
+
+private struct TorrentRecordedRequest: Sendable {
+  let body: String
+  let contentType: String
+  let path: String
+}
+
+private final class TorrentRequestRecorder: @unchecked Sendable {
+  private let lock = NSLock()
+  private var storage: [TorrentRecordedRequest] = []
+
+  var requests: [TorrentRecordedRequest] {
+    lock.lock()
+    defer { lock.unlock() }
+    return storage
+  }
+
+  func append(_ request: URLRequest) {
+    let recorded = TorrentRecordedRequest(
+      body: String(decoding: requestBodyData(request), as: UTF8.self),
+      contentType: request.value(forHTTPHeaderField: "Content-Type") ?? "",
+      path: request.url?.path ?? ""
+    )
+    lock.lock()
+    storage.append(recorded)
+    lock.unlock()
+  }
+}
+
+private final class TorrentTestCredentialStore: ServerCredentialStore, @unchecked Sendable {
+  private let lock = NSLock()
+  private var passwords: [UUID: String] = [:]
+
+  func deletePassword(for serverID: UUID) throws {
+    lock.lock()
+    defer { lock.unlock() }
+    passwords[serverID] = nil
+  }
+
+  func setPassword(_ password: String, for serverID: UUID) throws {
+    lock.lock()
+    defer { lock.unlock() }
+    passwords[serverID] = password
+  }
+
+  func password(for serverID: UUID) throws -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+    return passwords[serverID]
+  }
+}
+
+private func requestBodyData(_ request: URLRequest) -> Data {
+  if let body = request.httpBody {
+    return body
+  }
+  guard let stream = request.httpBodyStream else { return Data() }
+  stream.open()
+  defer { stream.close() }
+  var result = Data()
+  var buffer = [UInt8](repeating: 0, count: 1_024)
+  while stream.hasBytesAvailable {
+    let count = stream.read(&buffer, maxLength: buffer.count)
+    guard count > 0 else { break }
+    result.append(buffer, count: count)
+  }
+  return result
 }
 
 private final class InMemoryHelperCredentialStore: HelperCredentialStore, @unchecked Sendable {

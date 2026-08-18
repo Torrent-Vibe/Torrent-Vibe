@@ -34,7 +34,7 @@
 		<string>_torrentvibe-helper._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>用于发现并连接同一局域网中的 Torrent Vibe Helper。</string>
+	<string>用于扫描局域网、连接同一网络上的 qBittorrent，并发现 Torrent Vibe Helper。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

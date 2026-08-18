@@ -1,4 +1,3 @@
-import Observation
 import SwiftUI
 import UIKit
 
@@ -31,10 +30,13 @@ final class ServersViewController: SwiftUIHostingViewController {
     host(
       ServersContentView(
         onAddServer: { [weak self] in
-          self?.presentAddServer()
+          self?.presentEditor()
         },
         onOpenServer: { [weak self] serverID in
           self?.showServer(serverID)
+        },
+        onEditServer: { [weak self] serverID in
+          self?.presentEditor(serverID: serverID)
         }
       )
       .environment(model)
@@ -49,8 +51,12 @@ final class ServersViewController: SwiftUIHostingViewController {
   }
 
   @objc private func presentAddServer() {
-    let addServer = AddServerViewController(model: model)
-    let navigationController = UINavigationController(rootViewController: addServer)
+    presentEditor()
+  }
+
+  func presentEditor(serverID: UUID? = nil) {
+    let editor = ServerEditorViewController(model: model, serverID: serverID)
+    let navigationController = UINavigationController(rootViewController: editor)
     navigationController.modalPresentationStyle = .formSheet
     present(navigationController, animated: true)
   }
@@ -61,6 +67,7 @@ private struct ServersContentView: View {
 
   let onAddServer: () -> Void
   let onOpenServer: (UUID) -> Void
+  let onEditServer: (UUID) -> Void
 
   var body: some View {
     Group {
@@ -83,13 +90,18 @@ private struct ServersContentView: View {
               } label: {
                 ServerRow(
                   server: server,
-                  isActive: server.id == model.activeServerID,
-                  connectionStatus: model.connectionStatusText(for: server.id),
-                  helperStatus: model.helperStatusText(for: server.id)
+                  isActive: server.id == model.activeServerID
                 )
               }
               .buttonStyle(.plain)
               .accessibilityIdentifier("server-row-\(server.id.uuidString)")
+              .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("编辑") {
+                  onEditServer(server.id)
+                }
+                .tint(.blue)
+                .accessibilityIdentifier("server-swipe-edit-\(server.id.uuidString)")
+              }
             }
           }
 
@@ -107,58 +119,40 @@ private struct ServersContentView: View {
 private struct ServerRow: View {
   let server: ServerConfiguration
   let isActive: Bool
-  let connectionStatus: String
-  let helperStatus: String
 
   var body: some View {
     HStack(spacing: 12) {
       Image(systemName: "externaldrive.fill")
-        .font(.title3)
+        .font(.body)
         .foregroundStyle(isActive ? .blue : .secondary)
-        .frame(width: 28)
+        .frame(width: 28, alignment: .center)
+        .accessibilityHidden(true)
 
-      VStack(alignment: .leading, spacing: 4) {
-        HStack(spacing: 6) {
-          Text(server.name)
-            .font(.body.weight(.medium))
-            .foregroundStyle(.primary)
-          if isActive {
-            Text("当前")
-              .font(.caption2.weight(.semibold))
-              .foregroundStyle(.blue)
-          }
-        }
-
+      VStack(alignment: .leading, spacing: 2) {
+        Text(server.name)
+          .font(.body)
+          .foregroundStyle(.primary)
         Text(server.baseURL.absoluteString)
-          .font(.caption)
+          .font(.footnote)
           .foregroundStyle(.secondary)
           .lineLimit(1)
-
-        HStack(spacing: 10) {
-          Label(connectionStatus, systemImage: "network")
-          Label(helperStatus, systemImage: modelHelperImage)
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
       }
-
-      Spacer()
+      .frame(maxWidth: .infinity, alignment: .leading)
 
       if isActive {
-        Image(systemName: "checkmark.circle.fill")
+        Image(systemName: "checkmark")
+          .font(.body.weight(.semibold))
           .foregroundStyle(.blue)
+          .accessibilityHidden(true)
       }
       Image(systemName: "chevron.right")
         .font(.caption.weight(.semibold))
         .foregroundStyle(.tertiary)
+        .accessibilityHidden(true)
     }
     .contentShape(Rectangle())
-    .padding(.vertical, 4)
-  }
-
-  private var modelHelperImage: String {
-    helperStatus.hasPrefix("已连接") || helperStatus == "已配对" ? "link" : "shippingbox"
+    .accessibilityElement(children: .combine)
+    .accessibilityValue(isActive ? "当前服务器" : "")
   }
 }
 
@@ -182,11 +176,21 @@ private final class ServerDetailViewController: SwiftUIHostingViewController {
     title = model.servers.first(where: { $0.id == serverID })?.name ?? "服务器"
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
+    navigationItem.rightBarButtonItem = UIBarButtonItem(
+      title: "编辑",
+      style: .plain,
+      target: self,
+      action: #selector(presentEditor)
+    )
+    navigationItem.rightBarButtonItem?.accessibilityIdentifier = "server-edit"
     host(
       ServerDetailContentView(
         serverID: serverID,
         onOpenHelper: { [weak self] in
           self?.showHelper()
+        },
+        onEdit: { [weak self] in
+          self?.presentEditor()
         },
         onDelete: { [weak self] in
           self?.confirmDelete()
@@ -194,6 +198,18 @@ private final class ServerDetailViewController: SwiftUIHostingViewController {
       )
       .environment(model)
     )
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    title = model.servers.first(where: { $0.id == serverID })?.name ?? "服务器"
+  }
+
+  @objc private func presentEditor() {
+    let editor = ServerEditorViewController(model: model, serverID: serverID)
+    let navigationController = UINavigationController(rootViewController: editor)
+    navigationController.modalPresentationStyle = .formSheet
+    present(navigationController, animated: true)
   }
 
   private func showHelper() {
@@ -231,6 +247,7 @@ private struct ServerDetailContentView: View {
 
   let serverID: UUID
   let onOpenHelper: () -> Void
+  let onEdit: () -> Void
   let onDelete: () -> Void
 
   var body: some View {
@@ -270,6 +287,8 @@ private struct ServerDetailContentView: View {
               "密码",
               value: model.hasStoredPassword(for: server.id) ? "已存入 Keychain" : "未保存"
             )
+            Button("编辑连接信息", action: onEdit)
+              .accessibilityIdentifier("server-edit-connection")
           }
 
           Section("Helper") {
@@ -300,119 +319,6 @@ private struct ServerDetailContentView: View {
       } else {
         ContentUnavailableView("服务器不存在", systemImage: "externaldrive.badge.xmark")
       }
-    }
-  }
-}
-
-@MainActor
-@Observable
-private final class AddServerFormState {
-  var name = ""
-  var baseURL = "http://"
-  var username = ""
-  var password = ""
-  var helperURL = ""
-}
-
-private struct AddServerFormView: View {
-  @Bindable var form: AddServerFormState
-
-  var body: some View {
-    Form {
-      Section("服务器") {
-        TextField("名称，例如：家庭 NAS", text: $form.name)
-          .textContentType(.organizationName)
-          .accessibilityIdentifier("server-add-name")
-        TextField("qBittorrent WebUI 地址", text: $form.baseURL)
-          .textContentType(.URL)
-          .textInputAutocapitalization(.never)
-          .keyboardType(.URL)
-          .accessibilityIdentifier("server-add-base-url")
-        TextField("用户名", text: $form.username)
-          .textContentType(.username)
-          .textInputAutocapitalization(.never)
-          .accessibilityIdentifier("server-add-username")
-        SecureField("密码", text: $form.password)
-          .textContentType(.password)
-          .accessibilityIdentifier("server-add-password")
-      }
-
-      Section {
-        TextField("例如：http://nas.local:17890", text: $form.helperURL)
-          .textContentType(.URL)
-          .textInputAutocapitalization(.never)
-          .keyboardType(.URL)
-          .accessibilityIdentifier("server-add-helper-url")
-      } header: {
-        Text("可选 Helper")
-      } footer: {
-        Text("Helper 使用 spec 中定义的普通 JSON API。此处只登记端点，不执行自动绑定。")
-      }
-
-      Section {
-        Label("密码仅写入本机 Keychain，不进入服务器配置或日志。", systemImage: "key")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-      }
-    }
-  }
-}
-
-private final class AddServerViewController: SwiftUIHostingViewController {
-  private let model: AppModel
-  private let form = AddServerFormState()
-
-  init(model: AppModel) {
-    self.model = model
-    super.init(nibName: nil, bundle: nil)
-  }
-
-  @available(*, unavailable)
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    title = "添加服务器"
-    view.backgroundColor = .systemGroupedBackground
-    navigationItem.largeTitleDisplayMode = .never
-    navigationItem.leftBarButtonItem = UIBarButtonItem(
-      barButtonSystemItem: .cancel,
-      target: self,
-      action: #selector(cancel)
-    )
-    navigationItem.rightBarButtonItem = UIBarButtonItem(
-      barButtonSystemItem: .save,
-      target: self,
-      action: #selector(save)
-    )
-    navigationItem.rightBarButtonItem?.accessibilityIdentifier = "server-add-save"
-    host(AddServerFormView(form: form))
-  }
-
-  @objc private func cancel() {
-    dismiss(animated: true)
-  }
-
-  @objc private func save() {
-    do {
-      try model.addServer(
-        name: form.name,
-        baseURLText: form.baseURL,
-        username: form.username,
-        password: form.password,
-        helperURLText: form.helperURL
-      )
-      dismiss(animated: true)
-    } catch {
-      let alert = UIAlertController(
-        title: "无法保存服务器",
-        message: error.localizedDescription,
-        preferredStyle: .alert
-      )
-      alert.addAction(UIAlertAction(title: "好", style: .cancel))
-      present(alert, animated: true)
     }
   }
 }

@@ -7,15 +7,58 @@ struct TorrentSnapshot: Sendable {
   let serverVersion: String?
 }
 
+enum TorrentAddSource: Equatable, Sendable {
+  case file(name: String, data: Data)
+  case url(String)
+}
+
 struct TorrentAddRequest: Equatable, Sendable {
-  let source: String
+  let source: TorrentAddSource
+  let savePath: String?
+  let category: String?
+  let tags: [String]
+  let downloadLimit: Int64?
+  let uploadLimit: Int64?
+
+  init(
+    source: TorrentAddSource,
+    savePath: String? = nil,
+    category: String? = nil,
+    tags: [String] = [],
+    downloadLimit: Int64? = nil,
+    uploadLimit: Int64? = nil
+  ) {
+    self.source = source
+    self.savePath = savePath
+    self.category = category
+    self.tags = tags
+    self.downloadLimit = downloadLimit
+    self.uploadLimit = uploadLimit
+  }
+}
+
+struct TorrentManagementRequest: Equatable, Sendable {
+  let category: String?
+  let tags: [String]
+  let downloadLimit: Int64
+  let uploadLimit: Int64
 }
 
 protocol TorrentRepository: Sendable {
   func addTorrent(_ request: TorrentAddRequest, to server: ServerConfiguration) async throws
+  func deleteTorrents(
+    ids: [String],
+    deleteFiles: Bool,
+    on server: ServerConfiguration
+  ) async throws
   func setPaused(
     _ paused: Bool,
-    torrentID: String,
+    torrentIDs: [String],
+    on server: ServerConfiguration
+  ) async throws
+  func updateTorrents(
+    ids: [String],
+    request: TorrentManagementRequest,
     on server: ServerConfiguration
   ) async throws
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot
@@ -23,9 +66,21 @@ protocol TorrentRepository: Sendable {
 
 actor QBittorrentTorrentRepository: TorrentRepository {
   private let credentialStore: any ServerCredentialStore
+  private let sessionFactory: @Sendable () -> URLSession
 
-  init(credentialStore: any ServerCredentialStore) {
+  init(
+    credentialStore: any ServerCredentialStore,
+    sessionFactory: @escaping @Sendable () -> URLSession = {
+      let configuration = URLSessionConfiguration.ephemeral
+      configuration.httpCookieAcceptPolicy = .always
+      configuration.httpShouldSetCookies = true
+      configuration.timeoutIntervalForRequest = 10
+      configuration.timeoutIntervalForResource = 20
+      return URLSession(configuration: configuration)
+    }
+  ) {
     self.credentialStore = credentialStore
+    self.sessionFactory = sessionFactory
   }
 
   func addTorrent(_ torrent: TorrentAddRequest, to server: ServerConfiguration) async throws {
@@ -40,10 +95,35 @@ actor QBittorrentTorrentRepository: TorrentRepository {
       "multipart/form-data; boundary=\(boundary)",
       forHTTPHeaderField: "Content-Type"
     )
-    request.httpBody = Self.multipartBody(
-      fields: ["urls": torrent.source],
-      boundary: boundary
-    )
+    var fields: [(String, String)] = []
+    var file: MultipartFile?
+    switch torrent.source {
+    case .url(let source):
+      fields.append(("urls", source))
+    case .file(let name, let data):
+      file = MultipartFile(
+        fieldName: "torrents",
+        fileName: name,
+        contentType: "application/x-bittorrent",
+        data: data
+      )
+    }
+    if let savePath = torrent.savePath {
+      fields.append(("savepath", savePath))
+    }
+    if let category = torrent.category {
+      fields.append(("category", category))
+    }
+    if !torrent.tags.isEmpty {
+      fields.append(("tags", torrent.tags.joined(separator: ",")))
+    }
+    if let downloadLimit = torrent.downloadLimit {
+      fields.append(("dlLimit", String(downloadLimit)))
+    }
+    if let uploadLimit = torrent.uploadLimit {
+      fields.append(("upLimit", String(uploadLimit)))
+    }
+    request.httpBody = Self.multipartBody(fields: fields, file: file, boundary: boundary)
 
     let (data, response) = try await session.data(for: request)
     let httpResponse = try Self.validatedHTTPResponse(response)
@@ -69,6 +149,25 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     {
       throw QBittorrentRepositoryError.addRejected
     }
+  }
+
+  func deleteTorrents(
+    ids: [String],
+    deleteFiles: Bool,
+    on server: ServerConfiguration
+  ) async throws {
+    try validateTorrentIDs(ids)
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    try await postForm(
+      session: session,
+      server: server,
+      path: "/torrents/delete",
+      items: [
+        URLQueryItem(name: "hashes", value: ids.joined(separator: "|")),
+        URLQueryItem(name: "deleteFiles", value: String(deleteFiles)),
+      ]
+    )
   }
 
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot {
@@ -105,33 +204,77 @@ actor QBittorrentTorrentRepository: TorrentRepository {
 
   func setPaused(
     _ paused: Bool,
-    torrentID: String,
+    torrentIDs: [String],
     on server: ServerConfiguration
   ) async throws {
+    try validateTorrentIDs(torrentIDs)
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+    try await postForm(
+      session: session,
+      server: server,
+      path: paused ? "/torrents/stop" : "/torrents/start",
+      items: [URLQueryItem(name: "hashes", value: torrentIDs.joined(separator: "|"))]
+    )
+  }
+
+  func updateTorrents(
+    ids: [String],
+    request: TorrentManagementRequest,
+    on server: ServerConfiguration
+  ) async throws {
+    try validateTorrentIDs(ids)
     let session = try await authenticatedSession(for: server)
     defer { session.invalidateAndCancel() }
 
-    var request = URLRequest(
-      url: try endpoint(
+    let hashes = ids.joined(separator: "|")
+    try await postForm(
+      session: session,
+      server: server,
+      path: "/torrents/setCategory",
+      items: [
+        URLQueryItem(name: "hashes", value: hashes),
+        URLQueryItem(name: "category", value: request.category ?? ""),
+      ]
+    )
+    try await postForm(
+      session: session,
+      server: server,
+      path: "/torrents/removeTags",
+      items: [
+        URLQueryItem(name: "hashes", value: hashes),
+        URLQueryItem(name: "tags", value: ""),
+      ]
+    )
+    if !request.tags.isEmpty {
+      try await postForm(
+        session: session,
         server: server,
-        path: paused ? "/torrents/stop" : "/torrents/start"
+        path: "/torrents/addTags",
+        items: [
+          URLQueryItem(name: "hashes", value: hashes),
+          URLQueryItem(name: "tags", value: request.tags.joined(separator: ",")),
+        ]
       )
-    )
-    request.httpMethod = "POST"
-    request.setValue(
-      "application/x-www-form-urlencoded",
-      forHTTPHeaderField: "Content-Type"
-    )
-    request.httpBody = Self.formData([URLQueryItem(name: "hashes", value: torrentID)])
-
-    let (_, response) = try await session.data(for: request)
-    let httpResponse = try Self.validatedHTTPResponse(response)
-    if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-      throw QBittorrentRepositoryError.authenticationFailed
     }
-    guard (200..<300).contains(httpResponse.statusCode) else {
-      throw QBittorrentRepositoryError.httpStatus(httpResponse.statusCode)
-    }
+    try await postForm(
+      session: session,
+      server: server,
+      path: "/torrents/setDownloadLimit",
+      items: [
+        URLQueryItem(name: "hashes", value: hashes),
+        URLQueryItem(name: "limit", value: String(request.downloadLimit)),
+      ]
+    )
+    try await postForm(
+      session: session,
+      server: server,
+      path: "/torrents/setUploadLimit",
+      items: [
+        URLQueryItem(name: "hashes", value: hashes),
+        URLQueryItem(name: "limit", value: String(request.uploadLimit)),
+      ]
+    )
   }
 
   private func authenticatedSession(for server: ServerConfiguration) async throws -> URLSession {
@@ -139,12 +282,7 @@ actor QBittorrentTorrentRepository: TorrentRepository {
       throw QBittorrentRepositoryError.missingPassword
     }
 
-    let configuration = URLSessionConfiguration.ephemeral
-    configuration.httpCookieAcceptPolicy = .always
-    configuration.httpShouldSetCookies = true
-    configuration.timeoutIntervalForRequest = 10
-    configuration.timeoutIntervalForResource = 20
-    let session = URLSession(configuration: configuration)
+    let session = sessionFactory()
     do {
       try await login(session: session, server: server, password: password)
     } catch {
@@ -200,6 +338,36 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     return data
   }
 
+  private func postForm(
+    session: URLSession,
+    server: ServerConfiguration,
+    path: String,
+    items: [URLQueryItem]
+  ) async throws {
+    var request = URLRequest(url: try endpoint(server: server, path: path))
+    request.httpMethod = "POST"
+    request.setValue(
+      "application/x-www-form-urlencoded",
+      forHTTPHeaderField: "Content-Type"
+    )
+    request.httpBody = Self.formData(items)
+
+    let (_, response) = try await session.data(for: request)
+    let httpResponse = try Self.validatedHTTPResponse(response)
+    if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+      throw QBittorrentRepositoryError.authenticationFailed
+    }
+    guard (200..<300).contains(httpResponse.statusCode) else {
+      throw QBittorrentRepositoryError.httpStatus(httpResponse.statusCode)
+    }
+  }
+
+  private func validateTorrentIDs(_ ids: [String]) throws {
+    guard !ids.isEmpty, ids.allSatisfy({ !$0.isEmpty }) else {
+      throw QBittorrentRepositoryError.missingTorrentSelection
+    }
+  }
+
   private func endpoint(server: ServerConfiguration, path: String) throws -> URL {
     let base = server.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     guard let url = URL(string: "\(base)/api/v2\(path)") else {
@@ -214,12 +382,32 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     return Data((components.percentEncodedQuery ?? "").utf8)
   }
 
-  private static func multipartBody(fields: [String: String], boundary: String) -> Data {
+  private static func multipartBody(
+    fields: [(String, String)],
+    file: MultipartFile?,
+    boundary: String
+  ) -> Data {
     var body = Data()
     for (name, value) in fields {
       body.append(Data("--\(boundary)\r\n".utf8))
       body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
       body.append(Data(value.utf8))
+      body.append(Data("\r\n".utf8))
+    }
+    if let file {
+      let fileName = file.fileName
+        .replacingOccurrences(of: "\"", with: "_")
+        .replacingOccurrences(of: "\r", with: "_")
+        .replacingOccurrences(of: "\n", with: "_")
+      body.append(Data("--\(boundary)\r\n".utf8))
+      body.append(
+        Data(
+          "Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(fileName)\"\r\n"
+            .utf8
+        )
+      )
+      body.append(Data("Content-Type: \(file.contentType)\r\n\r\n".utf8))
+      body.append(file.data)
       body.append(Data("\r\n".utf8))
     }
     body.append(Data("--\(boundary)--\r\n".utf8))
@@ -243,7 +431,15 @@ actor QBittorrentTorrentRepository: TorrentRepository {
   }
 }
 
+private struct MultipartFile: Sendable {
+  let fieldName: String
+  let fileName: String
+  let contentType: String
+  let data: Data
+}
+
 actor DemoTorrentRepository: TorrentRepository {
+  private var nextImportedID = 1
   private var torrents = [
     TorrentSummary(
       id: "demo-blue-planet",
@@ -295,25 +491,89 @@ actor DemoTorrentRepository: TorrentRepository {
 
   func addTorrent(_ request: TorrentAddRequest, to server: ServerConfiguration) async throws {
     try await Task.sleep(for: .milliseconds(450))
+    let name: String
+    switch request.source {
+    case .file(let fileName, _):
+      name = (fileName as NSString).deletingPathExtension
+    case .url(let source):
+      name =
+        URL(string: source)?.lastPathComponent.removingPercentEncoding
+        .flatMap { $0.isEmpty ? nil : $0 } ?? "新建 Torrent"
+    }
+    torrents.insert(
+      TorrentSummary(
+        id: "demo-import-\(nextImportedID)",
+        name: name,
+        progress: 0,
+        size: "—",
+        downloadSpeed: "0 KB/s",
+        uploadSpeed: "0 KB/s",
+        eta: "排队中",
+        status: .queued,
+        savePath: request.savePath ?? "/Downloads",
+        category: request.category,
+        tags: request.tags,
+        addedAt: .now,
+        downloadLimit: request.downloadLimit ?? 0,
+        uploadLimit: request.uploadLimit ?? 0
+      ),
+      at: 0
+    )
+    nextImportedID += 1
+  }
+
+  func deleteTorrents(
+    ids: [String],
+    deleteFiles: Bool,
+    on server: ServerConfiguration
+  ) async throws {
+    try await Task.sleep(for: .milliseconds(300))
+    let selected = Set(ids)
+    torrents.removeAll { selected.contains($0.id) }
   }
 
   func setPaused(
     _ paused: Bool,
-    torrentID: String,
+    torrentIDs: [String],
     on server: ServerConfiguration
   ) async throws {
     try await Task.sleep(for: .milliseconds(300))
-    guard let index = torrents.firstIndex(where: { $0.id == torrentID }) else {
-      throw QBittorrentRepositoryError.invalidResponse
+    let selected = Set(torrentIDs)
+    guard torrents.contains(where: { selected.contains($0.id) }) else {
+      throw QBittorrentRepositoryError.missingTorrentSelection
     }
-    let torrent = torrents[index]
-    let resumedStatus: TorrentStatus = torrent.progress >= 1 ? .seeding : .downloading
-    torrents[index] = torrent.updating(
-      status: paused ? .paused : resumedStatus,
-      downloadSpeed: paused ? "0 KB/s" : (resumedStatus == .downloading ? "18.4 MB/s" : "0 KB/s"),
-      uploadSpeed: paused ? "0 KB/s" : (resumedStatus == .seeding ? "4.7 MB/s" : "1.2 MB/s"),
-      eta: paused ? "已暂停" : (resumedStatus == .seeding ? "已完成" : "8 分钟")
-    )
+    for index in torrents.indices where selected.contains(torrents[index].id) {
+      let torrent = torrents[index]
+      let resumedStatus: TorrentStatus = torrent.progress >= 1 ? .seeding : .downloading
+      torrents[index] = torrent.updating(
+        status: paused ? .paused : resumedStatus,
+        downloadSpeed: paused
+          ? "0 KB/s" : (resumedStatus == .downloading ? "18.4 MB/s" : "0 KB/s"),
+        uploadSpeed: paused
+          ? "0 KB/s" : (resumedStatus == .seeding ? "4.7 MB/s" : "1.2 MB/s"),
+        eta: paused ? "已暂停" : (resumedStatus == .seeding ? "已完成" : "8 分钟")
+      )
+    }
+  }
+
+  func updateTorrents(
+    ids: [String],
+    request: TorrentManagementRequest,
+    on server: ServerConfiguration
+  ) async throws {
+    try await Task.sleep(for: .milliseconds(300))
+    let selected = Set(ids)
+    guard torrents.contains(where: { selected.contains($0.id) }) else {
+      throw QBittorrentRepositoryError.missingTorrentSelection
+    }
+    for index in torrents.indices where selected.contains(torrents[index].id) {
+      torrents[index] = torrents[index].updatingManagement(
+        category: request.category,
+        tags: request.tags,
+        downloadLimit: request.downloadLimit,
+        uploadLimit: request.uploadLimit
+      )
+    }
   }
 
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot {
@@ -340,6 +600,7 @@ private struct QBittorrentTorrent: Decodable {
   let addedOn: Int64?
   let category: String?
   let completionOn: Int64?
+  let downloadLimit: Int64?
   let downloadSpeed: Int64
   let eta: Int64
   let hash: String
@@ -351,12 +612,14 @@ private struct QBittorrentTorrent: Decodable {
   let state: String
   let tags: String?
   let totalSize: Int64?
+  let uploadLimit: Int64?
   let uploadSpeed: Int64
 
   enum CodingKeys: String, CodingKey {
     case addedOn = "added_on"
     case category
     case completionOn = "completion_on"
+    case downloadLimit = "dl_limit"
     case downloadSpeed = "dlspeed"
     case eta
     case hash
@@ -368,6 +631,7 @@ private struct QBittorrentTorrent: Decodable {
     case state
     case tags
     case totalSize = "total_size"
+    case uploadLimit = "up_limit"
     case uploadSpeed = "upspeed"
   }
 }
@@ -391,7 +655,9 @@ extension TorrentSummary {
         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         .filter { !$0.isEmpty } ?? [],
       addedAt: Self.date(from: torrent.addedOn),
-      completedAt: Self.date(from: torrent.completionOn)
+      completedAt: Self.date(from: torrent.completionOn),
+      downloadLimit: torrent.downloadLimit ?? 0,
+      uploadLimit: torrent.uploadLimit ?? 0
     )
   }
 
@@ -451,6 +717,7 @@ enum QBittorrentRepositoryError: LocalizedError {
   case invalidTorrent
   case invalidResponse
   case invalidServerURL
+  case missingTorrentSelection
   case missingPassword
 
   var errorDescription: String? {
@@ -469,6 +736,8 @@ enum QBittorrentRepositoryError: LocalizedError {
       "qBittorrent 地址无效。"
     case .missingPassword:
       "Keychain 中没有此服务器的密码。"
+    case .missingTorrentSelection:
+      "请至少选择一个 Torrent 任务。"
     }
   }
 }

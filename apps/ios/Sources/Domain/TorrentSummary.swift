@@ -15,6 +15,8 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
   let tags: [String]
   let addedAt: Date?
   let completedAt: Date?
+  let downloadLimit: Int64
+  let uploadLimit: Int64
 
   init(
     id: String,
@@ -30,7 +32,9 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     category: String? = nil,
     tags: [String] = [],
     addedAt: Date? = nil,
-    completedAt: Date? = nil
+    completedAt: Date? = nil,
+    downloadLimit: Int64 = 0,
+    uploadLimit: Int64 = 0
   ) {
     self.id = id
     self.name = name
@@ -46,6 +50,8 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     self.tags = tags
     self.addedAt = addedAt
     self.completedAt = completedAt
+    self.downloadLimit = downloadLimit
+    self.uploadLimit = uploadLimit
   }
 
   var isPaused: Bool { status == .paused }
@@ -81,7 +87,35 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       category: category,
       tags: tags,
       addedAt: addedAt,
-      completedAt: completedAt
+      completedAt: completedAt,
+      downloadLimit: downloadLimit,
+      uploadLimit: uploadLimit
+    )
+  }
+
+  func updatingManagement(
+    category: String?,
+    tags: [String],
+    downloadLimit: Int64,
+    uploadLimit: Int64
+  ) -> TorrentSummary {
+    TorrentSummary(
+      id: id,
+      name: name,
+      progress: progress,
+      size: size,
+      downloadSpeed: downloadSpeed,
+      uploadSpeed: uploadSpeed,
+      eta: eta,
+      status: status,
+      shareRatio: shareRatio,
+      savePath: savePath,
+      category: category,
+      tags: tags,
+      addedAt: addedAt,
+      completedAt: completedAt,
+      downloadLimit: downloadLimit,
+      uploadLimit: uploadLimit
     )
   }
 }

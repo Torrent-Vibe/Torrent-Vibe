@@ -161,32 +161,83 @@ final class AppModel {
     password: String,
     helperURLText: String
   ) throws {
-    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedName.isEmpty else {
-      throw ServerValidationError.missingName
-    }
-
-    let baseURL = try Self.validatedHTTPURL(baseURLText, fieldName: "qBittorrent 地址")
-    let helperURL =
-      helperURLText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-      ? nil
-      : try Self.validatedHTTPURL(helperURLText, fieldName: "Helper 地址")
-    guard !password.isEmpty else {
+    let draft = try Self.validatedServerDraft(
+      name: name,
+      baseURLText: baseURLText,
+      username: username,
+      password: password,
+      helperURLText: helperURLText
+    )
+    guard !draft.password.isEmpty else {
       throw ServerValidationError.missingPassword
     }
 
     let server = ServerConfiguration(
-      name: trimmedName,
-      baseURL: baseURL,
-      username: username.trimmingCharacters(in: .whitespacesAndNewlines),
-      helperBaseURL: helperURL
+      name: draft.name,
+      baseURL: draft.baseURL,
+      username: draft.username,
+      helperBaseURL: draft.helperURL
     )
 
-    try credentialStore.setPassword(password, for: server.id)
+    try credentialStore.setPassword(draft.password, for: server.id)
     servers.append(server)
     activeServerID = server.id
     persistServers()
     persistActiveServerID()
+  }
+
+  func updateServer(
+    id: UUID,
+    name: String,
+    baseURLText: String,
+    username: String,
+    password: String,
+    helperURLText: String
+  ) throws {
+    guard let index = servers.firstIndex(where: { $0.id == id }) else {
+      throw ServerValidationError.serverUnavailable
+    }
+
+    let draft = try Self.validatedServerDraft(
+      name: name,
+      baseURLText: baseURLText,
+      username: username,
+      password: password,
+      helperURLText: helperURLText
+    )
+    if draft.password.isEmpty {
+      guard hasStoredPassword(for: id) else {
+        throw ServerValidationError.missingPassword
+      }
+    } else {
+      try credentialStore.setPassword(draft.password, for: id)
+    }
+
+    let previous = servers[index]
+    servers[index].name = draft.name
+    servers[index].baseURL = draft.baseURL
+    servers[index].username = draft.username
+    servers[index].helperBaseURL = draft.helperURL
+
+    if previous.baseURL != draft.baseURL || previous.username != draft.username
+      || !draft.password.isEmpty
+    {
+      serverConnectionStates[id] = .idle
+      if id == activeServerID {
+        torrents = []
+        integrationNotice = nil
+        totalDownloadSpeed = "—"
+        totalUploadSpeed = "—"
+      }
+    }
+
+    if previous.helperBaseURL != draft.helperURL {
+      try? helperCredentialStore.deleteToken(for: id)
+      helperConnectionStates[id] = .idle
+      helperSubscriptionStates[id] = nil
+    }
+
+    persistServers()
   }
 
   func removeServers(atOffsets offsets: IndexSet) {
@@ -603,13 +654,16 @@ final class AppModel {
   }
 
   @discardableResult
-  func addTorrent(sourceText: String, to serverID: UUID) async throws -> ServerConfiguration {
-    let source = try Self.validatedTorrentSource(sourceText)
+  func addTorrent(
+    _ request: TorrentAddRequest,
+    to serverID: UUID
+  ) async throws -> ServerConfiguration {
+    let request = try Self.validatedTorrentAddRequest(request)
     guard let server = servers.first(where: { $0.id == serverID }) else {
       throw TorrentImportError.serverUnavailable
     }
 
-    try await torrentRepository.addTorrent(TorrentAddRequest(source: source), to: server)
+    try await torrentRepository.addTorrent(request, to: server)
     if server.id == activeServerID {
       try? await Task.sleep(for: .milliseconds(500))
       await loadSnapshot(for: server, applyTorrents: true)
@@ -628,10 +682,73 @@ final class AppModel {
     }
     try await torrentRepository.setPaused(
       paused,
-      torrentID: torrentID,
+      torrentIDs: [torrentID],
       on: server
     )
 
+    if server.id == activeServerID {
+      await loadSnapshot(for: server, applyTorrents: true)
+      guard let updated = torrents.first(where: { $0.id == torrentID }) else {
+        throw TorrentActionError.torrentUnavailable
+      }
+      return updated
+    }
+    throw TorrentActionError.torrentUnavailable
+  }
+
+  func setTorrentsPaused(
+    torrentIDs: [String],
+    paused: Bool,
+    serverID: UUID
+  ) async throws {
+    let torrentIDs = try Self.validatedTorrentIDs(torrentIDs)
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    try await torrentRepository.setPaused(
+      paused,
+      torrentIDs: torrentIDs,
+      on: server
+    )
+    if server.id == activeServerID {
+      await loadSnapshot(for: server, applyTorrents: true)
+    }
+  }
+
+  func deleteTorrents(
+    torrentIDs: [String],
+    deleteFiles: Bool,
+    serverID: UUID
+  ) async throws {
+    let torrentIDs = try Self.validatedTorrentIDs(torrentIDs)
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    try await torrentRepository.deleteTorrents(
+      ids: torrentIDs,
+      deleteFiles: deleteFiles,
+      on: server
+    )
+    if server.id == activeServerID {
+      await loadSnapshot(for: server, applyTorrents: true)
+    }
+  }
+
+  @discardableResult
+  func updateTorrentManagement(
+    torrentID: String,
+    request: TorrentManagementRequest,
+    serverID: UUID
+  ) async throws -> TorrentSummary {
+    let request = try Self.validatedTorrentManagementRequest(request)
+    guard let server = servers.first(where: { $0.id == serverID }) else {
+      throw TorrentActionError.serverUnavailable
+    }
+    try await torrentRepository.updateTorrents(
+      ids: [torrentID],
+      request: request,
+      on: server
+    )
     if server.id == activeServerID {
       await loadSnapshot(for: server, applyTorrents: true)
       guard let updated = torrents.first(where: { $0.id == torrentID }) else {
@@ -678,6 +795,30 @@ final class AppModel {
     }
   }
 
+  private static func validatedServerDraft(
+    name: String,
+    baseURLText: String,
+    username: String,
+    password: String,
+    helperURLText: String
+  ) throws -> ServerDraft {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else {
+      throw ServerValidationError.missingName
+    }
+
+    let helperURLText = helperURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+    return ServerDraft(
+      name: trimmedName,
+      baseURL: try validatedHTTPURL(baseURLText, fieldName: "qBittorrent 地址"),
+      username: username.trimmingCharacters(in: .whitespacesAndNewlines),
+      password: password,
+      helperURL: helperURLText.isEmpty
+        ? nil
+        : try validatedHTTPURL(helperURLText, fieldName: "Helper 地址")
+    )
+  }
+
   private static func validatedHTTPURL(_ text: String, fieldName: String) throws -> URL {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard
@@ -711,6 +852,78 @@ final class AppModel {
       throw TorrentImportError.invalidSource
     }
     return trimmed
+  }
+
+  private static func validatedTorrentAddRequest(
+    _ request: TorrentAddRequest
+  ) throws -> TorrentAddRequest {
+    let source: TorrentAddSource
+    switch request.source {
+    case .url(let text):
+      source = .url(try validatedTorrentSource(text))
+    case .file(let name, let data):
+      let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !name.isEmpty, name.lowercased().hasSuffix(".torrent"), !data.isEmpty else {
+        throw TorrentImportError.invalidFile
+      }
+      guard data.count <= 10 * 1024 * 1024 else {
+        throw TorrentImportError.fileTooLarge
+      }
+      source = .file(name: name, data: data)
+    }
+
+    guard (request.downloadLimit ?? 0) >= 0, (request.uploadLimit ?? 0) >= 0 else {
+      throw TorrentImportError.invalidSpeedLimit
+    }
+    return TorrentAddRequest(
+      source: source,
+      savePath: normalizedOptionalText(request.savePath),
+      category: normalizedOptionalText(request.category),
+      tags: normalizedTags(request.tags),
+      downloadLimit: request.downloadLimit,
+      uploadLimit: request.uploadLimit
+    )
+  }
+
+  private static func validatedTorrentManagementRequest(
+    _ request: TorrentManagementRequest
+  ) throws -> TorrentManagementRequest {
+    guard request.downloadLimit >= 0, request.uploadLimit >= 0 else {
+      throw TorrentImportError.invalidSpeedLimit
+    }
+    return TorrentManagementRequest(
+      category: normalizedOptionalText(request.category),
+      tags: normalizedTags(request.tags),
+      downloadLimit: request.downloadLimit,
+      uploadLimit: request.uploadLimit
+    )
+  }
+
+  private static func validatedTorrentIDs(_ torrentIDs: [String]) throws -> [String] {
+    let normalized = Array(
+      Set(
+        torrentIDs
+          .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+          .filter { !$0.isEmpty }
+      )
+    ).sorted()
+    guard !normalized.isEmpty else { throw TorrentActionError.missingSelection }
+    return normalized
+  }
+
+  private static func normalizedOptionalText(_ text: String?) -> String? {
+    guard let text else { return nil }
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
+  }
+
+  private static func normalizedTags(_ tags: [String]) -> [String] {
+    var seen = Set<String>()
+    return tags.compactMap { tag in
+      let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !normalized.isEmpty, seen.insert(normalized).inserted else { return nil }
+      return normalized
+    }
   }
 
   private func helperAuthorization(for serverID: UUID) throws -> HelperAuthorization {
@@ -790,10 +1003,19 @@ final class AppModel {
   }
 }
 
-enum ServerValidationError: LocalizedError {
+private struct ServerDraft: Sendable {
+  let name: String
+  let baseURL: URL
+  let username: String
+  let password: String
+  let helperURL: URL?
+}
+
+enum ServerValidationError: Equatable, LocalizedError {
   case missingName
   case missingPassword
   case invalidURL(String)
+  case serverUnavailable
 
   var errorDescription: String? {
     switch self {
@@ -803,6 +1025,8 @@ enum ServerValidationError: LocalizedError {
       "qBittorrent 密码不能为空。"
     case .invalidURL(let fieldName):
       "\(fieldName)必须是完整的 http:// 或 https:// 地址。"
+    case .serverUnavailable:
+      "服务器已不存在。"
     }
   }
 }
@@ -869,14 +1093,23 @@ enum HelperContentError: LocalizedError {
 }
 
 enum TorrentImportError: LocalizedError {
+  case fileTooLarge
+  case invalidFile
   case invalidSource
+  case invalidSpeedLimit
   case missingSource
   case serverUnavailable
 
   var errorDescription: String? {
     switch self {
+    case .fileTooLarge:
+      "Torrent 文件不能超过 10 MB。"
+    case .invalidFile:
+      "请选择有效且非空的 .torrent 文件。"
     case .invalidSource:
       "请输入有效的 Magnet 或 HTTP(S) Torrent URL。"
+    case .invalidSpeedLimit:
+      "速度限制必须是大于或等于 0 的数值。"
     case .missingSource:
       "Torrent 来源不能为空。"
     case .serverUnavailable:
@@ -886,11 +1119,14 @@ enum TorrentImportError: LocalizedError {
 }
 
 enum TorrentActionError: LocalizedError {
+  case missingSelection
   case serverUnavailable
   case torrentUnavailable
 
   var errorDescription: String? {
     switch self {
+    case .missingSelection:
+      "请至少选择一个 Torrent 任务。"
     case .serverUnavailable:
       "目标服务器已不可用。"
     case .torrentUnavailable:

@@ -72,11 +72,39 @@ private final class TorrentSearchState {
   }
 }
 
+@MainActor
+@Observable
+private final class TorrentSelectionState {
+  var isPerformingAction = false
+  var isSelecting = false
+  var selectedIDs = Set<String>()
+
+  func begin() {
+    selectedIDs.removeAll()
+    isSelecting = true
+  }
+
+  func end() {
+    selectedIDs.removeAll()
+    isPerformingAction = false
+    isSelecting = false
+  }
+
+  func toggle(_ torrentID: String) {
+    if selectedIDs.contains(torrentID) {
+      selectedIDs.remove(torrentID)
+    } else {
+      selectedIDs.insert(torrentID)
+    }
+  }
+}
+
 final class TorrentViewController: SwiftUIHostingViewController, UISearchResultsUpdating {
   var onOpenServers: (() -> Void)?
 
   private let model: AppModel
   private let searchState = TorrentSearchState()
+  private let selectionState = TorrentSelectionState()
   private lazy var addButton = UIBarButtonItem(
     barButtonSystemItem: .add,
     target: self,
@@ -86,6 +114,12 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     barButtonSystemItem: .refresh,
     target: self,
     action: #selector(refreshTorrents)
+  )
+  private lazy var selectButton = UIBarButtonItem(
+    image: UIImage(systemName: "checkmark.circle"),
+    style: .plain,
+    target: self,
+    action: #selector(beginSelection)
   )
 
   init(model: AppModel) {
@@ -113,12 +147,22 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
         onOpenTorrent: { [weak self] torrent in
           self?.showDetail(for: torrent)
         },
+        onDeleteTorrent: { [weak self] torrent in
+          self?.confirmDelete(torrents: [torrent])
+        },
+        onManageTorrent: { [weak self] torrent in
+          self?.presentManagement(for: torrent)
+        },
+        onToggleSelection: { [weak self] torrent in
+          self?.toggleSelection(for: torrent)
+        },
         onTogglePause: { [weak self] torrent in
           self?.togglePause(for: torrent)
         }
       )
       .environment(model)
       .environment(searchState)
+      .environment(selectionState)
     )
 
     configureSearchController()
@@ -126,7 +170,9 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     addButton.accessibilityIdentifier = "torrent-add"
     refreshButton.accessibilityLabel = "刷新任务"
     refreshButton.accessibilityIdentifier = "torrent-refresh"
-    navigationItem.rightBarButtonItems = [addButton, refreshButton]
+    selectButton.accessibilityLabel = "选择任务"
+    selectButton.accessibilityIdentifier = "torrent-select"
+    navigationItem.rightBarButtonItems = [addButton, refreshButton, selectButton]
     updateServerMenu()
 
     Task { await refresh() }
@@ -161,6 +207,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       navigationItem.leftBarButtonItem = nil
       addButton.isEnabled = false
       refreshButton.isEnabled = false
+      selectButton.isEnabled = false
       return
     }
 
@@ -187,6 +234,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     navigationItem.leftBarButtonItem = button
     addButton.isEnabled = true
     refreshButton.isEnabled = true
+    selectButton.isEnabled = !model.torrents.isEmpty
   }
 
   @objc private func addTorrent() {
@@ -204,6 +252,127 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     Task { await refresh() }
   }
 
+  @objc private func beginSelection() {
+    guard !model.torrents.isEmpty else { return }
+    selectionState.begin()
+    navigationItem.leftBarButtonItem?.isEnabled = false
+    navigationItem.rightBarButtonItems = [
+      UIBarButtonItem(
+        title: "完成",
+        style: .prominent,
+        target: self,
+        action: #selector(endSelection)
+      )
+    ]
+    navigationItem.rightBarButtonItems?.first?.accessibilityIdentifier = "torrent-select-done"
+    tabBarController?.setTabBarHidden(true, animated: false)
+    configureSelectionToolbar()
+  }
+
+  @objc private func endSelection() {
+    selectionState.end()
+    navigationItem.leftBarButtonItem?.isEnabled = true
+    navigationItem.rightBarButtonItems = [addButton, refreshButton, selectButton]
+    navigationController?.setToolbarHidden(true, animated: false)
+    DispatchQueue.main.async { [weak self] in
+      guard let self, !selectionState.isSelecting else { return }
+      tabBarController?.setTabBarHidden(false, animated: false)
+    }
+  }
+
+  private func toggleSelection(for torrent: TorrentSummary) {
+    selectionState.toggle(torrent.id)
+    updateSelectionToolbar()
+  }
+
+  private func configureSelectionToolbar() {
+    let pause = UIBarButtonItem(
+      image: UIImage(systemName: "pause.fill"),
+      style: .plain,
+      target: self,
+      action: #selector(pauseSelected)
+    )
+    pause.accessibilityLabel = "暂停所选任务"
+    pause.accessibilityIdentifier = "torrent-selection-pause"
+    pause.tag = 1
+
+    let resume = UIBarButtonItem(
+      image: UIImage(systemName: "play.fill"),
+      style: .plain,
+      target: self,
+      action: #selector(resumeSelected)
+    )
+    resume.accessibilityLabel = "继续所选任务"
+    resume.accessibilityIdentifier = "torrent-selection-resume"
+    resume.tag = 2
+
+    let delete = UIBarButtonItem(
+      image: UIImage(systemName: "trash"),
+      style: .plain,
+      target: self,
+      action: #selector(deleteSelected)
+    )
+    delete.tintColor = .systemRed
+    delete.accessibilityLabel = "删除所选任务"
+    delete.accessibilityIdentifier = "torrent-selection-delete"
+    delete.tag = 3
+
+    toolbarItems = [
+      pause,
+      UIBarButtonItem(systemItem: .flexibleSpace),
+      resume,
+      UIBarButtonItem(systemItem: .flexibleSpace),
+      delete,
+    ]
+    DispatchQueue.main.async { [weak self] in
+      guard let self, selectionState.isSelecting else { return }
+      navigationController?.setToolbarHidden(false, animated: false)
+    }
+    updateSelectionToolbar()
+  }
+
+  private func updateSelectionToolbar() {
+    let isEnabled = !selectionState.selectedIDs.isEmpty && !selectionState.isPerformingAction
+    for item in toolbarItems ?? [] {
+      if item.tag > 0 {
+        item.isEnabled = isEnabled
+      }
+    }
+  }
+
+  @objc private func pauseSelected() {
+    performSelectionPause(paused: true)
+  }
+
+  @objc private func resumeSelected() {
+    performSelectionPause(paused: false)
+  }
+
+  @objc private func deleteSelected() {
+    let selected = model.torrents.filter { selectionState.selectedIDs.contains($0.id) }
+    confirmDelete(torrents: selected)
+  }
+
+  private func performSelectionPause(paused: Bool) {
+    guard let serverID = model.activeServerID, !selectionState.selectedIDs.isEmpty else { return }
+    selectionState.isPerformingAction = true
+    updateSelectionToolbar()
+    Task {
+      do {
+        try await model.setTorrentsPaused(
+          torrentIDs: Array(selectionState.selectedIDs),
+          paused: paused,
+          serverID: serverID
+        )
+        endSelection()
+      } catch {
+        selectionState.isPerformingAction = false
+        updateSelectionToolbar()
+        presentError(error)
+      }
+    }
+  }
+
   private func showDetail(for torrent: TorrentSummary) {
     guard let serverID = model.activeServerID else { return }
     navigationController?.pushViewController(
@@ -214,6 +383,68 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       ),
       animated: true
     )
+  }
+
+  private func presentManagement(for torrent: TorrentSummary) {
+    guard let serverID = model.activeServerID else { return }
+    TorrentManagementViewController.present(
+      from: self,
+      model: model,
+      torrent: torrent,
+      serverID: serverID
+    ) { _ in }
+  }
+
+  private func confirmDelete(torrents: [TorrentSummary]) {
+    guard !torrents.isEmpty else { return }
+    let title = torrents.count == 1 ? "移除“\(torrents[0].name)”？" : "移除 \(torrents.count) 个任务？"
+    let alert = UIAlertController(
+      title: title,
+      message: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。",
+      preferredStyle: .actionSheet
+    )
+    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(
+      UIAlertAction(title: "仅移除任务，保留文件", style: .default) { [weak self] _ in
+        self?.performDelete(torrents: torrents, deleteFiles: false)
+      })
+    alert.addAction(
+      UIAlertAction(title: "移除任务并删除文件", style: .destructive) { [weak self] _ in
+        self?.performDelete(torrents: torrents, deleteFiles: true)
+      })
+    if let popover = alert.popoverPresentationController {
+      popover.barButtonItem =
+        selectionState.isSelecting
+        ? toolbarItems?.first(where: { $0.tag == 3 })
+        : navigationItem.rightBarButtonItems?.last
+    }
+    present(alert, animated: true)
+  }
+
+  private func performDelete(torrents: [TorrentSummary], deleteFiles: Bool) {
+    guard let serverID = model.activeServerID else { return }
+    let ids = torrents.map(\.id)
+    selectionState.isPerformingAction = true
+    updateSelectionToolbar()
+    Task {
+      do {
+        try await model.deleteTorrents(
+          torrentIDs: ids,
+          deleteFiles: deleteFiles,
+          serverID: serverID
+        )
+        if selectionState.isSelecting {
+          endSelection()
+        } else {
+          selectionState.isPerformingAction = false
+        }
+        selectButton.isEnabled = !model.torrents.isEmpty
+      } catch {
+        selectionState.isPerformingAction = false
+        updateSelectionToolbar()
+        presentError(error)
+      }
+    }
   }
 
   private func togglePause(for torrent: TorrentSummary) {
@@ -245,15 +476,20 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     refreshButton.isEnabled = false
     await model.refreshTorrents()
     refreshButton.isEnabled = model.activeServer != nil
+    selectButton.isEnabled = !model.torrents.isEmpty
   }
 }
 
 private struct TorrentContentView: View {
   @Environment(AppModel.self) private var model
   @Environment(TorrentSearchState.self) private var searchState
+  @Environment(TorrentSelectionState.self) private var selectionState
 
   let onOpenServers: () -> Void
   let onOpenTorrent: (TorrentSummary) -> Void
+  let onDeleteTorrent: (TorrentSummary) -> Void
+  let onManageTorrent: (TorrentSummary) -> Void
+  let onToggleSelection: (TorrentSummary) -> Void
   let onTogglePause: (TorrentSummary) -> Void
 
   private var filteredTorrents: [TorrentSummary] {
@@ -307,22 +543,64 @@ private struct TorrentContentView: View {
             } else {
               ForEach(filteredTorrents) { torrent in
                 Button {
-                  onOpenTorrent(torrent)
+                  if selectionState.isSelecting {
+                    onToggleSelection(torrent)
+                  } else {
+                    onOpenTorrent(torrent)
+                  }
                 } label: {
-                  TorrentRow(torrent: torrent)
+                  TorrentRow(
+                    torrent: torrent,
+                    isSelecting: selectionState.isSelecting,
+                    isSelected: selectionState.selectedIDs.contains(torrent.id)
+                  )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("torrent-row-\(torrent.id)")
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                  Button {
-                    onTogglePause(torrent)
-                  } label: {
-                    Label(
-                      torrent.isPaused ? "继续" : "暂停",
-                      systemImage: torrent.isPaused ? "play.fill" : "pause.fill"
-                    )
+                  if !selectionState.isSelecting {
+                    Button {
+                      onTogglePause(torrent)
+                    } label: {
+                      Label(
+                        torrent.isPaused ? "继续" : "暂停",
+                        systemImage: torrent.isPaused ? "play.fill" : "pause.fill"
+                      )
+                    }
+                    .tint(torrent.isPaused ? .green : .orange)
                   }
-                  .tint(torrent.isPaused ? .green : .orange)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                  if !selectionState.isSelecting {
+                    Button(role: .destructive) {
+                      onDeleteTorrent(torrent)
+                    } label: {
+                      Label("删除", systemImage: "trash")
+                    }
+                  }
+                }
+                .contextMenu {
+                  if !selectionState.isSelecting {
+                    Button {
+                      onTogglePause(torrent)
+                    } label: {
+                      Label(
+                        torrent.isPaused ? "继续" : "暂停",
+                        systemImage: torrent.isPaused ? "play.fill" : "pause.fill"
+                      )
+                    }
+                    Button {
+                      onManageTorrent(torrent)
+                    } label: {
+                      Label("分类、标签与限速", systemImage: "slider.horizontal.3")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                      onDeleteTorrent(torrent)
+                    } label: {
+                      Label("删除", systemImage: "trash")
+                    }
+                  }
                 }
               }
             }
@@ -404,46 +682,58 @@ private struct OverviewMetric: View {
 
 private struct TorrentRow: View {
   let torrent: TorrentSummary
+  let isSelecting: Bool
+  let isSelected: Bool
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(alignment: .firstTextBaseline, spacing: 10) {
-        Image(systemName: statusSymbol)
-          .foregroundStyle(statusColor)
-          .frame(width: 20)
-
-        Text(torrent.name)
-          .font(.body.weight(.medium))
-          .lineLimit(2)
-
-        Spacer(minLength: 4)
-
-        Text(torrent.progress, format: .percent.precision(.fractionLength(0)))
-          .font(.subheadline.monospacedDigit())
-          .foregroundStyle(.secondary)
+    HStack(spacing: 12) {
+      if isSelecting {
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+          .font(.title3)
+          .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+          .accessibilityHidden(true)
       }
 
-      ProgressView(value: torrent.progress)
-        .tint(statusColor)
+      VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+          Image(systemName: statusSymbol)
+            .foregroundStyle(statusColor)
+            .frame(width: 20)
 
-      HStack(spacing: 12) {
-        Label(torrent.size, systemImage: "internaldrive")
-        Spacer()
-        if torrent.status == .downloading {
-          Label(torrent.downloadSpeed, systemImage: "arrow.down")
-            .foregroundStyle(.blue)
-        } else if torrent.status == .seeding {
-          Label(torrent.uploadSpeed, systemImage: "arrow.up")
-            .foregroundStyle(.green)
+          Text(torrent.name)
+            .font(.body.weight(.medium))
+            .lineLimit(2)
+
+          Spacer(minLength: 4)
+
+          Text(torrent.progress, format: .percent.precision(.fractionLength(0)))
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(.secondary)
         }
-        Text(torrent.eta)
+
+        ProgressView(value: torrent.progress)
+          .tint(statusColor)
+
+        HStack(spacing: 12) {
+          Label(torrent.size, systemImage: "internaldrive")
+          Spacer()
+          if torrent.status == .downloading {
+            Label(torrent.downloadSpeed, systemImage: "arrow.down")
+              .foregroundStyle(.blue)
+          } else if torrent.status == .seeding {
+            Label(torrent.uploadSpeed, systemImage: "arrow.up")
+              .foregroundStyle(.green)
+          }
+          Text(torrent.eta)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
       }
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .lineLimit(1)
     }
     .padding(.vertical, 6)
     .accessibilityElement(children: .combine)
+    .accessibilityValue(isSelecting ? (isSelected ? "已选择" : "未选择") : "")
   }
 
   private var statusColor: Color {
@@ -502,6 +792,25 @@ private final class TorrentDetailViewController: SwiftUIHostingViewController {
     title = "任务详情"
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
+    navigationItem.rightBarButtonItem = UIBarButtonItem(
+      image: UIImage(systemName: "ellipsis.circle"),
+      menu: UIMenu(children: [
+        UIAction(
+          title: "分类、标签与限速",
+          image: UIImage(systemName: "slider.horizontal.3")
+        ) { [weak self] _ in
+          self?.presentManagement()
+        },
+        UIAction(
+          title: "删除任务",
+          image: UIImage(systemName: "trash"),
+          attributes: .destructive
+        ) { [weak self] _ in
+          self?.confirmDelete()
+        },
+      ])
+    )
+    navigationItem.rightBarButtonItem?.accessibilityIdentifier = "torrent-detail-more"
     host(
       TorrentDetailContentView { [weak self] in
         self?.togglePause()
@@ -534,6 +843,55 @@ private final class TorrentDetailViewController: SwiftUIHostingViewController {
         state.errorMessage = error.localizedDescription
       }
       state.isPerformingAction = false
+    }
+  }
+
+  private func presentManagement() {
+    TorrentManagementViewController.present(
+      from: self,
+      model: model,
+      torrent: state.torrent,
+      serverID: serverID
+    ) { [weak self] updated in
+      self?.state.torrent = updated
+      self?.state.notice = "任务选项已更新"
+    }
+  }
+
+  private func confirmDelete() {
+    let alert = UIAlertController(
+      title: "移除“\(state.torrent.name)”？",
+      message: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。",
+      preferredStyle: .actionSheet
+    )
+    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(
+      UIAlertAction(title: "仅移除任务，保留文件", style: .default) { [weak self] _ in
+        self?.deleteTorrent(deleteFiles: false)
+      })
+    alert.addAction(
+      UIAlertAction(title: "移除任务并删除文件", style: .destructive) { [weak self] _ in
+        self?.deleteTorrent(deleteFiles: true)
+      })
+    alert.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
+    present(alert, animated: true)
+  }
+
+  private func deleteTorrent(deleteFiles: Bool) {
+    state.isPerformingAction = true
+    state.errorMessage = nil
+    Task {
+      do {
+        try await model.deleteTorrents(
+          torrentIDs: [state.torrent.id],
+          deleteFiles: deleteFiles,
+          serverID: serverID
+        )
+        navigationController?.popViewController(animated: true)
+      } catch {
+        state.isPerformingAction = false
+        state.errorMessage = error.localizedDescription
+      }
     }
   }
 }
@@ -606,6 +964,14 @@ private struct TorrentDetailContentView: View {
         LabeledContent("ETA", value: state.torrent.eta)
         LabeledContent("分享率", value: String(format: "%.2f", state.torrent.shareRatio))
         LabeledContent("总大小", value: state.torrent.size)
+        LabeledContent(
+          "下载限速",
+          value: TorrentInput.formattedSpeedLimit(state.torrent.downloadLimit)
+        )
+        LabeledContent(
+          "上传限速",
+          value: TorrentInput.formattedSpeedLimit(state.torrent.uploadLimit)
+        )
       }
 
       Section("位置与标识") {

@@ -32,7 +32,7 @@ targets:
           NSAllowsLocalNetworking: true
         NSBonjourServices:
           - _torrentvibe-helper._tcp
-        NSLocalNetworkUsageDescription: 用于发现并连接同一局域网中的 Torrent Vibe Helper。
+        NSLocalNetworkUsageDescription: 用于扫描局域网、连接同一网络上的 qBittorrent，并发现 Torrent Vibe Helper。
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIApplicationSceneManifest:

@@ -11,7 +11,8 @@ used only as embedded feature content.
 - SwiftUI leaf content embedded by UIKit-owned view controllers through `UIHostingController`.
 - Local persistence for non-sensitive server metadata.
 - Native qBittorrent Web API login and task loading, with passwords stored only in Keychain.
-- A shared Add Torrent sheet for task URLs and direct Mikan episode imports.
+- A shared Add Torrent sheet for URLs, local `.torrent` files, advanced options, and direct Mikan episode imports.
+- Safe task deletion, per-task category/tag/rate-limit editing, and bulk pause/resume/delete controls.
 - Helper discovery, pairing, Keychain credentials, revision-safe subscriptions, backfill, and retry.
 - A bundled JavaScriptCore bridge that reuses the repository Mikan parsers.
 - Live Mikan wall, search, and detail requests through native `URLSession`.

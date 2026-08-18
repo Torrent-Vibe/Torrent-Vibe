@@ -274,7 +274,8 @@ private struct MikanSubscriptionsContentView: View {
           onEditTargets(group)
         } label: {
           Image(systemName: "ellipsis.circle")
-            .font(.title3)
+            .font(.body)
+            .frame(minWidth: 44, minHeight: 44)
         }
         .buttonStyle(.borderless)
         .accessibilityLabel("编辑目标服务器")
@@ -350,7 +351,7 @@ private struct MikanSubscriptionsContentView: View {
       }
     }
     .buttonStyle(.bordered)
-    .controlSize(.small)
+    .controlSize(.regular)
     .disabled(state.retryingEpisodeIDs.contains(retryID))
     .accessibilityIdentifier("helper-episode-retry-\(serverID.uuidString)-\(episode.episodeId)")
   }
