@@ -19,6 +19,7 @@
 		5B471E0ACA64178456B87AC1 /* MikanParser.js in Resources */ = {isa = PBXBuildFile; fileRef = DD3D627BA0C3C26CD1C0073A /* MikanParser.js */; };
 		5DD21F1C84A11F9197CF4BB5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D756B1586A7C6D74BB8E9A7E /* SettingsView.swift */; };
 		6710EE0B5DC6028549A80198 /* HelperSubscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0467FDE57B2A12D35B3D7C10 /* HelperSubscriptionCoordinator.swift */; };
+		6C8260E92FD7D6676EBD5F8F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5435DA47620575B7C20BC368 /* Assets.xcassets */; };
 		6D026E17D91E69B9AC4B14D9 /* HelperContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41EBDD29B7EFB5AC3CB6DEF /* HelperContent.swift */; };
 		75CE6E34F1807684712F6347 /* MikanContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A42E0723A5A11E9961783FA /* MikanContent.swift */; };
 		7D05C52ADD57A06B44998267 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881C68C271DDDA4FC168A989 /* SceneDelegate.swift */; };
@@ -55,6 +56,7 @@
 		25C92F9A31603987D36B1E25 /* TorrentVibeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TorrentVibeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		50BBF6C5EA6457BCFAFECBF0 /* MikanContentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContentService.swift; sourceTree = "<group>"; };
 		5133C244E6327B15F7BC40FC /* TorrentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentRepository.swift; sourceTree = "<group>"; };
+		5435DA47620575B7C20BC368 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5DDE332BC6744C9DC330E798 /* TorrentImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentImportView.swift; sourceTree = "<group>"; };
 		61AA0C06F2E17091FC9949D3 /* TorrentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentListView.swift; sourceTree = "<group>"; };
 		6A42E0723A5A11E9961783FA /* MikanContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContent.swift; sourceTree = "<group>"; };
@@ -124,6 +126,7 @@
 		57BB3D1811A1058B7E188179 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				5435DA47620575B7C20BC368 /* Assets.xcassets */,
 				DD3D627BA0C3C26CD1C0073A /* MikanParser.js */,
 			);
 			path = Resources;
@@ -294,6 +297,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6C8260E92FD7D6676EBD5F8F /* Assets.xcassets in Resources */,
 				5B471E0ACA64178456B87AC1 /* MikanParser.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -417,7 +421,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -472,7 +476,11 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.innei.torrent-vibe";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -489,7 +497,11 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.innei.torrent-vibe";
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -550,7 +562,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

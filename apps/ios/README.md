@@ -35,6 +35,28 @@ xcodebuild \
 The Xcode project is generated from `project.yml` and is committed so the app
 can be opened without requiring XcodeGen.
 
+## TestFlight automation
+
+Pushes to `main` automatically run `.github/workflows/ios-testflight.yml` when
+the iOS application, resources, project configuration, or generated Xcode
+project changes. Markdown-only and test-only changes do not publish a build.
+The workflow can also be dispatched manually from `main`.
+
+The job uses the stable Xcode 26.6 toolchain on GitHub's `macos-26` runner. It
+archives with automatic cloud signing, uploads an internal-only TestFlight
+build, waits for App Store Connect processing, and associates the valid build
+with the existing `Internal Testing` group. Build numbers derive from the
+GitHub workflow run number; rerun attempts receive a distinct suffix.
+
+Publishing credentials are scoped to the GitHub `testflight` Environment:
+
+- `APP_STORE_CONNECT_API_KEY_ID`
+- `APP_STORE_CONNECT_API_ISSUER_ID`
+- `APP_STORE_CONNECT_API_PRIVATE_KEY`
+
+`APPLE_TEAM_ID` remains a repository secret shared with the desktop release
+workflow. No signing credentials are stored in the repository.
+
 ## Architecture seam
 
 ```text

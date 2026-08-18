@@ -14,7 +14,7 @@ settings:
     PRODUCT_NAME: Torrent Vibe
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_VERSION: 6.0
-    TARGETED_DEVICE_FAMILY: 1,2
+    TARGETED_DEVICE_FAMILY: 1
 
 targets:
   TorrentVibe:
@@ -26,12 +26,15 @@ targets:
         CFBundleDisplayName: Torrent Vibe
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.utilities
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSBonjourServices:
           - _torrentvibe-helper._tcp
         NSLocalNetworkUsageDescription: 用于发现并连接同一局域网中的 Torrent Vibe Helper。
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:
@@ -45,8 +48,14 @@ targets:
         buildPhase: resources
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe
         DEVELOPMENT_TEAM: KAMM5N88X3
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        SUPPORTS_MACCATALYST: false
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
+        TARGETED_DEVICE_FAMILY: 1
   TorrentVibeTests:
     type: bundle.unit-test
     platform: iOS

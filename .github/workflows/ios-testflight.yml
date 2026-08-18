@@ -1,0 +1,176 @@
+name: ios-testflight
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/ios/**'
+      - '!apps/ios/**/*.md'
+      - '!apps/ios/Tests/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Archive and upload
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: testflight
+    permissions:
+      contents: read
+    env:
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_PROJECT_PATH: apps/ios/TorrentVibe.xcodeproj
+      IOS_SCHEME: TorrentVibe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select stable Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Validate publishing credentials
+        run: |
+          set -euo pipefail
+          missing=()
+          for variable in \
+            APP_STORE_CONNECT_API_ISSUER_ID \
+            APP_STORE_CONNECT_API_KEY_ID \
+            APP_STORE_CONNECT_API_PRIVATE_KEY \
+            APPLE_TEAM_ID
+          do
+            if [ -z "${!variable:-}" ]; then
+              missing+=("$variable")
+            fi
+          done
+
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::Missing TestFlight publishing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Prepare signing inputs
+        id: signing
+        run: |
+          set -euo pipefail
+
+          key_directory="$RUNNER_TEMP/app-store-connect-private-keys"
+          key_path="$key_directory/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          mkdir -p "$key_directory"
+          printf '%s' "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          test -s "$key_path"
+
+          base_build_number=$((GITHUB_RUN_NUMBER + 1))
+          if [ "$GITHUB_RUN_ATTEMPT" -eq 1 ]; then
+            build_number="$base_build_number"
+          else
+            build_number="$base_build_number.$GITHUB_RUN_ATTEMPT"
+          fi
+
+          {
+            echo "build_number=$build_number"
+            echo "key_path=$key_path"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "IOS_ARCHIVE_PATH=$RUNNER_TEMP/TorrentVibe.xcarchive"
+            echo "IOS_EXPORT_OPTIONS_PATH=$RUNNER_TEMP/ExportOptions.plist"
+            echo "IOS_EXPORT_PATH=$RUNNER_TEMP/TestFlight"
+          } >> "$GITHUB_ENV"
+
+      - name: Archive iOS application
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "$IOS_PROJECT_PATH" \
+            -scheme "$IOS_SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$IOS_ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${{ steps.signing.outputs.key_path }}" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            -hideShellScriptEnvironment \
+            -quiet \
+            CURRENT_PROJECT_VERSION="${{ steps.signing.outputs.build_number }}" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            clean archive
+
+      - name: Configure internal TestFlight export
+        run: |
+          set -euo pipefail
+          cat > "$IOS_EXPORT_OPTIONS_PATH" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>upload</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>$APPLE_TEAM_ID</string>
+            <key>testFlightInternalTestingOnly</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+          plutil -lint "$IOS_EXPORT_OPTIONS_PATH"
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          env PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+            /usr/bin/xcodebuild \
+              -exportArchive \
+              -archivePath "$IOS_ARCHIVE_PATH" \
+              -exportPath "$IOS_EXPORT_PATH" \
+              -exportOptionsPlist "$IOS_EXPORT_OPTIONS_PATH" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "${{ steps.signing.outputs.key_path }}" \
+              -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+              -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
+              -quiet
+
+      - name: Publish build to internal testers
+        env:
+          APP_STORE_CONNECT_API_KEY_PATH: ${{ steps.signing.outputs.key_path }}
+          APP_STORE_CONNECT_APP_ID: '6802556601'
+          APP_STORE_CONNECT_BETA_GROUP_ID: '26711707-df83-418b-a19b-0a389af1633a'
+          APP_STORE_CONNECT_BUILD_NUMBER: ${{ steps.signing.outputs.build_number }}
+        run: node .github/scripts/distribute-testflight-build.mjs
+
+      - name: Publish workflow summary
+        run: |
+          {
+            echo "## TestFlight upload"
+            echo
+            echo "- App: Torrent Vibe"
+            echo "- Build: ${{ steps.signing.outputs.build_number }}"
+            echo "- Distribution: internal TestFlight"
+            echo "- Commit: $GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "${{ steps.signing.outputs.key_path }}"
