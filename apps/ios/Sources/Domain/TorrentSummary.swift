@@ -62,6 +62,14 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
 
   var isPaused: Bool { status == .paused }
 
+  var isHelperManaged: Bool {
+    tags.contains { $0.contains("tv-mikan:") }
+  }
+
+  var canOrganize: Bool {
+    (status == .completed || status == .seeding || progress >= 1) && !isHelperManaged
+  }
+
   var statusTitle: String {
     switch status {
     case .downloading: "下载中"

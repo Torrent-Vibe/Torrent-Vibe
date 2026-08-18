@@ -131,6 +131,73 @@ struct HelperProfileSnapshot: Codable, Hashable, Sendable {
   let records: [HelperProfileRecord]
 }
 
+struct HelperConfigPublic: Decodable, Hashable, Sendable {
+  var hasTmdbApiKey: Bool
+  var libraryRoot: String
+  var organizeOnComplete: Bool
+
+  init(hasTmdbApiKey: Bool = false, libraryRoot: String = "", organizeOnComplete: Bool = false) {
+    self.hasTmdbApiKey = hasTmdbApiKey
+    self.libraryRoot = libraryRoot
+    self.organizeOnComplete = organizeOnComplete
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    hasTmdbApiKey = try container.decodeIfPresent(Bool.self, forKey: .hasTmdbApiKey) ?? false
+    libraryRoot = try container.decodeIfPresent(String.self, forKey: .libraryRoot) ?? ""
+    organizeOnComplete = try container.decodeIfPresent(Bool.self, forKey: .organizeOnComplete) ?? false
+  }
+}
+
+struct HelperOrganizeResult: Codable, Hashable, Sendable {
+  let hash: String
+  let status: String
+  let libraryRelPath: String?
+  let dest: String?
+  let reason: String?
+  let tmdbId: Int?
+
+  var isSuccess: Bool { status == "ok" || status == "already" }
+
+  var userMessage: String {
+    switch status {
+    case "ok":
+      if let dest, !dest.isEmpty {
+        return "已整理到 \(dest)"
+      }
+      return "整理完成"
+    case "already":
+      return dest.map { "已经整理过 · \($0)" } ?? "已经整理过"
+    case "skipped":
+      return "Helper 追更剧集在入库时已经整理"
+    case "needs-manual":
+      switch reason {
+      case "missing-tmdb-key":
+        return "请通过凭证同步上传 TMDB"
+      case "missing-library-root":
+        return "请先设置 Helper 媒体库根目录"
+      case "no-unique-tmdb":
+        return "TMDB 没有唯一匹配"
+      case "missing-episode":
+        return "无法识别集数"
+      case "dest-conflict":
+        return "目标位置已有不同文件"
+      case "collection":
+        return "合集不会自动整理"
+      case "unsupported-kind":
+        return "该类型不会自动整理"
+      case "no-video":
+        return "没有可整理的视频文件"
+      default:
+        return "需要手动整理"
+      }
+    default:
+      return "无法整理该任务"
+    }
+  }
+}
+
 struct HelperProfileMutation: Codable, Hashable, Sendable {
   let operation: String
   let key: String

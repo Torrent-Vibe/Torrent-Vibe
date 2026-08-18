@@ -19,6 +19,7 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mdns"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/organize"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/outbound"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
@@ -85,12 +86,24 @@ func run() error {
 
 	st := store.New(*dataDir)
 	profileStore := store.NewProfileStore(*dataDir)
+	organizedStore := store.NewOrganizedStore(*dataDir)
 	out := &outboundHold{}
 	if err := out.apply(cfg.ProxyURL); err != nil {
 		return err
 	}
 	var mu sync.Mutex
 	var stopLoop func()
+	makeOrganize := func(next config.File) *organize.Service {
+		return organize.New(organize.Deps{
+			QB:          qb.NewClient(next.QbitURL, next.QbitUser, next.QbitPass, nil),
+			Episodes:    st,
+			Organized:   organizedStore,
+			LibraryRoot: next.LibraryRoot,
+			Profile:     profileStore,
+			Fetch:       out.fetchTorrent,
+			HTTP:        out.httpClient(),
+		})
+	}
 	makeDeps := func(next config.File) loop.Deps {
 		return loop.Deps{
 			Store:        st,
@@ -105,6 +118,13 @@ func run() error {
 			VariantPrefer: mikan.ParseVariantPrefer(next.VariantPrefer),
 			ResolveSeason: func(ident mikan.Identity) *int {
 				return tmdb.New(next.TmdbAPIKey, out.fetchTorrent).ResolveSeason(ident)
+			},
+			AfterTick: func(torrents []qb.Torrent) error {
+				svc := makeOrganize(next)
+				if next.OrganizeOnComplete {
+					return svc.ScanCompleted(torrents)
+				}
+				return svc.RememberCompleted(torrents)
 			},
 		}
 	}
@@ -148,6 +168,18 @@ func run() error {
 		ApplyConfig: func(next config.File) {
 			_ = out.apply(next.ProxyURL)
 			startLoop(next)
+		},
+		OnOrganizePlan: func(hash string) organize.Result {
+			mu.Lock()
+			svc := makeOrganize(rt.Config)
+			mu.Unlock()
+			return svc.Plan(hash)
+		},
+		OnOrganizeApply: func(hash string) organize.Result {
+			mu.Lock()
+			svc := makeOrganize(rt.Config)
+			mu.Unlock()
+			return svc.Apply(hash)
 		},
 	}
 
@@ -284,6 +316,12 @@ func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
 	client := h.client
 	h.mu.Unlock()
 	return fetchBytes(client, rawURL)
+}
+
+func (h *outboundHold) httpClient() *http.Client {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.client
 }
 
 func fetchBytes(client *http.Client, rawURL string) ([]byte, error) {

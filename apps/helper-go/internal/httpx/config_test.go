@@ -2,11 +2,13 @@ package httpx_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
 func TestConfigRequiresAuth(t *testing.T) {
@@ -223,6 +225,55 @@ func TestPutEmptyTmdbAPIKeyClears(t *testing.T) {
 	body := decode(t, res)
 	if body["hasTmdbApiKey"] != false {
 		t.Fatalf("%+v", body)
+	}
+}
+
+func TestGetConfigHasTmdbApiKeyFromProfile(t *testing.T) {
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi"}
+		if _, err := rt.ProfileStore.Apply(0, "desktop", []store.ProfileMutation{{
+			Operation: "set", Key: "metadata.tmdb.apiKey", Value: "profile-key", Secret: true,
+		}}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/config", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := decode(t, res)
+	if body["hasTmdbApiKey"] != true || body["tmdbApiKey"] != nil || body["organizeOnComplete"] != false {
+		t.Fatalf("%+v", body)
+	}
+	raw, _ := json.Marshal(body)
+	if bytes.Contains(raw, []byte("profile-key")) {
+		t.Fatalf("%s", raw)
+	}
+}
+
+func TestPutOrganizeOnCompletePersists(t *testing.T) {
+	var applied config.File
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{Category: "Bangumi", PollIntervalMs: 600000}
+		rt.ApplyConfig = func(file config.File) { applied = file }
+	})
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewBufferString(`{"organizeOnComplete":true}`))
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 {
+		t.Fatal(res.Status)
+	}
+	body := decode(t, res)
+	if body["organizeOnComplete"] != true || !applied.OrganizeOnComplete {
+		t.Fatalf("%+v applied=%+v", body, applied)
 	}
 }
 

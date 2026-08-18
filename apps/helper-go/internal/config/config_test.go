@@ -69,6 +69,17 @@ func TestPublicVariantPreferDefaults(t *testing.T) {
 	}
 }
 
+func TestPublicOrganizeOnCompleteDefaultsFalse(t *testing.T) {
+	p := config.File{}.Public()
+	if p.OrganizeOnComplete {
+		t.Fatalf("%+v", p)
+	}
+	p = config.File{OrganizeOnComplete: true}.Public()
+	if !p.OrganizeOnComplete {
+		t.Fatalf("%+v", p)
+	}
+}
+
 func TestPublicTmdbKeyHidden(t *testing.T) {
 	p := config.File{TmdbAPIKey: "secret-key"}.Public()
 	if !p.HasTmdbAPIKey {

@@ -8,6 +8,15 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/rename"
 )
 
+func TestSanitizeTitleAndVideo(t *testing.T) {
+	if got := rename.SanitizeTitle(`A:B`); got != "A_B" {
+		t.Fatal(got)
+	}
+	if !rename.IsVideo("a.mkv") || !rename.IsSkippedExtra("foo.sample.mkv") {
+		t.Fatal("video/extra helpers")
+	}
+}
+
 func TestFormatEpisodeName(t *testing.T) {
 	if got := rename.FormatEpisodeName("葬送的芙莉莲", 1, 28); got != "葬送的芙莉莲 - S01E28" {
 		t.Fatal(got)

@@ -86,6 +86,7 @@ export interface HelperConfigPublic {
   hasQbitPass: boolean
   hasTmdbApiKey: boolean
   libraryRoot: string
+  organizeOnComplete: boolean
   pollIntervalMs: number
   proxyUrl: string
   qbitUrl: string
@@ -103,4 +104,15 @@ export type HelperConfigPatch = Partial<{
   proxyUrl: string
   variantPrefer: string
   tmdbApiKey: string
+  organizeOnComplete: boolean
 }>
+
+export interface HelperOrganizeResult {
+  at?: string
+  dest?: string
+  hash: string
+  libraryRelPath?: string
+  reason?: string
+  status: 'already' | 'deferred' | 'needs-manual' | 'ok' | 'ready' | 'skipped' | string
+  tmdbId?: number
+}

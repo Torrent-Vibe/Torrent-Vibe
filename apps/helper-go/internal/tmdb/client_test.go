@@ -61,6 +61,55 @@ func TestResolveSeasonTimeout(t *testing.T) {
 	}
 }
 
+func TestSearchUniqueMovie(t *testing.T) {
+	client := tmdb.New("k", func(rawURL string) ([]byte, error) {
+		if !strings.Contains(rawURL, "/search/movie") {
+			t.Fatal(rawURL)
+		}
+		return []byte(`{"results":[{"id":603,"title":"The Matrix","original_title":"The Matrix","release_date":"1999-03-31"}]}`), nil
+	})
+	got, err := client.SearchUniqueMovie("The Matrix")
+	if err != nil || got == nil || got.ID != 603 || got.Year != 1999 {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
+
+func TestSearchUniqueMovieTwoHits(t *testing.T) {
+	client := tmdb.New("k", func(string) ([]byte, error) {
+		return []byte(`{"results":[{"id":1,"title":"The Matrix"},{"id":2,"title":"The Matrix Reloaded"}]}`), nil
+	})
+	got, err := client.SearchUniqueMovie("The Matrix")
+	if err != nil || got != nil {
+		t.Fatalf("%+v %v", got, err)
+	}
+}
+
+func TestSearchAndDetails(t *testing.T) {
+	var urls []string
+	client := tmdb.New("k", func(rawURL string) ([]byte, error) {
+		urls = append(urls, rawURL)
+		if strings.Contains(rawURL, "/search/movie") {
+			return []byte(`{"results":[{"id":603,"title":"The Matrix","original_title":"The Matrix","release_date":"1999-03-31"}]}`), nil
+		}
+		if strings.Contains(rawURL, "/movie/603") {
+			return []byte(`{"id":603,"title":"The Matrix","release_date":"1999-03-31","overview":"A hacker.","runtime":136}`), nil
+		}
+		t.Fatal(rawURL)
+		return nil, errors.New(rawURL)
+	})
+	hits, err := client.Search(tmdb.SearchQuery{Query: "The Matrix", MediaType: "movie", Year: 1999})
+	if err != nil || len(hits) != 1 || hits[0].ID != 603 || hits[0].Year != 1999 {
+		t.Fatalf("%+v %v", hits, err)
+	}
+	detail, err := client.Details(603, "movie", "")
+	if err != nil || detail == nil || detail.Overview == "" || detail.MediaType != "movie" {
+		t.Fatalf("%+v %v", detail, err)
+	}
+	if !strings.Contains(urls[0], "year=1999") {
+		t.Fatalf("%v", urls)
+	}
+}
+
 func TestResolveSeasonSkippedWhenClear(t *testing.T) {
 	called := false
 	client := tmdb.New("k", func(string) ([]byte, error) {

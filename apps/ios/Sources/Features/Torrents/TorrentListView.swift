@@ -162,6 +162,9 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
         },
         onTogglePause: { [weak self] torrent in
           self?.togglePause(for: torrent)
+        },
+        onOrganizeTorrent: { [weak self] torrent in
+          self?.organize(torrent)
         }
       )
       .environment(model)
@@ -451,6 +454,24 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     }
   }
 
+  private func organize(_ torrent: TorrentSummary) {
+    guard let serverID = model.activeServerID else { return }
+    Task {
+      do {
+        let result = try await model.organizeTorrent(hash: torrent.id, serverID: serverID)
+        presentNotice(result.userMessage)
+      } catch {
+        presentError(error)
+      }
+    }
+  }
+
+  private func presentNotice(_ message: String) {
+    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "好", style: .default))
+    present(alert, animated: true)
+  }
+
   private func togglePause(for torrent: TorrentSummary) {
     guard let serverID = model.activeServerID else { return }
     Task {
@@ -503,6 +524,7 @@ private struct TorrentContentView: View {
   let onManageTorrent: (TorrentSummary) -> Void
   let onToggleSelection: (TorrentSummary) -> Void
   let onTogglePause: (TorrentSummary) -> Void
+  let onOrganizeTorrent: (TorrentSummary) -> Void
 
   private var filteredTorrents: [TorrentSummary] {
     let scoped = model.torrents.filter(searchState.filter.includes)
@@ -605,6 +627,13 @@ private struct TorrentContentView: View {
                       onManageTorrent(torrent)
                     } label: {
                       Label("分类、标签与限速", systemImage: "slider.horizontal.3")
+                    }
+                    if torrent.canOrganize {
+                      Button {
+                        onOrganizeTorrent(torrent)
+                      } label: {
+                        Label("整理", systemImage: "folder.badge.plus")
+                      }
                     }
                     Divider()
                     Button(role: .destructive) {

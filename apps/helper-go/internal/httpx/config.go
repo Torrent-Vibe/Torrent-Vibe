@@ -16,8 +16,23 @@ func (rt *Runtime) currentConfig() config.File {
 	return rt.Config
 }
 
+func (rt *Runtime) publicConfig(file config.File) config.Public {
+	pub := file.Public()
+	if !pub.HasTmdbAPIKey && rt.profileHasTmdbKey() {
+		pub.HasTmdbAPIKey = true
+	}
+	return pub
+}
+
 func (rt *Runtime) getConfig(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, rt.currentConfig().Public())
+	writeJSON(w, http.StatusOK, rt.publicConfig(rt.currentConfig()))
+}
+
+func (rt *Runtime) profileHasTmdbKey() bool {
+	if rt.ProfileStore == nil {
+		return false
+	}
+	return strings.TrimSpace(rt.ProfileStore.Value("metadata.tmdb.apiKey")) != ""
 }
 
 func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
@@ -29,8 +44,9 @@ func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
 		QbitPass       *string `json:"qbitPass"`
 		PollIntervalMs *int    `json:"pollIntervalMs"`
 		ProxyURL       *string `json:"proxyUrl"`
-		VariantPrefer  *string `json:"variantPrefer"`
-		TmdbAPIKey     *string `json:"tmdbApiKey"`
+		VariantPrefer      *string `json:"variantPrefer"`
+		TmdbAPIKey         *string `json:"tmdbApiKey"`
+		OrganizeOnComplete *bool   `json:"organizeOnComplete"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
@@ -84,6 +100,9 @@ func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
 	if patch.TmdbAPIKey != nil {
 		next.TmdbAPIKey = strings.TrimSpace(*patch.TmdbAPIKey)
 	}
+	if patch.OrganizeOnComplete != nil {
+		next.OrganizeOnComplete = *patch.OrganizeOnComplete
+	}
 	if qbitChanged && rt.ProbeQbit != nil {
 		if err := rt.ProbeQbit(next.QbitURL, next.QbitUser, next.QbitPass); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
@@ -101,5 +120,5 @@ func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
 	if rt.ApplyConfig != nil {
 		rt.ApplyConfig(next)
 	}
-	writeJSON(w, http.StatusOK, next.Public())
+	writeJSON(w, http.StatusOK, rt.publicConfig(next))
 }

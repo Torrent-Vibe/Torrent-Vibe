@@ -3,7 +3,6 @@ package loop
 import (
 	"errors"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -21,8 +20,6 @@ const (
 	DefaultPollIntervalMs = 600000
 )
 
-var completeState = regexp.MustCompile(`^(uploading|pausedUP|stoppedUP|stalledUP|queuedUP|forcedUP|checkingUP)$`)
-
 func MikanTag(subscriptionID string) string {
 	return "tv-mikan:" + subscriptionID
 }
@@ -37,6 +34,7 @@ type Deps struct {
 	ResolveTitle  func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle
 	ResolveSeason func(ident mikan.Identity) *int
 	VariantPrefer []mikan.Language
+	AfterTick     func(torrents []qb.Torrent) error
 }
 
 var workMu sync.Map
@@ -127,7 +125,13 @@ func runTick(deps Deps) error {
 		}
 		maps[key] = next
 	}
-	return deps.Store.SaveEpisodes(maps)
+	if err := deps.Store.SaveEpisodes(maps); err != nil {
+		return err
+	}
+	if deps.AfterTick != nil {
+		return deps.AfterTick(torrents)
+	}
+	return nil
 }
 
 func runBackfill(deps Deps, bangumiID, subgroupID string, items []mikan.RssEpisode) ([]store.Episode, error) {
@@ -389,10 +393,7 @@ func hashesOf(torrents []qb.Torrent) map[string]struct{} {
 }
 
 func isComplete(torrent qb.Torrent) bool {
-	if torrent.Progress >= 1 {
-		return true
-	}
-	return completeState.MatchString(torrent.State)
+	return qb.IsComplete(torrent)
 }
 
 func findReplica(replicas []protocol.Replica, key string) (protocol.Replica, bool) {

@@ -59,6 +59,22 @@ func (s *ProfileStore) Load() (ProfileSnapshot, error) {
 	return s.read()
 }
 
+func (s *ProfileStore) Value(key string) string {
+	if s == nil {
+		return ""
+	}
+	snapshot, err := s.Load()
+	if err != nil {
+		return ""
+	}
+	for _, record := range snapshot.Records {
+		if record.Key == key {
+			return record.Value
+		}
+	}
+	return ""
+}
+
 func (s *ProfileStore) Apply(
 	expectedRevision uint64,
 	updatedBy string,

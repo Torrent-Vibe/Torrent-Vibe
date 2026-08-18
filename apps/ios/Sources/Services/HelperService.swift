@@ -38,6 +38,13 @@ protocol HelperService: Sendable {
     request: HelperRetryRequest
   ) async throws -> HelperBackfillResult
   func unpair(at baseURL: URL, token: String) async throws
+  func config(at baseURL: URL, token: String) async throws -> HelperConfigPublic
+  func updateConfig(
+    at baseURL: URL,
+    token: String,
+    organizeOnComplete: Bool
+  ) async throws -> HelperConfigPublic
+  func organize(at baseURL: URL, token: String, hash: String) async throws -> HelperOrganizeResult
 }
 
 struct HelperDiscoveryInfo: Hashable, Sendable {
@@ -203,6 +210,34 @@ struct URLSessionHelperService: HelperService {
     )
   }
 
+  func config(at baseURL: URL, token: String) async throws -> HelperConfigPublic {
+    try await request(baseURL, path: "config", token: token)
+  }
+
+  func updateConfig(
+    at baseURL: URL,
+    token: String,
+    organizeOnComplete: Bool
+  ) async throws -> HelperConfigPublic {
+    try await request(
+      baseURL,
+      path: "config",
+      method: "PUT",
+      token: token,
+      body: HelperConfigPatch(organizeOnComplete: organizeOnComplete)
+    )
+  }
+
+  func organize(at baseURL: URL, token: String, hash: String) async throws -> HelperOrganizeResult {
+    try await request(
+      baseURL,
+      path: "organize",
+      method: "POST",
+      token: token,
+      body: OrganizeRequest(hash: hash)
+    )
+  }
+
   private func request<Response: Decodable>(
     _ baseURL: URL,
     path: String,
@@ -281,6 +316,7 @@ actor DemoHelperService: HelperService {
 
   private var states: [String: State] = [:]
   private var profiles: [String: HelperProfileSnapshot] = [:]
+  private var configs: [String: HelperConfigPublic] = [:]
 
   func discover(at baseURL: URL) async throws -> HelperDiscoveryInfo {
     HelperDiscoveryInfo(
@@ -482,6 +518,35 @@ actor DemoHelperService: HelperService {
 
   func unpair(at baseURL: URL, token: String) async throws {}
 
+  func config(at baseURL: URL, token: String) async throws -> HelperConfigPublic {
+    try authorize(token)
+    return configs[stateKey(for: baseURL)] ?? HelperConfigPublic()
+  }
+
+  func updateConfig(
+    at baseURL: URL,
+    token: String,
+    organizeOnComplete: Bool
+  ) async throws -> HelperConfigPublic {
+    try authorize(token)
+    var current = configs[stateKey(for: baseURL)] ?? HelperConfigPublic()
+    current.organizeOnComplete = organizeOnComplete
+    configs[stateKey(for: baseURL)] = current
+    return current
+  }
+
+  func organize(at baseURL: URL, token: String, hash: String) async throws -> HelperOrganizeResult {
+    try authorize(token)
+    return HelperOrganizeResult(
+      hash: hash,
+      status: "ok",
+      libraryRelPath: "Movies/Demo (2026)/Demo (2026).mkv",
+      dest: "/library/Movies/Demo (2026)/Demo (2026).mkv",
+      reason: nil,
+      tmdbId: 1
+    )
+  }
+
   private func state(for baseURL: URL) -> State {
     let key = stateKey(for: baseURL)
     if let state = states[key] {
@@ -667,6 +732,14 @@ private struct BackfillRequest: Encodable {
   let bangumiId: String
   let subgroupId: String
   let episodes: [HelperBackfillEpisode]
+}
+
+private struct HelperConfigPatch: Encodable {
+  let organizeOnComplete: Bool
+}
+
+private struct OrganizeRequest: Encodable {
+  let hash: String
 }
 
 private struct NoBody: Encodable {}
