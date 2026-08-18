@@ -10,7 +10,7 @@
   "scripts": {
     "build": "vite build --config ../../vite.config.ts",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -b ../main ../../packages/shared && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@bbob/preset-react": "^4.4.1",
