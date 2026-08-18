@@ -77,7 +77,7 @@ Desktop (required) and iOS (if it fits existing helper UI patterns without a lar
 Do not ship the Electron agent.
 
 1. Parse torrent name + qB file list for title, year, SxxEyy, kind. Parsed title is a heuristic only.
-2. If Profile has `ai.openai.apiKey` or `ai.openrouter.apiKey`, **always** run the Helper analyze loop first. Do not classify names as dirty vs clean. The model decodes the release, calls `webSearch` when the title is still uncertain, then `tmdbSearch` / `tmdbDetails` with the title it cleaned, then `submitMetadata`. Codex and agent-browser are not used. `webSearch` is DuckDuckGo HTML (no extra key).
+2. If Profile has `ai.openai.apiKey` or `ai.openrouter.apiKey`, **always** run the Helper Eino ReAct agent first (`github.com/cloudwego/eino/flow/agent/react` + official OpenAI-compatible chat model). Do not classify names as dirty vs clean. The model decodes the release, calls `webSearch` when the title is still uncertain, then `tmdbSearch` / `tmdbDetails` with the title it cleaned, then `submitMetadata`. Codex and agent-browser are not used. `webSearch` is DuckDuckGo HTML (no extra key).
 3. Unique TMDB fold-match on the parsed title is only used when there is **no** LLM key. After the loop, unique TMDB may confirm the title the model already produced.
 4. Apply only when the payload has a TMDB id and `confidence >= 0.8` (details confirmed). Otherwise `needs-manual`.
 5. Missing LLM key is OK: fall back to unique TMDB on the parsed title.

@@ -4,17 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/components/tool/utils"
+	"github.com/cloudwego/eino/compose"
+	"github.com/cloudwego/eino/flow/agent/react"
+	"github.com/cloudwego/eino/schema"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/tmdb"
 )
 
 const (
 	MinConfidence = 0.8
-	maxTurns      = 10
 	maxFiles      = 40
+	maxAgentSteps = 20
 )
 
 type Identity struct {
@@ -39,6 +48,10 @@ func (id Identity) Ready() bool {
 	}
 }
 
+func (id Identity) Unsupported() bool {
+	return id.MediaType == "music" || id.MediaType == "other"
+}
+
 type Request struct {
 	TorrentName string
 	Files       []string
@@ -52,23 +65,28 @@ type Request struct {
 type Client struct {
 	Provider  Provider
 	TMDB      *tmdb.Client
-	Chat      func(context.Context, ChatRequest) (ChatResponse, error)
 	Get       func(rawURL string) ([]byte, error)
 	WebSearch func(ctx context.Context, query string, maxResults int) ([]WebHit, error)
+	Model     model.ToolCallingChatModel
+	HTTP      *http.Client
 }
 
-func New(provider Provider, tmdbClient *tmdb.Client, post PostJSON, get func(string) ([]byte, error)) *Client {
+func New(provider Provider, tmdbClient *tmdb.Client, get func(string) ([]byte, error), httpClient *http.Client) *Client {
 	return &Client{
 		Provider: provider,
 		TMDB:     tmdbClient,
-		Chat:     HTTPChat(post, provider),
 		Get:      get,
+		HTTP:     httpClient,
 	}
 }
 
 func (c *Client) Identify(ctx context.Context, request Request) (*Identity, error) {
-	if c == nil || strings.TrimSpace(c.Provider.APIKey) == "" || c.Chat == nil {
+	if c == nil {
 		return nil, nil
+	}
+	chatModel, err := c.chatModel(ctx)
+	if err != nil || chatModel == nil {
+		return nil, err
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -78,67 +96,73 @@ func (c *Client) Identify(ctx context.Context, request Request) (*Identity, erro
 		ctx, cancel = context.WithTimeout(ctx, 45*time.Second)
 		defer cancel()
 	}
-	messages := []ChatMessage{
-		{Role: "system", Content: systemPrompt},
-		{Role: "user", Content: userPrompt(request)},
+	tools, err := c.agentTools()
+	if err != nil {
+		return nil, err
 	}
-	var submitted *Identity
-	for turn := 0; turn < maxTurns; turn++ {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		choice := any("auto")
-		if turn == maxTurns-1 {
-			choice = map[string]any{
-				"type":     "function",
-				"function": map[string]string{"name": "submitMetadata"},
-			}
-		}
-		response, err := c.Chat(ctx, ChatRequest{
-			Model:      c.Provider.Model,
-			Messages:   messages,
-			Tools:      chatTools(),
-			ToolChoice: choice,
-		})
-		if err != nil {
-			return nil, err
-		}
-		message := response.Choices[0].Message
-		if len(message.ToolCalls) == 0 {
-			if ident := parseIdentityJSON(message.Content); ident != nil {
-				submitted = ident
-				break
-			}
-			return nil, nil
-		}
-		messages = append(messages, ChatMessage{
-			Role:      "assistant",
-			Content:   message.Content,
-			ToolCalls: message.ToolCalls,
-		})
-		for _, call := range message.ToolCalls {
-			name := strings.TrimSpace(call.Function.Name)
-			if name == "submitMetadata" {
-				ident := parseIdentityJSON(call.Function.Arguments)
-				if ident == nil {
-					messages = append(messages, toolMessage(call.ID, `{"ok":false,"error":"invalid submitMetadata"}`))
-					continue
-				}
-				submitted = ident
-				messages = append(messages, toolMessage(call.ID, `{"ok":true}`))
-				continue
-			}
-			payload, err := c.runTool(ctx, name, call.Function.Arguments)
-			if err != nil {
-				payload = fmt.Sprintf(`{"ok":false,"error":%q}`, err.Error())
-			}
-			messages = append(messages, toolMessage(call.ID, payload))
-		}
-		if submitted != nil {
-			break
-		}
+	agent, err := react.NewAgent(ctx, &react.AgentConfig{
+		ToolCallingModel: chatModel,
+		ToolsConfig: compose.ToolsNodeConfig{
+			Tools: tools,
+		},
+		MaxStep: maxAgentSteps,
+		ToolReturnDirectly: map[string]struct{}{
+			"submitMetadata": {},
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-	return c.confirm(submitted)
+	out, err := agent.Generate(ctx, []*schema.Message{
+		schema.SystemMessage(systemPrompt),
+		schema.UserMessage(userPrompt(request)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return c.confirm(identityFromAgent(out))
+}
+
+func (c *Client) chatModel(ctx context.Context) (model.ToolCallingChatModel, error) {
+	if c.Model != nil {
+		return c.Model, nil
+	}
+	if strings.TrimSpace(c.Provider.APIKey) == "" {
+		return nil, nil
+	}
+	cfg := &openai.ChatModelConfig{
+		APIKey:     c.Provider.APIKey,
+		BaseURL:    c.Provider.BaseURL,
+		Model:      c.Provider.Model,
+		HTTPClient: c.HTTP,
+	}
+	if c.Provider.ID == "openrouter" {
+		cfg.HTTPClient = withHeaders(c.HTTP, map[string]string{
+			"HTTP-Referer": "https://torrent-vibe.app",
+			"X-Title":      "Torrent Vibe",
+		})
+	}
+	return openai.NewChatModel(ctx, cfg)
+}
+
+func (c *Client) agentTools() ([]tool.BaseTool, error) {
+	webSearch, err := utils.InferTool("webSearch", "Search the public web. Returns title, url, and snippet. Use when the cleaned title is still uncertain before calling tmdbSearch.", c.webSearchTool)
+	if err != nil {
+		return nil, err
+	}
+	tmdbSearch, err := utils.InferTool("tmdbSearch", "Search TMDB with a cleaned title only. Never pass the raw release name, site prefix, or codec tags.", c.tmdbSearchTool)
+	if err != nil {
+		return nil, err
+	}
+	tmdbDetails, err := utils.InferTool("tmdbDetails", "Fetch detailed TMDB metadata for a candidate id.", c.tmdbDetailsTool)
+	if err != nil {
+		return nil, err
+	}
+	submit, err := utils.InferTool("submitMetadata", "Submit the final structured identity. Call exactly once as the last action.", c.submitMetadataTool)
+	if err != nil {
+		return nil, err
+	}
+	return []tool.BaseTool{webSearch, tmdbSearch, tmdbDetails, submit}, nil
 }
 
 func (c *Client) confirm(ident *Identity) (*Identity, error) {
@@ -169,65 +193,19 @@ func (c *Client) confirm(ident *Identity) (*Identity, error) {
 	return ident, nil
 }
 
-func (c *Client) runTool(ctx context.Context, name, rawArgs string) (string, error) {
-	var args map[string]any
-	if strings.TrimSpace(rawArgs) != "" {
-		if err := json.Unmarshal([]byte(rawArgs), &args); err != nil {
-			return "", err
+func identityFromAgent(msg *schema.Message) *Identity {
+	if msg == nil {
+		return nil
+	}
+	if ident := parseIdentityJSON(msg.Content); ident != nil {
+		return ident
+	}
+	for _, call := range msg.ToolCalls {
+		if ident := parseIdentityJSON(call.Function.Arguments); ident != nil {
+			return ident
 		}
 	}
-	switch name {
-	case "webSearch":
-		hits, err := c.searchWeb(ctx, stringArg(args, "query"), intArg(args, "maxResults"))
-		if err != nil {
-			return "", err
-		}
-		raw, err := json.Marshal(map[string]any{"ok": true, "results": hits})
-		if err != nil {
-			return "", err
-		}
-		return string(raw), nil
-	case "tmdbSearch":
-		if c.TMDB == nil {
-			return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
-		}
-		hits, err := c.TMDB.Search(tmdb.SearchQuery{
-			Query:     stringArg(args, "query"),
-			MediaType: stringArg(args, "mediaType"),
-			Year:      intArg(args, "year"),
-			Language:  stringArg(args, "language"),
-		})
-		if err != nil {
-			return "", err
-		}
-		raw, err := json.Marshal(map[string]any{"ok": true, "results": hits})
-		if err != nil {
-			return "", err
-		}
-		return string(raw), nil
-	case "tmdbDetails":
-		if c.TMDB == nil {
-			return `{"ok":false,"error":"tmdb.notConfigured"}`, nil
-		}
-		detail, err := c.TMDB.Details(intArg(args, "id"), stringArg(args, "mediaType"), stringArg(args, "language"))
-		if err != nil {
-			return "", err
-		}
-		if detail == nil {
-			return `{"ok":false,"error":"tmdb.emptyResponse"}`, nil
-		}
-		raw, err := json.Marshal(map[string]any{"ok": true, "result": detail})
-		if err != nil {
-			return "", err
-		}
-		return string(raw), nil
-	default:
-		return fmt.Sprintf(`{"ok":false,"error":"unknown tool %s"}`, name), nil
-	}
-}
-
-func (id Identity) Unsupported() bool {
-	return id.MediaType == "music" || id.MediaType == "other"
+	return nil
 }
 
 func parseIdentityJSON(raw string) *Identity {
@@ -235,165 +213,15 @@ func parseIdentityJSON(raw string) *Identity {
 	if raw == "" {
 		return nil
 	}
-	var payload struct {
-		MediaType string `json:"mediaType"`
-		Title     struct {
-			CanonicalTitle string `json:"canonicalTitle"`
-			ReleaseYear    *int   `json:"releaseYear"`
-			SeasonNumber   *int   `json:"seasonNumber"`
-			EpisodeNumbers []int  `json:"episodeNumbers"`
-		} `json:"title"`
-		Series *struct {
-			SeasonNumber   *int  `json:"seasonNumber"`
-			EpisodeNumbers []int `json:"episodeNumbers"`
-		} `json:"series"`
-		TMDB *struct {
-			ID          int    `json:"id"`
-			MediaType   string `json:"mediaType"`
-			Title       string `json:"title"`
-			ReleaseDate string `json:"releaseDate"`
-		} `json:"tmdb"`
-		Confidence struct {
-			Overall   float64  `json:"overall"`
-			TMDBMatch *float64 `json:"tmdbMatch"`
-		} `json:"confidence"`
-	}
+	var payload submitInput
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
 		return nil
 	}
-	ident := &Identity{
-		Title:      firstNonEmpty(payload.Title.CanonicalTitle),
-		MediaType:  strings.ToLower(strings.TrimSpace(payload.MediaType)),
-		Confidence: payload.Confidence.Overall,
-	}
-	if payload.Title.ReleaseYear != nil {
-		ident.Year = *payload.Title.ReleaseYear
-	}
-	if payload.Title.SeasonNumber != nil {
-		ident.Season = payload.Title.SeasonNumber
-	}
-	if n := firstEpisode(payload.Title.EpisodeNumbers); n != nil {
-		ident.Episode = n
-	}
-	if payload.Series != nil {
-		if ident.Season == nil && payload.Series.SeasonNumber != nil {
-			ident.Season = payload.Series.SeasonNumber
-		}
-		if ident.Episode == nil {
-			ident.Episode = firstEpisode(payload.Series.EpisodeNumbers)
-		}
-	}
-	if payload.TMDB != nil {
-		ident.TMDBID = payload.TMDB.ID
-		ident.Title = firstNonEmpty(ident.Title, payload.TMDB.Title)
-		if ident.MediaType == "" {
-			ident.MediaType = strings.ToLower(strings.TrimSpace(payload.TMDB.MediaType))
-		}
-		if ident.Year == 0 && len(payload.TMDB.ReleaseDate) >= 4 {
-			if year, err := strconv.Atoi(payload.TMDB.ReleaseDate[:4]); err == nil {
-				ident.Year = year
-			}
-		}
-	}
-	if payload.Confidence.TMDBMatch != nil && *payload.Confidence.TMDBMatch > ident.Confidence {
-		ident.Confidence = *payload.Confidence.TMDBMatch
-	}
+	ident := payload.identity()
 	if ident.Title == "" && ident.TMDBID == 0 {
 		return nil
 	}
 	return ident
-}
-
-func firstEpisode(values []int) *int {
-	for _, value := range values {
-		if value >= 0 {
-			n := value
-			return &n
-		}
-	}
-	return nil
-}
-
-func chatTools() []ChatTool {
-	return []ChatTool{
-		{
-			Type: "function",
-			Function: ChatToolFnSpec{
-				Name:        "webSearch",
-				Description: "Search the public web. Returns title, url, and snippet. Use when the cleaned title is still uncertain before calling tmdbSearch.",
-				Parameters:  json.RawMessage(webSearchParams),
-			},
-		},
-		{
-			Type: "function",
-			Function: ChatToolFnSpec{
-				Name:        "tmdbSearch",
-				Description: "Search TMDB with a cleaned title only. Never pass the raw release name, site prefix, or codec tags.",
-				Parameters:  json.RawMessage(tmdbSearchParams),
-			},
-		},
-		{
-			Type: "function",
-			Function: ChatToolFnSpec{
-				Name:        "tmdbDetails",
-				Description: "Fetch detailed TMDB metadata for a candidate id.",
-				Parameters:  json.RawMessage(tmdbDetailsParams),
-			},
-		},
-		{
-			Type: "function",
-			Function: ChatToolFnSpec{
-				Name:        "submitMetadata",
-				Description: "Submit the final structured identity. Call exactly once as the last action.",
-				Parameters:  json.RawMessage(submitMetadataParams),
-			},
-		},
-	}
-}
-
-func toolMessage(id, content string) ChatMessage {
-	return ChatMessage{Role: "tool", ToolCallID: id, Content: content}
-}
-
-func stringArg(args map[string]any, key string) string {
-	if args == nil {
-		return ""
-	}
-	value, ok := args[key]
-	if !ok || value == nil {
-		return ""
-	}
-	switch typed := value.(type) {
-	case string:
-		return strings.TrimSpace(typed)
-	default:
-		return strings.TrimSpace(fmt.Sprint(typed))
-	}
-}
-
-func intArg(args map[string]any, key string) int {
-	if args == nil {
-		return 0
-	}
-	value, ok := args[key]
-	if !ok || value == nil {
-		return 0
-	}
-	switch typed := value.(type) {
-	case float64:
-		return int(typed)
-	case int:
-		return typed
-	case json.Number:
-		n, _ := typed.Int64()
-		return int(n)
-	case string:
-		n, _ := strconv.Atoi(strings.TrimSpace(typed))
-		return n
-	default:
-		n, _ := strconv.Atoi(strings.TrimSpace(fmt.Sprint(typed)))
-		return n
-	}
 }
 
 func userPrompt(request Request) string {
@@ -435,6 +263,55 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func firstEpisode(values []int) *int {
+	for _, value := range values {
+		if value >= 0 {
+			n := value
+			return &n
+		}
+	}
+	return nil
+}
+
+func withHeaders(base *http.Client, headers map[string]string) *http.Client {
+	transport := http.DefaultTransport
+	timeout := time.Duration(0)
+	if base != nil {
+		if base.Transport != nil {
+			transport = base.Transport
+		}
+		timeout = base.Timeout
+	}
+	return &http.Client{
+		Timeout: timeout,
+		Transport: headerRoundTripper{
+			base:    transport,
+			headers: headers,
+		},
+	}
+}
+
+type headerRoundTripper struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+func (t headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	clone := req.Clone(req.Context())
+	for key, value := range t.headers {
+		clone.Header.Set(key, value)
+	}
+	return t.base.RoundTrip(clone)
+}
+
+func toolJSON(value any) string {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Sprintf(`{"ok":false,"error":%q}`, err.Error())
+	}
+	return string(raw)
+}
+
 const systemPrompt = `You identify a torrent release for library placement. Write titles in zh-CN. Be concise and deterministic.
 
 Workflow:
@@ -445,77 +322,3 @@ Workflow:
 5. Finish by calling submitMetadata exactly once with title, year, season/episode, mediaType, tmdb id, and confidence.
 
 Prefer tool results over guesses. Never invent a TMDB id. Classify mediaType as movie, tv, anime, music, or other. Include tmdb only for a confirmed match. Do not emit assistant text.`
-
-const webSearchParams = `{
-  "type": "object",
-  "properties": {
-    "query": {"type": "string"},
-    "language": {"type": "string"},
-    "maxResults": {"type": "integer"}
-  },
-  "required": ["query"]
-}`
-
-const tmdbSearchParams = `{
-  "type": "object",
-  "properties": {
-    "query": {"type": "string"},
-    "year": {"type": "integer"},
-    "mediaType": {"type": "string", "enum": ["movie", "tv"]},
-    "language": {"type": "string"}
-  },
-  "required": ["query"]
-}`
-
-const tmdbDetailsParams = `{
-  "type": "object",
-  "properties": {
-    "id": {"type": "integer"},
-    "mediaType": {"type": "string", "enum": ["movie", "tv"]},
-    "language": {"type": "string"}
-  },
-  "required": ["id", "mediaType"]
-}`
-
-const submitMetadataParams = `{
-  "type": "object",
-  "properties": {
-    "mediaType": {"type": "string", "enum": ["movie", "tv", "anime", "music", "other"]},
-    "title": {
-      "type": "object",
-      "properties": {
-        "canonicalTitle": {"type": "string"},
-        "releaseYear": {"type": ["integer", "null"]},
-        "seasonNumber": {"type": ["integer", "null"]},
-        "episodeNumbers": {"type": "array", "items": {"type": "integer"}}
-      },
-      "required": ["canonicalTitle"]
-    },
-    "series": {
-      "type": "object",
-      "properties": {
-        "seasonNumber": {"type": ["integer", "null"]},
-        "episodeNumbers": {"type": "array", "items": {"type": "integer"}}
-      }
-    },
-    "tmdb": {
-      "type": "object",
-      "properties": {
-        "id": {"type": "integer"},
-        "mediaType": {"type": "string", "enum": ["movie", "tv", "anime"]},
-        "title": {"type": "string"},
-        "releaseDate": {"type": ["string", "null"]}
-      },
-      "required": ["id", "mediaType", "title"]
-    },
-    "confidence": {
-      "type": "object",
-      "properties": {
-        "overall": {"type": "number", "minimum": 0, "maximum": 1},
-        "tmdbMatch": {"type": ["number", "null"]}
-      },
-      "required": ["overall"]
-    }
-  },
-  "required": ["mediaType", "title", "confidence"]
-}`

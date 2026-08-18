@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -62,7 +63,7 @@ type Deps struct {
 	LibraryRoot string
 	Profile     *store.ProfileStore
 	Fetch       func(rawURL string) ([]byte, error)
-	PostJSON    analyze.PostJSON
+	HTTP        *http.Client
 	Analyze     func(ctx context.Context, request analyze.Request) (*analyze.Identity, error)
 	Now         func() time.Time
 	Link        func(oldName, newName string) error
@@ -336,10 +337,10 @@ func (s *Service) identify(name string, files []qb.File, parsed Parsed) (*analyz
 		return s.deps.Analyze(context.Background(), request)
 	}
 	provider := analyze.SelectProvider(s.deps.Profile)
-	if provider == nil || s.deps.PostJSON == nil {
+	if provider == nil {
 		return nil, nil
 	}
-	return analyze.New(*provider, tmdb.New(s.tmdbKey(), s.deps.Fetch), s.deps.PostJSON, s.deps.Fetch).Identify(context.Background(), request)
+	return analyze.New(*provider, tmdb.New(s.tmdbKey(), s.deps.Fetch), s.deps.Fetch, s.deps.HTTP).Identify(context.Background(), request)
 }
 
 func (s *Service) canAnalyze() bool {

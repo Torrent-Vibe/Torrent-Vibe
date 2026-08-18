@@ -2,9 +2,12 @@ package analyze_test
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/schema"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/analyze"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
@@ -60,31 +63,58 @@ func tmdbFetch(rawURL string) ([]byte, error) {
 	}
 }
 
-func submitCall(args string) analyze.ToolCall {
-	var call analyze.ToolCall
-	call.ID = "call-submit"
-	call.Type = "function"
-	call.Function.Name = "submitMetadata"
-	call.Function.Arguments = args
-	return call
+type scriptedModel struct {
+	mu    sync.Mutex
+	steps [][]schema.ToolCall
+	i     int
+	tools []string
 }
 
-func toolCall(id, name, args string) analyze.ToolCall {
-	var call analyze.ToolCall
-	call.ID = id
-	call.Type = "function"
-	call.Function.Name = name
-	call.Function.Arguments = args
-	return call
+func (m *scriptedModel) Generate(_ context.Context, _ []*schema.Message, _ ...model.Option) (*schema.Message, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.i >= len(m.steps) {
+		return schema.AssistantMessage("", nil), nil
+	}
+	calls := m.steps[m.i]
+	m.i++
+	return schema.AssistantMessage("", calls), nil
+}
+
+func (m *scriptedModel) Stream(ctx context.Context, in []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	msg, err := m.Generate(ctx, in, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return schema.StreamReaderFromArray([]*schema.Message{msg}), nil
+}
+
+func (m *scriptedModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tools = make([]string, 0, len(tools))
+	for _, item := range tools {
+		m.tools = append(m.tools, item.Name)
+	}
+	return m, nil
+}
+
+func fnCall(id, name, args string) schema.ToolCall {
+	return schema.ToolCall{ID: id, Type: "function", Function: schema.FunctionCall{Name: name, Arguments: args}}
 }
 
 func TestIdentifyWebSearchThenCleanTmdb(t *testing.T) {
 	const messy = "www.Site.com.The.Matrix.1999.1080p.BluRay.x264-GROUP"
-	var turns []analyze.ChatRequest
 	var tmdbQueries []string
 	usedWeb := false
+	script := &scriptedModel{steps: [][]schema.ToolCall{
+		{fnCall("call-web", "webSearch", `{"query":"The Matrix 1999 film"}`)},
+		{fnCall("call-tmdb", "tmdbSearch", `{"query":"The Matrix","year":1999,"mediaType":"movie"}`)},
+		{fnCall("call-submit", "submitMetadata", `{"mediaType":"movie","title":{"canonicalTitle":"黑客帝国","releaseYear":1999},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-31"},"confidence":{"overall":0.94}}`)},
+	}}
 	client := &analyze.Client{
-		Provider: analyze.Provider{ID: "openai", APIKey: "k", Model: "m", BaseURL: analyze.DefaultOpenAIBaseURL},
+		Provider: analyze.Provider{ID: "openai", APIKey: "k", Model: "m"},
+		Model:    script,
 		TMDB: tmdb.New("k", func(rawURL string) ([]byte, error) {
 			if strings.Contains(rawURL, "/search/") {
 				tmdbQueries = append(tmdbQueries, rawURL)
@@ -106,36 +136,6 @@ func TestIdentifyWebSearchThenCleanTmdb(t *testing.T) {
 				Snippet: "A computer hacker learns about the true nature of reality.",
 			}}, nil
 		},
-		Chat: func(_ context.Context, request analyze.ChatRequest) (analyze.ChatResponse, error) {
-			turns = append(turns, request)
-			names := toolNames(request)
-			if !containsTool(names, "webSearch") || !containsTool(names, "tmdbSearch") {
-				t.Fatalf("tools=%v", names)
-			}
-			switch len(turns) {
-			case 1:
-				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-					FinishReason: "tool_calls",
-					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-						toolCall("call-web", "webSearch", `{"query":"The Matrix 1999 film"}`),
-					}},
-				}}}, nil
-			case 2:
-				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-					FinishReason: "tool_calls",
-					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-						toolCall("call-tmdb", "tmdbSearch", `{"query":"The Matrix","year":1999,"mediaType":"movie"}`),
-					}},
-				}}}, nil
-			default:
-				return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-					FinishReason: "tool_calls",
-					Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-						submitCall(`{"mediaType":"movie","title":{"canonicalTitle":"黑客帝国","releaseYear":1999},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-31"},"confidence":{"overall":0.94}}`),
-					}},
-				}}}, nil
-			}
-		},
 	}
 	got, err := client.Identify(context.Background(), analyze.Request{
 		TorrentName: messy,
@@ -148,38 +148,21 @@ func TestIdentifyWebSearchThenCleanTmdb(t *testing.T) {
 		t.Fatalf("%+v %v", got, err)
 	}
 	if !usedWeb || len(tmdbQueries) == 0 {
-		t.Fatalf("usedWeb=%v tmdbQueries=%v turns=%d", usedWeb, tmdbQueries, len(turns))
+		t.Fatalf("usedWeb=%v tmdbQueries=%v", usedWeb, tmdbQueries)
 	}
-}
-
-func toolNames(request analyze.ChatRequest) []string {
-	out := make([]string, 0, len(request.Tools))
-	for _, tool := range request.Tools {
-		out = append(out, tool.Function.Name)
+	joined := strings.Join(script.tools, ",")
+	if !strings.Contains(joined, "webSearch") || !strings.Contains(joined, "tmdbSearch") || !strings.Contains(joined, "submitMetadata") {
+		t.Fatalf("tools=%v", script.tools)
 	}
-	return out
-}
-
-func containsTool(names []string, want string) bool {
-	for _, name := range names {
-		if name == want {
-			return true
-		}
-	}
-	return false
 }
 
 func TestIdentifyRejectsLowConfidence(t *testing.T) {
 	client := &analyze.Client{
 		Provider: analyze.Provider{ID: "openai", APIKey: "k", Model: "m"},
-		TMDB:     tmdb.New("k", tmdbFetch),
-		Chat: func(context.Context, analyze.ChatRequest) (analyze.ChatResponse, error) {
-			return analyze.ChatResponse{Choices: []analyze.ChatChoice{{
-				Message: analyze.ChatMessage{Role: "assistant", ToolCalls: []analyze.ToolCall{
-					submitCall(`{"mediaType":"movie","title":{"canonicalTitle":"Maybe"},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix"},"confidence":{"overall":0.4}}`),
-				}},
-			}}}, nil
-		},
+		Model: &scriptedModel{steps: [][]schema.ToolCall{{
+			fnCall("call-submit", "submitMetadata", `{"mediaType":"movie","title":{"canonicalTitle":"Maybe"},"tmdb":{"id":603,"mediaType":"movie","title":"The Matrix"},"confidence":{"overall":0.4}}`),
+		}}},
+		TMDB: tmdb.New("k", tmdbFetch),
 	}
 	got, err := client.Identify(context.Background(), analyze.Request{TorrentName: "Maybe.1999"})
 	if err != nil || got != nil {
@@ -188,39 +171,9 @@ func TestIdentifyRejectsLowConfidence(t *testing.T) {
 }
 
 func TestIdentifySkipsWhenNoKey(t *testing.T) {
-	called := false
-	client := &analyze.Client{
-		Chat: func(context.Context, analyze.ChatRequest) (analyze.ChatResponse, error) {
-			called = true
-			return analyze.ChatResponse{}, nil
-		},
-	}
+	client := &analyze.Client{}
 	got, err := client.Identify(context.Background(), analyze.Request{TorrentName: "x"})
-	if err != nil || got != nil || called {
-		t.Fatalf("%+v %v called=%v", got, err, called)
-	}
-}
-
-func TestHTTPChatPostsCompletions(t *testing.T) {
-	var sawURL string
-	var sawAuth string
-	chat := analyze.HTTPChat(func(_ context.Context, rawURL string, headers map[string]string, body []byte) ([]byte, error) {
-		sawURL = rawURL
-		sawAuth = headers["authorization"]
-		var req analyze.ChatRequest
-		if err := json.Unmarshal(body, &req); err != nil {
-			t.Fatal(err)
-		}
-		if req.Model != "gpt-test" {
-			t.Fatalf("%+v", req)
-		}
-		return []byte(`{"choices":[{"message":{"role":"assistant","content":""}}]}`), nil
-	}, analyze.Provider{ID: "openai", APIKey: "secret", BaseURL: "https://api.openai.com/v1", Model: "gpt-test"})
-	got, err := chat(context.Background(), analyze.ChatRequest{Model: "gpt-test"})
-	if err != nil || len(got.Choices) != 1 {
+	if err != nil || got != nil {
 		t.Fatalf("%+v %v", got, err)
-	}
-	if sawURL != "https://api.openai.com/v1/chat/completions" || sawAuth != "Bearer secret" {
-		t.Fatalf("url=%s auth=%s", sawURL, sawAuth)
 	}
 }

@@ -33,7 +33,7 @@ namespaced keys such as `discover.mteam.apiKey` and `ai.openai.apiKey`.
 One-off movie / TV / anime torrents can be hard-linked into `libraryRoot` after they finish. Helper-managed Mikan episodes are skipped. Auto-organize is off by default (`organizeOnComplete` on `PUT /config`).
 
 - TMDB is read from the existing Profile key `metadata.tmdb.apiKey` (upload the `tmdb` group via 凭证同步). Missing key → `needs-manual`.
-- Identity: if Profile has an OpenAI or OpenRouter key, analyze + web search run first, then TMDB on the cleaned title. Without an LLM key, unique TMDB on the parsed title is the fast path. Missing LLM key is OK.
+- Identity: if Profile has an OpenAI or OpenRouter key, an Eino ReAct agent (web search + TMDB tools) runs first. Without an LLM key, unique TMDB on the parsed title is the fast path. Missing LLM key is OK.
 - `GET /organize?hash=` plans; `POST /organize` `{ "hash" }` applies. qB `save_path` is not moved.
 - `organized.json` stores `hash`, `status`, `libraryRelPath`, `tmdbId`, `at`.
 
