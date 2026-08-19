@@ -16,10 +16,15 @@ enum AppToastPlacement: Equatable {
 }
 
 enum AppToastLayout {
+  static let compactPadding: CGFloat = 10
+  static let expandedPadding: CGFloat = 18
   static let islandGap: CGFloat = 10
   static let islandOriginY: CGFloat = 12
   static let islandSize = CGSize(width: 126, height: 37)
   static let capsuleHeight: CGFloat = 56
+  static let iconTextSpacing: CGFloat = 8
+  static let iconWidth: CGFloat = 20
+  static let maxHorizontalInset: CGFloat = 16
 
   static func hasDynamicIsland(
     idiom: UIUserInterfaceIdiom,
@@ -45,11 +50,32 @@ enum AppToastLayout {
     )
   }
 
+  static func contentWidth(for message: String) -> CGFloat {
+    let font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+    let textWidth = (message as NSString).size(withAttributes: [.font: font]).width
+    return ceil(textWidth) + iconWidth + iconTextSpacing
+  }
+
+  static func horizontalPadding(for message: String) -> CGFloat {
+    if contentWidth(for: message) + compactPadding * 2 <= islandSize.width {
+      return compactPadding
+    }
+    return expandedPadding
+  }
+
+  static func capsuleWidth(for message: String, screenWidth: CGFloat) -> CGFloat {
+    let padding = horizontalPadding(for: message)
+    let fitted = contentWidth(for: message) + padding * 2
+    let maxWidth = screenWidth - maxHorizontalInset * 2
+    return min(maxWidth, max(islandSize.width, fitted))
+  }
+
   static func expandedFrame(
     in screenSize: CGSize,
-    placement: AppToastPlacement
+    placement: AppToastPlacement,
+    message: String = ""
   ) -> CGRect {
-    let width = min(292, screenSize.width - 32)
+    let width = capsuleWidth(for: message, screenWidth: screenSize.width)
     let x = (screenSize.width - width) / 2
     switch placement {
     case .islandMorph, .hangBelowIsland:
@@ -105,7 +131,11 @@ final class AppToastState {
 
   var currentFrame: CGRect {
     phase == .expanded
-      ? AppToastLayout.expandedFrame(in: screenSize, placement: placement)
+      ? AppToastLayout.expandedFrame(
+        in: screenSize,
+        placement: placement,
+        message: message
+      )
       : compactFrame
   }
 
@@ -114,7 +144,11 @@ final class AppToastState {
     case .islandMorph:
       AppToastLayout.islandFrame(in: screenSize)
     case .hangBelowIsland, .topCapsule:
-      AppToastLayout.expandedFrame(in: screenSize, placement: placement)
+      AppToastLayout.expandedFrame(
+        in: screenSize,
+        placement: placement,
+        message: message
+      )
     }
   }
 }
@@ -242,7 +276,7 @@ private struct AppToastCanvas: View {
         .easeOut(duration: 0.16).delay(state.phase == .expanded ? 0.12 : 0),
         value: state.phase
       )
-      .padding(.horizontal, 18)
+      .padding(.horizontal, AppToastLayout.horizontalPadding(for: state.message))
       .frame(width: frame.width, height: frame.height)
       .background(.black, in: .capsule)
       .shadow(

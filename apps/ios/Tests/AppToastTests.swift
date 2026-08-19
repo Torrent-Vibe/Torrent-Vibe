@@ -62,6 +62,33 @@ final class AppToastTests: XCTestCase {
     XCTAssertGreaterThanOrEqual(expanded.height, 56)
   }
 
+  func testShortMessageUsesIslandWidthAndCompactPadding() {
+    let screen = CGSize(width: 402, height: 874)
+    let frame = AppToastLayout.expandedFrame(
+      in: screen,
+      placement: .islandMorph,
+      message: "好"
+    )
+    XCTAssertEqual(frame.width, AppToastLayout.islandSize.width, accuracy: 0.5)
+    XCTAssertEqual(AppToastLayout.horizontalPadding(for: "好"), AppToastLayout.compactPadding)
+  }
+
+  func testLongMessageGrowsPastIslandAndUsesExpandedPadding() {
+    let screen = CGSize(width: 402, height: 874)
+    let message = "已开始持续订阅 · 家庭 NAS、书房 Mac"
+    let frame = AppToastLayout.expandedFrame(
+      in: screen,
+      placement: .islandMorph,
+      message: message
+    )
+    XCTAssertGreaterThan(frame.width, AppToastLayout.islandSize.width)
+    XCTAssertEqual(
+      AppToastLayout.horizontalPadding(for: message),
+      AppToastLayout.expandedPadding
+    )
+    XCTAssertLessThanOrEqual(frame.width, screen.width - 32)
+  }
+
   func testHangBelowFrameDoesNotCoverTheIsland() {
     let screen = CGSize(width: 402, height: 874)
     let island = AppToastLayout.islandFrame(in: screen)
