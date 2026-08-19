@@ -164,6 +164,14 @@ func run() error {
 			mu.Unlock()
 			return qb.NewClient(cfg.QbitURL, cfg.QbitUser, cfg.QbitPass, nil).DeleteTorrents(hashes, deleteFiles)
 		},
+		OnKick: func(source string) {
+			go func() {
+				mu.Lock()
+				deps := makeDeps(rt.Config)
+				mu.Unlock()
+				_ = loop.Tick(deps)
+			}()
+		},
 		ProbeQbit: func(rawURL, user, pass string) error {
 			client := qb.NewClient(rawURL, user, pass, nil)
 			_, err := client.ListTorrents()

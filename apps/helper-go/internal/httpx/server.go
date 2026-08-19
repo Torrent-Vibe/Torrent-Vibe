@@ -32,6 +32,7 @@ type Runtime struct {
 	Redact           *redact.Registry
 	OnBackfill       func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
 	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
+	OnKick           func(source string)
 	ProbeQbit        func(url, user, pass string) error
 	ApplyConfig      func(config.File)
 	mu               sync.Mutex
@@ -48,6 +49,7 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("POST /pair", rt.pair)
 	mux.HandleFunc("GET /subscriptions", rt.authed(rt.getSubscriptions))
 	mux.HandleFunc("PUT /subscriptions", rt.authed(rt.putSubscriptions))
+	mux.HandleFunc("POST /check", rt.authed(rt.check))
 	mux.HandleFunc("GET /status", rt.authed(rt.status))
 	mux.HandleFunc("POST /backfill", rt.authed(rt.backfill))
 	mux.HandleFunc("POST /unpair", rt.authed(rt.unpair))
@@ -87,7 +89,7 @@ func (rt *Runtime) discover(w http.ResponseWriter, _ *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"version":             rt.Version,
-		"capabilities":        []string{"profile-sync-v1"},
+		"capabilities":        []string{"profile-sync-v1", "events", "logs", "check"},
 		"bindState":           state,
 		"advertisedQbitUrl":   rt.AdvertisedQbit,
 		"clientCount":         clientCount,
@@ -187,7 +189,8 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	next := applyDesired(snapshot.Replicas, body.Replicas)
+	ops := protocol.DesiredStateDiff(body.Replicas, snapshot.Replicas)
+	next := applyDesired(snapshot.Replicas, ops)
 	saved, err := rt.Store.SaveReplicasIfRevision(next, *body.Revision)
 	if errors.Is(err, store.ErrRevisionConflict) {
 		writeJSON(w, http.StatusConflict, map[string]any{
@@ -199,6 +202,11 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	added, removed := diffCounts(ops)
+	if rt.Events != nil {
+		rt.Events.Emit(events.Event{Level: "info", Kind: "subscription.put", Fields: map[string]any{"added": added, "removed": removed}})
+	}
+	rt.kick("subscriptions")
 	writeJSON(w, http.StatusOK, map[string]any{"revision": saved.Revision, "replicas": saved.Replicas})
 }
 
@@ -248,9 +256,9 @@ func (rt *Runtime) dropRemovedTorrents(current, desired []protocol.Replica, dele
 	return rt.Store.SaveEpisodes(episodes)
 }
 
-func applyDesired(current, desired []protocol.Replica) []protocol.Replica {
+func applyDesired(current []protocol.Replica, ops []protocol.DesiredOp) []protocol.Replica {
 	next := append([]protocol.Replica(nil), current...)
-	for _, op := range protocol.DesiredStateDiff(desired, current) {
+	for _, op := range ops {
 		if op.Type == protocol.OpRemove {
 			filtered := next[:0]
 			for _, replica := range next {
@@ -264,6 +272,18 @@ func applyDesired(current, desired []protocol.Replica) []protocol.Replica {
 		next = append(next, op.Replica)
 	}
 	return next
+}
+
+func diffCounts(ops []protocol.DesiredOp) (added, removed int) {
+	for _, op := range ops {
+		switch op.Type {
+		case protocol.OpAdd:
+			added++
+		case protocol.OpRemove:
+			removed++
+		}
+	}
+	return added, removed
 }
 
 func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
