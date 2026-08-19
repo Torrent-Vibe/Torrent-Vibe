@@ -1,7 +1,10 @@
 export {
   backfillHelper,
+  checkHelper,
   discoverHelper,
   getHelperConfig,
+  getHelperEvents,
+  getHelperLogs,
   getHelperProfile,
   getHelperStatus,
   getHelperSubscriptions,
@@ -28,6 +31,8 @@ export {
   setHelperBinding,
   useHelperBindingsStore,
 } from './bindings'
+export type { HelperCapabilities } from './capabilities'
+export { helperCapabilities } from './capabilities'
 export { connectHelper, helperOwnerName } from './connect'
 export {
   useCurrentHelperPaired,
@@ -44,6 +49,8 @@ export type {
   HelperConfigPublic,
   HelperDiscoverInfo,
   HelperEpisodeStatus,
+  HelperEventsQuery,
+  HelperEventsResponse,
   HelperJobStatus,
   HelperProfileMutation,
   HelperProfileRecord,
