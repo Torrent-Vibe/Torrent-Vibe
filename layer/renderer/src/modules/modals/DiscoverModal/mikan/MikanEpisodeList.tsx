@@ -5,10 +5,10 @@ import { formatBytesSmart } from '~/lib/format'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import { useCurrentServerId } from '~/modules/helper-client/hooks'
 import { SubscriptionActions } from '~/modules/subscriptions'
+import { episodeStateFor } from '~/modules/subscriptions/selectors'
 import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
 
 import { episodeStateLabelKey } from './episode-state'
-import { episodeStateFor } from './subscription-view'
 
 export const MikanEpisodeList = ({
   bangumiId,
@@ -17,6 +17,7 @@ export const MikanEpisodeList = ({
   importing,
   onImport,
   statusByServer,
+  targetServerIds,
 }: {
   bangumiId: string
   subgroupId: string | null
@@ -24,6 +25,7 @@ export const MikanEpisodeList = ({
   importing: boolean
   onImport: (episodeId: string) => void
   statusByServer: Record<string, HelperStatusSnapshot>
+  targetServerIds: string[]
 }) => {
   const { t } = useTranslation('app')
   const serverId = useCurrentServerId()
@@ -34,6 +36,7 @@ export const MikanEpisodeList = ({
         const state =
           bangumiId && subgroupId
             ? episodeStateFor(
+                targetServerIds,
                 bangumiId,
                 subgroupId,
                 episode.episodeId,
