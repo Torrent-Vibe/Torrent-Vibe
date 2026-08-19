@@ -145,6 +145,24 @@ final class AppModel {
       .sorted { $0.replica.title.localizedCompare($1.replica.title) == .orderedAscending }
   }
 
+  func helperSubscriptionGroup(bangumiID: String, subgroupID: String) -> HelperSubscriptionGroup? {
+    helperSubscriptionGroups.first {
+      $0.replica.bangumiId == bangumiID && $0.replica.subgroupId == subgroupID
+    }
+  }
+
+  func helperEpisodeStatus(
+    bangumiID: String,
+    subgroupID: String,
+    episodeID: String
+  ) -> HelperEpisodeStatus? {
+    guard let group = helperSubscriptionGroup(bangumiID: bangumiID, subgroupID: subgroupID) else {
+      return nil
+    }
+    let preferred = group.targets.first { $0.serverID == activeServerID } ?? group.targets.first
+    return preferred?.episodes.first { $0.episodeId == episodeID }
+  }
+
   func selectServer(_ server: ServerConfiguration) {
     activeServerID = server.id
     torrents = []
@@ -442,7 +460,12 @@ final class AppModel {
   }
 
   func refreshHelperSubscriptions(for serverID: UUID) async {
-    helperSubscriptionStates[serverID] = .loading
+    switch helperSubscriptionStates[serverID] {
+    case .loaded, .loading:
+      break
+    case .failed, .idle, nil:
+      helperSubscriptionStates[serverID] = .loading
+    }
     do {
       let authorization = try helperAuthorization(for: serverID)
       async let snapshot = helperService.subscriptions(

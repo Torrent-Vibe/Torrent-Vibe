@@ -380,7 +380,7 @@ private final class MikanSubscriptionTargetsState {
   }
 }
 
-private final class MikanSubscriptionTargetsViewController: SwiftUIHostingViewController {
+final class MikanSubscriptionTargetsViewController: SwiftUIHostingViewController {
   private let group: HelperSubscriptionGroup
   private let model: AppModel
   private let onCompletion: (HelperSubscriptionOutcome) -> Void

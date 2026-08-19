@@ -543,6 +543,69 @@ final class HelperServiceTests: XCTestCase {
     XCTAssertEqual(Set(updated.targets.map(\.serverName)), Set(["家庭 NAS", "书房 Mac"]))
   }
 
+  @MainActor
+  func testBangumiDetailResolvesHelperSubscriptionOnlyAfterRefresh() async throws {
+    let suiteName = "HelperServiceTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let model = AppModel(
+      launchArguments: ["tests", "-ui-demo", "-ui-helper-demo-paired"],
+      defaults: defaults,
+      helperCredentialStore: InMemoryHelperCredentialStore(),
+      helperService: DemoHelperService(),
+      torrentRepository: DemoTorrentRepository()
+    )
+
+    XCTAssertNil(model.helperSubscriptionGroup(bangumiID: "4102", subgroupID: "583"))
+    XCTAssertNil(
+      model.helperEpisodeStatus(
+        bangumiID: "4102",
+        subgroupID: "583",
+        episodeID: "star-train-02"
+      )
+    )
+
+    await model.refreshAllHelperSubscriptions()
+
+    let group = try XCTUnwrap(model.helperSubscriptionGroup(bangumiID: "4102", subgroupID: "583"))
+    XCTAssertEqual(group.replica.title, "星海列车")
+    XCTAssertEqual(group.replica.subgroupId, "583")
+    XCTAssertEqual(group.targets.map(\.serverName), ["家庭 NAS"])
+    XCTAssertEqual(
+      model.helperEpisodeStatus(
+        bangumiID: "4102",
+        subgroupID: "583",
+        episodeID: "star-train-02"
+      )?.state,
+      .failed
+    )
+    XCTAssertNil(model.helperSubscriptionGroup(bangumiID: "4102", subgroupID: "370"))
+    XCTAssertNil(model.helperSubscriptionGroup(bangumiID: "4101", subgroupID: "583"))
+  }
+
+  @MainActor
+  func testUnsubscribingMikanSubscriptionRemovesHelperReplica() async throws {
+    let suiteName = "HelperServiceTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let model = AppModel(
+      launchArguments: ["tests", "-ui-demo", "-ui-helper-demo-paired"],
+      defaults: defaults,
+      helperCredentialStore: InMemoryHelperCredentialStore(),
+      helperService: DemoHelperService(),
+      torrentRepository: DemoTorrentRepository()
+    )
+
+    await model.refreshAllHelperSubscriptions()
+    let group = try XCTUnwrap(model.helperSubscriptionGroup(bangumiID: "4102", subgroupID: "583"))
+    XCTAssertEqual(group.targets.map(\.serverName), ["家庭 NAS"])
+
+    try await model.unsubscribeMikanSubscription(group)
+
+    XCTAssertNil(model.helperSubscriptionGroup(bangumiID: "4102", subgroupID: "583"))
+    XCTAssertFalse(model.helperSubscriptionGroups.contains { $0.id == group.id })
+  }
+
   func testUnauthorizedStatusMapsToExpiredCredential() async throws {
     StubURLProtocol.handler = { request in
       if request.url?.path == "/discover" {

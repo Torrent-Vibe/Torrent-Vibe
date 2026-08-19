@@ -100,7 +100,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     super.viewDidLoad()
     title = "发现"
     view.backgroundColor = .systemGroupedBackground
-    navigationItem.largeTitleDisplayMode = .always
+    navigationItem.largeTitleDisplayMode = .never
 
     host(
       DiscoverRootContentView(
@@ -144,6 +144,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     refreshProviderAvailability()
+    Task { await model.refreshAllHelperSubscriptions() }
   }
 
   deinit {
