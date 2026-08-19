@@ -15,13 +15,16 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/bangumi"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/daemon"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/logfile"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mdns"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/outbound"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/tmdb"
 )
@@ -83,6 +86,20 @@ func run() error {
 		return err
 	}
 
+	redactRegistry := redact.NewRegistry()
+	redactRegistry.Add(cfg.QbitPass)
+	redactRegistry.Add(code)
+
+	logWriter, closeLog, err := logfile.Open(*dataDir, redactRegistry)
+	if err != nil {
+		return err
+	}
+	defer closeLog()
+	stdout := io.MultiWriter(os.Stdout, logWriter)
+	stderr := io.MultiWriter(os.Stderr, logWriter)
+
+	eventRecorder := events.New(*dataDir, redact.Sanitizer(redactRegistry))
+
 	st := store.New(*dataDir)
 	profileStore := store.NewProfileStore(*dataDir)
 	out := &outboundHold{}
@@ -91,6 +108,7 @@ func run() error {
 	}
 	var mu sync.Mutex
 	var stopLoop func()
+	lastQbitPass := cfg.QbitPass
 	makeDeps := func(next config.File) loop.Deps {
 		return loop.Deps{
 			Store:        st,
@@ -128,6 +146,8 @@ func run() error {
 		Store:          st,
 		DataDir:        *dataDir,
 		Config:         cfg,
+		Events:         eventRecorder,
+		Redact:         redactRegistry,
 		OnBackfill: func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error) {
 			mu.Lock()
 			deps := makeDeps(rt.Config)
@@ -146,6 +166,14 @@ func run() error {
 			return err
 		},
 		ApplyConfig: func(next config.File) {
+			mu.Lock()
+			previousQbitPass := lastQbitPass
+			lastQbitPass = next.QbitPass
+			mu.Unlock()
+			if next.QbitPass != previousQbitPass {
+				redactRegistry.Remove(previousQbitPass)
+				redactRegistry.Add(next.QbitPass)
+			}
 			_ = out.apply(next.ProxyURL)
 			startLoop(next)
 		},
@@ -156,13 +184,13 @@ func run() error {
 	if os.Getenv("MIKAN_HELPER_DISABLE_MDNS") != "1" {
 		advert, err = mdns.Start(*port, version)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[helper] mdns: %v\n", err)
+			fmt.Fprintf(stderr, "[helper] mdns: %v\n", err)
 		}
 	}
 
-	fmt.Printf("[helper] listening on :%d\n", *port)
-	fmt.Printf("[helper] pairing code: %s\n", code)
-	fmt.Printf("[helper] advertised qBittorrent: %s\n", cfg.QbitURL)
+	fmt.Fprintf(stdout, "[helper] listening on :%d\n", *port)
+	fmt.Fprintf(stdout, "[helper] pairing code: %s\n", code)
+	fmt.Fprintf(stdout, "[helper] advertised qBittorrent: %s\n", cfg.QbitURL)
 
 	errCh := make(chan error, 1)
 	go func() {

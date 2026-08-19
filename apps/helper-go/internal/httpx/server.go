@@ -11,8 +11,10 @@ import (
 	"sync"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
@@ -25,6 +27,8 @@ type Runtime struct {
 	Store            *store.Store
 	DataDir          string
 	Config           config.File
+	Events           events.Recorder
+	Redact           *redact.Registry
 	OnBackfill       func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
 	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
 	ProbeQbit        func(url, user, pass string) error
