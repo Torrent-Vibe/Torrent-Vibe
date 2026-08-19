@@ -1,10 +1,13 @@
+import type { HelperEpisodeState } from '@torrent-vibe/helper-protocol'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createSubscriptionPolling, pollingIntervalFor } from './polling'
 import type { HelperStatusSnapshot } from './store'
 import { subscriptionStore } from './store'
 
-const activeSnapshot = (): HelperStatusSnapshot => ({
+const snapshotWithEpisodeState = (
+  state: HelperEpisodeState,
+): HelperStatusSnapshot => ({
   fetchedAt: '2026-08-20T00:00:00.000Z',
   jobs: [
     {
@@ -16,7 +19,7 @@ const activeSnapshot = (): HelperStatusSnapshot => ({
           title: 'E1',
           season: 1,
           episode: 1,
-          state: 'downloading',
+          state,
         },
       ],
     },
@@ -24,9 +27,18 @@ const activeSnapshot = (): HelperStatusSnapshot => ({
   replicas: [],
 })
 
+const activeSnapshot = (): HelperStatusSnapshot =>
+  snapshotWithEpisodeState('downloading')
+
 const seedActiveEpisode = () => {
   subscriptionStore.setState((draft) => {
     draft.statusByServer['srv-a'] = activeSnapshot()
+  })
+}
+
+const seedEpisodeState = (state: HelperEpisodeState) => {
+  subscriptionStore.setState((draft) => {
+    draft.statusByServer['srv-a'] = snapshotWithEpisodeState(state)
   })
 }
 
@@ -177,5 +189,57 @@ describe('createSubscriptionPolling', () => {
     expect(refreshStatus).toHaveBeenCalledTimes(callsAtStop)
 
     resolveRefresh?.()
+  })
+
+  it('lengthens the next scheduled delay to 30000ms once episodes settle mid-session', async () => {
+    seedEpisodeState('downloading')
+    const refreshStatus = vi.fn(async () => {})
+    const polling = createSubscriptionPolling({
+      refreshStatus,
+      isVisible: () => true,
+      onVisibilityChange: () => () => {},
+    })
+
+    polling.start()
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(refreshStatus).toHaveBeenCalledTimes(1)
+
+    seedEpisodeState('done')
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(refreshStatus).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(29999)
+    expect(refreshStatus).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(refreshStatus).toHaveBeenCalledTimes(3)
+
+    polling.stop()
+  })
+
+  it('shortens the next scheduled delay to 5000ms once an episode goes active mid-session', async () => {
+    seedEpisodeState('done')
+    const refreshStatus = vi.fn(async () => {})
+    const polling = createSubscriptionPolling({
+      refreshStatus,
+      isVisible: () => true,
+      onVisibilityChange: () => () => {},
+    })
+
+    polling.start()
+    await vi.advanceTimersByTimeAsync(30000)
+    expect(refreshStatus).toHaveBeenCalledTimes(1)
+
+    seedEpisodeState('downloading')
+    await vi.advanceTimersByTimeAsync(30000)
+    expect(refreshStatus).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(4999)
+    expect(refreshStatus).toHaveBeenCalledTimes(2)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(refreshStatus).toHaveBeenCalledTimes(3)
+
+    polling.stop()
   })
 })
