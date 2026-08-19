@@ -29,4 +29,26 @@ describe('helperCapabilities', () => {
       check: false,
     })
   })
+
+  it('degrades to all-false instead of throwing for a non-array value off the wire', () => {
+    expect(helperCapabilities({ events: true } as unknown as string[])).toEqual(
+      { events: false, logs: false, check: false },
+    )
+    expect(helperCapabilities(42 as unknown as string[])).toEqual({
+      events: false,
+      logs: false,
+      check: false,
+    })
+  })
+
+  it('ignores non-string entries in an array off the wire', () => {
+    expect(
+      helperCapabilities([
+        'events',
+        42,
+        null,
+        { kind: 'check' },
+      ] as unknown as string[]),
+    ).toEqual({ events: true, logs: false, check: false })
+  })
 })
