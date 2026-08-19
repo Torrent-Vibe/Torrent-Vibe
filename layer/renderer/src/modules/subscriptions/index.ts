@@ -10,6 +10,7 @@ export type {
 export {
   EPISODE_STATE_RANK,
   episodeStateFor,
+  episodeStateForDisplay,
   subscriptionFor,
   subscriptionProgress,
 } from './selectors'

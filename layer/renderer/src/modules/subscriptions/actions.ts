@@ -1,42 +1,44 @@
-import type {
-  HelperReplica,
-  HelperSubscriptionSnapshot,
-  SubscriptionRecord,
-} from '@torrent-vibe/helper-protocol'
-import { desiredStateDiff } from '@torrent-vibe/helper-protocol'
+import type { SubscriptionRecord } from '@torrent-vibe/helper-protocol'
 import type { RssEpisode } from '@torrent-vibe/mikan'
 
 import type { HelperStatusResponse } from '../helper-client'
 import {
-  backfillHelper,
   clearHelperBinding,
-  getHelperBinding,
-  getHelperStatus,
   isHelperAuthError,
   listServerHelperTargets,
   resolveCurrentServerId,
 } from '../helper-client'
-import { desiredReplicasForServer } from './desired-set'
-import { liveHelperClient, liveRetry, liveUnpair } from './live-client'
+import {
+  liveBackfill,
+  liveHelperClient,
+  liveRetry,
+  liveUnpair,
+} from './live-client'
 import type { SubscriptionPersist } from './persist'
 import { localSubscriptionPersist } from './persist'
-import { subscriptionStore } from './store'
+import type { HelperSyncClient } from './server-sync'
+import { createServerSync } from './server-sync'
+import { subscriptionKey, subscriptionStore } from './store'
 import {
   dropLeftoverTorrents,
   liveDeleteTorrents,
   liveLoadHelperStatus,
 } from './unsubscribe-cleanup'
 
+export type { HelperSyncClient, SubscriptionPushOptions } from './server-sync'
+
 export interface ActionResult<T = void> {
   data?: T
   error?: string
   ok: boolean
+  warning?: string
 }
 
 export interface SubscribeInput {
   bangumiId: string
   bangumiSubjectId?: string
   coverUrl?: string
+  episodes?: RssEpisode[]
   rssUrl: string
   subgroupId: string
   subgroupName: string
@@ -44,22 +46,13 @@ export interface SubscribeInput {
   title: string
 }
 
-export interface SubscriptionPushOptions {
-  deleteFiles?: boolean
-  removeTorrents?: boolean
-}
-
-export interface HelperSyncClient {
-  getSubscriptions: (serverId: string) => Promise<HelperSubscriptionSnapshot>
-  putSubscriptions: (
-    serverId: string,
-    replicas: HelperReplica[],
-    expectedRevision: number,
-    options?: SubscriptionPushOptions,
-  ) => Promise<void>
-}
-
 export interface SubscriptionActionDeps {
+  backfill?: (input: {
+    bangumiId: string
+    episodes: RssEpisode[]
+    serverId: string
+    subgroupId: string
+  }) => Promise<void>
   deleteTorrents?: (input: {
     deleteFiles: boolean
     hashes: string[]
@@ -96,29 +89,6 @@ const writeItems = (
   })
 }
 
-const applySyncPatch = (
-  items: SubscriptionRecord[],
-  serverId: string,
-  patch: SubscriptionRecord['syncByServer'][string],
-  now: string,
-): SubscriptionRecord[] =>
-  items.map((item) => {
-    if (
-      !item.targetServerIds.includes(serverId) &&
-      !(serverId in item.syncByServer)
-    ) {
-      return item
-    }
-    return {
-      ...item,
-      updatedAt: now,
-      syncByServer: {
-        ...item.syncByServer,
-        [serverId]: patch,
-      },
-    }
-  })
-
 export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
   const now = deps.now ?? (() => new Date().toISOString())
   const nextId =
@@ -131,66 +101,18 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     writeItems(deps.persist, items)
   }
 
-  const pushServers = async (
-    serverIds: string[],
-    options?: SubscriptionPushOptions,
-  ): Promise<boolean> => {
-    const ids = unique(serverIds)
-    if (ids.length === 0) {
-      return true
-    }
-
+  const clearOptimistic = (key: string) => {
     subscriptionStore.setState((draft) => {
-      draft.syncing = true
+      delete draft.optimistic[key]
     })
-
-    let allOk = true
-    const pushedAt = now()
-    try {
-      for (const serverId of ids) {
-        const desired = desiredReplicasForServer(
-          subscriptionStore.getState().items,
-          serverId,
-        )
-        try {
-          const current = await deps.helper.getSubscriptions(serverId)
-          const ops = desiredStateDiff(desired, current.replicas)
-          if (ops.length > 0) {
-            await deps.helper.putSubscriptions(
-              serverId,
-              desired,
-              current.revision,
-              options,
-            )
-          }
-          persistItems(
-            applySyncPatch(
-              subscriptionStore.getState().items,
-              serverId,
-              { status: 'ok', lastPushedAt: pushedAt },
-              pushedAt,
-            ),
-          )
-        } catch (error) {
-          allOk = false
-          persistItems(
-            applySyncPatch(
-              subscriptionStore.getState().items,
-              serverId,
-              { status: 'error', lastError: errorMessage(error) },
-              pushedAt,
-            ),
-          )
-        }
-      }
-    } finally {
-      subscriptionStore.setState((draft) => {
-        draft.syncing = false
-      })
-    }
-
-    return allOk
   }
+
+  const { pushServers, refreshStatus } = createServerSync({
+    helper: deps.helper,
+    loadStatus: deps.loadHelperStatus ?? liveLoadHelperStatus,
+    now,
+    persistItems,
+  })
 
   const hydrate = () => {
     const loaded = deps.persist.load()
@@ -245,6 +167,18 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         }
 
     const previousTargets = existing?.targetServerIds ?? []
+    const key = subscriptionKey(input.bangumiId, input.subgroupId)
+    const episodes = input.episodes ?? []
+    subscriptionStore.setState((draft) => {
+      draft.optimistic[key] = {
+        type: 'subscribe',
+        record: nextItem,
+        startedAt: stamp,
+        ...(episodes.length > 0
+          ? { episodeIds: episodes.map((entry) => entry.episodeId) }
+          : {}),
+      }
+    })
     persistItems(
       existing
         ? subscriptionStore
@@ -253,13 +187,33 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         : [...subscriptionStore.getState().items, nextItem],
     )
 
-    const ok = await pushServers([...previousTargets, ...targetServerIds])
-    const saved = subscriptionStore
-      .getState()
-      .items.find((item) => item.id === nextItem.id)
-    return ok
-      ? { ok: true, data: saved ?? nextItem }
-      : { ok: false, error: 'partialSync', data: saved ?? nextItem }
+    const savedItem = () =>
+      subscriptionStore.getState().items.find((item) => item.id === nextItem.id)
+
+    if (!(await pushServers([...previousTargets, ...targetServerIds]))) {
+      clearOptimistic(key)
+      return { ok: false, error: 'partialSync', data: savedItem() ?? nextItem }
+    }
+
+    const imported =
+      episodes.length > 0
+        ? await backfillTargets({
+            bangumiId: input.bangumiId,
+            subgroupId: input.subgroupId,
+            episodes,
+            serverIds: targetServerIds,
+          })
+        : { ok: true }
+    await refreshStatus([...previousTargets, ...targetServerIds])
+    clearOptimistic(key)
+
+    return imported.ok
+      ? { ok: true, data: savedItem() ?? nextItem }
+      : {
+          ok: true,
+          data: savedItem() ?? nextItem,
+          warning: 'backfillFailed',
+        }
   }
 
   const unsubscribe = async (
@@ -272,6 +226,10 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     if (!current) {
       return { ok: false, error: 'notFound' }
     }
+    const key = subscriptionKey(current.bangumiId, current.subgroupId)
+    subscriptionStore.setState((draft) => {
+      draft.optimistic[key] = { type: 'unsubscribe', startedAt: now() }
+    })
     persistItems(
       subscriptionStore.getState().items.filter((item) => item.id !== id),
     )
@@ -293,6 +251,8 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         ok = false
       }
     }
+    await refreshStatus(current.targetServerIds)
+    clearOptimistic(key)
     return ok ? { ok: true } : { ok: false, error: 'partialSync' }
   }
 
@@ -346,56 +306,40 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     return syncServers([...paired, ...targeted])
   }
 
-  const refreshStatus = async (serverIds?: string[]) => {
-    const ids =
-      serverIds ??
-      unique([
-        ...listServerHelperTargets()
-          .filter((target) => target.paired)
-          .map((target) => target.id),
-        ...subscriptionStore
-          .getState()
-          .items.flatMap((item) => item.targetServerIds),
-      ])
-    const fetchedAt = now()
-    await Promise.all(
-      ids.map(async (serverId) => {
-        const binding = getHelperBinding(serverId)
-        if (!binding) {
-          subscriptionStore.setState((draft) => {
-            draft.statusByServer[serverId] = {
-              replicas: [],
-              jobs: [],
-              fetchedAt,
-              error: 'unbound',
-            }
-          })
-          return
+  const findByBangumiSubgroup = (bangumiId: string, subgroupId: string) =>
+    subscriptionStore
+      .getState()
+      .items.find(
+        (item) =>
+          item.bangumiId === bangumiId && item.subgroupId === subgroupId,
+      ) ?? null
+
+  const backfillTargets = async (input: {
+    bangumiId: string
+    episodes: RssEpisode[]
+    serverIds: string[]
+    subgroupId: string
+  }): Promise<ActionResult> => {
+    if (!deps.backfill) {
+      return { ok: false, error: 'noHelper' }
+    }
+    let failure: string | undefined
+    for (const serverId of input.serverIds) {
+      try {
+        await deps.backfill({
+          serverId,
+          bangumiId: input.bangumiId,
+          subgroupId: input.subgroupId,
+          episodes: input.episodes,
+        })
+      } catch (error) {
+        if (isHelperAuthError(error)) {
+          clearHelperBinding(serverId)
         }
-        try {
-          const status = await getHelperStatus(binding.url, binding.token)
-          subscriptionStore.setState((draft) => {
-            draft.statusByServer[serverId] = {
-              replicas: status.replicas,
-              jobs: status.jobs,
-              fetchedAt,
-            }
-          })
-        } catch (error) {
-          if (isHelperAuthError(error)) {
-            clearHelperBinding(serverId)
-          }
-          subscriptionStore.setState((draft) => {
-            draft.statusByServer[serverId] = {
-              replicas: draft.statusByServer[serverId]?.replicas ?? [],
-              jobs: draft.statusByServer[serverId]?.jobs ?? [],
-              fetchedAt,
-              error: errorMessage(error),
-            }
-          })
-        }
-      }),
-    )
+        failure ??= errorMessage(error)
+      }
+    }
+    return failure === undefined ? { ok: true } : { ok: false, error: failure }
   }
 
   const backfill = async (input: {
@@ -404,37 +348,25 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     episodes: RssEpisode[]
     serverId?: string
   }): Promise<ActionResult> => {
-    const currentId = input.serverId ?? resolveCurrentServerId()
-    if (!currentId) {
+    const currentId = resolveCurrentServerId()
+    const serverIds = unique(
+      input.serverId
+        ? [input.serverId]
+        : (findByBangumiSubgroup(input.bangumiId, input.subgroupId)
+            ?.targetServerIds ?? (currentId ? [currentId] : [])),
+    )
+    if (serverIds.length === 0) {
       return { ok: false, error: 'noHelper' }
     }
-    const binding = getHelperBinding(currentId)
-    if (!binding) {
-      return { ok: false, error: 'noHelper' }
-    }
-    try {
-      await backfillHelper(binding.url, binding.token, {
-        bangumiId: input.bangumiId,
-        subgroupId: input.subgroupId,
-        episodes: input.episodes,
-      })
-      await refreshStatus([currentId])
-      return { ok: true }
-    } catch (error) {
-      if (isHelperAuthError(error)) {
-        clearHelperBinding(currentId)
-      }
-      return { ok: false, error: errorMessage(error) }
-    }
+    const result = await backfillTargets({
+      bangumiId: input.bangumiId,
+      subgroupId: input.subgroupId,
+      episodes: input.episodes,
+      serverIds,
+    })
+    await refreshStatus(serverIds)
+    return result
   }
-
-  const findByBangumiSubgroup = (bangumiId: string, subgroupId: string) =>
-    subscriptionStore
-      .getState()
-      .items.find(
-        (item) =>
-          item.bangumiId === bangumiId && item.subgroupId === subgroupId,
-      ) ?? null
 
   const unbindHelper = async (serverId: string): Promise<ActionResult> => {
     let unreachable = false
@@ -531,6 +463,7 @@ export const SubscriptionActions = {
   shared: createSubscriptionActions({
     persist: localSubscriptionPersist,
     helper: liveHelperClient,
+    backfill: liveBackfill,
     unpair: liveUnpair,
     retry: liveRetry,
     loadHelperStatus: liveLoadHelperStatus,

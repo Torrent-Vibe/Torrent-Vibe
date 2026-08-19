@@ -1,4 +1,5 @@
 import type { SubscriptionRecord } from '@torrent-vibe/helper-protocol'
+import type { RssEpisode } from '@torrent-vibe/mikan'
 import { bangumiRssUrl } from '@torrent-vibe/mikan'
 import { toast } from 'sonner'
 
@@ -17,6 +18,17 @@ export const openHelperSettings = () => {
   })
 }
 
+const toRssEpisodes = (episodes: MikanEpisodeExtra[]): RssEpisode[] =>
+  episodes.map((episode) => ({
+    episodeId: episode.episodeId,
+    title: episode.title,
+    torrentUrl: episode.torrentUrl,
+    ...(episode.publishedAt ? { publishedAt: episode.publishedAt } : {}),
+    ...(typeof episode.sizeBytes === 'number'
+      ? { sizeBytes: episode.sizeBytes }
+      : {}),
+  }))
+
 export const presentBangumiSubscribe = (input: {
   bangumiId: string
   title: string
@@ -25,6 +37,7 @@ export const presentBangumiSubscribe = (input: {
   subgroupId: string
   subgroupName: string
   initialIds: string[]
+  episodes?: MikanEpisodeExtra[]
 }) => {
   const t = getI18n().t
   presentSubscribeTargets({
@@ -43,6 +56,7 @@ export const presentBangumiSubscribe = (input: {
           input.subgroupId,
         ),
         targetServerIds: serverIds,
+        ...(input.episodes ? { episodes: toRssEpisodes(input.episodes) } : {}),
       })
       if (result.ok) {
         toast.success(t('discover.modal.mikan.subscribeOk'))
@@ -81,15 +95,7 @@ export const backfillReleasedEpisodes = async (
   const result = await SubscriptionActions.shared.backfill({
     bangumiId,
     subgroupId,
-    episodes: episodes.map((episode) => ({
-      episodeId: episode.episodeId,
-      title: episode.title,
-      torrentUrl: episode.torrentUrl,
-      ...(episode.publishedAt ? { publishedAt: episode.publishedAt } : {}),
-      ...(typeof episode.sizeBytes === 'number'
-        ? { sizeBytes: episode.sizeBytes }
-        : {}),
-    })),
+    episodes: toRssEpisodes(episodes),
   })
   if (result.ok) {
     toast.success(t('discover.modal.mikan.bulkImportOk'))

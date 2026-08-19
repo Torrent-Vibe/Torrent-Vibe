@@ -211,6 +211,33 @@ export const episodeStateFor = (
   return resolved
 }
 
+export const episodeStateForDisplay = (
+  targetServerIds: string[],
+  bangumiId: string,
+  subgroupId: string,
+  episodeId: string,
+  state: SubscriptionsState,
+): HelperEpisodeState | null => {
+  const reported = episodeStateFor(
+    targetServerIds,
+    bangumiId,
+    subgroupId,
+    episodeId,
+    state.statusByServer,
+  )
+  if (reported !== null) {
+    return reported
+  }
+  const optimistic = state.optimistic[subscriptionKey(bangumiId, subgroupId)]
+  if (
+    optimistic?.type === 'subscribe' &&
+    optimistic.episodeIds?.includes(episodeId)
+  ) {
+    return 'pending'
+  }
+  return null
+}
+
 export interface SubscriptionProgress {
   failed: number
   ready: number

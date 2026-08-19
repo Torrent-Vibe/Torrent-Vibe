@@ -7,71 +7,15 @@ import {
   setHelperBinding,
   useHelperBindingsStore,
 } from '../helper-client'
-import type { HelperSyncClient, SubscriptionPushOptions } from './actions'
 import { createSubscriptionActions } from './actions'
 import { desiredReplicasForServer } from './desired-set'
-import type { PersistedSubscriptions } from './persist'
 import { subscriptionStore } from './store'
-
-const stamp = '2026-08-15T12:00:00.000Z'
-
-function createMemoryPersist(initial: PersistedSubscriptions = { items: [] }) {
-  let data = structuredClone(initial)
-  return {
-    load: () => structuredClone(data),
-    save: (next: PersistedSubscriptions) => {
-      data = structuredClone(next)
-    },
-    snapshot: () => structuredClone(data),
-  }
-}
-
-function createFakeHelper(options?: {
-  current?: Record<string, HelperReplica[]>
-  fail?: Set<string>
-}): HelperSyncClient & {
-  puts: Array<{
-    options?: SubscriptionPushOptions
-    replicas: HelperReplica[]
-    serverId: string
-  }>
-} {
-  const current = { ...options?.current }
-  const revisions: Record<string, number> = {}
-  const fail = options?.fail ?? new Set<string>()
-  const puts: Array<{
-    options?: SubscriptionPushOptions
-    replicas: HelperReplica[]
-    serverId: string
-  }> = []
-  return {
-    puts,
-    async getSubscriptions(serverId) {
-      if (fail.has(`get:${serverId}`)) {
-        throw new Error(`get failed ${serverId}`)
-      }
-      return {
-        replicas: current[serverId] ?? [],
-        revision: revisions[serverId] ?? 0,
-      }
-    },
-    async putSubscriptions(serverId, replicas, expectedRevision, putOptions) {
-      if (fail.has(serverId)) {
-        throw new Error(`put failed ${serverId}`)
-      }
-      if ((revisions[serverId] ?? 0) !== expectedRevision) {
-        throw new Error(`revision conflict ${serverId}`)
-      }
-      puts.push({
-        serverId,
-        replicas: structuredClone(replicas),
-        options: putOptions,
-      })
-      current[serverId] = structuredClone(replicas)
-      revisions[serverId] = expectedRevision + 1
-    },
-  }
-}
+import {
+  createFakeHelper,
+  createMemoryPersist,
+  emptyStatus,
+  stamp,
+} from './test-fakes'
 
 describe('subscription actions', () => {
   beforeEach(() => {
@@ -474,6 +418,7 @@ describe('subscription actions', () => {
       helper,
       now: () => stamp,
       id: () => 'sub-1',
+      loadHelperStatus: emptyStatus,
     })
 
     await actions.subscribe({
@@ -508,6 +453,7 @@ describe('subscription actions', () => {
       helper,
       now: () => stamp,
       id: () => 'sub-1',
+      loadHelperStatus: emptyStatus,
     })
 
     await actions.subscribe({
@@ -536,6 +482,7 @@ describe('subscription actions', () => {
       helper,
       now: () => stamp,
       id: () => 'sub-1',
+      loadHelperStatus: emptyStatus,
       unpair: async (serverId) => {
         unpaired.push(serverId)
       },
@@ -584,6 +531,7 @@ describe('subscription actions', () => {
       helper,
       now: () => stamp,
       id: () => 'sub-1',
+      loadHelperStatus: emptyStatus,
       unpair: async (serverId) => {
         unpaired.push(serverId)
       },

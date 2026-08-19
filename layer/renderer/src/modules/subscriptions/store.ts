@@ -16,7 +16,12 @@ export interface HelperStatusSnapshot {
 }
 
 export type OptimisticSubscriptionWrite =
-  | { record: SubscriptionRecord; startedAt: string; type: 'subscribe' }
+  | {
+      episodeIds?: string[]
+      record: SubscriptionRecord
+      startedAt: string
+      type: 'subscribe'
+    }
   | { startedAt: string; type: 'unsubscribe' }
 
 export const subscriptionKey = (bangumiId: string, subgroupId: string) =>
