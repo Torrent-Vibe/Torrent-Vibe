@@ -118,6 +118,9 @@ func run() error {
 			FetchRSS:     out.fetchRSS,
 			FetchTorrent: out.fetchTorrent,
 			Events:       eventRecorder,
+			OnReplicaChecked: func(key string, at time.Time, checkErr error) {
+				_ = st.RecordReplicaCheck(key, at, checkErr)
+			},
 			ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
 				return bangumi.Resolve(out.bangumi(), replica.BangumiSubjectID, item, parsed)
 			},

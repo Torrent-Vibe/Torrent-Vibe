@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -195,5 +196,29 @@ func TestRecordReplicaCheckLeavesOtherReplicasAlone(t *testing.T) {
 	check := got[other]
 	if !check.CheckedAt.Equal(untouched) || check.ConsecutiveFailures != 1 {
 		t.Fatalf("%+v", check)
+	}
+}
+
+func TestRecordReplicaCheckConcurrentFailuresLoseNoUpdates(t *testing.T) {
+	dir := t.TempDir()
+	s := store.New(dir)
+	key := store.EpisodeKey("b", "s")
+	const n = 50
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			_ = s.RecordReplicaCheck(key, time.Now(), errors.New("mikan unreachable"))
+		}()
+	}
+	wg.Wait()
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := got[key]
+	if check.ConsecutiveFailures != n {
+		t.Fatalf("consecutiveFailures = %d, want %d (lost update under concurrency)", check.ConsecutiveFailures, n)
 	}
 }
