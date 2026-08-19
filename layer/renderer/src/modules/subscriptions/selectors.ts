@@ -3,142 +3,11 @@ import type {
   SubscriptionRecord,
 } from '@torrent-vibe/helper-protocol'
 
-import type { HelperReplicaStatus } from '~/modules/helper-client'
-
+import type { HelperReplicaStatus } from '../helper-client'
 import type { HelperStatusSnapshot, SubscriptionsState } from './store'
-import { optimisticSubscriptionKey } from './store'
+import { subscriptionKey } from './store'
 
-export type SubscriptionSource = 'cache' | 'helper' | 'optimistic'
-
-export interface SubscriptionTargetHealth {
-  checkedAt?: string
-  checkError?: string
-  consecutiveFailures?: number
-  serverId: string
-}
-
-export interface ResolvedSubscription {
-  record: SubscriptionRecord
-  source: SubscriptionSource
-  targets: SubscriptionTargetHealth[]
-}
-
-const findReplica = (
-  bangumiId: string,
-  subgroupId: string,
-  serverId: string,
-  statusByServer: Record<string, HelperStatusSnapshot>,
-): HelperReplicaStatus | null =>
-  statusByServer[serverId]?.replicas.find(
-    (entry) => entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
-  ) ?? null
-
-const targetsFor = (
-  record: SubscriptionRecord,
-  statusByServer: Record<string, HelperStatusSnapshot>,
-): SubscriptionTargetHealth[] => {
-  const targets: SubscriptionTargetHealth[] = []
-  for (const serverId of record.targetServerIds) {
-    const replica = findReplica(
-      record.bangumiId,
-      record.subgroupId,
-      serverId,
-      statusByServer,
-    )
-    if (!replica) {
-      continue
-    }
-    const target: SubscriptionTargetHealth = { serverId }
-    if (replica.checkedAt !== undefined) {
-      target.checkedAt = replica.checkedAt
-    }
-    if (replica.checkError !== undefined) {
-      target.checkError = replica.checkError
-    }
-    if (replica.consecutiveFailures !== undefined) {
-      target.consecutiveFailures = replica.consecutiveFailures
-    }
-    targets.push(target)
-  }
-  return targets
-}
-
-const synthesizeRecord = (
-  replica: HelperReplicaStatus,
-  serverId: string,
-  fetchedAt: string,
-): SubscriptionRecord => {
-  const record: SubscriptionRecord = {
-    id: replica.id,
-    providerId: 'mikan',
-    bangumiId: replica.bangumiId,
-    title: replica.title,
-    subgroupId: replica.subgroupId,
-    subgroupName: replica.subgroupName,
-    rssUrl: replica.rssUrl,
-    targetServerIds: [serverId],
-    syncByServer: {},
-    createdAt: fetchedAt,
-    updatedAt: fetchedAt,
-  }
-  if (replica.bangumiSubjectId !== undefined) {
-    record.bangumiSubjectId = replica.bangumiSubjectId
-  }
-  return record
-}
-
-export const subscriptionFor = (
-  bangumiId: string,
-  subgroupId: string,
-  state: SubscriptionsState,
-): ResolvedSubscription | null => {
-  const optimistic =
-    state.optimistic[optimisticSubscriptionKey(bangumiId, subgroupId)]
-  if (optimistic) {
-    if (optimistic.type === 'remove') {
-      return null
-    }
-    return {
-      record: optimistic.record,
-      source: 'optimistic',
-      targets: targetsFor(optimistic.record, state.statusByServer),
-    }
-  }
-
-  const cached =
-    state.items.find(
-      (item) => item.bangumiId === bangumiId && item.subgroupId === subgroupId,
-    ) ?? null
-
-  if (cached) {
-    const targets = targetsFor(cached, state.statusByServer)
-    return {
-      record: cached,
-      source: targets.length > 0 ? 'helper' : 'cache',
-      targets,
-    }
-  }
-
-  for (const [serverId, snapshot] of Object.entries(state.statusByServer)) {
-    const replica = snapshot.replicas.find(
-      (entry) =>
-        entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
-    )
-    if (!replica) {
-      continue
-    }
-    const record = synthesizeRecord(replica, serverId, snapshot.fetchedAt)
-    return {
-      record,
-      source: 'helper',
-      targets: targetsFor(record, state.statusByServer),
-    }
-  }
-
-  return null
-}
-
-const EPISODE_STATE_RANK: Record<HelperEpisodeState, number> = {
+export const EPISODE_STATE_RANK: Record<HelperEpisodeState, number> = {
   failed: 0,
   'needs-manual': 1,
   pending: 2,
@@ -149,12 +18,171 @@ const EPISODE_STATE_RANK: Record<HelperEpisodeState, number> = {
   done: 7,
 }
 
+export type SubscriptionSource = 'cache' | 'helper' | 'optimistic'
+
+export interface SubscriptionTargetHealth {
+  checkedAt?: string
+  checkError?: string
+  consecutiveFailures?: number
+  reachable: boolean
+  serverId: string
+}
+
+export interface ResolvedSubscription {
+  record: SubscriptionRecord
+  source: SubscriptionSource
+  targets: SubscriptionTargetHealth[]
+}
+
+const findHelperReplica = (
+  bangumiId: string,
+  subgroupId: string,
+  snapshot: HelperStatusSnapshot | undefined,
+): HelperReplicaStatus | undefined =>
+  snapshot?.replicas.find(
+    (entry) => entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
+  )
+
+const buildTargetHealth = (
+  targetServerIds: string[],
+  bangumiId: string,
+  subgroupId: string,
+  statusByServer: SubscriptionsState['statusByServer'],
+): SubscriptionTargetHealth[] =>
+  targetServerIds.map((serverId) => {
+    const snapshot = statusByServer[serverId]
+    const replica = findHelperReplica(bangumiId, subgroupId, snapshot)
+    const health: SubscriptionTargetHealth = {
+      serverId,
+      reachable: Boolean(snapshot) && !snapshot?.error,
+    }
+    if (replica?.checkedAt !== undefined) {
+      health.checkedAt = replica.checkedAt
+    }
+    if (replica?.checkError !== undefined) {
+      health.checkError = replica.checkError
+    }
+    if (replica?.consecutiveFailures !== undefined) {
+      health.consecutiveFailures = replica.consecutiveFailures
+    }
+    return health
+  })
+
+const recordFromHelperReplica = (
+  replica: HelperReplicaStatus,
+  targetServerIds: string[],
+  fetchedAt: string,
+): SubscriptionRecord => {
+  const record: SubscriptionRecord = {
+    id: replica.id,
+    providerId: 'mikan',
+    bangumiId: replica.bangumiId,
+    title: replica.title,
+    subgroupId: replica.subgroupId,
+    subgroupName: replica.subgroupName,
+    rssUrl: replica.rssUrl,
+    targetServerIds,
+    syncByServer: Object.fromEntries(
+      targetServerIds.map((id) => [id, { status: 'ok' as const }]),
+    ),
+    createdAt: fetchedAt,
+    updatedAt: fetchedAt,
+  }
+  if (replica.bangumiSubjectId) {
+    record.bangumiSubjectId = replica.bangumiSubjectId
+  }
+  return record
+}
+
+export const subscriptionFor = (
+  bangumiId: string,
+  subgroupId: string,
+  state: SubscriptionsState,
+): ResolvedSubscription | null => {
+  const key = subscriptionKey(bangumiId, subgroupId)
+  const optimistic = state.optimistic[key]
+  if (optimistic?.type === 'unsubscribe') {
+    return null
+  }
+  if (optimistic?.type === 'subscribe') {
+    return {
+      record: optimistic.record,
+      source: 'optimistic',
+      targets: buildTargetHealth(
+        optimistic.record.targetServerIds,
+        bangumiId,
+        subgroupId,
+        state.statusByServer,
+      ),
+    }
+  }
+
+  const cached = state.items.find(
+    (item) => item.bangumiId === bangumiId && item.subgroupId === subgroupId,
+  )
+  const scanServerIds =
+    cached?.targetServerIds ?? Object.keys(state.statusByServer)
+  const helperHits = scanServerIds
+    .map((serverId) => ({
+      serverId,
+      replica: findHelperReplica(
+        bangumiId,
+        subgroupId,
+        state.statusByServer[serverId],
+      ),
+    }))
+    .filter(
+      (hit): hit is { replica: HelperReplicaStatus; serverId: string } =>
+        hit.replica !== undefined,
+    )
+
+  if (helperHits.length > 0) {
+    const targetServerIds =
+      cached?.targetServerIds ?? helperHits.map((hit) => hit.serverId)
+    const fetchedAt =
+      state.statusByServer[helperHits[0].serverId]?.fetchedAt ??
+      new Date().toISOString()
+    const record = cached
+      ? { ...cached, targetServerIds }
+      : recordFromHelperReplica(
+          helperHits[0].replica,
+          targetServerIds,
+          fetchedAt,
+        )
+    return {
+      record,
+      source: 'helper',
+      targets: buildTargetHealth(
+        targetServerIds,
+        bangumiId,
+        subgroupId,
+        state.statusByServer,
+      ),
+    }
+  }
+
+  if (cached) {
+    return {
+      record: cached,
+      source: 'cache',
+      targets: buildTargetHealth(
+        cached.targetServerIds,
+        bangumiId,
+        subgroupId,
+        state.statusByServer,
+      ),
+    }
+  }
+
+  return null
+}
+
 export const episodeStateFor = (
   targetServerIds: string[],
   bangumiId: string,
   subgroupId: string,
   episodeId: string,
-  statusByServer: Record<string, HelperStatusSnapshot>,
+  statusByServer: SubscriptionsState['statusByServer'],
 ): HelperEpisodeState | null => {
   let resolved: HelperEpisodeState | null = null
   for (const serverId of targetServerIds) {
@@ -166,10 +194,7 @@ export const episodeStateFor = (
       (entry) =>
         entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
     )
-    const replica = snapshot.replicas.find(
-      (entry) =>
-        entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
-    )
+    const replica = findHelperReplica(bangumiId, subgroupId, snapshot)
     const episode =
       job?.episodes.find((entry) => entry.episodeId === episodeId) ??
       replica?.episodes.find((entry) => entry.episodeId === episodeId)
@@ -186,40 +211,46 @@ export const episodeStateFor = (
   return resolved
 }
 
+export interface SubscriptionProgress {
+  failed: number
+  ready: number
+  total: number
+}
+
 export const subscriptionProgress = (
   record: SubscriptionRecord,
   state: SubscriptionsState,
-): { failed: number; ready: number; total: number } => {
-  const episodeIds = new Set<string>()
+): SubscriptionProgress => {
+  const resolvedEpisodes = new Map<string, HelperEpisodeState>()
   for (const serverId of record.targetServerIds) {
-    const replica = findReplica(
+    const replica = findHelperReplica(
       record.bangumiId,
       record.subgroupId,
-      serverId,
-      state.statusByServer,
+      state.statusByServer[serverId],
     )
-    for (const episode of replica?.episodes ?? []) {
-      episodeIds.add(episode.episodeId)
+    if (!replica) {
+      continue
+    }
+    for (const episode of replica.episodes) {
+      const current = resolvedEpisodes.get(episode.episodeId)
+      if (
+        !current ||
+        EPISODE_STATE_RANK[episode.state] < EPISODE_STATE_RANK[current]
+      ) {
+        resolvedEpisodes.set(episode.episodeId, episode.state)
+      }
     }
   }
 
   let ready = 0
   let failed = 0
-  for (const episodeId of episodeIds) {
-    const resolved = episodeStateFor(
-      record.targetServerIds,
-      record.bangumiId,
-      record.subgroupId,
-      episodeId,
-      state.statusByServer,
-    )
-    if (resolved === 'done') {
-      ready += 1
+  for (const episodeState of resolvedEpisodes.values()) {
+    if (episodeState === 'done') {
+      ready++
     }
-    if (resolved === 'failed' || resolved === 'needs-manual') {
-      failed += 1
+    if (episodeState === 'failed' || episodeState === 'needs-manual') {
+      failed++
     }
   }
-
-  return { failed, ready, total: episodeIds.size }
+  return { ready, total: resolvedEpisodes.size, failed }
 }

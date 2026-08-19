@@ -4,10 +4,7 @@ import type {
 } from '@torrent-vibe/helper-protocol'
 import { describe, expect, it } from 'vitest'
 
-import type {
-  HelperEpisodeStatus,
-  HelperReplicaStatus,
-} from '../helper-client'
+import type { HelperEpisodeStatus, HelperReplicaStatus } from '../helper-client'
 import {
   episodeStateFor,
   subscriptionFor,
@@ -105,9 +102,10 @@ describe('subscriptionFor', () => {
           }),
         },
         optimistic: {
-          'bgm-1:sg-1': {
-            type: 'upsert',
+          'bgm-1::sg-1': {
+            type: 'subscribe',
             record: optimisticRecord,
+            startedAt: stamp,
           },
         },
       }),
@@ -116,7 +114,7 @@ describe('subscriptionFor', () => {
     expect(result?.record.id).toBe('opt-sub')
   })
 
-  it('treats an in-flight optimistic remove as absent', () => {
+  it('treats an in-flight optimistic unsubscribe as absent', () => {
     const cached = record({ id: 'cache-sub', targetServerIds: ['srv-a'] })
     const result = subscriptionFor(
       'bgm-1',
@@ -124,7 +122,7 @@ describe('subscriptionFor', () => {
       state({
         items: [cached],
         optimistic: {
-          'bgm-1:sg-1': { type: 'remove' },
+          'bgm-1::sg-1': { type: 'unsubscribe', startedAt: stamp },
         },
       }),
     )
