@@ -7,18 +7,20 @@ import (
 )
 
 type variantCandidate struct {
-	item     mikan.RssEpisode
-	infohash string
-	season   int
-	episode  int
-	series   string
-	kind     mikan.Kind
-	lang     mikan.Language
-	res      int
-	okRes    bool
-	skip     bool
-	reason   string
-	manual   bool
+	item         mikan.RssEpisode
+	infohash     string
+	season       int
+	episode      int
+	series       string
+	kind         mikan.Kind
+	lang         mikan.Language
+	res          int
+	okRes        bool
+	skip         bool
+	reason       string
+	rival        string
+	manual       bool
+	manualReason string
 }
 
 type variantKey struct {
@@ -54,6 +56,7 @@ func applyVariantPick(candidates []*variantCandidate, stored []store.Episode, pr
 			existingRung, existingOK := mikan.ClassifyResolution(existing.Title)
 			for _, member := range members {
 				member.skip = true
+				member.rival = existing.Title
 				if existingOK && member.okRes && member.res > existingRung {
 					member.reason = mikan.SkipReasonResolution
 				} else {
@@ -73,10 +76,11 @@ func applyVariantPick(candidates []*variantCandidate, stored []store.Episode, pr
 			}
 			items[i] = mikan.VariantItem{Index: i, Language: member.lang, Resolution: res}
 		}
-		_, losers := mikan.PickVariant(items, prefer)
+		winner, losers := mikan.PickVariant(items, prefer)
 		for _, loser := range losers {
 			members[loser.Index].skip = true
 			members[loser.Index].reason = loser.Reason
+			members[loser.Index].rival = members[winner.Index].item.Title
 		}
 	}
 }

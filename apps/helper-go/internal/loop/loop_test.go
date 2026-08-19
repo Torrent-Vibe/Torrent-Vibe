@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
@@ -160,7 +161,9 @@ func TestAddNewRSSEpisode(t *testing.T) {
 	qbFake := newFake()
 	if err := loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +183,9 @@ func TestFetchTorrentFailureMarksFailed(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library",
-		FetchRSS:     func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 		FetchTorrent: func(string) ([]byte, error) { return nil, errors.New("mikan blocked") },
 	})
 	got := episodesOf(t, s)
@@ -197,7 +202,9 @@ func TestSkipExistingEpisodeID(t *testing.T) {
 	qbFake := newFake()
 	deps := loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	}
 	_ = loop.Tick(deps)
 	_ = loop.Tick(deps)
@@ -211,7 +218,9 @@ func TestSkipPresentQbHash(t *testing.T) {
 	qbFake := newFake(qb.Torrent{Hash: hash28, Name: "manual", Progress: 1, State: "uploading"})
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	})
 	if len(qbFake.added) != 0 || len(episodesOf(t, s)) != 0 {
 		t.Fatal("should skip in-qbit hash")
@@ -223,7 +232,7 @@ func TestNeedsManualCollection(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML(packTitle, hashPack), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) { return loop.RSSResult{Body: rssXML(packTitle, hashPack)}, nil },
 	})
 	got := episodesOf(t, s)
 	if len(qbFake.added) != 0 || len(got) != 1 || got[0].State != protocol.StateNeedsManual {
@@ -236,8 +245,8 @@ func TestParsedSeason(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[LoliHouse] Example Show S02E07 [WebRip 1080p]", hashS2), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[LoliHouse] Example Show S02E07 [WebRip 1080p]", hashS2)}, nil
 		},
 	})
 	if qbFake.added[0].SavePath != "/library/Example Show/Season 02" || qbFake.added[0].Rename != "Example Show - S02E07" {
@@ -255,7 +264,9 @@ func TestRenameOnCompleteSkipsSample(t *testing.T) {
 	})
 	deps := loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	}
 	_ = loop.Tick(deps)
 	qbFake.complete(hash28)
@@ -274,7 +285,9 @@ func TestRenameFailRetries(t *testing.T) {
 	qbFake.setFiles(hash28, []qb.File{{Name: "[ANi] 葬送的芙莉莲 - 28 [1080P].mp4", Size: 700_000_000}})
 	deps := loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	}
 	_ = loop.Tick(deps)
 	qbFake.complete(hash28)
@@ -303,7 +316,9 @@ func TestRenamingStateBeforeRenameFile(t *testing.T) {
 	}
 	deps := loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	}
 	_ = loop.Tick(deps)
 	qbFake.complete(hash28)
@@ -319,7 +334,9 @@ func TestAddFailure(t *testing.T) {
 	qbFake.addErr = errors.New("qBittorrent add failed")
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	})
 	got := episodesOf(t, s)
 	if len(got) != 1 || got[0].State != protocol.StateFailed || got[0].LastError != "qBittorrent add failed" {
@@ -335,7 +352,9 @@ func TestSkipFailedOnNextRSS(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
 	})
 	if len(qbFake.added) != 0 {
 		t.Fatal(qbFake.added)
@@ -379,7 +398,7 @@ func TestBackfillThenTickRenames(t *testing.T) {
 		t.Fatal(reps)
 	}
 	qbFake.complete(hash28)
-	_ = loop.Tick(loop.Deps{Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, FetchRSS: func(string) (string, error) { return "", nil }})
+	_ = loop.Tick(loop.Deps{Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, FetchRSS: func(string) (loop.RSSResult, error) { return loop.RSSResult{}, nil }})
 	if len(qbFake.renames) != 1 || qbFake.renames[0].To != "葬送的芙莉莲 - S01E28.mp4" {
 		t.Fatalf("%+v", qbFake.renames)
 	}
@@ -393,9 +412,9 @@ func TestSerializeTickAndBackfill(t *testing.T) {
 	go func() {
 		ticking <- loop.Tick(loop.Deps{
 			Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-			FetchRSS: func(string) (string, error) {
+			FetchRSS: func(string) (loop.RSSResult, error) {
 				<-gate
-				return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil
+				return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
 			},
 		})
 	}()
@@ -433,9 +452,9 @@ func TestStartPollsImmediately(t *testing.T) {
 	hits := make(chan struct{}, 4)
 	stop := loop.Start(loop.Deps{
 		Store: s, QB: newFake(), LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
+		FetchRSS: func(string) (loop.RSSResult, error) {
 			hits <- struct{}{}
-			return rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28), nil
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
 		},
 	}, time.Hour)
 	select {
@@ -459,7 +478,9 @@ func TestResolveTitleFillsEpisode(t *testing.T) {
 	called := false
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28)}, nil
+		},
 		ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
 			called = replica.BangumiSubjectID == "123"
 			ep := 28
@@ -479,7 +500,9 @@ func TestMissingSubjectSkipsResolve(t *testing.T) {
 	resolveHits := 0
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: newFake(), LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) { return rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28), nil },
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 [1080P]", hash28)}, nil
+		},
 		ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
 			if replica.BangumiSubjectID != "" {
 				resolveHits++
@@ -513,11 +536,11 @@ func TestPickSimplifiedOverTraditional(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC),
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC),
-			), nil
+			)}, nil
 		},
 	})
 	got := byEpisodeID(episodesOf(t, s))
@@ -534,12 +557,12 @@ func TestPickInternalOverEmbedded(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("[北宇治字幕组] 药屋少女的呢喃 [48][简日内嵌][1080P]", hashSC),
 				rssItem("[北宇治字幕组] 药屋少女的呢喃 [48][繁日内嵌][1080P]", hashTC),
 				rssItem("[北宇治字幕组] 药屋少女的呢喃 [48][简繁日内封][1080P]", hash28),
-			), nil
+			)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 || qbFake.added[0].URLs != rssItem("", hash28).TorrentURL {
@@ -552,11 +575,11 @@ func TestPickHigherResolution(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][720P]", hash720),
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC),
-			), nil
+			)}, nil
 		},
 	})
 	got := byEpisodeID(episodesOf(t, s))
@@ -570,11 +593,11 @@ func TestResolutionBeatsLanguage(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][720P]", hashSC),
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC),
-			), nil
+			)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 || qbFake.added[0].URLs != rssItem("", hashTC).TorrentURL {
@@ -587,12 +610,12 @@ func TestUnlabeledAndRAWDoNotMutex(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("[黒ネズミたち] 药屋少女的呢喃 - 48 [1080P]", hashRAW),
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC),
 				rssItem("[RAW] 药屋少女的呢喃 - 48 [1080P]", hashTC),
-			), nil
+			)}, nil
 		},
 	})
 	if len(qbFake.added) != 3 {
@@ -612,8 +635,8 @@ func TestFirstWinsNoUpgrade(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC)), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC))}, nil
 		},
 	})
 	got := byEpisodeID(episodesOf(t, s))
@@ -633,8 +656,8 @@ func TestFailedDoesNotBlockNewVariant(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC)), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC))}, nil
 		},
 	})
 	if len(qbFake.added) != 1 || qbFake.added[0].URLs != rssItem("", hashTC).TorrentURL {
@@ -648,11 +671,11 @@ func TestSameBatchLoserStaysSkippedWhenWinnerFails(t *testing.T) {
 	qbFake.addErr = errors.New("qBittorrent add failed")
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssFeed(
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC),
 				rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC),
-			), nil
+			)}, nil
 		},
 	})
 	got := byEpisodeID(episodesOf(t, s))
@@ -669,11 +692,11 @@ func TestCrossSubgroupDoesNotMutex(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(url string) (string, error) {
+		FetchRSS: func(url string) (loop.RSSResult, error) {
 			if strings.Contains(url, "subgroupid=999") {
-				return rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC)), nil
+				return loop.RSSResult{Body: rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC))}, nil
 			}
-			return rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC)), nil
+			return loop.RSSResult{Body: rssFeed(rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC))}, nil
 		},
 	})
 	if len(qbFake.added) != 2 {
@@ -687,8 +710,8 @@ func TestIdentifySavePathSeasonTwo(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[ANi] Nige Jouzu no Wakagimi S02 /  擅长逃跑的殿下 第二季 - 17 [1080P]", hash28), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] Nige Jouzu no Wakagimi S02 /  擅长逃跑的殿下 第二季 - 17 [1080P]", hash28)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 {
@@ -708,8 +731,8 @@ func TestIdentifySpecialSeasonZero(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[组] 示例番 [SP][01][1080P]", hash28), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[组] 示例番 [SP][01][1080P]", hash28)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 || qbFake.added[0].SavePath != "/library/示例番/Season 00" || qbFake.added[0].Rename != "示例番 - S00E01" {
@@ -729,8 +752,8 @@ func TestIdentifyDifferentSeasonNotBlocked(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[ANi] Nige Jouzu no Wakagimi S02 /  擅长逃跑的殿下 第二季 - 17 [1080P]", hash28), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] Nige Jouzu no Wakagimi S02 /  擅长逃跑的殿下 第二季 - 17 [1080P]", hash28)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 {
@@ -744,8 +767,8 @@ func TestIdentifyTmdbFillsAmbiguous(t *testing.T) {
 	two := 2
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[组] 无职转生 - 05 [1080P]", hash28), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[组] 无职转生 - 05 [1080P]", hash28)}, nil
 		},
 		ResolveSeason: func(ident mikan.Identity) *int {
 			if !ident.SeasonAmbiguous {
@@ -764,8 +787,8 @@ func TestIdentifyTmdbMissingDefaultsOne(t *testing.T) {
 	qbFake := newFake()
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
-		FetchRSS: func(string) (string, error) {
-			return rssXML("[组] 无职转生 - 05 [1080P]", hash28), nil
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[组] 无职转生 - 05 [1080P]", hash28)}, nil
 		},
 	})
 	if len(qbFake.added) != 1 || qbFake.added[0].SavePath != "/library/无职转生/Season 01" {
@@ -797,8 +820,123 @@ func TestRenameUsesStoredSeries(t *testing.T) {
 		t.Fatal(err)
 	}
 	qbFake.complete(hash28)
-	_ = loop.Tick(loop.Deps{Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, FetchRSS: func(string) (string, error) { return "", nil }})
+	_ = loop.Tick(loop.Deps{Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, FetchRSS: func(string) (loop.RSSResult, error) { return loop.RSSResult{}, nil }})
 	if len(qbFake.renames) != 1 || qbFake.renames[0].To != "擅长逃跑的殿下 - S02E17.mp4" {
 		t.Fatalf("%+v", qbFake.renames)
+	}
+}
+
+func TestRSSFetchFailureEmitsWarnEvent(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	rec := events.New(t.TempDir(), nil)
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{StatusCode: 503}, errors.New("mikan unreachable")
+		},
+	})
+	got, _ := rec.Query(events.Query{Kind: "rss.fetch"})
+	if len(got) != 1 {
+		t.Fatalf("want exactly one rss.fetch event, got %+v", got)
+	}
+	if got[0].Level != "warn" {
+		t.Fatalf("level = %q, want warn", got[0].Level)
+	}
+	if got[0].Fields["httpStatus"] != 503 {
+		t.Fatalf("httpStatus = %+v", got[0].Fields["httpStatus"])
+	}
+	if got[0].Fields["error"] != "mikan unreachable" {
+		t.Fatalf("error = %+v", got[0].Fields["error"])
+	}
+}
+
+func TestTickEmitsStartAndDoneWithAddedCount(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	rec := events.New(t.TempDir(), nil)
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
+	})
+	starts, _ := rec.Query(events.Query{Kind: "tick.start"})
+	if len(starts) != 1 {
+		t.Fatalf("want 1 tick.start, got %d", len(starts))
+	}
+	dones, _ := rec.Query(events.Query{Kind: "tick.done"})
+	if len(dones) != 1 {
+		t.Fatalf("want 1 tick.done, got %d", len(dones))
+	}
+	if dones[0].Fields["addedCount"] != 1 {
+		t.Fatalf("addedCount = %+v", dones[0].Fields["addedCount"])
+	}
+}
+
+func TestVariantPickLoserEmitsEpisodeSkip(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	rec := events.New(t.TempDir(), nil)
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssFeed(
+				rssItem("【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]", hashSC),
+				rssItem("【豌豆字幕组】药屋少女的呢喃[48][繁体][1080P]", hashTC),
+			)}, nil
+		},
+	})
+	got, _ := rec.Query(events.Query{Kind: "episode.skip"})
+	if len(got) != 1 {
+		t.Fatalf("want 1 episode.skip, got %+v", got)
+	}
+	if got[0].Fields["reason"] != mikan.SkipReasonLanguage {
+		t.Fatalf("reason = %+v", got[0].Fields["reason"])
+	}
+	if got[0].Fields["rival"] != "【豌豆字幕组】药屋少女的呢喃[48][简体][1080P]" {
+		t.Fatalf("rival = %+v", got[0].Fields["rival"])
+	}
+}
+
+func TestCollectionEmitsEpisodeManual(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	rec := events.New(t.TempDir(), nil)
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML(packTitle, hashPack)}, nil
+		},
+	})
+	got, _ := rec.Query(events.Query{Kind: "episode.manual"})
+	if len(got) != 1 {
+		t.Fatalf("want 1 episode.manual, got %+v", got)
+	}
+	if got[0].Fields["reason"] != "collection" {
+		t.Fatalf("reason = %+v", got[0].Fields["reason"])
+	}
+}
+
+func TestQbAddFailureEmitsErrorEvent(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	qbFake.addErr = errors.New("qBittorrent add failed")
+	rec := events.New(t.TempDir(), nil)
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			return loop.RSSResult{Body: rssXML("[ANi] 葬送的芙莉莲 - 28 [1080P]", hash28)}, nil
+		},
+	})
+	got, _ := rec.Query(events.Query{Kind: "qb.add"})
+	if len(got) != 1 {
+		t.Fatalf("want 1 qb.add, got %+v", got)
+	}
+	if got[0].Level != "error" {
+		t.Fatalf("level = %q, want error", got[0].Level)
+	}
+	if got[0].Fields["error"] != "qBittorrent add failed" {
+		t.Fatalf("error = %+v", got[0].Fields["error"])
 	}
 }

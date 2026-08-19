@@ -115,8 +115,9 @@ func run() error {
 			QB:           qb.NewClient(next.QbitURL, next.QbitUser, next.QbitPass, nil),
 			LibraryRoot:  next.LibraryRoot,
 			Category:     next.Category,
-			FetchRSS:     out.fetchString,
+			FetchRSS:     out.fetchRSS,
 			FetchTorrent: out.fetchTorrent,
+			Events:       eventRecorder,
 			ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
 				return bangumi.Resolve(out.bangumi(), replica.BangumiSubjectID, item, parsed)
 			},
@@ -292,12 +293,13 @@ func (h *outboundHold) bangumi() *bangumi.Client {
 	return h.bgm
 }
 
-func (h *outboundHold) fetchString(rawURL string) (string, error) {
-	raw, err := h.fetchTorrent(rawURL)
-	if err != nil {
-		return "", err
-	}
-	return string(raw), nil
+func (h *outboundHold) fetchRSS(rawURL string) (loop.RSSResult, error) {
+	h.mu.Lock()
+	client := h.client
+	h.mu.Unlock()
+	start := time.Now()
+	body, status, err := fetchBytesStatus(client, rawURL)
+	return loop.RSSResult{Body: string(body), StatusCode: status, Duration: time.Since(start)}, err
 }
 
 func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
@@ -318,20 +320,26 @@ func swapQbitPassSecret(mu *sync.Mutex, registry *redact.Registry, last *string,
 }
 
 func fetchBytes(client *http.Client, rawURL string) ([]byte, error) {
+	body, _, err := fetchBytesStatus(client, rawURL)
+	return body, err
+}
+
+func fetchBytesStatus(client *http.Client, rawURL string) ([]byte, int, error) {
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	req.Header.Set("user-agent", "torrent-vibe-helper/"+version)
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("http %d", res.StatusCode)
+		return nil, res.StatusCode, fmt.Errorf("http %d", res.StatusCode)
 	}
-	return io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
+	return body, res.StatusCode, err
 }
 
 func envOr(key, fallback string) string {
