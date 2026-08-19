@@ -119,6 +119,74 @@ describe('subscribe orchestration', () => {
     expect(backfilled).toEqual(['srv-a', 'srv-b'])
   })
 
+  it('backfills the target whose put succeeded when another target fails', async () => {
+    const backfilled: string[] = []
+    const persist = createMemoryPersist()
+    const actions = createSubscriptionActions({
+      persist,
+      helper: createFakeHelper({ fail: new Set(['srv-b']) }),
+      now: () => stamp,
+      id: () => 'sub-1',
+      backfill: async (input) => {
+        backfilled.push(input.serverId)
+      },
+      loadHelperStatus: emptyStatus,
+    })
+
+    const result = await actions.subscribe({
+      ...subscribeInput,
+      targetServerIds: ['srv-a', 'srv-b'],
+      episodes: [episode('e1')],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('partialSync')
+    expect(backfilled).toEqual(['srv-a'])
+    const item = subscriptionStore.getState().items[0]
+    expect(item?.targetServerIds).toEqual(['srv-a', 'srv-b'])
+    expect(item?.syncByServer['srv-a']?.status).toBe('ok')
+    expect(item?.syncByServer['srv-b']).toMatchObject({
+      status: 'error',
+      lastError: 'put failed srv-b',
+    })
+    expect(persist.snapshot().items.map((entry) => entry.id)).toEqual(['sub-1'])
+    expect(subscriptionStore.getState().optimistic).toEqual({})
+  })
+
+  it('keeps the subscription on every target when one target backfill rejects', async () => {
+    const backfilled: string[] = []
+    const persist = createMemoryPersist()
+    const actions = createSubscriptionActions({
+      persist,
+      helper: createFakeHelper(),
+      now: () => stamp,
+      id: () => 'sub-1',
+      backfill: async (input) => {
+        backfilled.push(input.serverId)
+        if (input.serverId === 'srv-b') {
+          throw new Error('backfill exploded')
+        }
+      },
+      loadHelperStatus: emptyStatus,
+    })
+
+    const result = await actions.subscribe({
+      ...subscribeInput,
+      targetServerIds: ['srv-a', 'srv-b'],
+      episodes: [episode('e1')],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.warning).toBe('backfillFailed')
+    expect(backfilled).toEqual(['srv-a', 'srv-b'])
+    const item = subscriptionStore.getState().items[0]
+    expect(item?.targetServerIds).toEqual(['srv-a', 'srv-b'])
+    expect(item?.syncByServer['srv-a']?.status).toBe('ok')
+    expect(item?.syncByServer['srv-b']?.status).toBe('ok')
+    expect(persist.snapshot().items.map((entry) => entry.id)).toEqual(['sub-1'])
+    expect(subscriptionStore.getState().optimistic).toEqual({})
+  })
+
   it('keeps the subscription and warns when a backfill rejects', async () => {
     const persist = createMemoryPersist()
     const actions = createSubscriptionActions({

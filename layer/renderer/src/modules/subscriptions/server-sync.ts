@@ -15,6 +15,11 @@ export interface SubscriptionPushOptions {
   removeTorrents?: boolean
 }
 
+export interface ServerPushResult {
+  failed: string[]
+  pushed: string[]
+}
+
 export interface HelperSyncClient {
   getSubscriptions: (serverId: string) => Promise<HelperSubscriptionSnapshot>
   putSubscriptions: (
@@ -105,22 +110,23 @@ export const createServerSync = (input: {
   const pushServers = async (
     serverIds: string[],
     options?: SubscriptionPushOptions,
-  ): Promise<boolean> => {
+  ): Promise<ServerPushResult> => {
+    const result: ServerPushResult = { failed: [], pushed: [] }
     const ids = unique(serverIds)
     if (ids.length === 0) {
-      return true
+      return result
     }
 
     subscriptionStore.setState((draft) => {
       draft.syncing = true
     })
 
-    let allOk = true
     const pushedAt = input.now()
     try {
       for (const serverId of ids) {
         try {
           await pushServer(serverId, options)
+          result.pushed.push(serverId)
           input.persistItems(
             applySyncPatch(
               subscriptionStore.getState().items,
@@ -130,7 +136,7 @@ export const createServerSync = (input: {
             ),
           )
         } catch (error) {
-          allOk = false
+          result.failed.push(serverId)
           input.persistItems(
             applySyncPatch(
               subscriptionStore.getState().items,
@@ -147,7 +153,7 @@ export const createServerSync = (input: {
       })
     }
 
-    return allOk
+    return result
   }
 
   const refreshStatus = async (serverIds?: string[]) => {

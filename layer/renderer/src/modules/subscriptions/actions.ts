@@ -190,7 +190,14 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     const savedItem = () =>
       subscriptionStore.getState().items.find((item) => item.id === nextItem.id)
 
-    if (!(await pushServers([...previousTargets, ...targetServerIds]))) {
+    const { failed, pushed } = await pushServers([
+      ...previousTargets,
+      ...targetServerIds,
+    ])
+    const importTargets = targetServerIds.filter((serverId) =>
+      pushed.includes(serverId),
+    )
+    if (importTargets.length === 0) {
       clearOptimistic(key)
       return { ok: false, error: 'partialSync', data: savedItem() ?? nextItem }
     }
@@ -201,19 +208,17 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
             bangumiId: input.bangumiId,
             subgroupId: input.subgroupId,
             episodes,
-            serverIds: targetServerIds,
+            serverIds: importTargets,
           })
         : { ok: true }
     await refreshStatus([...previousTargets, ...targetServerIds])
     clearOptimistic(key)
 
-    return imported.ok
-      ? { ok: true, data: savedItem() ?? nextItem }
-      : {
-          ok: true,
-          data: savedItem() ?? nextItem,
-          warning: 'backfillFailed',
-        }
+    const settled: ActionResult<SubscriptionRecord> =
+      failed.length > 0
+        ? { ok: false, error: 'partialSync', data: savedItem() ?? nextItem }
+        : { ok: true, data: savedItem() ?? nextItem }
+    return imported.ok ? settled : { ...settled, warning: 'backfillFailed' }
   }
 
   const unsubscribe = async (
@@ -234,10 +239,13 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
       subscriptionStore.getState().items.filter((item) => item.id !== id),
     )
     const deleteFiles = options?.deleteFiles === true
-    let ok = await pushServers(current.targetServerIds, {
-      removeTorrents: true,
-      deleteFiles,
-    })
+    let ok =
+      (
+        await pushServers(current.targetServerIds, {
+          removeTorrents: true,
+          deleteFiles,
+        })
+      ).failed.length === 0
     if (deps.loadHelperStatus && deps.deleteTorrents) {
       const leftoverOk = await dropLeftoverTorrents({
         serverIds: current.targetServerIds,
@@ -282,7 +290,9 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         .getState()
         .items.map((item) => (item.id === id ? nextItem : item)),
     )
-    const ok = await pushServers([...current.targetServerIds, ...nextTargets])
+    const ok =
+      (await pushServers([...current.targetServerIds, ...nextTargets])).failed
+        .length === 0
     const saved = subscriptionStore
       .getState()
       .items.find((item) => item.id === id)
@@ -292,8 +302,10 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
   }
 
   const syncServers = async (serverIds: string[]): Promise<ActionResult> => {
-    const ok = await pushServers(serverIds)
-    return ok ? { ok: true } : { ok: false, error: 'partialSync' }
+    const { failed } = await pushServers(serverIds)
+    return failed.length === 0
+      ? { ok: true }
+      : { ok: false, error: 'partialSync' }
   }
 
   const syncAll = async (): Promise<ActionResult> => {
