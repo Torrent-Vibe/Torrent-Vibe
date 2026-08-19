@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
@@ -276,9 +277,17 @@ func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	checks, err := rt.Store.LoadReplicaChecks()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
 	type replicaStatus struct {
 		protocol.Replica
-		Episodes []store.Episode `json:"episodes"`
+		Episodes            []store.Episode `json:"episodes"`
+		CheckedAt           *string         `json:"checkedAt,omitempty"`
+		CheckError          string          `json:"checkError,omitempty"`
+		ConsecutiveFailures *int            `json:"consecutiveFailures,omitempty"`
 	}
 	out := make([]replicaStatus, 0, len(replicas))
 	covered := map[string]struct{}{}
@@ -289,7 +298,15 @@ func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 		if list == nil {
 			list = []store.Episode{}
 		}
-		out = append(out, replicaStatus{Replica: replica, Episodes: list})
+		entry := replicaStatus{Replica: replica, Episodes: list}
+		if check, ok := checks[key]; ok {
+			checkedAt := check.CheckedAt.Format(time.RFC3339)
+			failures := check.ConsecutiveFailures
+			entry.CheckedAt = &checkedAt
+			entry.CheckError = check.CheckError
+			entry.ConsecutiveFailures = &failures
+		}
+		out = append(out, entry)
 	}
 	type job struct {
 		BangumiID  string          `json:"bangumiId"`

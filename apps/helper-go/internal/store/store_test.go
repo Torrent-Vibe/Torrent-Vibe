@@ -3,6 +3,7 @@ package store_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
@@ -78,12 +79,121 @@ func TestClearAll(t *testing.T) {
 	dir := t.TempDir()
 	s := store.New(dir)
 	_ = s.SaveReplicas([]protocol.Replica{{ID: "1", BangumiID: "b", Title: "T", SubgroupID: "s", SubgroupName: "S", RSSURL: "https://x"}})
+	_ = s.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		store.EpisodeKey("b", "s"): {CheckedAt: time.Now(), ConsecutiveFailures: 2},
+	})
 	if err := s.ClearAll(); err != nil {
 		t.Fatal(err)
 	}
 	reps, _ := s.LoadReplicas()
 	eps, _ := s.LoadEpisodes()
-	if len(reps) != 0 || len(eps) != 0 {
+	checks, _ := s.LoadReplicaChecks()
+	if len(reps) != 0 || len(eps) != 0 || len(checks) != 0 {
 		t.Fatal("not cleared")
+	}
+}
+
+func TestReplicaChecksRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	s := store.New(dir)
+	at := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
+	key := store.EpisodeKey("b", "s")
+	if err := s.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		key: {CheckedAt: at, ConsecutiveFailures: 3, CheckError: "mikan unreachable"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check, ok := got[key]
+	if !ok {
+		t.Fatalf("missing key: %+v", got)
+	}
+	if !check.CheckedAt.Equal(at) || check.ConsecutiveFailures != 3 || check.CheckError != "mikan unreachable" {
+		t.Fatalf("%+v", check)
+	}
+}
+
+func TestLoadReplicaChecksMissingFileIsEmpty(t *testing.T) {
+	s := store.New(t.TempDir())
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil {
+		t.Fatal("nil map returned")
+	}
+	if len(got) != 0 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestRecordReplicaCheckSuccessResetsCounter(t *testing.T) {
+	dir := t.TempDir()
+	s := store.New(dir)
+	key := store.EpisodeKey("b", "s")
+	if err := s.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		key: {ConsecutiveFailures: 3, CheckError: "boom"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
+	if err := s.RecordReplicaCheck(key, at, nil); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := got[key]
+	if check.ConsecutiveFailures != 0 || check.CheckError != "" || !check.CheckedAt.Equal(at) {
+		t.Fatalf("%+v", check)
+	}
+}
+
+func TestRecordReplicaCheckFailureIncrementsCounter(t *testing.T) {
+	dir := t.TempDir()
+	s := store.New(dir)
+	key := store.EpisodeKey("b", "s")
+	first := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
+	if err := s.RecordReplicaCheck(key, first, errors.New("mikan unreachable")); err != nil {
+		t.Fatal(err)
+	}
+	second := first.Add(10 * time.Minute)
+	if err := s.RecordReplicaCheck(key, second, errors.New("mikan unreachable")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := got[key]
+	if check.ConsecutiveFailures != 2 || check.CheckError != "mikan unreachable" || !check.CheckedAt.Equal(second) {
+		t.Fatalf("%+v", check)
+	}
+}
+
+func TestRecordReplicaCheckLeavesOtherReplicasAlone(t *testing.T) {
+	dir := t.TempDir()
+	s := store.New(dir)
+	other := store.EpisodeKey("other", "sg")
+	untouched := time.Date(2026, 8, 20, 11, 0, 0, 0, time.UTC)
+	if err := s.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		other: {CheckedAt: untouched, ConsecutiveFailures: 1},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RecordReplicaCheck(store.EpisodeKey("b", "s"), time.Now(), nil); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadReplicaChecks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := got[other]
+	if !check.CheckedAt.Equal(untouched) || check.ConsecutiveFailures != 1 {
+		t.Fatalf("%+v", check)
 	}
 }

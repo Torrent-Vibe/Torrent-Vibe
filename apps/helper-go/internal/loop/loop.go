@@ -34,16 +34,17 @@ type RSSResult struct {
 }
 
 type Deps struct {
-	Store         *store.Store
-	FetchRSS      func(url string) (RSSResult, error)
-	FetchTorrent  func(url string) ([]byte, error)
-	QB            qb.Client
-	LibraryRoot   string
-	Category      string
-	ResolveTitle  func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle
-	ResolveSeason func(ident mikan.Identity) *int
-	VariantPrefer []mikan.Language
-	Events        events.Recorder
+	Store            *store.Store
+	FetchRSS         func(url string) (RSSResult, error)
+	FetchTorrent     func(url string) ([]byte, error)
+	QB               qb.Client
+	LibraryRoot      string
+	Category         string
+	ResolveTitle     func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle
+	ResolveSeason    func(ident mikan.Identity) *int
+	VariantPrefer    []mikan.Language
+	Events           events.Recorder
+	OnReplicaChecked func(replicaKey string, at time.Time, err error)
 }
 
 func (d Deps) emit(e events.Event) {
@@ -51,6 +52,13 @@ func (d Deps) emit(e events.Event) {
 		return
 	}
 	d.Events.Emit(e)
+}
+
+func (d Deps) checkedReplica(key string, err error) {
+	if d.OnReplicaChecked == nil {
+		return
+	}
+	d.OnReplicaChecked(key, time.Now(), err)
 }
 
 var workMu sync.Map
@@ -124,7 +132,9 @@ func runTick(deps Deps) error {
 		before := len(maps[key])
 		incoming := []mikan.RssEpisode{}
 		if deps.FetchRSS != nil && replica.RSSURL != "" {
-			incoming = fetchRSSEpisodes(deps, replica)
+			var fetchErr error
+			incoming, fetchErr = fetchRSSEpisodes(deps, replica)
+			deps.checkedReplica(key, fetchErr)
 		}
 		next, err := ingestEpisodes(deps, replica, incoming, maps[key], present)
 		if err != nil {
@@ -155,7 +165,7 @@ func runTick(deps Deps) error {
 	return err
 }
 
-func fetchRSSEpisodes(deps Deps, replica protocol.Replica) []mikan.RssEpisode {
+func fetchRSSEpisodes(deps Deps, replica protocol.Replica) ([]mikan.RssEpisode, error) {
 	result, err := deps.FetchRSS(replica.RSSURL)
 	if err != nil {
 		deps.emit(events.Event{
@@ -166,7 +176,7 @@ func fetchRSSEpisodes(deps Deps, replica protocol.Replica) []mikan.RssEpisode {
 				"durationMs": result.Duration.Milliseconds(), "error": err.Error(),
 			},
 		})
-		return nil
+		return nil, err
 	}
 	incoming := mikan.ParseBangumiRSS(result.Body, rssBase(replica.RSSURL))
 	deps.emit(events.Event{
@@ -177,7 +187,7 @@ func fetchRSSEpisodes(deps Deps, replica protocol.Replica) []mikan.RssEpisode {
 			"durationMs": result.Duration.Milliseconds(),
 		},
 	})
-	return incoming
+	return incoming, nil
 }
 
 func runBackfill(deps Deps, bangumiID, subgroupID string, items []mikan.RssEpisode) ([]store.Episode, error) {

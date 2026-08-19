@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
@@ -374,6 +375,107 @@ func TestStatusIncludesJobs(t *testing.T) {
 	jobs, _ := body["jobs"].([]any)
 	if len(jobs) != 1 {
 		t.Fatalf("%+v", body)
+	}
+}
+
+func TestStatusOmitsCheckFieldsWhenAbsent(t *testing.T) {
+	dir := t.TempDir()
+	st := store.New(dir)
+	_ = st.SaveReplicas([]protocol.Replica{replica("1")})
+	rt := &httpx.Runtime{
+		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/status", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := decode(t, res)
+	replicas, _ := body["replicas"].([]any)
+	if len(replicas) != 1 {
+		t.Fatalf("%+v", body)
+	}
+	entry, _ := replicas[0].(map[string]any)
+	if _, ok := entry["checkedAt"]; ok {
+		t.Fatalf("checkedAt should be omitted, got %+v", entry)
+	}
+	if _, ok := entry["checkError"]; ok {
+		t.Fatalf("checkError should be omitted, got %+v", entry)
+	}
+	if _, ok := entry["consecutiveFailures"]; ok {
+		t.Fatalf("consecutiveFailures should be omitted, got %+v", entry)
+	}
+}
+
+func TestStatusSurfacesReplicaCheckFields(t *testing.T) {
+	dir := t.TempDir()
+	st := store.New(dir)
+	_ = st.SaveReplicas([]protocol.Replica{replica("1")})
+	at := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
+	_ = st.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		store.EpisodeKey("bgm-1", "sg-1"): {CheckedAt: at, CheckError: "mikan unreachable", ConsecutiveFailures: 4},
+	})
+	rt := &httpx.Runtime{
+		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/status", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := decode(t, res)
+	replicas, _ := body["replicas"].([]any)
+	if len(replicas) != 1 {
+		t.Fatalf("%+v", body)
+	}
+	entry, _ := replicas[0].(map[string]any)
+	if entry["checkedAt"] != at.Format(time.RFC3339) {
+		t.Fatalf("checkedAt = %+v", entry["checkedAt"])
+	}
+	if entry["checkError"] != "mikan unreachable" {
+		t.Fatalf("checkError = %+v", entry["checkError"])
+	}
+	if entry["consecutiveFailures"] != float64(4) {
+		t.Fatalf("consecutiveFailures = %+v", entry["consecutiveFailures"])
+	}
+}
+
+func TestStatusIncludesZeroConsecutiveFailuresWhenHealthy(t *testing.T) {
+	dir := t.TempDir()
+	st := store.New(dir)
+	_ = st.SaveReplicas([]protocol.Replica{replica("1")})
+	at := time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)
+	_ = st.SaveReplicaChecks(map[string]store.ReplicaCheck{
+		store.EpisodeKey("bgm-1", "sg-1"): {CheckedAt: at},
+	})
+	rt := &httpx.Runtime{
+		Version: "0.0.1-test", Port: 17890, AdvertisedQbit: "http://q",
+		Pairings: pairingStoreWithToken(t, dir, token), Store: st, DataDir: dir,
+	}
+	srv := httptest.NewServer(httpx.New(rt))
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/status", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := decode(t, res)
+	replicas, _ := body["replicas"].([]any)
+	entry, _ := replicas[0].(map[string]any)
+	if entry["consecutiveFailures"] != float64(0) {
+		t.Fatalf("consecutiveFailures = %+v, want 0", entry["consecutiveFailures"])
+	}
+	if _, ok := entry["checkError"]; ok {
+		t.Fatalf("checkError should be omitted when empty, got %+v", entry)
 	}
 }
 
