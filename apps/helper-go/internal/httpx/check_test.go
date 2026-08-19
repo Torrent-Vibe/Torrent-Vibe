@@ -3,17 +3,21 @@ package httpx_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
@@ -174,7 +178,8 @@ func TestDiscoverCapabilitiesIncludeCheckEventsLogs(t *testing.T) {
 
 func TestPutAndCheckEmitSubscriptionEvents(t *testing.T) {
 	dir := t.TempDir()
-	rec := events.New(dir, nil)
+	registry := redact.NewRegistry()
+	rec := events.New(dir, redact.Sanitizer(registry))
 	srv := start(t, func(rt *httpx.Runtime) {
 		rt.Events = rec
 	})
@@ -272,5 +277,62 @@ func TestCheckKicksDoNotReenterWithScheduledTick(t *testing.T) {
 
 	if atomic.LoadInt32(&fakeQB.violated) != 0 {
 		t.Fatal("detected concurrent loop.Tick execution: reentrancy guard failed")
+	}
+}
+
+func TestConcurrentConfigWritesAndKickedCheckDoNotRace(t *testing.T) {
+	var mismatches int32
+	srv := start(t, func(rt *httpx.Runtime) {
+		rt.Config = config.File{QbitURL: "http://host-0", QbitPass: "pass-0", Category: "Bangumi"}
+		rt.OnKick = func(string) {
+			go func() {
+				cfg := rt.CurrentConfig()
+				wantPass := "pass-" + strings.TrimPrefix(cfg.QbitURL, "http://host-")
+				if cfg.QbitPass != wantPass {
+					atomic.AddInt32(&mismatches, 1)
+				}
+			}()
+		}
+	})
+	defer srv.Close()
+
+	var wg sync.WaitGroup
+	const rounds = 50
+	for i := 0; i < rounds; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			payload, _ := json.Marshal(map[string]any{
+				"qbitUrl":  fmt.Sprintf("http://host-%d", i),
+				"qbitPass": fmt.Sprintf("pass-%d", i),
+			})
+			req, _ := http.NewRequest(http.MethodPut, srv.URL+"/config", bytes.NewReader(payload))
+			req.Header.Set("authorization", "Bearer "+token)
+			req.Header.Set("content-type", "application/json")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			res.Body.Close()
+		}(i)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req, _ := http.NewRequest(http.MethodPost, srv.URL+"/check", nil)
+			req.Header.Set("authorization", "Bearer "+token)
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			res.Body.Close()
+		}()
+	}
+	wg.Wait()
+	time.Sleep(20 * time.Millisecond)
+
+	if got := atomic.LoadInt32(&mismatches); got != 0 {
+		t.Fatalf("observed a torn Config read: %d mismatches", got)
 	}
 }

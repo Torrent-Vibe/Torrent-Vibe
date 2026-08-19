@@ -153,23 +153,15 @@ func run() error {
 		Events:         eventRecorder,
 		Redact:         redactRegistry,
 		OnBackfill: func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error) {
-			mu.Lock()
-			deps := makeDeps(rt.Config)
-			mu.Unlock()
-			return loop.Backfill(deps, bangumiID, subgroupID, episodes)
+			return loop.Backfill(makeDeps(rt.CurrentConfig()), bangumiID, subgroupID, episodes)
 		},
 		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
-			mu.Lock()
-			cfg := rt.Config
-			mu.Unlock()
+			cfg := rt.CurrentConfig()
 			return qb.NewClient(cfg.QbitURL, cfg.QbitUser, cfg.QbitPass, nil).DeleteTorrents(hashes, deleteFiles)
 		},
 		OnKick: func(source string) {
 			go func() {
-				mu.Lock()
-				deps := makeDeps(rt.Config)
-				mu.Unlock()
-				_ = loop.Tick(deps)
+				_ = loop.Tick(makeDeps(rt.CurrentConfig()))
 			}()
 		},
 		ProbeQbit: func(rawURL, user, pass string) error {

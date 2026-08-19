@@ -8,12 +8,13 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 )
 
 func TestRSSFetchFailureEmitsWarnEvent(t *testing.T) {
 	s := seed(t, []protocol.Replica{replica("", "")}, nil)
 	qbFake := newFake()
-	rec := events.New(t.TempDir(), nil)
+	rec := events.New(t.TempDir(), redact.Sanitizer(redact.NewRegistry()))
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
 		FetchRSS: func(string) (loop.RSSResult, error) {
@@ -38,7 +39,7 @@ func TestRSSFetchFailureEmitsWarnEvent(t *testing.T) {
 func TestTickEmitsStartAndDoneWithAddedCount(t *testing.T) {
 	s := seed(t, []protocol.Replica{replica("", "")}, nil)
 	qbFake := newFake()
-	rec := events.New(t.TempDir(), nil)
+	rec := events.New(t.TempDir(), redact.Sanitizer(redact.NewRegistry()))
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
 		FetchRSS: func(string) (loop.RSSResult, error) {
@@ -67,7 +68,7 @@ func TestTickEmitsStartAndDoneWithAddedCount(t *testing.T) {
 func TestVariantPickLoserEmitsEpisodeSkip(t *testing.T) {
 	s := seed(t, []protocol.Replica{replica("", "")}, nil)
 	qbFake := newFake()
-	rec := events.New(t.TempDir(), nil)
+	rec := events.New(t.TempDir(), redact.Sanitizer(redact.NewRegistry()))
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
 		FetchRSS: func(string) (loop.RSSResult, error) {
@@ -92,7 +93,7 @@ func TestVariantPickLoserEmitsEpisodeSkip(t *testing.T) {
 func TestCollectionEmitsEpisodeManual(t *testing.T) {
 	s := seed(t, []protocol.Replica{replica("", "")}, nil)
 	qbFake := newFake()
-	rec := events.New(t.TempDir(), nil)
+	rec := events.New(t.TempDir(), redact.Sanitizer(redact.NewRegistry()))
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
 		FetchRSS: func(string) (loop.RSSResult, error) {
@@ -112,7 +113,7 @@ func TestQbAddFailureEmitsErrorEvent(t *testing.T) {
 	s := seed(t, []protocol.Replica{replica("", "")}, nil)
 	qbFake := newFake()
 	qbFake.addErr = errors.New("qBittorrent add failed")
-	rec := events.New(t.TempDir(), nil)
+	rec := events.New(t.TempDir(), redact.Sanitizer(redact.NewRegistry()))
 	_ = loop.Tick(loop.Deps{
 		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK, Events: rec,
 		FetchRSS: func(string) (loop.RSSResult, error) {
