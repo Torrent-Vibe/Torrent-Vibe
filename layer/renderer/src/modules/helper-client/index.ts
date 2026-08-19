@@ -1,10 +1,7 @@
 export {
   backfillHelper,
-  checkHelper,
   discoverHelper,
   getHelperConfig,
-  getHelperEvents,
-  getHelperLogs,
   getHelperProfile,
   getHelperStatus,
   getHelperSubscriptions,
@@ -34,6 +31,7 @@ export {
 export type { HelperCapabilities } from './capabilities'
 export { helperCapabilities } from './capabilities'
 export { connectHelper, helperOwnerName } from './connect'
+export { checkHelper, getHelperEvents, getHelperLogs } from './events-api'
 export {
   useCurrentHelperPaired,
   useCurrentHelperTarget,
