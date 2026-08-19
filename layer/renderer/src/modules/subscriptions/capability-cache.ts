@@ -1,9 +1,7 @@
-import type { HelperCapabilities } from '../helper-client'
-import {
-  discoverHelper,
-  getHelperBinding,
-  helperCapabilities,
-} from '../helper-client'
+import { discoverHelper } from '../helper-client/api'
+import { getHelperBinding } from '../helper-client/bindings'
+import type { HelperCapabilities } from '../helper-client/capabilities'
+import { helperCapabilities } from '../helper-client/capabilities'
 import type { SubscriptionsState } from './store'
 import { subscriptionStore } from './store'
 

@@ -1,5 +1,6 @@
 import { storage, STORAGE_KEYS } from '~/lib/storage-keys'
 
+import { ensureServerCapabilities } from '../subscriptions/capability-cache'
 import { discoverHelper, normalizeHelperBaseUrl, pairHelper } from './api'
 import {
   listServerHelperTargets,
@@ -64,6 +65,7 @@ export const connectHelper = async (
       identity.name,
     )
     setHelperBinding(serverId, { clientId, url: normalized, token })
+    void ensureServerCapabilities([serverId])
   } catch (error) {
     if (error instanceof Error && error.message === 'helperUrlInUse') {
       return { ok: false, error: 'urlInUse', owner: normalized }
