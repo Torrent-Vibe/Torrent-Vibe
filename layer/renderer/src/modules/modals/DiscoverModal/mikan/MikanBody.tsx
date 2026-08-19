@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ScrollArea } from '~/components/ui/scroll-areas/ScrollArea'
-import { SubscriptionActions } from '~/modules/subscriptions'
+import {
+  startSubscriptionPolling,
+  stopSubscriptionPolling,
+} from '~/modules/subscriptions'
 
 import { presentSettingsModal } from '../../SettingsModal'
 import { DiscoverModalActions } from '../actions'
@@ -44,7 +47,10 @@ export const MikanBody = () => {
   const showSearchResults = bodyMode === 'search'
 
   useEffect(() => {
-    void SubscriptionActions.shared.refreshStatus()
+    startSubscriptionPolling()
+    return () => {
+      stopSubscriptionPolling()
+    }
   }, [])
 
   useEffect(() => {

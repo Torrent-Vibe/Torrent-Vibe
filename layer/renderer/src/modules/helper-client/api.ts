@@ -347,8 +347,14 @@ const parseJobStatus = (value: unknown): HelperJobStatus | null => {
 export const getHelperStatus = async (
   baseUrl: string,
   token: string,
+  signal?: AbortSignal,
 ): Promise<HelperStatusResponse> => {
-  const body = await request(baseUrl, '/status', { method: 'GET' }, token)
+  const body = await request(
+    baseUrl,
+    '/status',
+    { method: 'GET', signal },
+    token,
+  )
   if (
     !body ||
     typeof body !== 'object' ||

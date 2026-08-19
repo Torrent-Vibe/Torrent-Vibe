@@ -28,6 +28,7 @@ export const subscriptionKey = (bangumiId: string, subgroupId: string) =>
   `${bangumiId}::${subgroupId}`
 
 export interface SubscriptionsState {
+  capabilitiesByServer: Record<string, string[]>
   items: SubscriptionRecord[]
   optimistic: Record<string, OptimisticSubscriptionWrite>
   statusByServer: Record<string, HelperStatusSnapshot>
@@ -38,6 +39,7 @@ const createInitialState = (): SubscriptionsState => ({
   items: [],
   optimistic: {},
   statusByServer: {},
+  capabilitiesByServer: {},
   syncing: false,
 })
 

@@ -65,7 +65,10 @@ const applySyncPatch = (
 
 export const createServerSync = (input: {
   helper: HelperSyncClient
-  loadStatus: (serverId: string) => Promise<HelperStatusResponse | null>
+  loadStatus: (
+    serverId: string,
+    signal?: AbortSignal,
+  ) => Promise<HelperStatusResponse | null>
   now: () => string
   persistItems: (items: SubscriptionRecord[]) => void
 }) => {
@@ -156,7 +159,7 @@ export const createServerSync = (input: {
     return result
   }
 
-  const refreshStatus = async (serverIds?: string[]) => {
+  const refreshStatus = async (serverIds?: string[], signal?: AbortSignal) => {
     const ids = unique(
       serverIds ?? [
         ...listServerHelperTargets()
@@ -171,7 +174,7 @@ export const createServerSync = (input: {
     await Promise.all(
       ids.map(async (serverId) => {
         try {
-          const status = await input.loadStatus(serverId)
+          const status = await input.loadStatus(serverId, signal)
           subscriptionStore.setState((draft) => {
             draft.statusByServer[serverId] = status
               ? { replicas: status.replicas, jobs: status.jobs, fetchedAt }

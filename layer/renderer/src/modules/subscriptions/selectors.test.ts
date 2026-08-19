@@ -74,6 +74,7 @@ function state(partial: Partial<SubscriptionsState> = {}): SubscriptionsState {
     items: [],
     optimistic: {},
     statusByServer: {},
+    capabilitiesByServer: {},
     syncing: false,
     ...partial,
   }
