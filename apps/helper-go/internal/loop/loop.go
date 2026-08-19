@@ -130,7 +130,11 @@ func runTick(deps Deps) error {
 		if err != nil {
 			return err
 		}
-		addedCount += len(next) - before
+		for _, episode := range next[before:] {
+			if episode.State == protocol.StateAdded {
+				addedCount++
+			}
+		}
 		maps[key] = next
 	}
 	for key, episodes := range maps {
