@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -57,6 +58,22 @@ func bearerToken(r *http.Request) (string, bool) {
 		return "", false
 	}
 	return token, true
+}
+
+func queryUint64(r *http.Request, key string) uint64 {
+	v, err := strconv.ParseUint(r.URL.Query().Get(key), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+func queryInt(r *http.Request, key string) int {
+	v, err := strconv.Atoi(r.URL.Query().Get(key))
+	if err != nil {
+		return 0
+	}
+	return v
 }
 
 func safeEqual(left, right string) bool {

@@ -26,12 +26,16 @@ type writer struct {
 	pending  []byte
 }
 
+func Path(dataDir string) string {
+	return filepath.Join(dataDir, "logs", filename)
+}
+
 func Open(dataDir string, r *redact.Registry) (io.Writer, func() error, error) {
 	dir := filepath.Join(dataDir, "logs")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, nil, err
 	}
-	path := filepath.Join(dir, filename)
+	path := Path(dataDir)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, nil, err

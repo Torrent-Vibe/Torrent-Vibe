@@ -98,6 +98,29 @@ func TestKeepsOnlyThreeFilesTotal(t *testing.T) {
 	}
 }
 
+func TestPathMatchesWhereOpenWrites(t *testing.T) {
+	dir := t.TempDir()
+	registry := redact.NewRegistry()
+	w, closeFn, err := logfile.Open(dir, registry)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if _, err := w.Write([]byte("hello\n")); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := closeFn(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	raw, err := os.ReadFile(logfile.Path(dir))
+	if err != nil {
+		t.Fatalf("ReadFile(logfile.Path(dir)): %v", err)
+	}
+	if string(raw) != "hello\n" {
+		t.Fatalf("content = %q", raw)
+	}
+}
+
 func TestSecretRedactedBeforeWrite(t *testing.T) {
 	dir := t.TempDir()
 	registry := redact.NewRegistry()

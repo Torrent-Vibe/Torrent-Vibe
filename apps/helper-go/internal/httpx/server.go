@@ -58,6 +58,8 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("GET /profile", rt.authed(rt.getProfile))
 	mux.HandleFunc("PATCH /profile", rt.authed(rt.patchProfile))
 	mux.HandleFunc("POST /retry", rt.authed(rt.retry))
+	mux.HandleFunc("GET /events", rt.authed(rt.getEvents))
+	mux.HandleFunc("GET /logs", rt.authed(rt.getLogs))
 	return mux
 }
 
@@ -72,6 +74,9 @@ func (rt *Runtime) authed(next http.HandlerFunc) http.HandlerFunc {
 		if !ok {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
+		}
+		if rt.Redact != nil {
+			rt.Redact.Add(token)
 		}
 		ctx := context.WithValue(r.Context(), clientContextKey{}, client.ID)
 		next(w, r.WithContext(ctx))
