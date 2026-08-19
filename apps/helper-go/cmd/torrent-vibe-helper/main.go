@@ -166,14 +166,7 @@ func run() error {
 			return err
 		},
 		ApplyConfig: func(next config.File) {
-			mu.Lock()
-			previousQbitPass := lastQbitPass
-			lastQbitPass = next.QbitPass
-			mu.Unlock()
-			if next.QbitPass != previousQbitPass {
-				redactRegistry.Remove(previousQbitPass)
-				redactRegistry.Add(next.QbitPass)
-			}
+			swapQbitPassSecret(&mu, redactRegistry, &lastQbitPass, next.QbitPass)
 			_ = out.apply(next.ProxyURL)
 			startLoop(next)
 		},
@@ -312,6 +305,16 @@ func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
 	client := h.client
 	h.mu.Unlock()
 	return fetchBytes(client, rawURL)
+}
+
+func swapQbitPassSecret(mu *sync.Mutex, registry *redact.Registry, last *string, next string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if next == *last {
+		return
+	}
+	registry.Swap(*last, next)
+	*last = next
 }
 
 func fetchBytes(client *http.Client, rawURL string) ([]byte, error) {

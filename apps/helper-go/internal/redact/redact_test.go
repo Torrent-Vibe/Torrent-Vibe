@@ -206,6 +206,48 @@ func TestSanitizerNonStringFieldValuesPassThroughUntouched(t *testing.T) {
 	}
 }
 
+func TestSwapNeverExposesGapToConcurrentApply(t *testing.T) {
+	r := redact.NewRegistry()
+	r.Add("old-secret")
+
+	const text = "value old-secret and new-secret together"
+	done := make(chan struct{})
+	violation := make(chan string, 1)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-done:
+				return
+			default:
+			}
+			got := r.Apply(text)
+			if strings.Contains(got, "old-secret") && strings.Contains(got, "new-secret") {
+				select {
+				case violation <- got:
+				default:
+				}
+			}
+		}
+	}()
+
+	for i := 0; i < 5000; i++ {
+		r.Swap("old-secret", "new-secret")
+		r.Swap("new-secret", "old-secret")
+	}
+	close(done)
+	wg.Wait()
+
+	select {
+	case got := <-violation:
+		t.Fatalf("Apply observed neither old nor new secret redacted: %q", got)
+	default:
+	}
+}
+
 func TestRegistryConcurrentAddApplyIsRaceFree(t *testing.T) {
 	r := redact.NewRegistry()
 	var wg sync.WaitGroup

@@ -32,6 +32,15 @@ func (r *Registry) Remove(secret string) {
 	delete(r.secrets, secret)
 }
 
+func (r *Registry) Swap(old, next string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.secrets, old)
+	if strings.TrimSpace(next) != "" {
+		r.secrets[next] = struct{}{}
+	}
+}
+
 func (r *Registry) Apply(s string) string {
 	r.mu.RLock()
 	secrets := make([]string, 0, len(r.secrets))
