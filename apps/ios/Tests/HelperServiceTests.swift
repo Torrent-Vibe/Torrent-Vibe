@@ -217,6 +217,54 @@ final class HelperServiceTests: XCTestCase {
     XCTAssertEqual(retried.episodes.first?.state, .pending)
   }
 
+  func testEmptySubscriptionsSnapshotTreatsNullReplicasAsEmpty() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.url?.path, "/subscriptions")
+      return Self.response(
+        request,
+        status: 200,
+        json: ["revision": 0, "replicas": NSNull()]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let snapshot = try await service.subscriptions(at: baseURL, token: "token-value")
+    XCTAssertEqual(snapshot.revision, 0)
+    XCTAssertEqual(snapshot.replicas, [])
+  }
+
+  func testRuntimeStatusTreatsNullCollectionsAsEmpty() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.url?.path, "/status")
+      return Self.response(
+        request,
+        status: 200,
+        json: [
+          "replicas": [
+            [
+              "id": "mikan:3952:583",
+              "bangumiId": "3952",
+              "title": "关于我转生变成史莱姆这档事 第四季",
+              "subgroupId": "583",
+              "subgroupName": "ANi",
+              "rssUrl": "https://mikanani.me/RSS/Bangumi?bangumiId=3952&subgroupid=583",
+              "episodes": NSNull(),
+            ]
+          ],
+          "jobs": NSNull(),
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let status = try await service.runtimeStatus(at: baseURL, token: "token-value")
+    XCTAssertEqual(status.replicas.map(\.id), ["mikan:3952:583"])
+    XCTAssertEqual(status.replicas.first?.episodes, [])
+    XCTAssertEqual(status.jobs, [])
+  }
+
   func testRevisionConflictIncludesLatestSnapshot() async throws {
     StubURLProtocol.handler = { request in
       Self.response(
@@ -372,6 +420,35 @@ final class HelperServiceTests: XCTestCase {
     } catch HelperServiceError.profileRevisionConflict(let latest) {
       XCTAssertEqual(latest.revision, 8)
       XCTAssertEqual(latest.records.map(\.key), ["ai.openrouter.apiKey"])
+    }
+  }
+
+  func testSubscriptionRevisionConflictAcceptsNullReplicas() async throws {
+    StubURLProtocol.handler = { request in
+      Self.response(
+        request,
+        status: 409,
+        json: [
+          "error": "revision conflict",
+          "revision": 1,
+          "replicas": NSNull(),
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    do {
+      _ = try await service.replaceSubscriptions(
+        at: baseURL,
+        token: "token-value",
+        revision: 0,
+        replicas: []
+      )
+      XCTFail("Expected revision conflict")
+    } catch HelperServiceError.revisionConflict(let latest) {
+      XCTAssertEqual(latest.revision, 1)
+      XCTAssertEqual(latest.replicas, [])
     }
   }
 

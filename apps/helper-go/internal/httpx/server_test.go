@@ -279,6 +279,38 @@ func TestSubscriptionsRequiresBearer(t *testing.T) {
 	res.Body.Close()
 }
 
+func TestGetSubscriptionsEmptyReplicasIsJSONArray(t *testing.T) {
+	srv := start(t)
+	defer srv.Close()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/subscriptions", nil)
+	req.Header.Set("authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatal(res.Status)
+	}
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload struct {
+		Replicas json.RawMessage `json:"replicas"`
+		Revision uint64          `json:"revision"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Revision != 0 {
+		t.Fatalf("revision=%d body=%s", payload.Revision, raw)
+	}
+	if string(payload.Replicas) != "[]" {
+		t.Fatalf("replicas=%s body=%s", payload.Replicas, raw)
+	}
+}
+
 func TestPutSubscriptionsAppliesDiff(t *testing.T) {
 	srv := start(t)
 	defer srv.Close()

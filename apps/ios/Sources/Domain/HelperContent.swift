@@ -50,12 +50,25 @@ struct HelperReplica: Codable, Hashable, Identifiable, Sendable {
   let rssUrl: String
 }
 
-struct HelperSubscriptionSnapshot: Codable, Hashable, Sendable {
+struct HelperSubscriptionSnapshot: Encodable, Hashable, Sendable {
   let revision: UInt64
   let replicas: [HelperReplica]
 }
 
-struct HelperReplicaStatus: Codable, Hashable, Identifiable, Sendable {
+extension HelperSubscriptionSnapshot: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case revision
+    case replicas
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    revision = try container.decode(UInt64.self, forKey: .revision)
+    replicas = try container.decodeNullAsEmpty([HelperReplica].self, forKey: .replicas)
+  }
+}
+
+struct HelperReplicaStatus: Encodable, Hashable, Identifiable, Sendable {
   let id: String
   let bangumiId: String
   let title: String
@@ -78,7 +91,32 @@ struct HelperReplicaStatus: Codable, Hashable, Identifiable, Sendable {
   }
 }
 
-struct HelperJobStatus: Codable, Hashable, Identifiable, Sendable {
+extension HelperReplicaStatus: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case id
+    case bangumiId
+    case title
+    case bangumiSubjectId
+    case subgroupId
+    case subgroupName
+    case rssUrl
+    case episodes
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(String.self, forKey: .id)
+    bangumiId = try container.decode(String.self, forKey: .bangumiId)
+    title = try container.decode(String.self, forKey: .title)
+    bangumiSubjectId = try container.decodeIfPresent(String.self, forKey: .bangumiSubjectId)
+    subgroupId = try container.decode(String.self, forKey: .subgroupId)
+    subgroupName = try container.decode(String.self, forKey: .subgroupName)
+    rssUrl = try container.decode(String.self, forKey: .rssUrl)
+    episodes = try container.decodeMissingOrNull([HelperEpisodeStatus].self, forKey: .episodes)
+  }
+}
+
+struct HelperJobStatus: Encodable, Hashable, Identifiable, Sendable {
   let bangumiId: String
   let subgroupId: String
   let episodes: [HelperEpisodeStatus]
@@ -86,9 +124,37 @@ struct HelperJobStatus: Codable, Hashable, Identifiable, Sendable {
   var id: String { "\(bangumiId):\(subgroupId)" }
 }
 
-struct HelperRuntimeStatus: Codable, Hashable, Sendable {
+extension HelperJobStatus: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case bangumiId
+    case subgroupId
+    case episodes
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    bangumiId = try container.decode(String.self, forKey: .bangumiId)
+    subgroupId = try container.decode(String.self, forKey: .subgroupId)
+    episodes = try container.decodeMissingOrNull([HelperEpisodeStatus].self, forKey: .episodes)
+  }
+}
+
+struct HelperRuntimeStatus: Encodable, Hashable, Sendable {
   let replicas: [HelperReplicaStatus]
   let jobs: [HelperJobStatus]
+}
+
+extension HelperRuntimeStatus: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case replicas
+    case jobs
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    replicas = try container.decodeMissingOrNull([HelperReplicaStatus].self, forKey: .replicas)
+    jobs = try container.decodeMissingOrNull([HelperJobStatus].self, forKey: .jobs)
+  }
 }
 
 struct HelperBackfillEpisode: Codable, Hashable, Sendable {
@@ -99,8 +165,19 @@ struct HelperBackfillEpisode: Codable, Hashable, Sendable {
   let sizeBytes: Int64?
 }
 
-struct HelperBackfillResult: Codable, Hashable, Sendable {
+struct HelperBackfillResult: Encodable, Hashable, Sendable {
   let episodes: [HelperEpisodeStatus]
+}
+
+extension HelperBackfillResult: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case episodes
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    episodes = try container.decodeMissingOrNull([HelperEpisodeStatus].self, forKey: .episodes)
+  }
 }
 
 struct HelperRetryRequest: Codable, Hashable, Sendable {
@@ -126,9 +203,22 @@ struct HelperProfileRecord: Codable, Hashable, Identifiable, Sendable {
   var id: String { key }
 }
 
-struct HelperProfileSnapshot: Codable, Hashable, Sendable {
+struct HelperProfileSnapshot: Encodable, Hashable, Sendable {
   let revision: UInt64
   let records: [HelperProfileRecord]
+}
+
+extension HelperProfileSnapshot: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case revision
+    case records
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    revision = try container.decode(UInt64.self, forKey: .revision)
+    records = try container.decodeNullAsEmpty([HelperProfileRecord].self, forKey: .records)
+  }
 }
 
 struct HelperProfileMutation: Codable, Hashable, Sendable {
@@ -165,4 +255,17 @@ enum HelperSubscriptionLoadState: Equatable, Sendable {
   case idle
   case loaded(snapshot: HelperSubscriptionSnapshot, status: HelperRuntimeStatus)
   case loading
+}
+
+private extension KeyedDecodingContainer {
+  func decodeMissingOrNull<T: Decodable>(_ type: [T].Type, forKey key: Key) throws -> [T] {
+    try decodeIfPresent([T].self, forKey: key) ?? []
+  }
+
+  func decodeNullAsEmpty<T: Decodable>(_ type: [T].Type, forKey key: Key) throws -> [T] {
+    if try decodeNil(forKey: key) {
+      return []
+    }
+    return try decode([T].self, forKey: key)
+  }
 }

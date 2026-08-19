@@ -34,8 +34,28 @@ func TestStoreRoundTrip(t *testing.T) {
 func TestStoreMissingFileIsEmpty(t *testing.T) {
 	s := store.New(t.TempDir())
 	snapshot, err := s.LoadReplicaSnapshot()
-	if err != nil || len(snapshot.Replicas) != 0 || snapshot.Revision != 0 {
+	if err != nil || snapshot.Revision != 0 {
 		t.Fatalf("%v %+v", err, snapshot)
+	}
+	if snapshot.Replicas == nil {
+		t.Fatal("empty snapshot returned nil replicas")
+	}
+	if len(snapshot.Replicas) != 0 {
+		t.Fatalf("%+v", snapshot)
+	}
+}
+
+func TestSaveReplicasIfRevisionEmptyIsNonNil(t *testing.T) {
+	s := store.New(t.TempDir())
+	snapshot, err := s.SaveReplicasIfRevision(nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Replicas == nil {
+		t.Fatal("saved empty snapshot returned nil replicas")
+	}
+	if snapshot.Revision != 1 || len(snapshot.Replicas) != 0 {
+		t.Fatalf("%+v", snapshot)
 	}
 }
 

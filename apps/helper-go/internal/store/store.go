@@ -29,6 +29,12 @@ func EpisodeKey(bangumiID, subgroupID string) string {
 	return bangumiID + ":" + subgroupID
 }
 
+func cloneReplicas(replicas []protocol.Replica) []protocol.Replica {
+	out := make([]protocol.Replica, len(replicas))
+	copy(out, replicas)
+	return out
+}
+
 type persisted struct {
 	Revision uint64               `json:"revision"`
 	Replicas []protocol.Replica   `json:"replicas"`
@@ -70,7 +76,7 @@ func (s *Store) LoadReplicaSnapshot() (ReplicaSnapshot, error) {
 	}
 	return ReplicaSnapshot{
 		Revision: data.Revision,
-		Replicas: append([]protocol.Replica(nil), data.Replicas...),
+		Replicas: cloneReplicas(data.Replicas),
 	}, nil
 }
 
@@ -96,17 +102,17 @@ func (s *Store) SaveReplicasIfRevision(replicas []protocol.Replica, expected uin
 	if data.Revision != expected {
 		return ReplicaSnapshot{
 			Revision: data.Revision,
-			Replicas: append([]protocol.Replica(nil), data.Replicas...),
+			Replicas: cloneReplicas(data.Replicas),
 		}, ErrRevisionConflict
 	}
 	data.Revision++
-	data.Replicas = append([]protocol.Replica(nil), replicas...)
+	data.Replicas = cloneReplicas(replicas)
 	if err := s.write(data); err != nil {
 		return ReplicaSnapshot{}, err
 	}
 	return ReplicaSnapshot{
 		Revision: data.Revision,
-		Replicas: append([]protocol.Replica(nil), data.Replicas...),
+		Replicas: cloneReplicas(data.Replicas),
 	}, nil
 }
 
