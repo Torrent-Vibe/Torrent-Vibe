@@ -65,6 +65,39 @@ func TestRunTickReportsFailedCheck(t *testing.T) {
 	}
 }
 
+func TestRunTickRecordsCheckFailureWhenQBUnreachable(t *testing.T) {
+	s := seed(t, []protocol.Replica{replica("", "")}, nil)
+	qbFake := newFake()
+	qbFake.listErr = errors.New("connection refused")
+	var calls int
+	var gotKey string
+	var gotErr error
+	fetchCalled := false
+	_ = loop.Tick(loop.Deps{
+		Store: s, QB: qbFake, LibraryRoot: "/library", FetchTorrent: torrentOK,
+		FetchRSS: func(string) (loop.RSSResult, error) {
+			fetchCalled = true
+			return loop.RSSResult{Body: rssFeed()}, nil
+		},
+		OnReplicaChecked: func(key string, at time.Time, err error) {
+			calls++
+			gotKey, gotErr = key, err
+		},
+	})
+	if fetchCalled {
+		t.Fatal("FetchRSS should not run when qBittorrent is unreachable")
+	}
+	if calls != 1 {
+		t.Fatalf("calls = %d, want 1", calls)
+	}
+	if gotKey != mapKey {
+		t.Fatalf("key = %q, want %q", gotKey, mapKey)
+	}
+	if gotErr == nil || gotErr.Error() != "connection refused" {
+		t.Fatalf("err = %v, want %q", gotErr, "connection refused")
+	}
+}
+
 func TestRunTickSkipsOnReplicaCheckedWithoutFetchAttempt(t *testing.T) {
 	replicaNoRSS := replica("", "")
 	replicaNoRSS.RSSURL = ""

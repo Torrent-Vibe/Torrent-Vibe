@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -209,7 +210,11 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 	added, removed := diffCounts(ops)
 	if rt.Events != nil {
-		rt.Events.Emit(events.Event{Level: "info", Kind: "subscription.put", Fields: map[string]any{"added": added, "removed": removed}})
+		rt.Events.Emit(events.Event{
+			Level: "info", Kind: "subscription.put",
+			Message: fmt.Sprintf("Subscriptions updated: %d added, %d removed", added, removed),
+			Fields:  map[string]any{"added": added, "removed": removed},
+		})
 	}
 	rt.kick("subscriptions")
 	writeJSON(w, http.StatusOK, map[string]any{"revision": saved.Revision, "replicas": saved.Replicas})

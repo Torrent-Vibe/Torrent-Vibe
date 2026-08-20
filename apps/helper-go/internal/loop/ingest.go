@@ -2,6 +2,7 @@ package loop
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
@@ -84,9 +85,9 @@ func ingestEpisodes(
 	}
 	applyVariantPick(candidates, episodes, deps.VariantPrefer)
 	for _, candidate := range candidates {
-		emitFor := func(level, kind string, fields map[string]any) {
+		emitFor := func(level, kind, message string, fields map[string]any) {
 			deps.emit(events.Event{
-				Level: level, Kind: kind, Fields: fields,
+				Level: level, Kind: kind, Message: message, Fields: fields,
 				ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID, EpisodeID: candidate.item.EpisodeID,
 			})
 		}
@@ -99,7 +100,7 @@ func ingestEpisodes(
 			record.State = protocol.StateNeedsManual
 			episodes = append(episodes, record)
 			remember(byID, byHash, record)
-			emitFor("info", "episode.manual", map[string]any{"reason": candidate.manualReason})
+			emitFor("info", "episode.manual", fmt.Sprintf("Needs manual review (%s): %s", candidate.manualReason, candidate.item.Title), map[string]any{"reason": candidate.manualReason})
 			continue
 		}
 		if candidate.skip {
@@ -108,7 +109,7 @@ func ingestEpisodes(
 			record.LastError = candidate.reason
 			episodes = append(episodes, record)
 			remember(byID, byHash, record)
-			emitFor("info", "episode.skip", map[string]any{"reason": candidate.reason, "rival": candidate.rival})
+			emitFor("info", "episode.skip", fmt.Sprintf("Skipped (%s), lost to %s", candidate.reason, candidate.rival), map[string]any{"reason": candidate.reason, "rival": candidate.rival})
 			continue
 		}
 		raw, err := fetchTorrent(deps, candidate.item.TorrentURL)
@@ -118,7 +119,7 @@ func ingestEpisodes(
 			record.LastError = err.Error()
 			episodes = append(episodes, record)
 			remember(byID, byHash, record)
-			emitFor("error", "torrent.fetch", map[string]any{"url": candidate.item.TorrentURL, "error": err.Error()})
+			emitFor("error", "torrent.fetch", fmt.Sprintf("Failed to download torrent file: %s", err.Error()), map[string]any{"url": candidate.item.TorrentURL, "error": err.Error()})
 			continue
 		}
 		show := showTitle(candidate.series, replica.Title)
@@ -139,7 +140,7 @@ func ingestEpisodes(
 			record.LastError = err.Error()
 			episodes = append(episodes, record)
 			remember(byID, byHash, record)
-			emitFor("error", "qb.add", map[string]any{"error": err.Error()})
+			emitFor("error", "qb.add", fmt.Sprintf("Failed to add torrent to qBittorrent: %s", err.Error()), map[string]any{"error": err.Error()})
 			continue
 		}
 		hash = strings.ToLower(hash)
@@ -148,7 +149,7 @@ func ingestEpisodes(
 		episodes = append(episodes, record)
 		remember(byID, byHash, record)
 		presentHashes[hash] = struct{}{}
-		emitFor("info", "qb.add", map[string]any{"hash": hash, "savePath": savePath, "category": category, "tags": tags})
+		emitFor("info", "qb.add", fmt.Sprintf("Added to qBittorrent: %s", show), map[string]any{"hash": hash, "savePath": savePath, "category": category, "tags": tags})
 	}
 	return episodes, nil
 }

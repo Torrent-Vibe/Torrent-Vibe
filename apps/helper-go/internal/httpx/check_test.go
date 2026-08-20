@@ -206,6 +206,9 @@ func TestPutAndCheckEmitSubscriptionEvents(t *testing.T) {
 	if puts[0].Fields["added"] != 2 || puts[0].Fields["removed"] != 0 {
 		t.Fatalf("fields = %+v", puts[0].Fields)
 	}
+	if puts[0].Message == "" {
+		t.Fatal("subscription.put event must carry a human-readable message")
+	}
 
 	checks, _ := rec.Query(events.Query{Kind: "subscription.check"})
 	if len(checks) != 2 {
@@ -216,6 +219,9 @@ func TestPutAndCheckEmitSubscriptionEvents(t *testing.T) {
 	}
 	if checks[1].Fields["source"] != "check" {
 		t.Fatalf("second check source = %+v", checks[1].Fields)
+	}
+	if checks[0].Message == "" || checks[1].Message == "" {
+		t.Fatal("subscription.check events must carry a human-readable message")
 	}
 }
 

@@ -73,6 +73,7 @@ func TestAllowedFieldsWhitelist(t *testing.T) {
 		{"torrent.fetch", []string{"url", "error"}},
 		{"qb.add", []string{"hash", "savePath", "category", "tags", "error"}},
 		{"qb.rename", []string{"from", "to", "error"}},
+		{"qb.list", []string{"error"}},
 		{"episode.done", []string{"hash"}},
 		{"subscription.put", []string{"added", "removed"}},
 		{"subscription.check", []string{"source"}},

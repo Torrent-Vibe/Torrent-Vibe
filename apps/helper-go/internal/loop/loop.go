@@ -1,6 +1,7 @@
 package loop
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -116,13 +117,32 @@ func runTick(deps Deps) error {
 	if err != nil {
 		return err
 	}
-	deps.emit(events.Event{Level: "info", Kind: "tick.start", Fields: map[string]any{"replicaCount": len(replicas)}})
+	deps.emit(events.Event{
+		Level: "info", Kind: "tick.start",
+		Message: fmt.Sprintf("Starting check across %d replica(s)", len(replicas)),
+		Fields:  map[string]any{"replicaCount": len(replicas)},
+	})
 	maps, err := deps.Store.LoadEpisodes()
 	if err != nil {
 		return err
 	}
 	torrents, err := deps.QB.ListTorrents()
 	if err != nil {
+		deps.emit(events.Event{
+			Level: "error", Kind: "qb.list",
+			Message: fmt.Sprintf("Failed to reach qBittorrent: %s", err.Error()),
+			Fields:  map[string]any{"error": err.Error()},
+		})
+		for _, replica := range replicas {
+			deps.checkedReplica(store.EpisodeKey(replica.BangumiID, replica.SubgroupID), err)
+		}
+		deps.emit(events.Event{
+			Level: "info", Kind: "tick.done",
+			Message: fmt.Sprintf("Check finished: %d replica(s), 0 episode(s) added (qBittorrent unreachable)", len(replicas)),
+			Fields: map[string]any{
+				"replicaCount": len(replicas), "addedCount": 0, "durationMs": time.Since(start).Milliseconds(),
+			},
+		})
 		return err
 	}
 	present := hashesOf(torrents)
@@ -159,9 +179,13 @@ func runTick(deps Deps) error {
 		maps[key] = next
 	}
 	err = deps.Store.SaveEpisodes(maps)
-	deps.emit(events.Event{Level: "info", Kind: "tick.done", Fields: map[string]any{
-		"replicaCount": len(replicas), "addedCount": addedCount, "durationMs": time.Since(start).Milliseconds(),
-	}})
+	deps.emit(events.Event{
+		Level: "info", Kind: "tick.done",
+		Message: fmt.Sprintf("Check finished: %d replica(s), %d episode(s) added", len(replicas), addedCount),
+		Fields: map[string]any{
+			"replicaCount": len(replicas), "addedCount": addedCount, "durationMs": time.Since(start).Milliseconds(),
+		},
+	})
 	return err
 }
 
@@ -171,6 +195,7 @@ func fetchRSSEpisodes(deps Deps, replica protocol.Replica) ([]mikan.RssEpisode, 
 		deps.emit(events.Event{
 			Level: "warn", Kind: "rss.fetch",
 			ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID,
+			Message: fmt.Sprintf("RSS fetch failed: %s", err.Error()),
 			Fields: map[string]any{
 				"url": replica.RSSURL, "httpStatus": result.StatusCode, "itemCount": 0,
 				"durationMs": result.Duration.Milliseconds(), "error": err.Error(),
@@ -182,6 +207,7 @@ func fetchRSSEpisodes(deps Deps, replica protocol.Replica) ([]mikan.RssEpisode, 
 	deps.emit(events.Event{
 		Level: "info", Kind: "rss.fetch",
 		ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID,
+		Message: fmt.Sprintf("RSS fetch returned %d item(s)", len(incoming)),
 		Fields: map[string]any{
 			"url": replica.RSSURL, "httpStatus": result.StatusCode, "itemCount": len(incoming),
 			"durationMs": result.Duration.Milliseconds(),
@@ -280,14 +306,16 @@ func syncCompleted(
 				deps.emit(events.Event{
 					Level: "error", Kind: "qb.rename",
 					ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID, EpisodeID: episode.EpisodeID,
-					Fields: map[string]any{"from": plan.From, "to": plan.To, "error": err.Error()},
+					Message: fmt.Sprintf("Failed to rename %s: %s", plan.From, err.Error()),
+					Fields:  map[string]any{"from": plan.From, "to": plan.To, "error": err.Error()},
 				})
 				break
 			}
 			deps.emit(events.Event{
 				Level: "info", Kind: "qb.rename",
 				ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID, EpisodeID: episode.EpisodeID,
-				Fields: map[string]any{"from": plan.From, "to": plan.To},
+				Message: fmt.Sprintf("Renamed %s to %s", plan.From, plan.To),
+				Fields:  map[string]any{"from": plan.From, "to": plan.To},
 			})
 		}
 		if failed {
@@ -299,7 +327,8 @@ func syncCompleted(
 		deps.emit(events.Event{
 			Level: "info", Kind: "episode.done",
 			ReplicaID: replica.ID, BangumiID: replica.BangumiID, SubgroupID: replica.SubgroupID, EpisodeID: episode.EpisodeID,
-			Fields: map[string]any{"hash": episode.Infohash},
+			Message: "Episode download complete",
+			Fields:  map[string]any{"hash": episode.Infohash},
 		})
 	}
 	return next, nil

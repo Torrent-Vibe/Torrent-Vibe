@@ -85,6 +85,7 @@ type fakeQB struct {
 	renames  []struct{ Hash, From, To string }
 	addErr   error
 	renErr   error
+	listErr  error
 	onRename func(*fakeQB)
 }
 
@@ -96,6 +97,9 @@ func newFake(initial ...qb.Torrent) *fakeQB {
 func (f *fakeQB) ListTorrents() ([]qb.Torrent, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
 	out := make([]qb.Torrent, len(f.torrents))
 	copy(out, f.torrents)
 	return out, nil

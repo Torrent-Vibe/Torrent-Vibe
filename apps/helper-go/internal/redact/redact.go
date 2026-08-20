@@ -67,6 +67,7 @@ var fieldWhitelist = map[string][]string{
 	"torrent.fetch":      {"url", "error"},
 	"qb.add":             {"hash", "savePath", "category", "tags", "error"},
 	"qb.rename":          {"from", "to", "error"},
+	"qb.list":            {"error"},
 	"episode.done":       {"hash"},
 	"subscription.put":   {"added", "removed"},
 	"subscription.check": {"source"},
