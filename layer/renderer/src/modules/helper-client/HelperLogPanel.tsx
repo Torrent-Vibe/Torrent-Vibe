@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { SegmentTab } from '~/components/ui/segment-tab'
 
 import type { HelperCapabilities } from './capabilities'
+import type { HelperLogTabId } from './helper-log-tabs'
+import { defaultHelperLogTab, helperLogTabState } from './helper-log-tabs'
 import { HelperLogEventsTab } from './HelperLogEventsTab'
 import { HelperLogRawTab } from './HelperLogRawTab'
-
-type HelperLogTab = 'events' | 'raw'
 
 export interface HelperLogPanelProps {
   baseUrl: string
@@ -23,17 +23,13 @@ export const HelperLogPanel = ({
   replicaId,
 }: HelperLogPanelProps) => {
   const { t } = useTranslation('app')
-  const [tab, setTab] = useState<HelperLogTab>('events')
-
-  if (!capabilities.events) {
-    return (
-      <p className="text-sm text-text-secondary">{t('helper.logs.tooOld')}</p>
-    )
-  }
+  const [tab, setTab] = useState<HelperLogTabId>(() =>
+    defaultHelperLogTab(capabilities),
+  )
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <SegmentTab<HelperLogTab>
+      <SegmentTab<HelperLogTabId>
         containerClassName="w-full max-w-52"
         size="sm"
         value={tab}
@@ -44,7 +40,11 @@ export const HelperLogPanel = ({
         onChange={setTab}
       />
       <div className="min-h-0 flex-1">
-        {tab === 'events' ? (
+        {helperLogTabState(tab, capabilities) === 'unavailable' ? (
+          <p className="text-sm text-text-secondary">
+            {t('helper.logs.tooOld')}
+          </p>
+        ) : tab === 'events' ? (
           <HelperLogEventsTab
             baseUrl={baseUrl}
             replicaId={replicaId}

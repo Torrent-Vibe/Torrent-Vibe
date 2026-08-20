@@ -48,6 +48,8 @@ export {
   createHelperEventsPolling,
   HELPER_EVENTS_POLL_INTERVAL_MS,
 } from './events-polling'
+export type { HelperLogTabId, HelperLogTabState } from './helper-log-tabs'
+export { defaultHelperLogTab, helperLogTabState } from './helper-log-tabs'
 export {
   useCurrentHelperPaired,
   useCurrentHelperTarget,
