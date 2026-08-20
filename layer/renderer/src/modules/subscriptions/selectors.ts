@@ -268,6 +268,34 @@ export const episodeStateForDisplay = (
   return null
 }
 
+export interface EpisodeRowStatus {
+  infohash: string | undefined
+  state: HelperEpisodeState | null
+}
+
+export const episodeRowStatusFor = (
+  targetServerIds: string[],
+  bangumiId: string,
+  subgroupId: string,
+  episodeId: string,
+  state: SubscriptionsState,
+): EpisodeRowStatus => ({
+  infohash: episodeStatusFor(
+    targetServerIds,
+    bangumiId,
+    subgroupId,
+    episodeId,
+    state.statusByServer,
+  )?.infohash,
+  state: episodeStateForDisplay(
+    targetServerIds,
+    bangumiId,
+    subgroupId,
+    episodeId,
+    state,
+  ),
+})
+
 export interface SubscriptionProgress {
   failed: number
   ready: number

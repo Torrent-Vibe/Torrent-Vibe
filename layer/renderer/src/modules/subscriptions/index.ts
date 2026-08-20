@@ -17,6 +17,7 @@ export {
   stopSubscriptionPolling,
 } from './polling'
 export type {
+  EpisodeRowStatus,
   ResolvedSubscription,
   SubscriptionProgress,
   SubscriptionSource,
@@ -24,6 +25,7 @@ export type {
 } from './selectors'
 export {
   EPISODE_STATE_RANK,
+  episodeRowStatusFor,
   episodeStateFor,
   episodeStateForDisplay,
   episodeStatusFor,

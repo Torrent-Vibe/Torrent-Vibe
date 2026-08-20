@@ -193,7 +193,7 @@ export const MikanBangumiPage = () => {
           bangumiId={bangumiId}
           episodes={episodes}
           importing={importingFlag}
-          statusByServer={statusByServer}
+          state={subscriptionsState}
           subgroupId={subgroupId}
           subscribed={Boolean(resolvedSubscription)}
           targetServerIds={resolvedSubscription?.record.targetServerIds ?? []}

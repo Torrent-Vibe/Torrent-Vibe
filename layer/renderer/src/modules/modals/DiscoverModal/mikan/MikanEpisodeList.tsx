@@ -8,8 +8,8 @@ import { formatBytesSmart } from '~/lib/format'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import { useCurrentServerId } from '~/modules/helper-client/hooks'
 import { SubscriptionActions } from '~/modules/subscriptions'
-import { episodeStatusFor } from '~/modules/subscriptions/selectors'
-import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
+import { episodeRowStatusFor } from '~/modules/subscriptions/selectors'
+import type { SubscriptionsState } from '~/modules/subscriptions/store'
 import { useTorrentSelection } from '~/modules/torrent/hooks/use-torrent-selection'
 import { useTorrentDataStore } from '~/modules/torrent/stores'
 import { selectTorrentsByHash } from '~/modules/torrent/stores/torrent-selectors'
@@ -24,7 +24,7 @@ export const MikanEpisodeList = ({
   episodes,
   importing,
   onImport,
-  statusByServer,
+  state,
   subscribed,
   targetServerIds,
 }: {
@@ -33,7 +33,7 @@ export const MikanEpisodeList = ({
   episodes: MikanEpisodeExtra[]
   importing: boolean
   onImport: (episodeId: string) => void
-  statusByServer: Record<string, HelperStatusSnapshot>
+  state: SubscriptionsState
   subscribed: boolean
   targetServerIds: string[]
 }) => {
@@ -52,12 +52,12 @@ export const MikanEpisodeList = ({
       {episodes.map((episode) => {
         const status =
           bangumiId && subgroupId
-            ? episodeStatusFor(
+            ? episodeRowStatusFor(
                 targetServerIds,
                 bangumiId,
                 subgroupId,
                 episode.episodeId,
-                statusByServer,
+                state,
               )
             : null
         const model = buildEpisodeRowModel({
