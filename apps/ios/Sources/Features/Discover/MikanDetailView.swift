@@ -99,20 +99,6 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       subgroupID: subgroup.id
     )
     let hasHelper = !model.pairedHelperServers.isEmpty
-    let canBackfill =
-      hasHelper
-      && detail.episodes.contains { $0.subgroupId == subgroup.id }
-      && !state.isUnsubscribing
-
-    let importItem = UIBarButtonItem(
-      image: UIImage(systemName: "square.and.arrow.down"),
-      style: .plain,
-      target: self,
-      action: #selector(backfillFromNavigation)
-    )
-    importItem.isEnabled = canBackfill
-    importItem.accessibilityLabel = "导入已出"
-    importItem.accessibilityIdentifier = "mikan-detail-backfill"
 
     if let subscription {
       let more = UIBarButtonItem(
@@ -136,7 +122,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       )
       more.accessibilityLabel = "更多操作"
       more.accessibilityIdentifier = "mikan-detail-more"
-      navigationItem.rightBarButtonItems = [more, importItem]
+      navigationItem.rightBarButtonItems = [more]
     } else {
       let subscribe = UIBarButtonItem(
         image: UIImage(systemName: "plus"),
@@ -147,18 +133,13 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       subscribe.isEnabled = hasHelper && !state.isUnsubscribing
       subscribe.accessibilityLabel = "订阅"
       subscribe.accessibilityIdentifier = "mikan-detail-subscribe"
-      navigationItem.rightBarButtonItems = [subscribe, importItem]
+      navigationItem.rightBarButtonItems = [subscribe]
     }
   }
 
   @objc private func subscribeFromNavigation() {
     guard let detail = state.detail, let subgroup = actionSubgroup(in: detail) else { return }
-    showHelperAction(.subscribe, subgroup: subgroup)
-  }
-
-  @objc private func backfillFromNavigation() {
-    guard let detail = state.detail, let subgroup = actionSubgroup(in: detail) else { return }
-    showHelperAction(.backfill, subgroup: subgroup)
+    showHelperAction(subgroup: subgroup)
   }
 
   private func actionSubgroup(in detail: MikanBangumiDetail) -> MikanSubgroup? {
@@ -189,17 +170,16 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
     }
   }
 
-  private func showHelperAction(_ action: MikanHelperActionKind, subgroup: MikanSubgroup) {
+  private func showHelperAction(subgroup: MikanSubgroup) {
     guard let detail = state.detail else { return }
     MikanHelperActionViewController.present(
       from: self,
-      action: action,
       baseURL: baseURL,
       detail: detail,
       subgroup: subgroup,
       model: model
-    ) { [weak self] success in
-      self?.presentHelperSuccess(success)
+    ) { [weak self] outcome in
+      self?.presentHelperSuccess(outcome)
     }
   }
 
@@ -249,15 +229,15 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
     }
   }
 
-  private func presentHelperSuccess(_ success: MikanHelperActionSuccess) {
+  private func presentHelperSuccess(_ outcome: HelperSubscriptionOutcome) {
+    let names = outcome.serverNames.joined(separator: "、")
     let message =
-      switch success {
-      case .subscribed(let outcome):
-        outcome.mergedConflict
-          ? "已合并订阅 · \(outcome.serverNames.joined(separator: "、"))"
-          : "已开始持续订阅 · \(outcome.serverNames.joined(separator: "、"))"
-      case .backfilled(let outcome):
-        "已提交 \(outcome.episodeCount) 个剧集"
+      if outcome.backfillFailed {
+        "已订阅，但导入已出剧集失败 · \(names)"
+      } else if outcome.mergedConflict {
+        "已合并订阅 · \(names)"
+      } else {
+        "已订阅 · \(names)"
       }
     AppToast.show(message, from: self)
   }

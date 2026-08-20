@@ -76,6 +76,7 @@
 		5E5622F7C0BCEF9E51B65A3E /* AppModelMikanTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */; };
 		BC65D4F51CEC93EF52FE41F5 /* AppModelHelperCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */; };
 		5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */; };
+		AB9027471A88219B78CC1A45 /* AppModelMikanSubscribeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD563D89EC147BE99D27E0E /* AppModelMikanSubscribeTests.swift */; };
 		F7E4CEB07D420752A1608ED5 /* TorrentVibeShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -170,6 +171,7 @@
 		2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanTestSupport.swift; sourceTree = "<group>"; };
 		81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelHelperCacheTests.swift; sourceTree = "<group>"; };
 		00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanPollingTests.swift; sourceTree = "<group>"; };
+		9BD563D89EC147BE99D27E0E /* AppModelMikanSubscribeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanSubscribeTests.swift; sourceTree = "<group>"; };
 		AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TorrentVibeShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B873C8888711E916CBE5A4DF /* MTeamBatchImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamBatchImportView.swift; sourceTree = "<group>"; };
 		BA34353EC7DAA24B175869C5 /* MikanJavaScriptRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanJavaScriptRuntime.swift; sourceTree = "<group>"; };
@@ -331,6 +333,7 @@
 			children = (
 				81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */,
 				00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */,
+				9BD563D89EC147BE99D27E0E /* AppModelMikanSubscribeTests.swift */,
 				2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */,
 				7E38882EDDC649625E5D90F0 /* AppModelServerTests.swift */,
 				1F7006A0FD560D596A2F19DB /* AppToastTests.swift */,
@@ -546,6 +549,7 @@
 			files = (
 				BC65D4F51CEC93EF52FE41F5 /* AppModelHelperCacheTests.swift in Sources */,
 				5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */,
+				AB9027471A88219B78CC1A45 /* AppModelMikanSubscribeTests.swift in Sources */,
 				5E5622F7C0BCEF9E51B65A3E /* AppModelMikanTestSupport.swift in Sources */,
 				0E6F6B0C28FE8B468B628185 /* AppModelServerTests.swift in Sources */,
 				C3CFE287F95F96B18520E1B6 /* AppToastTests.swift in Sources */,

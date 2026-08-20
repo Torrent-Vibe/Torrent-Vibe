@@ -2,49 +2,34 @@ import Observation
 import SwiftUI
 import UIKit
 
-enum MikanHelperActionKind: Sendable {
-  case backfill
-  case subscribe
-}
-
-enum MikanHelperActionSuccess: Sendable {
-  case backfilled(HelperBackfillOutcome)
-  case subscribed(HelperSubscriptionOutcome)
-}
-
 @MainActor
 @Observable
 private final class MikanHelperActionState {
   var errorMessage: String?
   var isSubmitting = false
-  var selectedServerID: UUID?
   var selectedServerIDs: Set<UUID>
 
   init(model: AppModel) {
     let available = model.pairedHelperServers
     let preferred = available.first(where: { $0.id == model.activeServerID }) ?? available.first
-    selectedServerID = preferred?.id
     selectedServerIDs = preferred.map { [$0.id] } ?? []
   }
 }
 
 final class MikanHelperActionViewController: SwiftUIHostingViewController {
-  private let action: MikanHelperActionKind
   private let baseURL: URL
   private let detail: MikanBangumiDetail
   private let model: AppModel
   private let state: MikanHelperActionState
   private let subgroup: MikanSubgroup
-  private var onCompletion: ((MikanHelperActionSuccess) -> Void)?
+  private var onCompletion: ((HelperSubscriptionOutcome) -> Void)?
 
   init(
-    action: MikanHelperActionKind,
     baseURL: URL,
     detail: MikanBangumiDetail,
     subgroup: MikanSubgroup,
     model: AppModel
   ) {
-    self.action = action
     self.baseURL = baseURL
     self.detail = detail
     self.subgroup = subgroup
@@ -60,7 +45,7 @@ final class MikanHelperActionViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = action == .subscribe ? "持续订阅" : "导入已出"
+    title = "订阅"
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.leftBarButtonItem = UIBarButtonItem(
       barButtonSystemItem: .cancel,
@@ -72,7 +57,6 @@ final class MikanHelperActionViewController: SwiftUIHostingViewController {
 
     host(
       MikanHelperActionContentView(
-        action: action,
         detail: detail,
         subgroup: subgroup,
         onSubmit: { [weak self] in self?.submit() }
@@ -84,15 +68,13 @@ final class MikanHelperActionViewController: SwiftUIHostingViewController {
 
   static func present(
     from presenter: UIViewController,
-    action: MikanHelperActionKind,
     baseURL: URL,
     detail: MikanBangumiDetail,
     subgroup: MikanSubgroup,
     model: AppModel,
-    onCompletion: @escaping (MikanHelperActionSuccess) -> Void
+    onCompletion: @escaping (HelperSubscriptionOutcome) -> Void
   ) {
     let controller = MikanHelperActionViewController(
-      action: action,
       baseURL: baseURL,
       detail: detail,
       subgroup: subgroup,
@@ -118,31 +100,14 @@ final class MikanHelperActionViewController: SwiftUIHostingViewController {
     state.errorMessage = nil
     Task {
       do {
-        let success: MikanHelperActionSuccess
-        switch action {
-        case .subscribe:
-          success = .subscribed(
-            try await model.subscribeToMikan(
-              detail: detail,
-              subgroup: subgroup,
-              baseURL: baseURL,
-              serverIDs: state.selectedServerIDs
-            )
-          )
-        case .backfill:
-          guard let serverID = state.selectedServerID else {
-            throw HelperContentError.noTarget
-          }
-          success = .backfilled(
-            try await model.backfillMikan(
-              detail: detail,
-              subgroup: subgroup,
-              serverID: serverID
-            )
-          )
-        }
+        let outcome = try await model.subscribeToMikan(
+          detail: detail,
+          subgroup: subgroup,
+          baseURL: baseURL,
+          serverIDs: state.selectedServerIDs
+        )
         state.isSubmitting = false
-        dismiss(animated: true) { [onCompletion] in onCompletion?(success) }
+        dismiss(animated: true) { [onCompletion] in onCompletion?(outcome) }
       } catch {
         state.isSubmitting = false
         state.errorMessage = error.localizedDescription
@@ -155,7 +120,6 @@ private struct MikanHelperActionContentView: View {
   @Environment(AppModel.self) private var model
   @Environment(MikanHelperActionState.self) private var state
 
-  let action: MikanHelperActionKind
   let detail: MikanBangumiDetail
   let subgroup: MikanSubgroup
   let onSubmit: () -> Void
@@ -167,28 +131,19 @@ private struct MikanHelperActionContentView: View {
       Section("内容") {
         LabeledContent("番组", value: detail.title)
         LabeledContent("字幕组", value: subgroup.name)
-        if action == .backfill {
-          LabeledContent("已发布剧集", value: "\(episodeCount)")
-            .accessibilityIdentifier("mikan-helper-backfill-count")
-        }
+        LabeledContent("已发布剧集", value: "\(episodeCount)")
+          .accessibilityIdentifier("mikan-helper-backfill-count")
       }
 
       Section {
         if model.pairedHelperServers.isEmpty {
           Label("没有已配对的 Helper", systemImage: "externaldrive.badge.exclamationmark")
             .foregroundStyle(.secondary)
-        } else if action == .subscribe {
+        } else {
           ForEach(model.pairedHelperServers) { server in
             Toggle(server.name, isOn: targetBinding(server.id))
               .accessibilityIdentifier("mikan-helper-target-\(server.id.uuidString)")
           }
-        } else {
-          Picker("服务器", selection: $state.selectedServerID) {
-            ForEach(model.pairedHelperServers) { server in
-              Text(server.name).tag(Optional(server.id))
-            }
-          }
-          .accessibilityIdentifier("mikan-helper-backfill-target")
         }
       } header: {
         Text("目标 Helper")
@@ -215,9 +170,7 @@ private struct MikanHelperActionContentView: View {
       .disabled(!canSubmit)
       .padding(.horizontal, 16)
       .padding(.vertical, 12)
-      .accessibilityIdentifier(
-        action == .subscribe ? "mikan-helper-subscribe-confirm" : "mikan-helper-backfill-confirm"
-      )
+      .accessibilityIdentifier("mikan-helper-subscribe-confirm")
     }
   }
 
@@ -226,29 +179,15 @@ private struct MikanHelperActionContentView: View {
   }
 
   private var canSubmit: Bool {
-    guard !state.isSubmitting else { return false }
-    switch action {
-    case .subscribe:
-      return !state.selectedServerIDs.isEmpty
-    case .backfill:
-      return state.selectedServerID != nil && episodeCount > 0
-    }
+    !state.isSubmitting && !state.selectedServerIDs.isEmpty
   }
 
   private var confirmTitle: String {
-    if state.isSubmitting {
-      return action == .subscribe ? "正在订阅" : "正在提交"
-    }
-    return action == .subscribe ? "开始持续订阅" : "导入 \(episodeCount) 个已出剧集"
+    state.isSubmitting ? "正在订阅" : "订阅"
   }
 
   private var footerText: String {
-    switch action {
-    case .subscribe:
-      "Helper 是订阅真相源；可同时选择多台已配对服务器。"
-    case .backfill:
-      "这是一次性导入，不会创建持续订阅，也不会改变现有订阅。"
-    }
+    "Helper 是订阅真相源，可同时选择多台已配对服务器；订阅后会持续拉取更新，并导入本季已发布的剧集，而不仅是之后更新的剧集。"
   }
 
   private func targetBinding(_ serverID: UUID) -> Binding<Bool> {

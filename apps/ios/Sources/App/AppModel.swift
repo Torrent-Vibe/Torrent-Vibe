@@ -574,10 +574,12 @@ final class AppModel {
     )
 
     var serverNames: [String] = []
+    var pushedServerIDs: [UUID] = []
     var mergedConflict = false
+    var lastPushError: Error?
     for serverID in serverIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
-      let authorization = try helperAuthorization(for: serverID)
       do {
+        let authorization = try helperAuthorization(for: serverID)
         let mutation = try await helperSubscriptionCoordinator.upsert(
           replica,
           at: authorization.baseURL,
@@ -594,16 +596,72 @@ final class AppModel {
           status: status
         )
         serverNames.append(authorization.server.name)
+        pushedServerIDs.append(serverID)
       } catch {
         handleHelperContentError(error, serverID: serverID)
-        throw error
+        lastPushError = error
       }
     }
 
+    guard !pushedServerIDs.isEmpty else {
+      throw lastPushError ?? HelperContentError.serverUnavailable
+    }
+
+    let backfillFailed = await backfillAfterSubscribe(
+      detail: detail,
+      subgroup: subgroup,
+      serverIDs: pushedServerIDs
+    )
+
     return HelperSubscriptionOutcome(
       serverNames: serverNames,
-      mergedConflict: mergedConflict
+      mergedConflict: mergedConflict,
+      backfillFailed: backfillFailed
     )
+  }
+
+  private func backfillAfterSubscribe(
+    detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup,
+    serverIDs: [UUID]
+  ) async -> Bool {
+    let episodes = Self.backfillEpisodes(in: detail, subgroup: subgroup)
+    guard !episodes.isEmpty else { return false }
+
+    var backfillFailed = false
+    for serverID in serverIDs {
+      do {
+        let authorization = try helperAuthorization(for: serverID)
+        _ = try await helperService.backfill(
+          at: authorization.baseURL,
+          token: authorization.token,
+          bangumiID: detail.bangumiId,
+          subgroupID: subgroup.id,
+          episodes: episodes
+        )
+      } catch {
+        backfillFailed = true
+      }
+      await refreshHelperSubscriptions(for: serverID)
+    }
+    return backfillFailed
+  }
+
+  private static func backfillEpisodes(
+    in detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup
+  ) -> [HelperBackfillEpisode] {
+    detail.episodes
+      .filter { $0.subgroupId == subgroup.id }
+      .map { episode in
+        HelperBackfillEpisode(
+          episodeId: episode.episodeId,
+          title: episode.title,
+          torrentUrl: episode.torrentUrl,
+          publishedAt: episode.publishedAt,
+          sizeBytes: episode.sizeBytes
+        )
+      }
   }
 
   func updateMikanSubscriptionTargets(
@@ -667,7 +725,8 @@ final class AppModel {
       pairedHelperServers
       .filter { targetServerIDs.contains($0.id) }
       .map(\.name)
-    return HelperSubscriptionOutcome(serverNames: names, mergedConflict: mergedConflict)
+    return HelperSubscriptionOutcome(
+      serverNames: names, mergedConflict: mergedConflict, backfillFailed: false)
   }
 
   func backfillMikan(
@@ -675,17 +734,7 @@ final class AppModel {
     subgroup: MikanSubgroup,
     serverID: UUID
   ) async throws -> HelperBackfillOutcome {
-    let episodes = detail.episodes
-      .filter { $0.subgroupId == subgroup.id }
-      .map { episode in
-        HelperBackfillEpisode(
-          episodeId: episode.episodeId,
-          title: episode.title,
-          torrentUrl: episode.torrentUrl,
-          publishedAt: episode.publishedAt,
-          sizeBytes: episode.sizeBytes
-        )
-      }
+    let episodes = Self.backfillEpisodes(in: detail, subgroup: subgroup)
     guard !episodes.isEmpty else { throw HelperContentError.noEpisodes }
 
     let authorization = try helperAuthorization(for: serverID)
@@ -1343,6 +1392,7 @@ enum HelperPairingError: LocalizedError {
 struct HelperSubscriptionOutcome: Equatable, Sendable {
   let serverNames: [String]
   let mergedConflict: Bool
+  let backfillFailed: Bool
 }
 
 struct HelperBackfillOutcome: Equatable, Sendable {
