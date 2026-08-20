@@ -4,6 +4,7 @@ import { bangumiRssUrl } from '@torrent-vibe/mikan'
 import { toast } from 'sonner'
 
 import { getDiscoverProviderConfig } from '~/atoms/settings/discover'
+import { Modal } from '~/components/ui/modal/ModalManager'
 import { getI18n } from '~/i18n'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import { checkHelper, getHelperBinding } from '~/modules/helper-client'
@@ -14,6 +15,7 @@ import type {
   HeaderActionSubscribeTrigger,
   PresentBangumiSubscribeInput,
 } from './header-actions-model'
+import { HelperLogDrawer } from './HelperLogDrawer'
 import { presentSubscribeTargets } from './subscribe-flow'
 import { UnsubscribePrompt } from './UnsubscribePrompt'
 
@@ -21,6 +23,13 @@ export const openHelperSettings = () => {
   presentSettingsModal({
     tab: ELECTRON ? 'servers' : 'appConnection',
   })
+}
+
+export const openHelperLogsDrawer = (input: {
+  replicaId: string
+  serverId: string
+}) => {
+  Modal.present(HelperLogDrawer, input)
 }
 
 const toRssEpisodes = (episodes: MikanEpisodeExtra[]): RssEpisode[] =>

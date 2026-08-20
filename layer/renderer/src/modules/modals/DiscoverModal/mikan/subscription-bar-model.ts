@@ -21,6 +21,7 @@ export type SubscriptionBarVariant =
   | {
       checkError: string
       consecutiveFailures: number
+      serverId: string
       serverLabel: string
       type: 'check-failed'
     }
@@ -100,6 +101,7 @@ export const buildSubscriptionBarModel = (
     return {
       type: 'check-failed',
       serverLabel,
+      serverId: failing.serverId,
       checkError: failing.checkError as string,
       consecutiveFailures: failing.consecutiveFailures ?? 1,
     }

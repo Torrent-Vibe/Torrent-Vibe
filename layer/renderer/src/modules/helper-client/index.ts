@@ -32,6 +32,22 @@ export type { HelperCapabilities } from './capabilities'
 export { helperCapabilities } from './capabilities'
 export { connectHelper, helperOwnerName } from './connect'
 export { checkHelper, getHelperEvents, getHelperLogs } from './events-api'
+export { MAX_HELD_HELPER_EVENTS, mergeEventsPage } from './events-cursor'
+export type { HelperEventsFilter, HelperLogLevel } from './events-filter'
+export {
+  DEFAULT_HELPER_LOG_LEVEL,
+  filterHelperEvents,
+  HELPER_LOG_LEVELS,
+} from './events-filter'
+export { formatHelperEventsForCopy } from './events-format'
+export type {
+  HelperEventsPollingController,
+  HelperEventsPollingDeps,
+} from './events-polling'
+export {
+  createHelperEventsPolling,
+  HELPER_EVENTS_POLL_INTERVAL_MS,
+} from './events-polling'
 export {
   useCurrentHelperPaired,
   useCurrentHelperTarget,
@@ -40,6 +56,7 @@ export {
   useServerHelperTargets,
 } from './hooks'
 export { helperInstallCommand } from './install-command'
+export { helperLogFilePath } from './log-path'
 export type {
   HelperBackfillInput,
   HelperBinding,

@@ -23,7 +23,7 @@ import { serverNamesForIds } from './subscription-view'
 
 interface MikanSubscriptionBarProps {
   bangumiId: string
-  onOpenLogs?: () => void
+  onOpenLogs?: (input: { replicaId: string; serverId: string }) => void
   subgroupId: string
 }
 
@@ -61,7 +61,7 @@ export const MikanSubscriptionBar = ({
   )
   const targets = useServerHelperTargets()
 
-  const variant = useMemo(() => {
+  const model = useMemo(() => {
     const state: SubscriptionsState = {
       items,
       optimistic,
@@ -77,7 +77,7 @@ export const MikanSubscriptionBar = ({
         capabilitiesForServer(serverId, state).check,
       ]),
     )
-    return buildSubscriptionBarModel({
+    const variant = buildSubscriptionBarModel({
       source: resolved.source,
       targets: resolved.targets,
       progress: subscriptionProgress(resolved.record, state),
@@ -85,6 +85,7 @@ export const MikanSubscriptionBar = ({
       syncedAtIso: resolved.record.updatedAt,
       checkSupportByServerId,
     })
+    return { variant, replicaId: resolved.record.id }
   }, [
     bangumiId,
     subgroupId,
@@ -95,7 +96,8 @@ export const MikanSubscriptionBar = ({
     targets,
   ])
 
-  if (!variant) return null
+  if (!model) return null
+  const { variant, replicaId } = model
 
   const showDetails = showSubscriptionBarDetails(variant, Boolean(onOpenLogs))
 
@@ -172,8 +174,14 @@ export const MikanSubscriptionBar = ({
           </Fragment>
         ))}
       </span>
-      {showDetails && (
-        <Button size="sm" variant="ghost" onClick={onOpenLogs}>
+      {showDetails && variant.type === 'check-failed' && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            onOpenLogs?.({ serverId: variant.serverId, replicaId })
+          }
+        >
           {t('discover.modal.mikan.subscriptionBar.details')}
         </Button>
       )}

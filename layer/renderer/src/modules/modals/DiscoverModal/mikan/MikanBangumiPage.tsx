@@ -9,6 +9,7 @@ import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
+import { openHelperLogsDrawer } from './bangumi-actions'
 import { resolveMikanCoverUrl, weekdayLabelKey } from './helpers'
 import { MikanEpisodeList } from './MikanEpisodeList'
 import { MikanSubscriptionBar } from './MikanSubscriptionBar'
@@ -142,6 +143,7 @@ export const MikanBangumiPage = () => {
             <MikanSubscriptionBar
               bangumiId={bangumiId}
               subgroupId={subgroupId}
+              onOpenLogs={openHelperLogsDrawer}
             />
           )}
 

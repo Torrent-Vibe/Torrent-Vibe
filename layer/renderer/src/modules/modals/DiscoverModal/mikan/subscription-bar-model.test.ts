@@ -62,6 +62,7 @@ describe('buildSubscriptionBarModel', () => {
     expect(variant).toEqual({
       type: 'check-failed',
       serverLabel: 'NAS',
+      serverId: 'srv-a',
       checkError: 'RSS fetch failed',
       consecutiveFailures: 4,
     })
@@ -86,6 +87,7 @@ describe('buildSubscriptionBarModel', () => {
     })
     expect(variant).toMatchObject({
       type: 'check-failed',
+      serverId: 'srv-b',
       checkError: 'dns failure',
       consecutiveFailures: 7,
     })
