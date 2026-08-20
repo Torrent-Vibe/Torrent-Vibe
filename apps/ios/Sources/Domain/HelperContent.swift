@@ -339,7 +339,7 @@ enum HelperSubscriptionLoadState: Equatable, Sendable {
   case needsRepairing
 }
 
-struct HelperEvent: Hashable, Identifiable, Sendable {
+struct HelperEvent: Identifiable, Sendable {
   let seq: UInt64
   let at: Date
   let level: String
@@ -349,8 +349,36 @@ struct HelperEvent: Hashable, Identifiable, Sendable {
   let subgroupId: String?
   let episodeId: String?
   let message: String
+  let fields: [String: HelperEventFieldValue]?
 
   var id: UInt64 { seq }
+}
+
+extension HelperEvent: Equatable {
+  static func == (lhs: HelperEvent, rhs: HelperEvent) -> Bool {
+    lhs.seq == rhs.seq && lhs.at == rhs.at && lhs.level == rhs.level && lhs.kind == rhs.kind
+      && lhs.replicaId == rhs.replicaId && lhs.bangumiId == rhs.bangumiId
+      && lhs.subgroupId == rhs.subgroupId && lhs.episodeId == rhs.episodeId
+      && lhs.message == rhs.message && lhs.fields == rhs.fields
+  }
+}
+
+extension HelperEvent: Hashable {
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(seq)
+    hasher.combine(at)
+    hasher.combine(level)
+    hasher.combine(kind)
+    hasher.combine(replicaId)
+    hasher.combine(bangumiId)
+    hasher.combine(subgroupId)
+    hasher.combine(episodeId)
+    hasher.combine(message)
+    for key in fields?.keys.sorted() ?? [] {
+      hasher.combine(key)
+      hasher.combine(fields?[key])
+    }
+  }
 }
 
 extension HelperEvent: Codable {
@@ -364,6 +392,7 @@ extension HelperEvent: Codable {
     case subgroupId
     case episodeId
     case message
+    case fields
   }
 
   init(from decoder: Decoder) throws {
@@ -377,6 +406,9 @@ extension HelperEvent: Codable {
     subgroupId = try container.decodeIfPresent(String.self, forKey: .subgroupId)
     episodeId = try container.decodeIfPresent(String.self, forKey: .episodeId)
     message = try container.decode(String.self, forKey: .message)
+    fields =
+      (try? container.decodeIfPresent([String: HelperEventFieldValue].self, forKey: .fields))
+      ?? nil
   }
 
   func encode(to encoder: Encoder) throws {
@@ -390,6 +422,7 @@ extension HelperEvent: Codable {
     try container.encodeIfPresent(subgroupId, forKey: .subgroupId)
     try container.encodeIfPresent(episodeId, forKey: .episodeId)
     try container.encode(message, forKey: .message)
+    try container.encodeIfPresent(fields, forKey: .fields)
   }
 }
 

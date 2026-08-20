@@ -14,7 +14,7 @@ actor DemoHelperService: HelperService {
   func discover(at baseURL: URL) async throws -> HelperDiscoveryInfo {
     HelperDiscoveryInfo(
       version: "2.0.0",
-      capabilities: ["profile-sync-v1"],
+      capabilities: ["profile-sync-v1", "events", "logs", "check"],
       clientCount: 2,
       requiresPairingCode: true
     )

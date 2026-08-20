@@ -459,6 +459,38 @@ final class AppModel {
     )
   }
 
+  func helperDiscoveryInfo(for serverID: UUID) async throws -> HelperDiscoveryInfo {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.discover(at: authorization.baseURL)
+  }
+
+  func helperEvents(
+    for serverID: UUID,
+    since: UInt64?,
+    level: String?,
+    replicaID: String?,
+    limit: Int?
+  ) async throws -> HelperEventsPage {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.events(
+      at: authorization.baseURL,
+      token: authorization.token,
+      since: since,
+      level: level,
+      replicaID: replicaID,
+      limit: limit
+    )
+  }
+
+  func helperLogs(for serverID: UUID, tail: Int?) async throws -> String {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.logs(
+      at: authorization.baseURL,
+      token: authorization.token,
+      tail: tail
+    )
+  }
+
   func pairHelper(serverID: UUID, baseURLText: String, pairingCode: String) async {
     guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
     helperConnectionStates[serverID] = .connecting

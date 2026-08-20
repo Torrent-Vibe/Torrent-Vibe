@@ -86,6 +86,18 @@
 		5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */; };
 		AB9027471A88219B78CC1A45 /* AppModelMikanSubscribeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD563D89EC147BE99D27E0E /* AppModelMikanSubscribeTests.swift */; };
 		F7E4CEB07D420752A1608ED5 /* TorrentVibeShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		684B46AE69B84EF91FE61587 /* HelperEventFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE8D73A33042734B1C518CD7 /* HelperEventFieldValue.swift */; };
+		918ACEF4A9EC1366A3C76CD7 /* HelperEventsCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D817E08D08D98ECA01C5EE /* HelperEventsCursor.swift */; };
+		24561C8E99EEAD3462B0170B /* HelperEventsFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03CBBE2E1CE34F093DBC94B /* HelperEventsFilter.swift */; };
+		AB6726BBB1DE6357D1D69F04 /* HelperLogTabGating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A8EFBEA140711D64D967A9 /* HelperLogTabGating.swift */; };
+		AE5EA266D716215066015CEF /* HelperLogPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F95CAC57C47AA2FC28279F2 /* HelperLogPath.swift */; };
+		A4D3F4F3F59E9C184208C300 /* HelperLogState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304589B1DD44978C74EFEEAF /* HelperLogState.swift */; };
+		0B94D2E83669201E8CC13595 /* HelperLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B17EFDA339338C6F9B8D14D /* HelperLogView.swift */; };
+		B2ED08B7ABB9332A7C7AE034 /* HelperEventsCursorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC237D42DE03DEAC07A8F4A4 /* HelperEventsCursorTests.swift */; };
+		45BC298DAE613E57F92E0932 /* HelperEventsFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BCE8B9E3DCCB84F94100584 /* HelperEventsFilterTests.swift */; };
+		D1E11ACEE01C21FAF5756E06 /* HelperLogTabGatingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18B50832D9106EA5D56588D /* HelperLogTabGatingTests.swift */; };
+		98C4C8E72758B1F86E009D3C /* HelperEventFieldsDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D79979FCC606FC2473DC4F4 /* HelperEventFieldsDecodingTests.swift */; };
+		4D58676C73BDAC7034C1748D /* HelperLogStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCE53898F518743FA389291 /* HelperLogStateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -210,6 +222,18 @@
 		F56BCBF3EDE5E2FAA0B786B7 /* ServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfiguration.swift; sourceTree = "<group>"; };
 		FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProfileSyncView.swift; sourceTree = "<group>"; };
 		FDFAFD5BC7BB234FAACF8CD2 /* AppearanceMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceMode.swift; sourceTree = "<group>"; };
+		DE8D73A33042734B1C518CD7 /* HelperEventFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventFieldValue.swift; sourceTree = "<group>"; };
+		E9D817E08D08D98ECA01C5EE /* HelperEventsCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsCursor.swift; sourceTree = "<group>"; };
+		A03CBBE2E1CE34F093DBC94B /* HelperEventsFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsFilter.swift; sourceTree = "<group>"; };
+		76A8EFBEA140711D64D967A9 /* HelperLogTabGating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogTabGating.swift; sourceTree = "<group>"; };
+		7F95CAC57C47AA2FC28279F2 /* HelperLogPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogPath.swift; sourceTree = "<group>"; };
+		304589B1DD44978C74EFEEAF /* HelperLogState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogState.swift; sourceTree = "<group>"; };
+		0B17EFDA339338C6F9B8D14D /* HelperLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogView.swift; sourceTree = "<group>"; };
+		AC237D42DE03DEAC07A8F4A4 /* HelperEventsCursorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsCursorTests.swift; sourceTree = "<group>"; };
+		5BCE8B9E3DCCB84F94100584 /* HelperEventsFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsFilterTests.swift; sourceTree = "<group>"; };
+		D18B50832D9106EA5D56588D /* HelperLogTabGatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogTabGatingTests.swift; sourceTree = "<group>"; };
+		1D79979FCC606FC2473DC4F4 /* HelperEventFieldsDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventFieldsDecodingTests.swift; sourceTree = "<group>"; };
+		1DCE53898F518743FA389291 /* HelperLogStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogStateTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -225,6 +249,8 @@
 			isa = PBXGroup;
 			children = (
 				CA44D4CD2D72EA0E0C6A9844 /* HelperConnectionView.swift */,
+				304589B1DD44978C74EFEEAF /* HelperLogState.swift */,
+				0B17EFDA339338C6F9B8D14D /* HelperLogView.swift */,
 				FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */,
 				843F8023B76EE8DC16A7B6CC /* ServerEditorView.swift */,
 				C88815B5DDEF6C616AF1A8A2 /* ServersView.swift */,
@@ -288,6 +314,11 @@
 			children = (
 				FDFAFD5BC7BB234FAACF8CD2 /* AppearanceMode.swift */,
 				A41EBDD29B7EFB5AC3CB6DEF /* HelperContent.swift */,
+				DE8D73A33042734B1C518CD7 /* HelperEventFieldValue.swift */,
+				E9D817E08D08D98ECA01C5EE /* HelperEventsCursor.swift */,
+				A03CBBE2E1CE34F093DBC94B /* HelperEventsFilter.swift */,
+				7F95CAC57C47AA2FC28279F2 /* HelperLogPath.swift */,
+				76A8EFBEA140711D64D967A9 /* HelperLogTabGating.swift */,
 				6A42E0723A5A11E9961783FA /* MikanContent.swift */,
 				ED0BD32BCD01C86F247FB69C /* MikanEpisodeRowModel.swift */,
 				23244F771D0CA85E55252685 /* MikanSubscriptionBarModel.swift */,
@@ -359,6 +390,11 @@
 				7E38882EDDC649625E5D90F0 /* AppModelServerTests.swift */,
 				1F7006A0FD560D596A2F19DB /* AppToastTests.swift */,
 				171F9E117575D0C173F58718 /* ContentSourceConnectionTesterTests.swift */,
+				1D79979FCC606FC2473DC4F4 /* HelperEventFieldsDecodingTests.swift */,
+				AC237D42DE03DEAC07A8F4A4 /* HelperEventsCursorTests.swift */,
+				5BCE8B9E3DCCB84F94100584 /* HelperEventsFilterTests.swift */,
+				1DCE53898F518743FA389291 /* HelperLogStateTests.swift */,
+				D18B50832D9106EA5D56588D /* HelperLogTabGatingTests.swift */,
 				A5722F85E5798D04467E710A /* HelperServiceTests.swift */,
 				59B767A5B2CD4B8D683A7723 /* IOSIntegrationsTests.swift */,
 				E2252E1E4012B955A71F0B56 /* MikanDetailSurfacePollingWiringTests.swift */,
@@ -579,6 +615,11 @@
 				0E6F6B0C28FE8B468B628185 /* AppModelServerTests.swift in Sources */,
 				C3CFE287F95F96B18520E1B6 /* AppToastTests.swift in Sources */,
 				973D357827536437F0EDC812 /* ContentSourceConnectionTesterTests.swift in Sources */,
+				98C4C8E72758B1F86E009D3C /* HelperEventFieldsDecodingTests.swift in Sources */,
+				B2ED08B7ABB9332A7C7AE034 /* HelperEventsCursorTests.swift in Sources */,
+				45BC298DAE613E57F92E0932 /* HelperEventsFilterTests.swift in Sources */,
+				4D58676C73BDAC7034C1748D /* HelperLogStateTests.swift in Sources */,
+				D1E11ACEE01C21FAF5756E06 /* HelperLogTabGatingTests.swift in Sources */,
 				F6AF9AC574D77ACCEF4280C3 /* HelperServiceTests.swift in Sources */,
 				21D19E97BE66C5C7F9145A9F /* IOSIntegrationsTests.swift in Sources */,
 				831D0279E9B5E9D38005E96D /* MikanDetailSurfacePollingWiringTests.swift in Sources */,
@@ -627,6 +668,13 @@
 				6D026E17D91E69B9AC4B14D9 /* HelperContent.swift in Sources */,
 				16CBA00AB033F0F25A2C2A00 /* HelperCredentialStore.swift in Sources */,
 				B728EFD7AAAB892DEF532806 /* HelperDiscovery.swift in Sources */,
+				684B46AE69B84EF91FE61587 /* HelperEventFieldValue.swift in Sources */,
+				918ACEF4A9EC1366A3C76CD7 /* HelperEventsCursor.swift in Sources */,
+				24561C8E99EEAD3462B0170B /* HelperEventsFilter.swift in Sources */,
+				AE5EA266D716215066015CEF /* HelperLogPath.swift in Sources */,
+				A4D3F4F3F59E9C184208C300 /* HelperLogState.swift in Sources */,
+				AB6726BBB1DE6357D1D69F04 /* HelperLogTabGating.swift in Sources */,
+				0B94D2E83669201E8CC13595 /* HelperLogView.swift in Sources */,
 				42D55E38C69DB6B5738029E8 /* HelperProfileSyncView.swift in Sources */,
 				1B3AE2EC4D34BF18FE5FC42E /* HelperService.swift in Sources */,
 				6710EE0B5DC6028549A80198 /* HelperSubscriptionCoordinator.swift in Sources */,

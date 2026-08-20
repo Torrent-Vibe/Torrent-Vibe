@@ -32,6 +32,9 @@ final class HelperConnectionViewController: SwiftUIHostingViewController {
         },
         onOpenProfileSync: { [weak self] in
           self?.showProfileSync()
+        },
+        onOpenLogs: { [weak self] in
+          self?.showLogs()
         }
       )
       .environment(model)
@@ -69,6 +72,13 @@ final class HelperConnectionViewController: SwiftUIHostingViewController {
       animated: true
     )
   }
+
+  private func showLogs() {
+    navigationController?.pushViewController(
+      HelperLogViewController(model: model, serverID: serverID),
+      animated: true
+    )
+  }
 }
 
 private struct HelperConnectionContentView: View {
@@ -80,6 +90,7 @@ private struct HelperConnectionContentView: View {
   let discovery: HelperDiscoveryModel
   let onConfirmUnpair: () -> Void
   let onOpenProfileSync: () -> Void
+  let onOpenLogs: () -> Void
 
   var body: some View {
     Group {
@@ -135,6 +146,21 @@ private struct HelperConnectionContentView: View {
         .accessibilityIdentifier("helper-profile-sync")
       } footer: {
         Text("选择上传本机凭证，或从该下载机拉取凭证；不会自动覆盖。")
+      }
+
+      Section {
+        Button(action: onOpenLogs) {
+          HStack {
+            Label("日志", systemImage: "doc.text.magnifyingglass")
+            Spacer()
+            Image(systemName: "chevron.right")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.tertiary)
+          }
+        }
+        .accessibilityIdentifier("helper-logs")
+      } footer: {
+        Text("查看 Helper 的事件与原始日志，用于排查订阅未按预期下载的原因。")
       }
 
       Section {
