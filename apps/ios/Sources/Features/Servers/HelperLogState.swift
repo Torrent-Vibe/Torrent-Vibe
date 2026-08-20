@@ -10,7 +10,9 @@ final class HelperLogState {
   private(set) var events: [HelperEvent] = []
   private(set) var rawText = ""
   private(set) var isLoadingRaw = false
-  private(set) var errorMessage: String?
+  private(set) var discoveryErrorMessage: String?
+  private(set) var eventsErrorMessage: String?
+  private(set) var rawErrorMessage: String?
   var level: HelperLogLevel = .info
   var search = ""
 
@@ -44,11 +46,12 @@ final class HelperLogState {
     defer { isLoadingDiscovery = false }
     do {
       let info = try await model.helperDiscoveryInfo(for: serverID)
+      discoveryErrorMessage = nil
       discovery = info
       tab = HelperLogTabGating.defaultTab(discovery: info)
       handleTabChanged()
     } catch {
-      errorMessage = error.localizedDescription
+      discoveryErrorMessage = error.localizedDescription
     }
   }
 
@@ -121,9 +124,10 @@ final class HelperLogState {
       guard isVisible, tab == .events else { return }
       events = HelperEventsCursor.merge(held: events, page: page.events)
       since = page.cursor
+      eventsErrorMessage = nil
     } catch {
       guard isVisible, tab == .events else { return }
-      errorMessage = error.localizedDescription
+      eventsErrorMessage = error.localizedDescription
     }
   }
 
@@ -135,9 +139,10 @@ final class HelperLogState {
       let text = try await model.helperLogs(for: serverID, tail: 500)
       guard isVisible, tab == .raw else { return }
       rawText = text
+      rawErrorMessage = nil
     } catch {
       guard isVisible, tab == .raw else { return }
-      errorMessage = error.localizedDescription
+      rawErrorMessage = error.localizedDescription
     }
   }
 }

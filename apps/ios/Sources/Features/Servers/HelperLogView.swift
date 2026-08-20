@@ -113,12 +113,17 @@ private struct HelperLogEventsTabView: View {
       }
       .padding(.horizontal)
 
-      if state.filteredEvents.isEmpty {
+      if let error = state.eventsErrorMessage, state.filteredEvents.isEmpty {
+        HelperLogErrorNotice(message: error)
+      } else if state.filteredEvents.isEmpty {
         Spacer()
         Text("暂无日志")
           .foregroundStyle(.secondary)
         Spacer()
       } else {
+        if let error = state.eventsErrorMessage {
+          HelperLogErrorBanner(message: error)
+        }
         List(state.filteredEvents) { event in
           HelperLogEventRow(event: event)
         }
@@ -126,6 +131,47 @@ private struct HelperLogEventsTabView: View {
       }
     }
     .padding(.top, 4)
+  }
+}
+
+private struct HelperLogErrorNotice: View {
+  let message: String
+
+  var body: some View {
+    VStack(spacing: 8) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .foregroundStyle(.red)
+      Text("加载失败")
+        .font(.subheadline.weight(.semibold))
+      Text(message)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+    }
+    .padding()
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .accessibilityIdentifier("helper-log-error")
+  }
+}
+
+private struct HelperLogErrorBanner: View {
+  let message: String
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 6) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .foregroundStyle(.red)
+      Text(message)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(2)
+      Spacer(minLength: 0)
+    }
+    .padding(8)
+    .background(Color.red.opacity(0.1))
+    .clipShape(RoundedRectangle(cornerRadius: 6))
+    .padding(.horizontal)
+    .accessibilityIdentifier("helper-log-error-banner")
   }
 }
 
@@ -229,16 +275,23 @@ private struct HelperLogRawTabView: View {
       }
       .padding(.horizontal)
 
-      ScrollView {
-        Text(state.rawText.isEmpty ? "暂无日志" : state.rawText)
-          .font(.caption.monospaced())
-          .foregroundStyle(state.rawText.isEmpty ? .secondary : .primary)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.horizontal)
-      }
-      .overlay {
-        if state.isLoadingRaw, state.rawText.isEmpty {
-          ProgressView()
+      if let error = state.rawErrorMessage, state.rawText.isEmpty {
+        HelperLogErrorNotice(message: error)
+      } else {
+        if let error = state.rawErrorMessage {
+          HelperLogErrorBanner(message: error)
+        }
+        ScrollView {
+          Text(state.rawText.isEmpty ? "暂无日志" : state.rawText)
+            .font(.caption.monospaced())
+            .foregroundStyle(state.rawText.isEmpty ? .secondary : .primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+        }
+        .overlay {
+          if state.isLoadingRaw, state.rawText.isEmpty {
+            ProgressView()
+          }
         }
       }
     }

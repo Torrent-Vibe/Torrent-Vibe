@@ -142,6 +142,83 @@ final class HelperLogStateTests: XCTestCase {
     XCTAssertEqual(service.eventsCallCount, countAtSwitch)
     state.stopVisible()
   }
+
+  func testEventsErrorMessageIsSetOnFailureAndClearedByTheNextSuccessfulPoll() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: ["events", "logs"])
+    service.failNextEventsCall()
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    let failed = await waitUntil { state.eventsErrorMessage != nil }
+    XCTAssertTrue(failed, "a failed fetch must surface an error message")
+    XCTAssertTrue(
+      state.filteredEvents.isEmpty, "no data arrived from the failed fetch")
+
+    let recovered = await waitUntil {
+      state.eventsErrorMessage == nil && service.eventsCallCount >= 2
+    }
+    XCTAssertTrue(recovered, "a later successful poll must clear a previously set error")
+    state.stopVisible()
+  }
+
+  func testEventsHasNoErrorMessageWhenThereAreGenuinelyNoEventsAndNoFailure() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: ["events", "logs"])
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    let ticked = await waitUntil { service.eventsCallCount > 0 }
+    XCTAssertTrue(ticked)
+
+    XCTAssertNil(
+      state.eventsErrorMessage, "a successful poll with no events must not report an error")
+    XCTAssertTrue(state.filteredEvents.isEmpty)
+    state.stopVisible()
+  }
+
+  func testRawErrorMessageIsSetOnFailureAndClearedByANextSuccessfulLoad() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: ["events", "logs"])
+    service.failNextLogsCall()
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    state.selectTab(.raw)
+    let failed = await waitUntil { state.rawErrorMessage != nil }
+    XCTAssertTrue(failed, "a failed raw-log fetch must surface an error message")
+    XCTAssertTrue(state.rawText.isEmpty, "no data arrived from the failed fetch")
+
+    state.selectTab(.events)
+    state.selectTab(.raw)
+    let recovered = await waitUntil {
+      state.rawErrorMessage == nil && !state.rawText.isEmpty
+    }
+    XCTAssertTrue(recovered, "a later successful load must clear a previously set error")
+    state.stopVisible()
+  }
+}
+
+private struct ScriptedLogHelperServiceError: Error, LocalizedError {
+  var errorDescription: String? { "Helper 请求失败（HTTP 500）。" }
 }
 
 private final class ScriptedLogHelperService: HelperService, @unchecked Sendable {
@@ -149,9 +226,23 @@ private final class ScriptedLogHelperService: HelperService, @unchecked Sendable
   private let capabilities: [String]
   private(set) var eventsCallCount = 0
   private(set) var logsCallCount = 0
+  private var eventsFailuresRemaining = 0
+  private var logsFailuresRemaining = 0
 
   init(capabilities: [String]) {
     self.capabilities = capabilities
+  }
+
+  func failNextEventsCall() {
+    lock.lock()
+    eventsFailuresRemaining += 1
+    lock.unlock()
+  }
+
+  func failNextLogsCall() {
+    lock.lock()
+    logsFailuresRemaining += 1
+    lock.unlock()
   }
 
   func discover(at baseURL: URL) async throws -> HelperDiscoveryInfo {
@@ -210,25 +301,39 @@ private final class ScriptedLogHelperService: HelperService, @unchecked Sendable
     at baseURL: URL, token: String, since: UInt64?, level: String?, replicaID: String?,
     limit: Int?
   ) async throws -> HelperEventsPage {
-    HelperEventsPage(events: [], cursor: UInt64(recordEventsCall()))
+    let (count, shouldFail) = recordEventsCall()
+    if shouldFail {
+      throw ScriptedLogHelperServiceError()
+    }
+    return HelperEventsPage(events: [], cursor: UInt64(count))
   }
 
   func logs(at baseURL: URL, token: String, tail: Int?) async throws -> String {
-    recordLogsCall()
+    if recordLogsCall() {
+      throw ScriptedLogHelperServiceError()
+    }
     return "log line"
   }
 
-  private func recordEventsCall() -> Int {
+  private func recordEventsCall() -> (count: Int, shouldFail: Bool) {
     lock.lock()
     defer { lock.unlock() }
     eventsCallCount += 1
-    return eventsCallCount
+    var shouldFail = false
+    if eventsFailuresRemaining > 0 {
+      eventsFailuresRemaining -= 1
+      shouldFail = true
+    }
+    return (eventsCallCount, shouldFail)
   }
 
-  private func recordLogsCall() {
+  private func recordLogsCall() -> Bool {
     lock.lock()
     defer { lock.unlock() }
     logsCallCount += 1
+    guard logsFailuresRemaining > 0 else { return false }
+    logsFailuresRemaining -= 1
+    return true
   }
 
   func check(at baseURL: URL, token: String) async throws {
