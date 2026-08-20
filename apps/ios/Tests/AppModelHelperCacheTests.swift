@@ -107,6 +107,43 @@ final class AppModelHelperCacheTests: XCTestCase {
       model.hasStoredHelperToken(for: serverID),
       "an auth failure must clear the now-invalid token so the server drops out of pairedHelperServers"
     )
+    XCTAssertTrue(
+      model.helperSubscriptionVisibleServers.contains { $0.id == serverID },
+      "a needsRepairing server must stay visible in the accessor the Discover UI renders from, not vanish"
+    )
+
+    await model.refreshAllHelperSubscriptions()
+
+    XCTAssertEqual(
+      model.helperSubscriptionState(for: serverID), .needsRepairing,
+      "a later refresh cycle (pull-to-refresh, polling) must not prune the needsRepairing state before the user re-pairs"
+    )
+    XCTAssertTrue(
+      model.helperSubscriptionVisibleServers.contains { $0.id == serverID },
+      "the server must still be visible after a subsequent refresh cycle, not just the first one"
+    )
+  }
+
+  func testUnauthorizedMutationSurfacesNeedsRepairingNotGenericFailure() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+
+    let service = ScriptedHelperService(
+      subscriptionsResult: .failure(HelperServiceError.unauthorized)
+    )
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    do {
+      try await model.unsubscribeFromHelper(serverID: serverID, replicaID: "mikan:1:2")
+      XCTFail("expected the unauthorized error to propagate to the caller")
+    } catch {}
+
+    XCTAssertEqual(
+      model.helperSubscriptionState(for: serverID), .needsRepairing,
+      "a 401 discovered by a mutation must surface the same needsRepairing remedy as the read path"
+    )
+    XCTAssertFalse(model.hasStoredHelperToken(for: serverID))
   }
 
   func testHelperCacheRoundTripPreservesNeverCheckedOptionalsAndCheckedZeroDistinctly() async throws {

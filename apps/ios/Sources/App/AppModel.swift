@@ -126,6 +126,14 @@ final class AppModel {
     }
   }
 
+  var helperSubscriptionVisibleServers: [ServerConfiguration] {
+    servers.filter { server in
+      guard server.helperBaseURL != nil else { return false }
+      if hasStoredHelperToken(for: server.id) { return true }
+      return helperSubscriptionStates[server.id] == .needsRepairing
+    }
+  }
+
   var helperSubscriptionGroups: [HelperSubscriptionGroup] {
     var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
 
@@ -500,7 +508,9 @@ final class AppModel {
 
   func refreshAllHelperSubscriptions() async {
     let pairedIDs = Set(pairedHelperServers.map(\.id))
-    helperSubscriptionStates = helperSubscriptionStates.filter { pairedIDs.contains($0.key) }
+    helperSubscriptionStates = helperSubscriptionStates.filter { serverID, state in
+      pairedIDs.contains(serverID) || state == .needsRepairing
+    }
     for server in pairedHelperServers {
       await refreshHelperSubscriptions(for: server.id)
     }
@@ -1106,8 +1116,10 @@ final class AppModel {
   private func handleHelperContentError(_ error: Error, serverID: UUID) {
     if error as? HelperServiceError == .unauthorized {
       try? helperCredentialStore.deleteToken(for: serverID)
+      helperSubscriptionStates[serverID] = .needsRepairing
+    } else {
+      helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
     }
-    helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
   }
 
   private func applyLoadedHelperSubscriptions(

@@ -142,7 +142,7 @@ private struct MikanSubscriptionsContentView: View {
 
   var body: some View {
     Group {
-      if model.pairedHelperServers.isEmpty {
+      if model.helperSubscriptionVisibleServers.isEmpty {
         ContentUnavailableView {
           Label("尚未配对 Helper", systemImage: "bookmark")
         } description: {
@@ -201,7 +201,7 @@ private struct MikanSubscriptionsContentView: View {
 
   @ViewBuilder
   private var helperStateSections: some View {
-    ForEach(model.pairedHelperServers) { server in
+    ForEach(model.helperSubscriptionVisibleServers) { server in
       switch model.helperSubscriptionState(for: server.id) {
       case .idle, .loading:
         if model.helperSubscriptionGroups.isEmpty {
