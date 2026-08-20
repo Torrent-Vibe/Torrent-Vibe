@@ -6,9 +6,11 @@ import { toast } from 'sonner'
 import { getDiscoverProviderConfig } from '~/atoms/settings/discover'
 import { getI18n } from '~/i18n'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
+import { checkHelper, getHelperBinding } from '~/modules/helper-client'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
 import { SubscriptionActions } from '~/modules/subscriptions'
 
+import type { HeaderActionSubscribeTrigger } from './header-actions-model'
 import { presentSubscribeTargets } from './subscribe-flow'
 import { UnsubscribePrompt } from './UnsubscribePrompt'
 
@@ -102,4 +104,38 @@ export const backfillReleasedEpisodes = async (
     return
   }
   toast.error(t('discover.modal.mikan.bulkImportFailed'))
+}
+
+export const checkSubscriptionNow = async (
+  subscription: SubscriptionRecord,
+): Promise<void> => {
+  await Promise.all(
+    subscription.targetServerIds.map(async (serverId) => {
+      const binding = getHelperBinding(serverId)
+      if (!binding) {
+        return
+      }
+      try {
+        await checkHelper(binding.url, binding.token)
+      } catch {
+        // The subscription bar reflects the failure via replica checkError once refreshStatus below lands.
+      }
+    }),
+  )
+  await SubscriptionActions.shared.refreshStatus(subscription.targetServerIds)
+}
+
+export const runHeaderSubscribeTrigger = (
+  trigger: HeaderActionSubscribeTrigger,
+  subscribe: () => void,
+) => {
+  if (trigger === 'openPairing') {
+    openHelperSettings()
+    return
+  }
+  if (trigger === 'noSubgroups') {
+    toast.error(getI18n().t('discover.modal.mikan.noSubgroups'))
+    return
+  }
+  subscribe()
 }
