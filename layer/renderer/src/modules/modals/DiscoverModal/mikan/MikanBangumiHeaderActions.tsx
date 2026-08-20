@@ -25,6 +25,7 @@ import {
 } from './bangumi-actions'
 import type { HeaderActionMenuItem } from './header-actions-model'
 import {
+  buildSubscribeInput,
   resolveHeaderActionMenuItems,
   resolveHeaderActionMode,
 } from './header-actions-model'
@@ -54,10 +55,6 @@ export const MikanBangumiHeaderActions = () => {
   const item = detail ?? items.find((entry) => entry.id === bangumiId) ?? null
   const extra = asMikanBangumiExtra(item?.extra)
   const subgroups = extra?.subgroups ?? []
-  const allEpisodes = extra?.episodes ?? []
-  const episodes = subgroupId
-    ? allEpisodes.filter((episode) => episode.subgroupId === subgroupId)
-    : allEpisodes
 
   const subscriptionsState: SubscriptionsState = {
     items: subscriptionItems,
@@ -81,19 +78,16 @@ export const MikanBangumiHeaderActions = () => {
     if (!bangumiId || !subgroupId || !item) {
       return
     }
-    const group = subgroups.find((entry) => entry.id === subgroupId)
-    presentBangumiSubscribe({
-      bangumiId,
-      title: item.title,
-      coverUrl: extra?.coverUrl,
-      bangumiSubjectId: extra?.bangumiSubjectId,
-      subgroupId,
-      subgroupName: group?.name || subgroupId,
-      initialIds:
-        resolved?.record.targetServerIds ??
-        (currentServerId ? [currentServerId] : []),
-      episodes,
-    })
+    presentBangumiSubscribe(
+      buildSubscribeInput({
+        bangumiId,
+        title: item.title,
+        extra,
+        subgroupId,
+        currentTargetServerIds: resolved?.record.targetServerIds ?? null,
+        currentServerId,
+      }),
+    )
   }
 
   if (resolved) {

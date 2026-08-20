@@ -10,7 +10,10 @@ import { checkHelper, getHelperBinding } from '~/modules/helper-client'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
 import { SubscriptionActions } from '~/modules/subscriptions'
 
-import type { HeaderActionSubscribeTrigger } from './header-actions-model'
+import type {
+  HeaderActionSubscribeTrigger,
+  PresentBangumiSubscribeInput,
+} from './header-actions-model'
 import { presentSubscribeTargets } from './subscribe-flow'
 import { UnsubscribePrompt } from './UnsubscribePrompt'
 
@@ -31,16 +34,9 @@ const toRssEpisodes = (episodes: MikanEpisodeExtra[]): RssEpisode[] =>
       : {}),
   }))
 
-export const presentBangumiSubscribe = (input: {
-  bangumiId: string
-  title: string
-  coverUrl?: string
-  bangumiSubjectId?: string
-  subgroupId: string
-  subgroupName: string
-  initialIds: string[]
-  episodes?: MikanEpisodeExtra[]
-}) => {
+export const presentBangumiSubscribe = (
+  input: PresentBangumiSubscribeInput,
+) => {
   const t = getI18n().t
   presentSubscribeTargets({
     initialIds: input.initialIds,
@@ -58,7 +54,7 @@ export const presentBangumiSubscribe = (input: {
           input.subgroupId,
         ),
         targetServerIds: serverIds,
-        ...(input.episodes ? { episodes: toRssEpisodes(input.episodes) } : {}),
+        episodes: toRssEpisodes(input.episodes),
       })
       if (result.ok) {
         toast.success(t('discover.modal.mikan.subscribeOk'))
