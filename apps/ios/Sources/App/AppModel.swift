@@ -803,34 +803,6 @@ final class AppModel {
       serverNames: names, mergedConflict: mergedConflict, backfillFailed: false)
   }
 
-  func backfillMikan(
-    detail: MikanBangumiDetail,
-    subgroup: MikanSubgroup,
-    serverID: UUID
-  ) async throws -> HelperBackfillOutcome {
-    let episodes = Self.backfillEpisodes(in: detail, subgroup: subgroup)
-    guard !episodes.isEmpty else { throw HelperContentError.noEpisodes }
-
-    let authorization = try helperAuthorization(for: serverID)
-    do {
-      let result = try await helperService.backfill(
-        at: authorization.baseURL,
-        token: authorization.token,
-        bangumiID: detail.bangumiId,
-        subgroupID: subgroup.id,
-        episodes: episodes
-      )
-      await refreshHelperSubscriptions(for: serverID)
-      return HelperBackfillOutcome(
-        serverName: authorization.server.name,
-        episodeCount: result.episodes.count
-      )
-    } catch {
-      handleHelperContentError(error, serverID: serverID)
-      throw error
-    }
-  }
-
   func retryHelperEpisode(
     serverID: UUID,
     bangumiID: String,
@@ -1467,11 +1439,6 @@ struct HelperSubscriptionOutcome: Equatable, Sendable {
   let serverNames: [String]
   let mergedConflict: Bool
   let backfillFailed: Bool
-}
-
-struct HelperBackfillOutcome: Equatable, Sendable {
-  let serverName: String
-  let episodeCount: Int
 }
 
 private struct HelperAuthorization: Sendable {
