@@ -10,14 +10,14 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/outbound"
 )
 
-func (rt *Runtime) currentConfig() config.File {
+func (rt *Runtime) CurrentConfig() config.File {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	return rt.Config
 }
 
 func (rt *Runtime) getConfig(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, rt.currentConfig().Public())
+	writeJSON(w, http.StatusOK, rt.CurrentConfig().Public())
 }
 
 func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func (rt *Runtime) putConfig(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	next := rt.currentConfig()
+	next := rt.CurrentConfig()
 	if patch.LibraryRoot != nil {
 		next.LibraryRoot = *patch.LibraryRoot
 	}

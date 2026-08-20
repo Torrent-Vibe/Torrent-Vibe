@@ -1,4 +1,7 @@
+import type { RssEpisode } from '@torrent-vibe/mikan'
+
 import {
+  backfillHelper,
   clearHelperBinding,
   getHelperBinding,
   getHelperSubscriptions,
@@ -37,6 +40,23 @@ export const liveRetry = async (input: {
     throw new Error('unbound')
   }
   await retryHelperEpisode(binding.url, binding.token, input)
+}
+
+export const liveBackfill = async (input: {
+  bangumiId: string
+  episodes: RssEpisode[]
+  serverId: string
+  subgroupId: string
+}) => {
+  const binding = getHelperBinding(input.serverId)
+  if (!binding) {
+    throw new Error('unbound')
+  }
+  await backfillHelper(binding.url, binding.token, {
+    bangumiId: input.bangumiId,
+    subgroupId: input.subgroupId,
+    episodes: input.episodes,
+  })
 }
 
 export const liveHelperClient: HelperSyncClient = {

@@ -9,6 +9,7 @@ import {
 } from '~/modules/connection/validation'
 import { WEB_SERVER_ID } from '~/modules/helper-client'
 import { HelperPairingPanel } from '~/modules/helper-client/HelperPairingPanel'
+import { HelperLogSection } from '~/modules/multi-server/components/HelperLogSection'
 import { QBittorrentClient } from '~/shared/api/qbittorrent-client'
 import {
   getInitialQBittorrentConfig,
@@ -166,6 +167,9 @@ export const WebConnectionSection = () => {
             name={t('general.connection.helper.title')}
             serverId={WEB_SERVER_ID}
           />
+          <div className="mt-2">
+            <HelperLogSection serverId={WEB_SERVER_ID} />
+          </div>
         </div>
 
         <div className="pt-4 flex justify-end">

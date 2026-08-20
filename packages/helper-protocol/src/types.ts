@@ -48,3 +48,16 @@ export interface HelperSubscriptionSnapshot {
 
 export type DesiredStateOp =
   { type: 'add'; replica: HelperReplica } | { type: 'remove'; id: string }
+
+export interface HelperEvent {
+  at: string
+  bangumiId?: string
+  episodeId?: string
+  fields?: Record<string, unknown>
+  kind: string
+  level: string
+  message: string
+  replicaId?: string
+  seq: number
+  subgroupId?: string
+}

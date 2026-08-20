@@ -3,13 +3,20 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/cn'
 import { asMikanBangumiExtra } from '~/modules/discover/providers/mikan/utils'
+import { subscriptionFor } from '~/modules/subscriptions'
+import type { SubscriptionsState } from '~/modules/subscriptions/store'
 import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
-import { presentBangumiUnsubscribe } from './bangumi-actions'
+import { openHelperLogsDrawer } from './bangumi-actions'
 import { resolveMikanCoverUrl, weekdayLabelKey } from './helpers'
 import { MikanEpisodeList } from './MikanEpisodeList'
+import { MikanSubscriptionBar } from './MikanSubscriptionBar'
+import {
+  findOtherSubscribedSubgroup,
+  subscribedSubgroupIds,
+} from './subgroup-subscription'
 
 export const MikanBangumiPage = () => {
   const { t } = useTranslation('app')
@@ -24,17 +31,35 @@ export const MikanBangumiPage = () => {
   const subgroupId = useDiscoverModalStore((state) => state.mikanSubgroupId)
   const importingFlag = useDiscoverModalStore((state) => state.importing)
   const subscriptions = useSubscriptionsStore((state) => state.items)
+  const optimistic = useSubscriptionsStore((state) => state.optimistic)
   const statusByServer = useSubscriptionsStore((state) => state.statusByServer)
+  const capabilitiesByServer = useSubscriptionsStore(
+    (state) => state.capabilitiesByServer,
+  )
 
   const item = detail ?? items.find((entry) => entry.id === bangumiId) ?? null
   const extra = asMikanBangumiExtra(item?.extra)
   const cover = resolveMikanCoverUrl(extra?.coverUrl)
   const subgroups = extra?.subgroups ?? []
-  const subscription = subscriptions.find(
-    (entry) =>
-      entry.bangumiId === bangumiId &&
-      entry.subgroupId === (subgroupId ?? entry.subgroupId),
-  )
+
+  const subscriptionsState: SubscriptionsState = {
+    items: subscriptions,
+    optimistic,
+    statusByServer,
+    capabilitiesByServer,
+    syncing: false,
+  }
+  const resolvedSubscription =
+    bangumiId && subgroupId
+      ? subscriptionFor(bangumiId, subgroupId, subscriptionsState)
+      : null
+
+  const subscribedSubgroups = bangumiId
+    ? subscribedSubgroupIds(subscriptions, bangumiId)
+    : new Set<string>()
+  const otherSubscribed = bangumiId
+    ? findOtherSubscribedSubgroup(subscriptions, bangumiId, subgroupId)
+    : null
 
   const allEpisodes = extra?.episodes ?? []
   const episodes = subgroupId
@@ -87,13 +112,21 @@ export const MikanBangumiPage = () => {
                   key={group.id}
                   type="button"
                   className={cn(
-                    'rounded-full px-2.5 py-1 text-xs transition',
+                    'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition',
                     subgroupId === group.id
                       ? 'bg-accent text-white'
                       : 'bg-fill-secondary text-text-secondary hover:bg-fill-tertiary hover:text-text',
                   )}
                   onClick={() => mikan.selectSubgroup(group.id)}
                 >
+                  {subscribedSubgroups.has(group.id) && (
+                    <span
+                      className={cn(
+                        'size-1.5 shrink-0 rounded-full',
+                        subgroupId === group.id ? 'bg-white' : 'bg-accent',
+                      )}
+                    />
+                  )}
                   {group.name || group.id}
                 </button>
               ))}
@@ -106,19 +139,23 @@ export const MikanBangumiPage = () => {
             )
           )}
 
-          {subscription && (
-            <div>
+          {bangumiId && subgroupId && (
+            <MikanSubscriptionBar
+              bangumiId={bangumiId}
+              subgroupId={subgroupId}
+              onOpenLogs={openHelperLogsDrawer}
+            />
+          )}
+
+          {otherSubscribed && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background-secondary/60 px-3 py-2 text-sm text-text-secondary">
+              <span>{t('discover.modal.mikan.otherSubgroupSubscribed')}</span>
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() =>
-                  presentBangumiUnsubscribe(
-                    subscription,
-                    item?.title ?? subscription.title,
-                  )
-                }
+                variant="secondary"
+                onClick={() => mikan.selectSubgroup(otherSubscribed.subgroupId)}
               >
-                {t('discover.modal.mikan.unsubscribe')}
+                {t('discover.modal.mikan.switchToSubscribed')}
               </Button>
             </div>
           )}
@@ -156,8 +193,10 @@ export const MikanBangumiPage = () => {
           bangumiId={bangumiId}
           episodes={episodes}
           importing={importingFlag}
-          statusByServer={statusByServer}
+          state={subscriptionsState}
           subgroupId={subgroupId}
+          subscribed={Boolean(resolvedSubscription)}
+          targetServerIds={resolvedSubscription?.record.targetServerIds ?? []}
           onImport={(episodeId) => {
             void importing.importMikanEpisode(episodeId)
           }}

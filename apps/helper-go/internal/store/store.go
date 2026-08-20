@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 )
@@ -29,6 +30,12 @@ func EpisodeKey(bangumiID, subgroupID string) string {
 	return bangumiID + ":" + subgroupID
 }
 
+type ReplicaCheck struct {
+	CheckedAt           time.Time `json:"checkedAt"`
+	CheckError          string    `json:"checkError,omitempty"`
+	ConsecutiveFailures int       `json:"consecutiveFailures"`
+}
+
 func cloneReplicas(replicas []protocol.Replica) []protocol.Replica {
 	out := make([]protocol.Replica, len(replicas))
 	copy(out, replicas)
@@ -36,9 +43,10 @@ func cloneReplicas(replicas []protocol.Replica) []protocol.Replica {
 }
 
 type persisted struct {
-	Revision uint64               `json:"revision"`
-	Replicas []protocol.Replica   `json:"replicas"`
-	Episodes map[string][]Episode `json:"episodes"`
+	Revision uint64                  `json:"revision"`
+	Replicas []protocol.Replica      `json:"replicas"`
+	Episodes map[string][]Episode    `json:"episodes"`
+	Checks   map[string]ReplicaCheck `json:"checks"`
 }
 
 type ReplicaSnapshot struct {
@@ -138,6 +146,48 @@ func (s *Store) SaveEpisodes(episodes map[string][]Episode) error {
 	return s.write(data)
 }
 
+func (s *Store) LoadReplicaChecks() (map[string]ReplicaCheck, error) {
+	data, err := s.read()
+	if err != nil {
+		return nil, err
+	}
+	if data.Checks == nil {
+		return map[string]ReplicaCheck{}, nil
+	}
+	return data.Checks, nil
+}
+
+func (s *Store) SaveReplicaChecks(checks map[string]ReplicaCheck) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, err := s.read()
+	if err != nil {
+		return err
+	}
+	data.Checks = checks
+	return s.write(data)
+}
+
+func (s *Store) RecordReplicaCheck(key string, at time.Time, checkErr error) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, err := s.read()
+	if err != nil {
+		return err
+	}
+	check := data.Checks[key]
+	check.CheckedAt = at
+	if checkErr != nil {
+		check.ConsecutiveFailures++
+		check.CheckError = checkErr.Error()
+	} else {
+		check.ConsecutiveFailures = 0
+		check.CheckError = ""
+	}
+	data.Checks[key] = check
+	return s.write(data)
+}
+
 func (s *Store) ClearAll() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -148,13 +198,14 @@ func (s *Store) ClearAll() error {
 	data.Revision++
 	data.Replicas = []protocol.Replica{}
 	data.Episodes = map[string][]Episode{}
+	data.Checks = map[string]ReplicaCheck{}
 	return s.write(data)
 }
 
 func (s *Store) read() (persisted, error) {
 	raw, err := os.ReadFile(s.file())
 	if errors.Is(err, fs.ErrNotExist) {
-		return persisted{Replicas: []protocol.Replica{}, Episodes: map[string][]Episode{}}, nil
+		return persisted{Replicas: []protocol.Replica{}, Episodes: map[string][]Episode{}, Checks: map[string]ReplicaCheck{}}, nil
 	}
 	if err != nil {
 		return persisted{}, err
@@ -169,6 +220,9 @@ func (s *Store) read() (persisted, error) {
 	if data.Episodes == nil {
 		data.Episodes = map[string][]Episode{}
 	}
+	if data.Checks == nil {
+		data.Checks = map[string]ReplicaCheck{}
+	}
 	return data, nil
 }
 
@@ -181,6 +235,9 @@ func (s *Store) write(data persisted) error {
 	}
 	if data.Episodes == nil {
 		data.Episodes = map[string][]Episode{}
+	}
+	if data.Checks == nil {
+		data.Checks = map[string]ReplicaCheck{}
 	}
 	raw, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {

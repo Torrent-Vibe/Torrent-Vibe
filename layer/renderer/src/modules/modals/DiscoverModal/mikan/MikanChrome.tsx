@@ -5,7 +5,11 @@ import { Button } from '~/components/ui/button'
 import { DiscoverModalActions } from '../actions'
 import { useDiscoverModalStore } from '../store'
 import { MikanBangumiHeaderActions } from './MikanBangumiHeaderActions'
-import { MikanBrowseHeaderEnd, MikanSearchField } from './MikanBrowseChrome'
+import {
+  MikanBrowseHeaderEnd,
+  MikanSearchField,
+  MikanSubscriptionBadge,
+} from './MikanBrowseChrome'
 import { mikanStackTop } from './stack'
 
 export const MikanChrome = () => {
@@ -52,7 +56,12 @@ export const MikanChrome = () => {
             : bangumiTitle}
         </h2>
       </div>
-      {top.type === 'bangumi' ? <MikanBangumiHeaderActions /> : null}
+      {top.type === 'bangumi' && (
+        <div className="flex shrink-0 items-center gap-2">
+          <MikanBangumiHeaderActions />
+          <MikanSubscriptionBadge />
+        </div>
+      )}
     </div>
   )
 }

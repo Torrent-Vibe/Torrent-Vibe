@@ -1,5 +1,6 @@
 import type {
   HelperEpisodeState,
+  HelperEvent,
   HelperReplica,
 } from '@torrent-vibe/helper-protocol'
 import type { RssEpisode } from '@torrent-vibe/mikan'
@@ -54,6 +55,9 @@ export interface HelperEpisodeStatus {
 }
 
 export interface HelperReplicaStatus extends HelperReplica {
+  checkedAt?: string
+  checkError?: string
+  consecutiveFailures?: number
   episodes: HelperEpisodeStatus[]
 }
 
@@ -72,6 +76,19 @@ export interface HelperBackfillInput {
   bangumiId: string
   episodes: RssEpisode[]
   subgroupId: string
+}
+
+export interface HelperEventsQuery {
+  kind?: string
+  level?: string
+  limit?: number
+  replicaId?: string
+  since?: number
+}
+
+export interface HelperEventsResponse {
+  cursor: number
+  events: HelperEvent[]
 }
 
 export interface ServerHelperTarget {

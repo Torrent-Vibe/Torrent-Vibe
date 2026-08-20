@@ -5,7 +5,6 @@ import type { HelperEpisodeStatus } from '~/modules/helper-client'
 import type { HelperStatusSnapshot } from '~/modules/subscriptions/store'
 
 import {
-  episodeStateFor,
   lastRenameDisplay,
   latestEpisodeForSubscription,
 } from './subscription-view'
@@ -13,8 +12,8 @@ import {
 const stamp = '2026-08-15T00:00:00.000Z'
 
 function episode(
-  partial: Pick<HelperEpisodeStatus, 'episodeId' | 'title'>
-    & Partial<HelperEpisodeStatus>,
+  partial: Pick<HelperEpisodeStatus, 'episodeId' | 'title'> &
+    Partial<HelperEpisodeStatus>,
 ): HelperEpisodeStatus {
   return {
     season: 1,
@@ -158,34 +157,5 @@ describe('lastRenameDisplay', () => {
         }),
       ),
     ).toEqual({ key: 'discover.modal.mikan.episodeState.done' })
-  })
-})
-
-describe('episodeStateFor', () => {
-  it('reads subscription-less jobs when no replica exists', () => {
-    const statusByServer: Record<string, HelperStatusSnapshot> = {
-      'srv-a': {
-        fetchedAt: stamp,
-        replicas: [],
-        jobs: [
-          {
-            bangumiId: 'bgm-1',
-            subgroupId: 'sg-1',
-            episodes: [
-              episode({
-                episodeId: 'e12',
-                title: 'Frieren - S01E12',
-                episode: 12,
-                state: 'added',
-              }),
-            ],
-          },
-        ],
-      },
-    }
-
-    expect(episodeStateFor('bgm-1', 'sg-1', 'e12', statusByServer)).toBe(
-      'added',
-    )
   })
 })

@@ -4,15 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 )
 
@@ -25,8 +29,11 @@ type Runtime struct {
 	Store            *store.Store
 	DataDir          string
 	Config           config.File
+	Events           events.Recorder
+	Redact           *redact.Registry
 	OnBackfill       func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error)
 	OnDeleteTorrents func(hashes []string, deleteFiles bool) error
+	OnKick           func(source string)
 	ProbeQbit        func(url, user, pass string) error
 	ApplyConfig      func(config.File)
 	mu               sync.Mutex
@@ -43,6 +50,7 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("POST /pair", rt.pair)
 	mux.HandleFunc("GET /subscriptions", rt.authed(rt.getSubscriptions))
 	mux.HandleFunc("PUT /subscriptions", rt.authed(rt.putSubscriptions))
+	mux.HandleFunc("POST /check", rt.authed(rt.check))
 	mux.HandleFunc("GET /status", rt.authed(rt.status))
 	mux.HandleFunc("POST /backfill", rt.authed(rt.backfill))
 	mux.HandleFunc("POST /unpair", rt.authed(rt.unpair))
@@ -51,6 +59,8 @@ func New(rt *Runtime) http.Handler {
 	mux.HandleFunc("GET /profile", rt.authed(rt.getProfile))
 	mux.HandleFunc("PATCH /profile", rt.authed(rt.patchProfile))
 	mux.HandleFunc("POST /retry", rt.authed(rt.retry))
+	mux.HandleFunc("GET /events", rt.authed(rt.getEvents))
+	mux.HandleFunc("GET /logs", rt.authed(rt.getLogs))
 	return mux
 }
 
@@ -65,6 +75,9 @@ func (rt *Runtime) authed(next http.HandlerFunc) http.HandlerFunc {
 		if !ok {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
+		}
+		if rt.Redact != nil {
+			rt.Redact.Add(token)
 		}
 		ctx := context.WithValue(r.Context(), clientContextKey{}, client.ID)
 		next(w, r.WithContext(ctx))
@@ -82,7 +95,7 @@ func (rt *Runtime) discover(w http.ResponseWriter, _ *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"version":             rt.Version,
-		"capabilities":        []string{"profile-sync-v1"},
+		"capabilities":        []string{"profile-sync-v1", "events", "logs", "check"},
 		"bindState":           state,
 		"advertisedQbitUrl":   rt.AdvertisedQbit,
 		"clientCount":         clientCount,
@@ -182,7 +195,8 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	next := applyDesired(snapshot.Replicas, body.Replicas)
+	ops := protocol.DesiredStateDiff(body.Replicas, snapshot.Replicas)
+	next := applyDesired(snapshot.Replicas, ops)
 	saved, err := rt.Store.SaveReplicasIfRevision(next, *body.Revision)
 	if errors.Is(err, store.ErrRevisionConflict) {
 		writeJSON(w, http.StatusConflict, map[string]any{
@@ -194,6 +208,15 @@ func (rt *Runtime) putSubscriptions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	added, removed := diffCounts(ops)
+	if rt.Events != nil {
+		rt.Events.Emit(events.Event{
+			Level: "info", Kind: "subscription.put",
+			Message: fmt.Sprintf("Subscriptions updated: %d added, %d removed", added, removed),
+			Fields:  map[string]any{"added": added, "removed": removed},
+		})
+	}
+	rt.kick("subscriptions")
 	writeJSON(w, http.StatusOK, map[string]any{"revision": saved.Revision, "replicas": saved.Replicas})
 }
 
@@ -243,9 +266,9 @@ func (rt *Runtime) dropRemovedTorrents(current, desired []protocol.Replica, dele
 	return rt.Store.SaveEpisodes(episodes)
 }
 
-func applyDesired(current, desired []protocol.Replica) []protocol.Replica {
+func applyDesired(current []protocol.Replica, ops []protocol.DesiredOp) []protocol.Replica {
 	next := append([]protocol.Replica(nil), current...)
-	for _, op := range protocol.DesiredStateDiff(desired, current) {
+	for _, op := range ops {
 		if op.Type == protocol.OpRemove {
 			filtered := next[:0]
 			for _, replica := range next {
@@ -261,6 +284,18 @@ func applyDesired(current, desired []protocol.Replica) []protocol.Replica {
 	return next
 }
 
+func diffCounts(ops []protocol.DesiredOp) (added, removed int) {
+	for _, op := range ops {
+		switch op.Type {
+		case protocol.OpAdd:
+			added++
+		case protocol.OpRemove:
+			removed++
+		}
+	}
+	return added, removed
+}
+
 func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 	replicas, err := rt.Store.LoadReplicas()
 	if err != nil {
@@ -272,9 +307,17 @@ func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
 		return
 	}
+	checks, err := rt.Store.LoadReplicaChecks()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
 	type replicaStatus struct {
 		protocol.Replica
-		Episodes []store.Episode `json:"episodes"`
+		Episodes            []store.Episode `json:"episodes"`
+		CheckedAt           *string         `json:"checkedAt,omitempty"`
+		CheckError          string          `json:"checkError,omitempty"`
+		ConsecutiveFailures *int            `json:"consecutiveFailures,omitempty"`
 	}
 	out := make([]replicaStatus, 0, len(replicas))
 	covered := map[string]struct{}{}
@@ -285,7 +328,15 @@ func (rt *Runtime) status(w http.ResponseWriter, _ *http.Request) {
 		if list == nil {
 			list = []store.Episode{}
 		}
-		out = append(out, replicaStatus{Replica: replica, Episodes: list})
+		entry := replicaStatus{Replica: replica, Episodes: list}
+		if check, ok := checks[key]; ok {
+			checkedAt := check.CheckedAt.Format(time.RFC3339)
+			failures := check.ConsecutiveFailures
+			entry.CheckedAt = &checkedAt
+			entry.CheckError = check.CheckError
+			entry.ConsecutiveFailures = &failures
+		}
+		out = append(out, entry)
 	}
 	type job struct {
 		BangumiID  string          `json:"bangumiId"`

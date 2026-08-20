@@ -15,13 +15,16 @@ import (
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/bangumi"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/config"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/daemon"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/events"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/httpx"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/logfile"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/loop"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mdns"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/mikan"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/outbound"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/protocol"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/qb"
+	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/redact"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/store"
 	"github.com/Torrent-Vibe/Torrent-Vibe/apps/helper-go/internal/tmdb"
 )
@@ -83,6 +86,20 @@ func run() error {
 		return err
 	}
 
+	redactRegistry := redact.NewRegistry()
+	redactRegistry.Add(cfg.QbitPass)
+	redactRegistry.Add(code)
+
+	logWriter, closeLog, err := logfile.Open(*dataDir, redactRegistry)
+	if err != nil {
+		return err
+	}
+	defer closeLog()
+	stdout := io.MultiWriter(os.Stdout, logWriter)
+	stderr := io.MultiWriter(os.Stderr, logWriter)
+
+	eventRecorder := events.New(*dataDir, redact.Sanitizer(redactRegistry))
+
 	st := store.New(*dataDir)
 	profileStore := store.NewProfileStore(*dataDir)
 	out := &outboundHold{}
@@ -91,14 +108,19 @@ func run() error {
 	}
 	var mu sync.Mutex
 	var stopLoop func()
+	lastQbitPass := cfg.QbitPass
 	makeDeps := func(next config.File) loop.Deps {
 		return loop.Deps{
 			Store:        st,
 			QB:           qb.NewClient(next.QbitURL, next.QbitUser, next.QbitPass, nil),
 			LibraryRoot:  next.LibraryRoot,
 			Category:     next.Category,
-			FetchRSS:     out.fetchString,
+			FetchRSS:     out.fetchRSS,
 			FetchTorrent: out.fetchTorrent,
+			Events:       eventRecorder,
+			OnReplicaChecked: func(key string, at time.Time, checkErr error) {
+				_ = st.RecordReplicaCheck(key, at, checkErr)
+			},
 			ResolveTitle: func(replica protocol.Replica, item mikan.RssEpisode, parsed mikan.ParsedTitle) mikan.ParsedTitle {
 				return bangumi.Resolve(out.bangumi(), replica.BangumiSubjectID, item, parsed)
 			},
@@ -128,17 +150,19 @@ func run() error {
 		Store:          st,
 		DataDir:        *dataDir,
 		Config:         cfg,
+		Events:         eventRecorder,
+		Redact:         redactRegistry,
 		OnBackfill: func(bangumiID, subgroupID string, episodes []mikan.RssEpisode) ([]store.Episode, error) {
-			mu.Lock()
-			deps := makeDeps(rt.Config)
-			mu.Unlock()
-			return loop.Backfill(deps, bangumiID, subgroupID, episodes)
+			return loop.Backfill(makeDeps(rt.CurrentConfig()), bangumiID, subgroupID, episodes)
 		},
 		OnDeleteTorrents: func(hashes []string, deleteFiles bool) error {
-			mu.Lock()
-			cfg := rt.Config
-			mu.Unlock()
+			cfg := rt.CurrentConfig()
 			return qb.NewClient(cfg.QbitURL, cfg.QbitUser, cfg.QbitPass, nil).DeleteTorrents(hashes, deleteFiles)
+		},
+		OnKick: func(source string) {
+			go func() {
+				_ = loop.Tick(makeDeps(rt.CurrentConfig()))
+			}()
 		},
 		ProbeQbit: func(rawURL, user, pass string) error {
 			client := qb.NewClient(rawURL, user, pass, nil)
@@ -146,6 +170,7 @@ func run() error {
 			return err
 		},
 		ApplyConfig: func(next config.File) {
+			swapQbitPassSecret(&mu, redactRegistry, &lastQbitPass, next.QbitPass)
 			_ = out.apply(next.ProxyURL)
 			startLoop(next)
 		},
@@ -156,13 +181,13 @@ func run() error {
 	if os.Getenv("MIKAN_HELPER_DISABLE_MDNS") != "1" {
 		advert, err = mdns.Start(*port, version)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[helper] mdns: %v\n", err)
+			fmt.Fprintf(stderr, "[helper] mdns: %v\n", err)
 		}
 	}
 
-	fmt.Printf("[helper] listening on :%d\n", *port)
-	fmt.Printf("[helper] pairing code: %s\n", code)
-	fmt.Printf("[helper] advertised qBittorrent: %s\n", cfg.QbitURL)
+	fmt.Fprintf(stdout, "[helper] listening on :%d\n", *port)
+	fmt.Fprintf(stdout, "[helper] pairing code: %s\n", code)
+	fmt.Fprintf(stdout, "[helper] advertised qBittorrent: %s\n", cfg.QbitURL)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -271,12 +296,13 @@ func (h *outboundHold) bangumi() *bangumi.Client {
 	return h.bgm
 }
 
-func (h *outboundHold) fetchString(rawURL string) (string, error) {
-	raw, err := h.fetchTorrent(rawURL)
-	if err != nil {
-		return "", err
-	}
-	return string(raw), nil
+func (h *outboundHold) fetchRSS(rawURL string) (loop.RSSResult, error) {
+	h.mu.Lock()
+	client := h.client
+	h.mu.Unlock()
+	start := time.Now()
+	body, status, err := fetchBytesStatus(client, rawURL)
+	return loop.RSSResult{Body: string(body), StatusCode: status, Duration: time.Since(start)}, err
 }
 
 func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
@@ -286,21 +312,37 @@ func (h *outboundHold) fetchTorrent(rawURL string) ([]byte, error) {
 	return fetchBytes(client, rawURL)
 }
 
+func swapQbitPassSecret(mu *sync.Mutex, registry *redact.Registry, last *string, next string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if next == *last {
+		return
+	}
+	registry.Swap(*last, next)
+	*last = next
+}
+
 func fetchBytes(client *http.Client, rawURL string) ([]byte, error) {
+	body, _, err := fetchBytesStatus(client, rawURL)
+	return body, err
+}
+
+func fetchBytesStatus(client *http.Client, rawURL string) ([]byte, int, error) {
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	req.Header.Set("user-agent", "torrent-vibe-helper/"+version)
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("http %d", res.StatusCode)
+		return nil, res.StatusCode, fmt.Errorf("http %d", res.StatusCode)
 	}
-	return io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
+	return body, res.StatusCode, err
 }
 
 func envOr(key, fallback string) string {

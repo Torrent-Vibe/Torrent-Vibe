@@ -1,13 +1,28 @@
 import type { SubscriptionRecord } from '@torrent-vibe/helper-protocol'
+import type { RssEpisode } from '@torrent-vibe/mikan'
 import { bangumiRssUrl } from '@torrent-vibe/mikan'
 import { toast } from 'sonner'
 
 import { getDiscoverProviderConfig } from '~/atoms/settings/discover'
+import { Modal } from '~/components/ui/modal/ModalManager'
 import { getI18n } from '~/i18n'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
+import { checkHelper, getHelperBinding } from '~/modules/helper-client'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
-import { SubscriptionActions } from '~/modules/subscriptions'
+import {
+  SubscriptionActions,
+  subscriptionFor,
+  subscriptionKey,
+  subscriptionStore,
+} from '~/modules/subscriptions'
 
+import { runCheckNow } from './check-now'
+import { setSubscriptionChecking } from './checking-store'
+import type {
+  HeaderActionSubscribeTrigger,
+  PresentBangumiSubscribeInput,
+} from './header-actions-model'
+import { HelperLogDrawer } from './HelperLogDrawer'
 import { presentSubscribeTargets } from './subscribe-flow'
 import { UnsubscribePrompt } from './UnsubscribePrompt'
 
@@ -17,15 +32,27 @@ export const openHelperSettings = () => {
   })
 }
 
-export const presentBangumiSubscribe = (input: {
-  bangumiId: string
-  title: string
-  coverUrl?: string
-  bangumiSubjectId?: string
-  subgroupId: string
-  subgroupName: string
-  initialIds: string[]
+export const openHelperLogsDrawer = (input: {
+  replicaId: string
+  serverId: string
 }) => {
+  Modal.present(HelperLogDrawer, input)
+}
+
+const toRssEpisodes = (episodes: MikanEpisodeExtra[]): RssEpisode[] =>
+  episodes.map((episode) => ({
+    episodeId: episode.episodeId,
+    title: episode.title,
+    torrentUrl: episode.torrentUrl,
+    ...(episode.publishedAt ? { publishedAt: episode.publishedAt } : {}),
+    ...(typeof episode.sizeBytes === 'number'
+      ? { sizeBytes: episode.sizeBytes }
+      : {}),
+  }))
+
+export const presentBangumiSubscribe = (
+  input: PresentBangumiSubscribeInput,
+) => {
   const t = getI18n().t
   presentSubscribeTargets({
     initialIds: input.initialIds,
@@ -43,6 +70,7 @@ export const presentBangumiSubscribe = (input: {
           input.subgroupId,
         ),
         targetServerIds: serverIds,
+        episodes: toRssEpisodes(input.episodes),
       })
       if (result.ok) {
         toast.success(t('discover.modal.mikan.subscribeOk'))
@@ -81,19 +109,60 @@ export const backfillReleasedEpisodes = async (
   const result = await SubscriptionActions.shared.backfill({
     bangumiId,
     subgroupId,
-    episodes: episodes.map((episode) => ({
-      episodeId: episode.episodeId,
-      title: episode.title,
-      torrentUrl: episode.torrentUrl,
-      ...(episode.publishedAt ? { publishedAt: episode.publishedAt } : {}),
-      ...(typeof episode.sizeBytes === 'number'
-        ? { sizeBytes: episode.sizeBytes }
-        : {}),
-    })),
+    episodes: toRssEpisodes(episodes),
   })
   if (result.ok) {
     toast.success(t('discover.modal.mikan.bulkImportOk'))
     return
   }
   toast.error(t('discover.modal.mikan.bulkImportFailed'))
+}
+
+const startHelperChecks = async (serverIds: string[]): Promise<void> => {
+  await Promise.all(
+    serverIds.map(async (serverId) => {
+      const binding = getHelperBinding(serverId)
+      if (!binding) {
+        return
+      }
+      try {
+        await checkHelper(binding.url, binding.token)
+      } catch {
+        // The subscription bar reflects the failure via replica checkError once refreshStatus lands.
+      }
+    }),
+  )
+}
+
+export const checkSubscriptionNow = async (
+  subscription: SubscriptionRecord,
+): Promise<void> => {
+  const key = subscriptionKey(subscription.bangumiId, subscription.subgroupId)
+  await runCheckNow(subscription.targetServerIds, {
+    startChecks: startHelperChecks,
+    refreshStatus: (serverIds) =>
+      SubscriptionActions.shared.refreshStatus(serverIds),
+    resolveTargets: () =>
+      subscriptionFor(
+        subscription.bangumiId,
+        subscription.subgroupId,
+        subscriptionStore.getState(),
+      )?.targets ?? [],
+    setChecking: (checking) => setSubscriptionChecking(key, checking),
+  })
+}
+
+export const runHeaderSubscribeTrigger = (
+  trigger: HeaderActionSubscribeTrigger,
+  subscribe: () => void,
+) => {
+  if (trigger === 'openPairing') {
+    openHelperSettings()
+    return
+  }
+  if (trigger === 'noSubgroups') {
+    toast.error(getI18n().t('discover.modal.mikan.noSubgroups'))
+    return
+  }
+  subscribe()
 }

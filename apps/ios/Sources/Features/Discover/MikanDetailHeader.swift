@@ -50,11 +50,8 @@ struct MikanDetailHeader: View {
           }
         }
 
-        if let subscription {
-          Text("已订阅 · \(subscription.targets.map(\.serverName).joined(separator: "、"))")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        if let subscriptionBarVariant {
+          MikanSubscriptionBarView(variant: subscriptionBarVariant)
             .accessibilityIdentifier("mikan-detail-subscription-status")
         }
       }
@@ -84,12 +81,15 @@ struct MikanDetailHeader: View {
     return detail.subgroups.first
   }
 
-  private var subscription: HelperSubscriptionGroup? {
+  private var subscriptionBarVariant: MikanSubscriptionBarVariant? {
     guard let subgroup = actionSubgroup else { return nil }
-    return model.helperSubscriptionGroup(
-      bangumiID: detail.bangumiId,
-      subgroupID: subgroup.id
-    )
+    guard
+      let input = model.mikanSubscriptionBarInput(
+        bangumiID: detail.bangumiId,
+        subgroupID: subgroup.id
+      )
+    else { return nil }
+    return MikanSubscriptionBarModel.build(input)
   }
 
   private var selectedSubgroupCaption: String {
@@ -371,5 +371,31 @@ private struct MikanDetailPoster: View {
       .font(.title2)
       .foregroundStyle(.secondary)
       .accessibilityHidden(true)
+  }
+}
+
+private struct MikanSubscriptionBarView: View {
+  let variant: MikanSubscriptionBarVariant
+
+  var body: some View {
+    HStack(spacing: AppSpacing.atomic) {
+      Circle()
+        .fill(dotColor)
+        .frame(width: 6, height: 6)
+      Text(MikanSubscriptionBarModel.segments(for: variant, now: .now).joined(separator: " · "))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .accessibilityElement(children: .combine)
+  }
+
+  private var dotColor: Color {
+    switch variant {
+    case .healthy: .green
+    case .checkFailing: .red
+    case .offline: .secondary
+    case .needsRepairing: .orange
+    }
   }
 }

@@ -26,12 +26,12 @@ const compareEpisodeRecency = (
 export const serverNamesForIds = (
   ids: string[],
   targets: ServerHelperTarget[],
-) => ids.map(id => targets.find(target => target.id === id)?.name ?? id)
+) => ids.map((id) => targets.find((target) => target.id === id)?.name ?? id)
 
 export const subscriptionsForBangumi = (
   items: SubscriptionRecord[],
   bangumiId: string,
-) => items.filter(item => item.bangumiId === bangumiId)
+) => items.filter((item) => item.bangumiId === bangumiId)
 
 export const latestEpisodeForSubscription = (
   item: SubscriptionRecord,
@@ -41,9 +41,9 @@ export const latestEpisodeForSubscription = (
   for (const serverId of item.targetServerIds) {
     const snapshot = statusByServer[serverId]
     const replica = snapshot?.replicas.find(
-      entry =>
-        entry.bangumiId === item.bangumiId
-        && entry.subgroupId === item.subgroupId,
+      (entry) =>
+        entry.bangumiId === item.bangumiId &&
+        entry.subgroupId === item.subgroupId,
     )
     if (replica) {
       episodes.push(...replica.episodes)
@@ -62,36 +62,11 @@ export const lastRenameDisplay = (
     return { text: episode.lastError }
   }
   if (
-    episode.state === 'done'
-    || episode.state === 'failed'
-    || episode.state === 'needs-manual'
+    episode.state === 'done' ||
+    episode.state === 'failed' ||
+    episode.state === 'needs-manual'
   ) {
     return { key: episodeStateLabelKey(episode.state) }
-  }
-  return null
-}
-
-export const episodeStateFor = (
-  bangumiId: string,
-  subgroupId: string,
-  episodeId: string,
-  statusByServer: Record<string, HelperStatusSnapshot>,
-): HelperEpisodeStatus['state'] | null => {
-  for (const snapshot of Object.values(statusByServer)) {
-    const job = snapshot.jobs?.find(
-      entry =>
-        entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
-    )
-    const replica = snapshot.replicas.find(
-      entry =>
-        entry.bangumiId === bangumiId && entry.subgroupId === subgroupId,
-    )
-    const episode
-      = job?.episodes.find(entry => entry.episodeId === episodeId)
-        ?? replica?.episodes.find(entry => entry.episodeId === episodeId)
-    if (episode) {
-      return episode.state
-    }
   }
   return null
 }

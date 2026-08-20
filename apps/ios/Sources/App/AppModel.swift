@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -28,10 +29,26 @@ final class AppModel {
   private static let serversStorageKey = "torrentVibe.servers"
   private static let activeServerStorageKey = "torrentVibe.activeServer"
   private static let helperClientIDStorageKey = "torrentVibe.helper.clientID"
+  private static let helperCacheStorageKeyPrefix = "torrentVibe.helper.cache."
   private static let demoServerID = UUID(uuidString: "8ED0F2A8-F72B-49E2-B2D2-22671F367995")!
   private static let demoSecondaryServerID = UUID(
     uuidString: "A925BB90-A242-48DA-B984-6DA12D56DB1E"
   )!
+
+  private static let mikanActiveEpisodeStates: Set<HelperEpisodeState> = [
+    .pending, .added, .downloading, .renaming,
+  ]
+  private static let mikanActivePollInterval: Duration = .seconds(5)
+  private static let mikanSettledPollInterval: Duration = .seconds(30)
+
+  private let mikanPollIntervalOverride: Duration?
+  private var isMikanSurfaceVisible = false
+  private var isAppActiveForMikanPolling = true
+  private var isMikanPollInFlight = false
+  private var mikanPollTimerTask: Task<Void, Never>?
+  private var mikanPollInFlightTask: Task<Void, Never>?
+  private var mikanBackgroundObserver: NSObjectProtocol?
+  private var mikanForegroundObserver: NSObjectProtocol?
 
   init(
     launchArguments: [String] = ProcessInfo.processInfo.arguments,
@@ -39,11 +56,13 @@ final class AppModel {
     credentialStore: any ServerCredentialStore = KeychainServerCredentialStore(),
     helperCredentialStore: any HelperCredentialStore = KeychainHelperCredentialStore(),
     helperService: (any HelperService)? = nil,
-    torrentRepository: (any TorrentRepository)? = nil
+    torrentRepository: (any TorrentRepository)? = nil,
+    mikanPollIntervalOverride: Duration? = nil
   ) {
     let demoMode = launchArguments.contains("-ui-demo")
     isDemoMode = demoMode
     self.defaults = defaults
+    self.mikanPollIntervalOverride = mikanPollIntervalOverride
     self.credentialStore = credentialStore
     self.helperCredentialStore = helperCredentialStore
     let resolvedHelperService: any HelperService =
@@ -107,11 +126,19 @@ final class AppModel {
     }
   }
 
+  var helperSubscriptionVisibleServers: [ServerConfiguration] {
+    servers.filter { server in
+      guard server.helperBaseURL != nil else { return false }
+      if hasStoredHelperToken(for: server.id) { return true }
+      return helperSubscriptionStates[server.id] == .needsRepairing
+    }
+  }
+
   var helperSubscriptionGroups: [HelperSubscriptionGroup] {
     var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
 
     for server in pairedHelperServers {
-      guard case .loaded(let snapshot, let status) = helperSubscriptionState(for: server.id)
+      guard case .loaded(let snapshot, let status, let source) = helperSubscriptionState(for: server.id)
       else { continue }
 
       for replica in snapshot.replicas {
@@ -124,7 +151,11 @@ final class AppModel {
           serverID: server.id,
           serverName: server.name,
           replicaID: replica.id,
-          episodes: runtime?.episodes ?? []
+          episodes: runtime?.episodes ?? [],
+          source: source,
+          checkedAt: runtime?.checkedAt,
+          checkError: runtime?.checkError,
+          consecutiveFailures: runtime?.consecutiveFailures
         )
         if var existing = groups[key] {
           existing.targets.append(target)
@@ -149,6 +180,44 @@ final class AppModel {
     helperSubscriptionGroups.first {
       $0.replica.bangumiId == bangumiID && $0.replica.subgroupId == subgroupID
     }
+  }
+
+  func mikanSubscriptionBarInput(bangumiID: String, subgroupID: String) -> MikanSubscriptionBarInput? {
+    let group = helperSubscriptionGroup(bangumiID: bangumiID, subgroupID: subgroupID)
+
+    var targets: [MikanSubscriptionBarTarget] =
+      (group?.targets ?? []).map { target in
+        MikanSubscriptionBarTarget(
+          serverName: target.serverName,
+          source: target.source,
+          checkedAt: target.checkedAt,
+          checkError: target.checkError,
+          consecutiveFailures: target.consecutiveFailures,
+          needsRepairing: false
+        )
+      }
+
+    for server in helperSubscriptionVisibleServers
+    where helperSubscriptionState(for: server.id) == .needsRepairing {
+      guard let cached = loadHelperCache(for: server.id),
+        cached.snapshot.replicas.contains(where: {
+          $0.bangumiId == bangumiID && $0.subgroupId == subgroupID
+        })
+      else { continue }
+      targets.append(
+        MikanSubscriptionBarTarget(
+          serverName: server.name,
+          source: .cache,
+          needsRepairing: true
+        )
+      )
+    }
+
+    guard !targets.isEmpty else { return nil }
+
+    let progress = group.map { MikanSubscriptionBarModel.progress(from: $0.targets) }
+      ?? MikanSubscriptionBarProgress(ready: 0, total: 0, failed: 0)
+    return MikanSubscriptionBarInput(targets: targets, progress: progress)
   }
 
   func helperEpisodeStatus(
@@ -282,6 +351,7 @@ final class AppModel {
     serverConnectionStates[id] = nil
     helperConnectionStates[id] = nil
     helperSubscriptionStates[id] = nil
+    clearHelperCache(for: id)
     removeServers(atOffsets: IndexSet(integer: index))
   }
 
@@ -389,6 +459,38 @@ final class AppModel {
     )
   }
 
+  func helperDiscoveryInfo(for serverID: UUID) async throws -> HelperDiscoveryInfo {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.discover(at: authorization.baseURL)
+  }
+
+  func helperEvents(
+    for serverID: UUID,
+    since: UInt64?,
+    level: String?,
+    replicaID: String?,
+    limit: Int?
+  ) async throws -> HelperEventsPage {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.events(
+      at: authorization.baseURL,
+      token: authorization.token,
+      since: since,
+      level: level,
+      replicaID: replicaID,
+      limit: limit
+    )
+  }
+
+  func helperLogs(for serverID: UUID, tail: Int?) async throws -> String {
+    let authorization = try helperAuthorization(for: serverID)
+    return try await helperService.logs(
+      at: authorization.baseURL,
+      token: authorization.token,
+      tail: tail
+    )
+  }
+
   func pairHelper(serverID: UUID, baseURLText: String, pairingCode: String) async {
     guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
     helperConnectionStates[serverID] = .connecting
@@ -451,9 +553,38 @@ final class AppModel {
     helperSubscriptionStates[serverID] ?? .idle
   }
 
+  var trackedMikanEpisodeStates: [HelperEpisodeState] {
+    helperSubscriptionGroups.flatMap { group in
+      group.targets.flatMap { $0.episodes.map(\.state) }
+    }
+  }
+
+  static func mikanPollingInterval(forEpisodeStates states: [HelperEpisodeState]) -> Duration {
+    states.contains { mikanActiveEpisodeStates.contains($0) }
+      ? mikanActivePollInterval
+      : mikanSettledPollInterval
+  }
+
+  func startMikanPolling() {
+    isMikanSurfaceVisible = true
+    observeMikanAppLifecycleIfNeeded()
+    evaluateMikanPollingSchedule()
+  }
+
+  func stopMikanPolling() {
+    isMikanSurfaceVisible = false
+    teardownMikanPolling()
+  }
+
+  var isObservingMikanAppLifecycle: Bool {
+    mikanBackgroundObserver != nil || mikanForegroundObserver != nil
+  }
+
   func refreshAllHelperSubscriptions() async {
     let pairedIDs = Set(pairedHelperServers.map(\.id))
-    helperSubscriptionStates = helperSubscriptionStates.filter { pairedIDs.contains($0.key) }
+    helperSubscriptionStates = helperSubscriptionStates.filter { serverID, state in
+      pairedIDs.contains(serverID) || state == .needsRepairing
+    }
     for server in pairedHelperServers {
       await refreshHelperSubscriptions(for: server.id)
     }
@@ -463,7 +594,7 @@ final class AppModel {
     switch helperSubscriptionStates[serverID] {
     case .loaded, .loading:
       break
-    case .failed, .idle, nil:
+    case .failed, .idle, .needsRepairing, nil:
       helperSubscriptionStates[serverID] = .loading
     }
     do {
@@ -477,12 +608,20 @@ final class AppModel {
         token: authorization.token
       )
       let loaded = try await (snapshot, status)
-      helperSubscriptionStates[serverID] = .loaded(
-        snapshot: loaded.0,
-        status: loaded.1
-      )
+      applyLoadedHelperSubscriptions(serverID: serverID, snapshot: loaded.0, status: loaded.1)
     } catch {
-      handleHelperContentError(error, serverID: serverID)
+      if error as? HelperServiceError == .unauthorized {
+        try? helperCredentialStore.deleteToken(for: serverID)
+        helperSubscriptionStates[serverID] = .needsRepairing
+      } else if let cached = loadHelperCache(for: serverID) {
+        helperSubscriptionStates[serverID] = .loaded(
+          snapshot: cached.snapshot,
+          status: cached.status,
+          source: .cache
+        )
+      } else {
+        helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
+      }
     }
   }
 
@@ -509,10 +648,12 @@ final class AppModel {
     )
 
     var serverNames: [String] = []
+    var pushedServerIDs: [UUID] = []
     var mergedConflict = false
+    var lastPushError: Error?
     for serverID in serverIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
-      let authorization = try helperAuthorization(for: serverID)
       do {
+        let authorization = try helperAuthorization(for: serverID)
         let mutation = try await helperSubscriptionCoordinator.upsert(
           replica,
           at: authorization.baseURL,
@@ -523,21 +664,78 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[serverID] = .loaded(
+        applyLoadedHelperSubscriptions(
+          serverID: serverID,
           snapshot: mutation.snapshot,
           status: status
         )
         serverNames.append(authorization.server.name)
+        pushedServerIDs.append(serverID)
       } catch {
         handleHelperContentError(error, serverID: serverID)
-        throw error
+        lastPushError = error
       }
     }
 
+    guard !pushedServerIDs.isEmpty else {
+      throw lastPushError ?? HelperContentError.serverUnavailable
+    }
+
+    let backfillFailed = await backfillAfterSubscribe(
+      detail: detail,
+      subgroup: subgroup,
+      serverIDs: pushedServerIDs
+    )
+
     return HelperSubscriptionOutcome(
       serverNames: serverNames,
-      mergedConflict: mergedConflict
+      mergedConflict: mergedConflict,
+      backfillFailed: backfillFailed
     )
+  }
+
+  private func backfillAfterSubscribe(
+    detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup,
+    serverIDs: [UUID]
+  ) async -> Bool {
+    let episodes = Self.backfillEpisodes(in: detail, subgroup: subgroup)
+    guard !episodes.isEmpty else { return false }
+
+    var backfillFailed = false
+    for serverID in serverIDs {
+      do {
+        let authorization = try helperAuthorization(for: serverID)
+        _ = try await helperService.backfill(
+          at: authorization.baseURL,
+          token: authorization.token,
+          bangumiID: detail.bangumiId,
+          subgroupID: subgroup.id,
+          episodes: episodes
+        )
+      } catch {
+        backfillFailed = true
+      }
+      await refreshHelperSubscriptions(for: serverID)
+    }
+    return backfillFailed
+  }
+
+  private static func backfillEpisodes(
+    in detail: MikanBangumiDetail,
+    subgroup: MikanSubgroup
+  ) -> [HelperBackfillEpisode] {
+    detail.episodes
+      .filter { $0.subgroupId == subgroup.id }
+      .map { episode in
+        HelperBackfillEpisode(
+          episodeId: episode.episodeId,
+          title: episode.title,
+          torrentUrl: episode.torrentUrl,
+          publishedAt: episode.publishedAt,
+          sizeBytes: episode.sizeBytes
+        )
+      }
   }
 
   func updateMikanSubscriptionTargets(
@@ -561,7 +759,11 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[serverID] = .loaded(snapshot: mutation.snapshot, status: status)
+        applyLoadedHelperSubscriptions(
+          serverID: serverID,
+          snapshot: mutation.snapshot,
+          status: status
+        )
       } catch {
         handleHelperContentError(error, serverID: serverID)
         throw error
@@ -582,7 +784,8 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[target.serverID] = .loaded(
+        applyLoadedHelperSubscriptions(
+          serverID: target.serverID,
           snapshot: mutation.snapshot,
           status: status
         )
@@ -596,45 +799,8 @@ final class AppModel {
       pairedHelperServers
       .filter { targetServerIDs.contains($0.id) }
       .map(\.name)
-    return HelperSubscriptionOutcome(serverNames: names, mergedConflict: mergedConflict)
-  }
-
-  func backfillMikan(
-    detail: MikanBangumiDetail,
-    subgroup: MikanSubgroup,
-    serverID: UUID
-  ) async throws -> HelperBackfillOutcome {
-    let episodes = detail.episodes
-      .filter { $0.subgroupId == subgroup.id }
-      .map { episode in
-        HelperBackfillEpisode(
-          episodeId: episode.episodeId,
-          title: episode.title,
-          torrentUrl: episode.torrentUrl,
-          publishedAt: episode.publishedAt,
-          sizeBytes: episode.sizeBytes
-        )
-      }
-    guard !episodes.isEmpty else { throw HelperContentError.noEpisodes }
-
-    let authorization = try helperAuthorization(for: serverID)
-    do {
-      let result = try await helperService.backfill(
-        at: authorization.baseURL,
-        token: authorization.token,
-        bangumiID: detail.bangumiId,
-        subgroupID: subgroup.id,
-        episodes: episodes
-      )
-      await refreshHelperSubscriptions(for: serverID)
-      return HelperBackfillOutcome(
-        serverName: authorization.server.name,
-        episodeCount: result.episodes.count
-      )
-    } catch {
-      handleHelperContentError(error, serverID: serverID)
-      throw error
-    }
+    return HelperSubscriptionOutcome(
+      serverNames: names, mergedConflict: mergedConflict, backfillFailed: false)
   }
 
   func retryHelperEpisode(
@@ -675,10 +841,7 @@ final class AppModel {
         at: authorization.baseURL,
         token: authorization.token
       )
-      helperSubscriptionStates[serverID] = .loaded(
-        snapshot: mutation.snapshot,
-        status: status
-      )
+      applyLoadedHelperSubscriptions(serverID: serverID, snapshot: mutation.snapshot, status: status)
     } catch {
       handleHelperContentError(error, serverID: serverID)
       throw error
@@ -1048,8 +1211,119 @@ final class AppModel {
   private func handleHelperContentError(_ error: Error, serverID: UUID) {
     if error as? HelperServiceError == .unauthorized {
       try? helperCredentialStore.deleteToken(for: serverID)
+      helperSubscriptionStates[serverID] = .needsRepairing
+    } else {
+      helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
     }
-    helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
+  }
+
+  private func applyLoadedHelperSubscriptions(
+    serverID: UUID,
+    snapshot: HelperSubscriptionSnapshot,
+    status: HelperRuntimeStatus
+  ) {
+    helperSubscriptionStates[serverID] = .loaded(snapshot: snapshot, status: status, source: .helper)
+    persistHelperCache(for: serverID, snapshot: snapshot, status: status)
+  }
+
+  private func persistHelperCache(
+    for serverID: UUID,
+    snapshot: HelperSubscriptionSnapshot,
+    status: HelperRuntimeStatus
+  ) {
+    let cache = HelperSubscriptionCache(snapshot: snapshot, status: status)
+    guard let data = try? JSONEncoder().encode(cache) else { return }
+    defaults.set(data, forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+  }
+
+  private func loadHelperCache(for serverID: UUID) -> HelperSubscriptionCache? {
+    guard let data = defaults.data(forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+    else { return nil }
+    return try? JSONDecoder().decode(HelperSubscriptionCache.self, from: data)
+  }
+
+  private func clearHelperCache(for serverID: UUID) {
+    defaults.removeObject(forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+  }
+
+  private func observeMikanAppLifecycleIfNeeded() {
+    guard mikanBackgroundObserver == nil else { return }
+    mikanBackgroundObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.didEnterBackgroundNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      Task { @MainActor in
+        self?.isAppActiveForMikanPolling = false
+        self?.evaluateMikanPollingSchedule()
+      }
+    }
+    mikanForegroundObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.willEnterForegroundNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      Task { @MainActor in
+        self?.isAppActiveForMikanPolling = true
+        self?.evaluateMikanPollingSchedule()
+      }
+    }
+  }
+
+  private func evaluateMikanPollingSchedule() {
+    guard isMikanSurfaceVisible, isAppActiveForMikanPolling else {
+      mikanPollTimerTask?.cancel()
+      mikanPollTimerTask = nil
+      mikanPollInFlightTask?.cancel()
+      mikanPollInFlightTask = nil
+      isMikanPollInFlight = false
+      return
+    }
+    guard mikanPollTimerTask == nil else { return }
+    scheduleNextMikanPollTick()
+  }
+
+  private func scheduleNextMikanPollTick() {
+    let interval = mikanPollIntervalOverride ?? Self.mikanPollingInterval(
+      forEpisodeStates: trackedMikanEpisodeStates
+    )
+    mikanPollTimerTask = Task { [weak self] in
+      try? await Task.sleep(for: interval)
+      guard !Task.isCancelled else { return }
+      await self?.performMikanPollTick()
+    }
+  }
+
+  private func performMikanPollTick() async {
+    guard isMikanSurfaceVisible, isAppActiveForMikanPolling else { return }
+    scheduleNextMikanPollTick()
+
+    guard !isMikanPollInFlight else { return }
+    isMikanPollInFlight = true
+    let task = Task { [weak self] in
+      guard let self else { return }
+      await self.refreshAllHelperSubscriptions()
+    }
+    mikanPollInFlightTask = task
+    await task.value
+    mikanPollInFlightTask = nil
+    isMikanPollInFlight = false
+  }
+
+  private func teardownMikanPolling() {
+    mikanPollTimerTask?.cancel()
+    mikanPollTimerTask = nil
+    mikanPollInFlightTask?.cancel()
+    mikanPollInFlightTask = nil
+    isMikanPollInFlight = false
+    if let observer = mikanBackgroundObserver {
+      NotificationCenter.default.removeObserver(observer)
+      mikanBackgroundObserver = nil
+    }
+    if let observer = mikanForegroundObserver {
+      NotificationCenter.default.removeObserver(observer)
+      mikanForegroundObserver = nil
+    }
   }
 
   private static func mikanRSSURL(
@@ -1114,6 +1388,11 @@ private struct ServerDraft: Sendable {
   let helperURL: URL?
 }
 
+private struct HelperSubscriptionCache: Codable, Sendable {
+  let snapshot: HelperSubscriptionSnapshot
+  let status: HelperRuntimeStatus
+}
+
 enum ServerValidationError: Equatable, LocalizedError {
   case missingName
   case missingPassword
@@ -1159,11 +1438,7 @@ enum HelperPairingError: LocalizedError {
 struct HelperSubscriptionOutcome: Equatable, Sendable {
   let serverNames: [String]
   let mergedConflict: Bool
-}
-
-struct HelperBackfillOutcome: Equatable, Sendable {
-  let serverName: String
-  let episodeCount: Int
+  let backfillFailed: Bool
 }
 
 private struct HelperAuthorization: Sendable {

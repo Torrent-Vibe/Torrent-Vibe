@@ -9,6 +9,7 @@ final class MikanDetailState {
   var errorMessage: String?
   var isLoading = true
   var isUnsubscribing = false
+  var retryingEpisodeIDs: Set<String> = []
   var selectedSubgroupID: String?
 }
 
@@ -58,6 +59,9 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
         baseURL: baseURL,
         onImportEpisode: { [weak self] episode in
           self?.showImport(for: episode)
+        },
+        onRetryEpisode: { [weak self] subgroupID, episode in
+          self?.retryEpisode(subgroupID: subgroupID, episode: episode)
         }
       )
       .environment(model)
@@ -99,20 +103,6 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       subgroupID: subgroup.id
     )
     let hasHelper = !model.pairedHelperServers.isEmpty
-    let canBackfill =
-      hasHelper
-      && detail.episodes.contains { $0.subgroupId == subgroup.id }
-      && !state.isUnsubscribing
-
-    let importItem = UIBarButtonItem(
-      image: UIImage(systemName: "square.and.arrow.down"),
-      style: .plain,
-      target: self,
-      action: #selector(backfillFromNavigation)
-    )
-    importItem.isEnabled = canBackfill
-    importItem.accessibilityLabel = "导入已出"
-    importItem.accessibilityIdentifier = "mikan-detail-backfill"
 
     if let subscription {
       let more = UIBarButtonItem(
@@ -136,7 +126,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       )
       more.accessibilityLabel = "更多操作"
       more.accessibilityIdentifier = "mikan-detail-more"
-      navigationItem.rightBarButtonItems = [more, importItem]
+      navigationItem.rightBarButtonItems = [more]
     } else {
       let subscribe = UIBarButtonItem(
         image: UIImage(systemName: "plus"),
@@ -147,18 +137,13 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       subscribe.isEnabled = hasHelper && !state.isUnsubscribing
       subscribe.accessibilityLabel = "订阅"
       subscribe.accessibilityIdentifier = "mikan-detail-subscribe"
-      navigationItem.rightBarButtonItems = [subscribe, importItem]
+      navigationItem.rightBarButtonItems = [subscribe]
     }
   }
 
   @objc private func subscribeFromNavigation() {
     guard let detail = state.detail, let subgroup = actionSubgroup(in: detail) else { return }
-    showHelperAction(.subscribe, subgroup: subgroup)
-  }
-
-  @objc private func backfillFromNavigation() {
-    guard let detail = state.detail, let subgroup = actionSubgroup(in: detail) else { return }
-    showHelperAction(.backfill, subgroup: subgroup)
+    showHelperAction(subgroup: subgroup)
   }
 
   private func actionSubgroup(in detail: MikanBangumiDetail) -> MikanSubgroup? {
@@ -170,7 +155,13 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
+    model.startMikanPolling()
     Task { await model.refreshAllHelperSubscriptions() }
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    model.stopMikanPolling()
   }
 
   private func showImport(for episode: MikanEpisode) {
@@ -189,17 +180,51 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
     }
   }
 
-  private func showHelperAction(_ action: MikanHelperActionKind, subgroup: MikanSubgroup) {
+  private func retryEpisode(subgroupID: String, episode: HelperEpisodeStatus) {
+    guard let detail = state.detail,
+      let group = model.helperSubscriptionGroup(bangumiID: detail.bangumiId, subgroupID: subgroupID),
+      let target = group.targets.first(where: { $0.serverID == model.activeServerID })
+        ?? group.targets.first
+    else { return }
+
+    let retryID = Self.retryID(subgroupID: subgroupID, episodeID: episode.episodeId)
+    state.retryingEpisodeIDs.insert(retryID)
+    Task {
+      defer { state.retryingEpisodeIDs.remove(retryID) }
+      do {
+        try await model.retryHelperEpisode(
+          serverID: target.serverID,
+          bangumiID: detail.bangumiId,
+          subgroupID: subgroupID,
+          episode: episode
+        )
+        AppToast.show("已重新提交", from: self)
+      } catch {
+        let alert = UIAlertController(
+          title: "无法重试",
+          message: error.localizedDescription,
+          preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "好", style: .default))
+        present(alert, animated: true)
+      }
+    }
+  }
+
+  static func retryID(subgroupID: String, episodeID: String) -> String {
+    "\(subgroupID):\(episodeID)"
+  }
+
+  private func showHelperAction(subgroup: MikanSubgroup) {
     guard let detail = state.detail else { return }
     MikanHelperActionViewController.present(
       from: self,
-      action: action,
       baseURL: baseURL,
       detail: detail,
       subgroup: subgroup,
       model: model
-    ) { [weak self] success in
-      self?.presentHelperSuccess(success)
+    ) { [weak self] outcome in
+      self?.presentHelperSuccess(outcome)
     }
   }
 
@@ -249,15 +274,15 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
     }
   }
 
-  private func presentHelperSuccess(_ success: MikanHelperActionSuccess) {
+  private func presentHelperSuccess(_ outcome: HelperSubscriptionOutcome) {
+    let names = outcome.serverNames.joined(separator: "、")
     let message =
-      switch success {
-      case .subscribed(let outcome):
-        outcome.mergedConflict
-          ? "已合并订阅 · \(outcome.serverNames.joined(separator: "、"))"
-          : "已开始持续订阅 · \(outcome.serverNames.joined(separator: "、"))"
-      case .backfilled(let outcome):
-        "已提交 \(outcome.episodeCount) 个剧集"
+      if outcome.backfillFailed {
+        "已订阅，但导入已出剧集失败 · \(names)"
+      } else if outcome.mergedConflict {
+        "已合并订阅 · \(names)"
+      } else {
+        "已订阅 · \(names)"
       }
     AppToast.show(message, from: self)
   }
@@ -315,167 +340,5 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
         <td><a href="/Download/20260708/ae49d7fc3a508076996f0c438d73b24d7f27855d.torrent">Torrent</a></td>
       </tr></table>
       """
-  }
-}
-
-private struct MikanDetailContentView: View {
-  @Environment(AppModel.self) private var model
-  @Environment(MikanDetailState.self) private var state
-
-  let card: MikanBangumiCard
-  let baseURL: URL
-  let onImportEpisode: (MikanEpisode) -> Void
-
-  var body: some View {
-    Group {
-      if let detail = state.detail {
-        List {
-          Section {
-            header(detail)
-            Text("剧集")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-              .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 2, trailing: 16))
-              .listRowBackground(Color.clear)
-              .listRowSeparator(.hidden)
-          }
-
-          Section {
-            if filteredEpisodes(detail).isEmpty {
-              Text("当前字幕组尚无剧集。")
-                .foregroundStyle(.secondary)
-            } else {
-              ForEach(filteredEpisodes(detail)) { episode in
-                Button {
-                  onImportEpisode(episode)
-                } label: {
-                  MikanEpisodeRow(
-                    episode: episode,
-                    canImport: model.activeServer != nil,
-                    helperStatus: helperStatus(for: episode, detail: detail)
-                  )
-                }
-                .buttonStyle(.plain)
-                .listRowInsets(EdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 16))
-                .disabled(model.activeServer == nil)
-                .accessibilityIdentifier("mikan-episode-import-\(episode.episodeId)")
-              }
-            }
-          } footer: {
-            Text(importAvailabilityText)
-          }
-        }
-        .listSectionSpacing(6)
-        .contentMargins(.top, 8)
-        .scrollContentBackground(.hidden)
-        .background(alignment: .top) {
-          MikanDetailHeroBackdrop(
-            url: MikanCover.url(from: detail.coverUrl ?? card.coverUrl, baseURL: baseURL)
-          )
-          .ignoresSafeArea(edges: .top)
-        }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
-      } else if state.isLoading {
-        ProgressView("正在载入番组详情")
-          .frame(maxWidth: .infinity, minHeight: 480)
-      } else {
-        ContentUnavailableView {
-          Label("无法载入番组详情", systemImage: "exclamationmark.triangle")
-        } description: {
-          Text(state.errorMessage ?? "未知错误")
-        }
-        .frame(maxWidth: .infinity, minHeight: 480)
-      }
-    }
-  }
-
-  private func header(_ detail: MikanBangumiDetail) -> some View {
-    MikanDetailHeader(
-      card: card,
-      detail: detail,
-      baseURL: baseURL
-    )
-    .listRowInsets(
-      EdgeInsets(
-        top: AppSpacing.group,
-        leading: 16,
-        bottom: AppSpacing.section,
-        trailing: 16
-      )
-    )
-    .listRowBackground(Color.clear)
-    .listRowSeparator(.hidden)
-  }
-
-  private func filteredEpisodes(_ detail: MikanBangumiDetail) -> [MikanEpisode] {
-    guard let selected = state.selectedSubgroupID else { return detail.episodes }
-    return detail.episodes.filter { $0.subgroupId == selected }
-  }
-
-  private func helperStatus(
-    for episode: MikanEpisode,
-    detail: MikanBangumiDetail
-  ) -> HelperEpisodeStatus? {
-    let subgroupID = state.selectedSubgroupID ?? episode.subgroupId
-    guard let subgroupID else { return nil }
-    return model.helperEpisodeStatus(
-      bangumiID: detail.bangumiId,
-      subgroupID: subgroupID,
-      episodeID: episode.episodeId
-    )
-  }
-
-  private var importAvailabilityText: String {
-    if model.pairedHelperServers.isEmpty {
-      return "点按剧集可导入单集。配对 Helper 后可订阅或导入已出。"
-    }
-    if let server = model.activeServer {
-      return "点按剧集可导入到 \(server.name)。"
-    }
-    return "添加服务器后可导入单集。"
-  }
-}
-
-private struct MikanEpisodeRow: View {
-  let episode: MikanEpisode
-  let canImport: Bool
-  let helperStatus: HelperEpisodeStatus?
-
-  var body: some View {
-    HStack(alignment: .center, spacing: 12) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text(episode.title)
-          .font(.body)
-          .foregroundStyle(.primary)
-          .multilineTextAlignment(.leading)
-        HStack(spacing: 8) {
-          if let sizeBytes = episode.sizeBytes {
-            Text(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))
-              .monospacedDigit()
-          }
-          if let publishedAt = episode.publishedAt {
-            Text(publishedAt)
-          }
-          if let helperStatus {
-            Text(helperStatus.state.title)
-              .foregroundStyle(helperStatus.state.isRetryable ? .red : .secondary)
-          }
-        }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-
-      if canImport {
-        Image(systemName: "plus.circle")
-          .font(.title3)
-          .foregroundStyle(.tint)
-          .accessibilityHidden(true)
-      }
-    }
-    .contentShape(Rectangle())
-    .accessibilityElement(children: .combine)
-    .accessibilityHint(canImport ? "导入到当前服务器" : "")
-    .accessibilityIdentifier("mikan-episode-\(episode.episodeId)")
   }
 }

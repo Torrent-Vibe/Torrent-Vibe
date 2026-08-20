@@ -4,6 +4,7 @@ import { HelperPairingPanel } from '~/modules/helper-client/HelperPairingPanel'
 import { useServerHelperTargets } from '~/modules/helper-client/hooks'
 
 import { SettingSectionCard } from '../../modals/SettingsModal/tabs/components'
+import { HelperLogSection } from './HelperLogSection'
 
 export const HelperBindingSection = () => {
   const { t } = useTranslation('app')
@@ -21,12 +22,14 @@ export const HelperBindingSection = () => {
       ) : (
         <div className="space-y-3">
           {targets.map((target) => (
-            <HelperPairingPanel
-              host={target.host}
-              key={target.id}
-              name={target.name}
-              serverId={target.id}
-            />
+            <div className="space-y-2" key={target.id}>
+              <HelperPairingPanel
+                host={target.host}
+                name={target.name}
+                serverId={target.id}
+              />
+              <HelperLogSection serverId={target.id} />
+            </div>
           ))}
         </div>
       )}

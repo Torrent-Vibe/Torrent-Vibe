@@ -15,15 +15,31 @@ export interface HelperStatusSnapshot {
   replicas: HelperReplicaStatus[]
 }
 
+export type OptimisticSubscriptionWrite =
+  | {
+      episodeIds?: string[]
+      record: SubscriptionRecord
+      startedAt: string
+      type: 'subscribe'
+    }
+  | { startedAt: string; type: 'unsubscribe' }
+
+export const subscriptionKey = (bangumiId: string, subgroupId: string) =>
+  `${bangumiId}::${subgroupId}`
+
 export interface SubscriptionsState {
+  capabilitiesByServer: Record<string, string[]>
   items: SubscriptionRecord[]
+  optimistic: Record<string, OptimisticSubscriptionWrite>
   statusByServer: Record<string, HelperStatusSnapshot>
   syncing: boolean
 }
 
 const createInitialState = (): SubscriptionsState => ({
   items: [],
+  optimistic: {},
   statusByServer: {},
+  capabilitiesByServer: {},
   syncing: false,
 })
 

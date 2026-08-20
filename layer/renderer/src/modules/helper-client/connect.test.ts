@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { subscriptionStore } from '../subscriptions/store'
 import {
   getHelperBinding,
   setHelperBinding,
@@ -20,6 +21,7 @@ describe('connectHelper', () => {
 
   beforeEach(() => {
     useHelperBindingsStore.setState({ bindings: {} })
+    subscriptionStore.reset()
     localStorage.clear()
     fetchMock.mockReset()
     vi.stubGlobal('fetch', fetchMock)
@@ -104,5 +106,88 @@ describe('connectHelper', () => {
       'ABC234',
     )
     expect(result).toEqual({ ok: false, error: 'pairFailed' })
+  })
+
+  it('primes capabilities for the newly paired server after a successful pairing', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          version: '0.0.1',
+          bindState: 'unbound',
+          advertisedQbitUrl: 'http://127.0.0.1:18888',
+          clientCount: 0,
+          port: 17890,
+          requiresPairingCode: true,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ clientId: 'desktop-1', token: 'tok-1' }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          version: '0.0.2',
+          bindState: 'bound',
+          advertisedQbitUrl: 'http://127.0.0.1:18888',
+          capabilities: ['events', 'logs', 'check'],
+          clientCount: 1,
+          port: 17890,
+          requiresPairingCode: true,
+        }),
+      )
+
+    const result = await connectHelper(
+      'srv-a',
+      'http://10.0.0.32:17890',
+      'ABC234',
+    )
+    expect(result).toEqual({ ok: true, url: 'http://10.0.0.32:17890' })
+
+    await vi.waitFor(() => {
+      expect(
+        subscriptionStore.getState().capabilitiesByServer['srv-a'],
+      ).toEqual(['events', 'logs', 'check'])
+    })
+  })
+
+  it('does not prime capabilities when pairing fails', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network'))
+    const result = await connectHelper(
+      'srv-a',
+      'http://10.0.0.32:17890',
+      'ABC234',
+    )
+    expect(result).toEqual({ ok: false, error: 'discoverFailed' })
+    expect(subscriptionStore.getState().capabilitiesByServer).toEqual({})
+  })
+
+  it('still completes pairing when the capability-priming discover fails', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          version: '0.0.1',
+          bindState: 'unbound',
+          advertisedQbitUrl: 'http://127.0.0.1:18888',
+          clientCount: 0,
+          port: 17890,
+          requiresPairingCode: true,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ clientId: 'desktop-1', token: 'tok-1' }),
+      )
+      .mockRejectedValueOnce(new Error('network'))
+
+    const result = await connectHelper(
+      'srv-a',
+      'http://10.0.0.32:17890',
+      'ABC234',
+    )
+    expect(result).toEqual({ ok: true, url: 'http://10.0.0.32:17890' })
+
+    await vi.waitFor(() => {
+      expect(
+        subscriptionStore.getState().capabilitiesByServer['srv-a'],
+      ).toEqual([])
+    })
   })
 })

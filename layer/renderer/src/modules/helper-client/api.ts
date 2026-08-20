@@ -33,10 +33,30 @@ const readJson = async (response: Response): Promise<unknown> => {
   if (!text.trim()) {
     return null
   }
-  return JSON.parse(text) as unknown
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return text
+  }
 }
 
-const request = async (
+export const rawFetch = (
+  baseUrl: string,
+  path: string,
+  init: RequestInit,
+  token?: string,
+): Promise<Response> => {
+  const headers = new Headers(init.headers)
+  if (token) {
+    headers.set('authorization', `Bearer ${token}`)
+  }
+  return fetch(`${normalizeHelperBaseUrl(baseUrl)}${path}`, {
+    ...init,
+    headers,
+  })
+}
+
+export const request = async (
   baseUrl: string,
   path: string,
   init: RequestInit,
@@ -49,13 +69,7 @@ const request = async (
   if (init.body && !headers.has('content-type')) {
     headers.set('content-type', jsonHeaders['content-type'])
   }
-  if (token) {
-    headers.set('authorization', `Bearer ${token}`)
-  }
-  const response = await fetch(`${normalizeHelperBaseUrl(baseUrl)}${path}`, {
-    ...init,
-    headers,
-  })
+  const response = await rawFetch(baseUrl, path, { ...init, headers }, token)
   const body = await readJson(response)
   if (!response.ok) {
     const error = new Error(`helper ${response.status}`)
@@ -300,6 +314,15 @@ const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
     subgroupName: record.subgroupName,
     rssUrl: record.rssUrl,
     episodes: parseEpisodes(record.episodes),
+    ...(typeof record.checkedAt === 'string'
+      ? { checkedAt: record.checkedAt }
+      : {}),
+    ...(typeof record.checkError === 'string' && record.checkError
+      ? { checkError: record.checkError }
+      : {}),
+    ...(typeof record.consecutiveFailures === 'number'
+      ? { consecutiveFailures: record.consecutiveFailures }
+      : {}),
   }
 }
 
@@ -324,8 +347,14 @@ const parseJobStatus = (value: unknown): HelperJobStatus | null => {
 export const getHelperStatus = async (
   baseUrl: string,
   token: string,
+  signal?: AbortSignal,
 ): Promise<HelperStatusResponse> => {
-  const body = await request(baseUrl, '/status', { method: 'GET' }, token)
+  const body = await request(
+    baseUrl,
+    '/status',
+    { method: 'GET', signal },
+    token,
+  )
   if (
     !body ||
     typeof body !== 'object' ||

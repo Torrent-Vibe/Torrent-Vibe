@@ -4,7 +4,7 @@ import UIKit
 
 @MainActor
 @Observable
-private final class MikanSubscriptionsScreenState {
+final class MikanSubscriptionsScreenState {
   var errorMessage: String?
   var retryingEpisodeIDs: Set<String> = []
   var successMessage: String?
@@ -59,7 +59,13 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
+    model.startMikanPolling()
     Task { await model.refreshAllHelperSubscriptions() }
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    model.stopMikanPolling()
   }
 
   private func showTargetEditor(for group: HelperSubscriptionGroup) {
@@ -125,7 +131,7 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
     }
   }
 
-  fileprivate static func retryID(serverID: UUID, episodeID: String) -> String {
+  static func retryID(serverID: UUID, episodeID: String) -> String {
     "\(serverID.uuidString):\(episodeID)"
   }
 }
@@ -142,7 +148,7 @@ private struct MikanSubscriptionsContentView: View {
 
   var body: some View {
     Group {
-      if model.pairedHelperServers.isEmpty {
+      if model.helperSubscriptionVisibleServers.isEmpty {
         ContentUnavailableView {
           Label("尚未配对 Helper", systemImage: "bookmark")
         } description: {
@@ -184,12 +190,17 @@ private struct MikanSubscriptionsContentView: View {
     if !model.helperSubscriptionGroups.isEmpty {
       Section {
         ForEach(model.helperSubscriptionGroups) { group in
-          subscriptionRow(group)
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-              Button("取消订阅", role: .destructive) {
-                onUnsubscribe(group)
-              }
+          MikanSubscriptionRow(
+            group: group,
+            onEditTargets: onEditTargets,
+            onOpenSubscription: onOpenSubscription,
+            onRetry: onRetry
+          )
+          .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button("取消订阅", role: .destructive) {
+              onUnsubscribe(group)
             }
+          }
         }
       } header: {
         Text("持续订阅")
@@ -201,7 +212,7 @@ private struct MikanSubscriptionsContentView: View {
 
   @ViewBuilder
   private var helperStateSections: some View {
-    ForEach(model.pairedHelperServers) { server in
+    ForEach(model.helperSubscriptionVisibleServers) { server in
       switch model.helperSubscriptionState(for: server.id) {
       case .idle, .loading:
         if model.helperSubscriptionGroups.isEmpty {
@@ -225,11 +236,19 @@ private struct MikanSubscriptionsContentView: View {
             }
           }
         }
-      case .loaded(let snapshot, _):
+      case .loaded(let snapshot, _, _):
         if snapshot.replicas.isEmpty, model.helperSubscriptionGroups.isEmpty {
           Section {
             Text("\(server.name) 暂无持续订阅。")
               .foregroundStyle(.secondary)
+          }
+        }
+      case .needsRepairing:
+        Section {
+          ContentUnavailableView {
+            Label("需要重新配对 \(server.name)", systemImage: "exclamationmark.triangle")
+          } description: {
+            Text("配对信息已失效，请在服务器设置中重新配对 Helper。")
           }
         }
       }
@@ -239,7 +258,7 @@ private struct MikanSubscriptionsContentView: View {
   @ViewBuilder
   private var backfillSections: some View {
     ForEach(model.pairedHelperServers) { server in
-      if case .loaded(_, let status) = model.helperSubscriptionState(for: server.id),
+      if case .loaded(_, let status, _) = model.helperSubscriptionState(for: server.id),
         !status.jobs.isEmpty
       {
         Section("\(server.name) · 一次性导入") {
@@ -249,111 +268,6 @@ private struct MikanSubscriptionsContentView: View {
         }
       }
     }
-  }
-
-  private func subscriptionRow(_ group: HelperSubscriptionGroup) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(alignment: .top, spacing: 12) {
-        Button {
-          onOpenSubscription(group)
-        } label: {
-          VStack(alignment: .leading, spacing: 5) {
-            Text(group.replica.title)
-              .font(.headline)
-            Label(group.replica.subgroupName, systemImage: "person.2")
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("helper-subscription-open-\(group.accessibilityID)")
-
-        Button {
-          onEditTargets(group)
-        } label: {
-          Image(systemName: "ellipsis.circle")
-            .font(.body)
-            .frame(minWidth: 44, minHeight: 44)
-        }
-        .buttonStyle(.borderless)
-        .accessibilityLabel("编辑目标服务器")
-        .accessibilityIdentifier("helper-subscription-edit-target-\(group.accessibilityID)")
-      }
-
-      Label(group.targets.map(\.serverName).joined(separator: "、"), systemImage: "server.rack")
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.secondary)
-        .accessibilityIdentifier("helper-subscription-targets-\(group.accessibilityID)")
-
-      ForEach(group.targets) { target in
-        targetStatusRow(group: group, target: target)
-      }
-    }
-    .padding(.vertical, 4)
-  }
-
-  private func targetStatusRow(
-    group: HelperSubscriptionGroup,
-    target: HelperSubscriptionTarget
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 5) {
-      Text(target.serverName)
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(.secondary)
-      if let episode = target.episodes.first {
-        HStack(alignment: .firstTextBaseline) {
-          Text(episode.title)
-            .font(.caption)
-            .lineLimit(2)
-          Spacer()
-          Text(episode.state.title)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(episode.state.isRetryable ? .red : .secondary)
-        }
-        if let lastError = episode.lastError {
-          Text(lastError)
-            .font(.caption2)
-            .foregroundStyle(.red)
-        }
-        if episode.state.isRetryable {
-          retryButton(
-            serverID: target.serverID,
-            replica: group.replica,
-            episode: episode
-          )
-        }
-      } else {
-        Label("等待 Helper 拉取更新", systemImage: "clock")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-    }
-  }
-
-  private func retryButton(
-    serverID: UUID,
-    replica: HelperReplica,
-    episode: HelperEpisodeStatus
-  ) -> some View {
-    let retryID = SubscriptionsViewController.retryID(
-      serverID: serverID,
-      episodeID: episode.episodeId
-    )
-    return Button {
-      onRetry(serverID, replica, episode)
-    } label: {
-      if state.retryingEpisodeIDs.contains(retryID) {
-        ProgressView()
-      } else {
-        Label("重试", systemImage: "arrow.clockwise")
-      }
-    }
-    .buttonStyle(.bordered)
-    .controlSize(.regular)
-    .disabled(state.retryingEpisodeIDs.contains(retryID))
-    .accessibilityIdentifier("helper-episode-retry-\(serverID.uuidString)-\(episode.episodeId)")
   }
 
   private func jobRow(serverID: UUID, job: HelperJobStatus) -> some View {

@@ -23,5 +23,40 @@ export const desiredReplicasForServer = (
   serverId: string,
 ): HelperReplica[] =>
   items
-    .filter(item => item.targetServerIds.includes(serverId))
+    .filter((item) => item.targetServerIds.includes(serverId))
     .map(toHelperReplica)
+
+const replicaIdentity = (replica: HelperReplica) =>
+  `${replica.bangumiId}::${replica.subgroupId}`
+
+export const mergeDesiredReplicas = (input: {
+  base: HelperReplica[]
+  desired: HelperReplica[]
+  remote: HelperReplica[]
+}): HelperReplica[] => {
+  const desiredByIdentity = new Map(
+    input.desired.map((replica) => [replicaIdentity(replica), replica]),
+  )
+  const dropped = new Set(
+    input.base
+      .filter((replica) => !desiredByIdentity.has(replicaIdentity(replica)))
+      .map(replicaIdentity),
+  )
+  const merged: HelperReplica[] = []
+  const placed = new Set<string>()
+  for (const replica of input.remote) {
+    const identity = replicaIdentity(replica)
+    if (dropped.has(identity)) {
+      continue
+    }
+    placed.add(identity)
+    const wanted = desiredByIdentity.get(identity)
+    merged.push(wanted ? { ...wanted, id: replica.id } : replica)
+  }
+  for (const replica of input.desired) {
+    if (!placed.has(replicaIdentity(replica))) {
+      merged.push(replica)
+    }
+  }
+  return merged
+}

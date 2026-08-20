@@ -15,6 +15,7 @@ type DeleteTorrents = (input: {
 
 type LoadHelperStatus = (
   serverId: string,
+  signal?: AbortSignal,
 ) => Promise<HelperStatusResponse | null>
 
 const leftoverHashes = (
@@ -69,13 +70,14 @@ export const dropLeftoverTorrents = async (input: {
 
 export const liveLoadHelperStatus = async (
   serverId: string,
+  signal?: AbortSignal,
 ): Promise<HelperStatusResponse | null> => {
   const binding = getHelperBinding(serverId)
   if (!binding) {
     return null
   }
   try {
-    return await getHelperStatus(binding.url, binding.token)
+    return await getHelperStatus(binding.url, binding.token, signal)
   } catch (error) {
     if (isHelperAuthError(error)) {
       clearHelperBinding(serverId)
