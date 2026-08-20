@@ -232,6 +232,14 @@ private struct MikanSubscriptionsContentView: View {
               .foregroundStyle(.secondary)
           }
         }
+      case .needsRepairing:
+        Section {
+          ContentUnavailableView {
+            Label("需要重新配对 \(server.name)", systemImage: "exclamationmark.triangle")
+          } description: {
+            Text("配对信息已失效，请在服务器设置中重新配对 Helper。")
+          }
+        }
       }
     }
   }

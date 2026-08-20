@@ -494,6 +494,10 @@ final class AppModel {
     teardownMikanPolling()
   }
 
+  var isObservingMikanAppLifecycle: Bool {
+    mikanBackgroundObserver != nil || mikanForegroundObserver != nil
+  }
+
   func refreshAllHelperSubscriptions() async {
     let pairedIDs = Set(pairedHelperServers.map(\.id))
     helperSubscriptionStates = helperSubscriptionStates.filter { pairedIDs.contains($0.key) }
@@ -506,7 +510,7 @@ final class AppModel {
     switch helperSubscriptionStates[serverID] {
     case .loaded, .loading:
       break
-    case .failed, .idle, nil:
+    case .failed, .idle, .needsRepairing, nil:
       helperSubscriptionStates[serverID] = .loading
     }
     do {
@@ -524,8 +528,8 @@ final class AppModel {
     } catch {
       if error as? HelperServiceError == .unauthorized {
         try? helperCredentialStore.deleteToken(for: serverID)
-      }
-      if let cached = loadHelperCache(for: serverID) {
+        helperSubscriptionStates[serverID] = .needsRepairing
+      } else if let cached = loadHelperCache(for: serverID) {
         helperSubscriptionStates[serverID] = .loaded(
           snapshot: cached.snapshot,
           status: cached.status,

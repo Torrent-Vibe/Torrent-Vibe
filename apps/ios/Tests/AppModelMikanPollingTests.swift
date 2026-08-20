@@ -91,8 +91,16 @@ final class AppModelMikanPollingTests: XCTestCase {
     model.startMikanPolling()
     let ticked = await waitUntil { service.subscriptionsCallCount > 0 }
     XCTAssertTrue(ticked)
+    XCTAssertTrue(
+      model.isObservingMikanAppLifecycle,
+      "starting polling should register the background/foreground observers"
+    )
 
     model.stopMikanPolling()
+    XCTAssertFalse(
+      model.isObservingMikanAppLifecycle,
+      "stopping polling must remove the lifecycle observers, not just cancel the timer"
+    )
     let countAfterStop = service.subscriptionsCallCount
 
     try await Task.sleep(for: Self.stableWindow)

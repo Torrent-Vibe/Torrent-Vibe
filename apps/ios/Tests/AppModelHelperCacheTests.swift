@@ -58,6 +58,57 @@ final class AppModelHelperCacheTests: XCTestCase {
     XCTAssertEqual(cachedSource, .cache, "the fallback must be marked as cached, not silently shown as live")
   }
 
+  func testUnauthorizedHelperProducesNeedsRepairingNotCachedOffline() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+
+    let replica = HelperReplica(
+      id: "mikan:1:2",
+      bangumiId: "1",
+      title: "Test Bangumi",
+      bangumiSubjectId: nil,
+      subgroupId: "2",
+      subgroupName: "Test Subgroup",
+      rssUrl: "https://mikan.example/rss"
+    )
+    let replicaStatus = HelperReplicaStatus(
+      id: replica.id,
+      bangumiId: replica.bangumiId,
+      title: replica.title,
+      bangumiSubjectId: replica.bangumiSubjectId,
+      subgroupId: replica.subgroupId,
+      subgroupName: replica.subgroupName,
+      rssUrl: replica.rssUrl,
+      episodes: []
+    )
+    let service = ScriptedHelperService(
+      subscriptionsResult: .success(HelperSubscriptionSnapshot(revision: 1, replicas: [replica])),
+      runtimeStatusResult: .success(HelperRuntimeStatus(replicas: [replicaStatus], jobs: []))
+    )
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    await model.refreshHelperSubscriptions(for: serverID)
+    guard case .loaded = model.helperSubscriptionState(for: serverID) else {
+      return XCTFail("expected a loaded state to seed a cache before the auth failure")
+    }
+    XCTAssertTrue(model.hasStoredHelperToken(for: serverID))
+
+    service.setSubscriptionsResult(.failure(HelperServiceError.unauthorized))
+    service.setRuntimeStatusResult(.failure(HelperServiceError.unauthorized))
+
+    await model.refreshHelperSubscriptions(for: serverID)
+
+    XCTAssertEqual(
+      model.helperSubscriptionState(for: serverID), .needsRepairing,
+      "a revoked or expired token must surface as a distinct auth failure, not stale cached data"
+    )
+    XCTAssertFalse(
+      model.hasStoredHelperToken(for: serverID),
+      "an auth failure must clear the now-invalid token so the server drops out of pairedHelperServers"
+    )
+  }
+
   func testHelperCacheRoundTripPreservesNeverCheckedOptionalsAndCheckedZeroDistinctly() async throws {
     let env = try makeMikanTestEnvironment()
     defer { env.tearDown() }

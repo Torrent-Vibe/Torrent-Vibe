@@ -312,6 +312,7 @@ enum HelperSubscriptionLoadState: Equatable, Sendable {
     snapshot: HelperSubscriptionSnapshot, status: HelperRuntimeStatus,
     source: HelperSubscriptionSource)
   case loading
+  case needsRepairing
 }
 
 struct HelperEvent: Hashable, Identifiable, Sendable {
