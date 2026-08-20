@@ -1,3 +1,4 @@
+import IslandToast
 import Observation
 import SwiftUI
 import UIKit
@@ -198,7 +199,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
           subgroupID: subgroupID,
           episode: episode
         )
-        AppToast.show("已重新提交", from: self)
+        IslandToast.show("已重新提交", from: self)
       } catch {
         let alert = UIAlertController(
           title: "无法重试",
@@ -250,7 +251,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       defer { state.isUnsubscribing = false }
       do {
         try await model.unsubscribeMikanSubscription(group)
-        AppToast.show("已取消订阅", from: self)
+        IslandToast.show("已取消订阅", from: self)
       } catch {
         let alert = UIAlertController(
           title: "无法取消订阅",
@@ -270,7 +271,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       group: group
     ) { [weak self] outcome in
       guard let self else { return }
-      AppToast.show("已更新订阅目标 · \(outcome.serverNames.joined(separator: "、"))", from: self)
+      IslandToast.show("已更新订阅目标 · \(outcome.serverNames.joined(separator: "、"))", from: self)
     }
   }
 
@@ -284,7 +285,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       } else {
         "已订阅 · \(names)"
       }
-    AppToast.show(message, from: self)
+    IslandToast.show(message, from: self)
   }
 
   private func loadDetail() async {

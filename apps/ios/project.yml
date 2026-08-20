@@ -6,6 +6,10 @@ options:
     iOS: '26.0'
   groupSortPosition: top
 
+packages:
+  IslandToast:
+    path: ../../../IslandToast
+
 settings:
   base:
     CURRENT_PROJECT_VERSION: 1
@@ -69,6 +73,7 @@ targets:
       - path: Resources
         buildPhase: resources
     dependencies:
+      - package: IslandToast
       - target: TorrentVibeShare
         embed: true
       - target: TorrentVibeLiveActivity

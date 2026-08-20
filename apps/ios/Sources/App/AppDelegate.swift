@@ -1,3 +1,5 @@
+@preconcurrency import ActivityKit
+import IslandToast
 import UIKit
 import UserNotifications
 
@@ -9,6 +11,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
   ) -> Bool {
     UNUserNotificationCenter.current().delegate = self
     TorrentBackgroundStatusService.registerBackgroundTask()
+    IslandToast.configuration.isIslandOccupied = {
+      Activity<TorrentLiveActivityAttributes>.activities.contains {
+        $0.activityState == .active || $0.activityState == .stale
+      }
+    }
     return true
   }
 
