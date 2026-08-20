@@ -59,6 +59,8 @@ private struct HelperLogContentView: View {
     if state.isLoadingDiscovery {
       ProgressView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    } else if state.discoveryFailed, let error = state.discoveryErrorMessage {
+      HelperLogErrorNotice(message: error)
     } else if state.tabState(tab) == .unavailable {
       tooOldNotice
     } else if tab == .events {

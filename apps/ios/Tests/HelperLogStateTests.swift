@@ -215,6 +215,72 @@ final class HelperLogStateTests: XCTestCase {
     XCTAssertTrue(recovered, "a later successful load must clear a previously set error")
     state.stopVisible()
   }
+
+  func testDiscoveryFailureRendersTheErrorAndNotTheTooOldMessage() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: ["events", "logs"])
+    service.failNextDiscoverCall()
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    XCTAssertTrue(
+      state.discoveryFailed,
+      "a discovery failure must be distinguishable from a genuine capability absence")
+    XCTAssertNotNil(state.discoveryErrorMessage)
+    XCTAssertNil(state.discovery, "a failed discovery must not fabricate a capability set")
+    state.stopVisible()
+  }
+
+  func testGenuineCapabilityAbsenceStillReportsTooOldNotDiscoveryFailure() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: [])
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    XCTAssertFalse(
+      state.discoveryFailed, "a successful discovery must never report a discovery failure")
+    XCTAssertNil(state.discoveryErrorMessage)
+    XCTAssertEqual(
+      state.tabState(.events), .unavailable,
+      "a Helper that genuinely lacks the capability still shows as unavailable")
+    state.stopVisible()
+  }
+
+  func testSuccessfulDiscoveryAfterAFailureClearsTheDiscoveryError() async throws {
+    let env = try makeMikanTestEnvironment()
+    defer { env.tearDown() }
+    let service = ScriptedLogHelperService(capabilities: ["events", "logs"])
+    service.failNextDiscoverCall()
+    let model = env.makeModel(helperService: service)
+    let serverID = try pairMikanTestServer(on: model, env: env)
+
+    let state = HelperLogState(
+      model: model, serverID: serverID, pollIntervalOverride: Self.testPollInterval)
+    state.startVisible()
+    await state.loadDiscoveryIfNeeded()
+
+    XCTAssertTrue(state.discoveryFailed)
+
+    await state.loadDiscoveryIfNeeded()
+
+    XCTAssertFalse(
+      state.discoveryFailed, "a later successful discovery must clear the failure state")
+    XCTAssertNil(state.discoveryErrorMessage)
+    XCTAssertNotNil(state.discovery)
+    state.stopVisible()
+  }
 }
 
 private struct ScriptedLogHelperServiceError: Error, LocalizedError {
@@ -226,8 +292,10 @@ private final class ScriptedLogHelperService: HelperService, @unchecked Sendable
   private let capabilities: [String]
   private(set) var eventsCallCount = 0
   private(set) var logsCallCount = 0
+  private(set) var discoverCallCount = 0
   private var eventsFailuresRemaining = 0
   private var logsFailuresRemaining = 0
+  private var discoverFailuresRemaining = 0
 
   init(capabilities: [String]) {
     self.capabilities = capabilities
@@ -245,9 +313,27 @@ private final class ScriptedLogHelperService: HelperService, @unchecked Sendable
     lock.unlock()
   }
 
+  func failNextDiscoverCall() {
+    lock.lock()
+    discoverFailuresRemaining += 1
+    lock.unlock()
+  }
+
   func discover(at baseURL: URL) async throws -> HelperDiscoveryInfo {
-    HelperDiscoveryInfo(
+    if recordDiscoverCall() {
+      throw ScriptedLogHelperServiceError()
+    }
+    return HelperDiscoveryInfo(
       version: "2.0.0", capabilities: capabilities, clientCount: 1, requiresPairingCode: true)
+  }
+
+  private func recordDiscoverCall() -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    discoverCallCount += 1
+    guard discoverFailuresRemaining > 0 else { return false }
+    discoverFailuresRemaining -= 1
+    return true
   }
 
   func pair(

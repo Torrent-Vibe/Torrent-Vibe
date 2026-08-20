@@ -35,6 +35,8 @@ final class HelperLogState {
 
   var isPollingEvents: Bool { pollTask != nil }
 
+  var discoveryFailed: Bool { discovery == nil && discoveryErrorMessage != nil }
+
   func tabState(_ tab: HelperLogTab) -> HelperLogTabState {
     guard let discovery else { return .unavailable }
     return HelperLogTabGating.state(for: tab, discovery: discovery)
