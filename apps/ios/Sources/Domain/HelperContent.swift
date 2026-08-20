@@ -300,10 +300,17 @@ struct HelperSubscriptionGroup: Hashable, Identifiable, Sendable {
   var targetServerIDs: Set<UUID> { Set(targets.map(\.serverID)) }
 }
 
+enum HelperSubscriptionSource: Equatable, Sendable {
+  case cache
+  case helper
+}
+
 enum HelperSubscriptionLoadState: Equatable, Sendable {
   case failed(String)
   case idle
-  case loaded(snapshot: HelperSubscriptionSnapshot, status: HelperRuntimeStatus)
+  case loaded(
+    snapshot: HelperSubscriptionSnapshot, status: HelperRuntimeStatus,
+    source: HelperSubscriptionSource)
   case loading
 }
 

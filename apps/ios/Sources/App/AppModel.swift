@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -28,10 +29,26 @@ final class AppModel {
   private static let serversStorageKey = "torrentVibe.servers"
   private static let activeServerStorageKey = "torrentVibe.activeServer"
   private static let helperClientIDStorageKey = "torrentVibe.helper.clientID"
+  private static let helperCacheStorageKeyPrefix = "torrentVibe.helper.cache."
   private static let demoServerID = UUID(uuidString: "8ED0F2A8-F72B-49E2-B2D2-22671F367995")!
   private static let demoSecondaryServerID = UUID(
     uuidString: "A925BB90-A242-48DA-B984-6DA12D56DB1E"
   )!
+
+  private static let mikanActiveEpisodeStates: Set<HelperEpisodeState> = [
+    .pending, .added, .downloading, .renaming,
+  ]
+  private static let mikanActivePollInterval: Duration = .seconds(5)
+  private static let mikanSettledPollInterval: Duration = .seconds(30)
+
+  private let mikanPollIntervalOverride: Duration?
+  private var isMikanSurfaceVisible = false
+  private var isAppActiveForMikanPolling = true
+  private var isMikanPollInFlight = false
+  private var mikanPollTimerTask: Task<Void, Never>?
+  private var mikanPollInFlightTask: Task<Void, Never>?
+  private var mikanBackgroundObserver: NSObjectProtocol?
+  private var mikanForegroundObserver: NSObjectProtocol?
 
   init(
     launchArguments: [String] = ProcessInfo.processInfo.arguments,
@@ -39,11 +56,13 @@ final class AppModel {
     credentialStore: any ServerCredentialStore = KeychainServerCredentialStore(),
     helperCredentialStore: any HelperCredentialStore = KeychainHelperCredentialStore(),
     helperService: (any HelperService)? = nil,
-    torrentRepository: (any TorrentRepository)? = nil
+    torrentRepository: (any TorrentRepository)? = nil,
+    mikanPollIntervalOverride: Duration? = nil
   ) {
     let demoMode = launchArguments.contains("-ui-demo")
     isDemoMode = demoMode
     self.defaults = defaults
+    self.mikanPollIntervalOverride = mikanPollIntervalOverride
     self.credentialStore = credentialStore
     self.helperCredentialStore = helperCredentialStore
     let resolvedHelperService: any HelperService =
@@ -111,7 +130,7 @@ final class AppModel {
     var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
 
     for server in pairedHelperServers {
-      guard case .loaded(let snapshot, let status) = helperSubscriptionState(for: server.id)
+      guard case .loaded(let snapshot, let status, _) = helperSubscriptionState(for: server.id)
       else { continue }
 
       for replica in snapshot.replicas {
@@ -282,6 +301,7 @@ final class AppModel {
     serverConnectionStates[id] = nil
     helperConnectionStates[id] = nil
     helperSubscriptionStates[id] = nil
+    clearHelperCache(for: id)
     removeServers(atOffsets: IndexSet(integer: index))
   }
 
@@ -451,6 +471,29 @@ final class AppModel {
     helperSubscriptionStates[serverID] ?? .idle
   }
 
+  var trackedMikanEpisodeStates: [HelperEpisodeState] {
+    helperSubscriptionGroups.flatMap { group in
+      group.targets.flatMap { $0.episodes.map(\.state) }
+    }
+  }
+
+  static func mikanPollingInterval(forEpisodeStates states: [HelperEpisodeState]) -> Duration {
+    states.contains { mikanActiveEpisodeStates.contains($0) }
+      ? mikanActivePollInterval
+      : mikanSettledPollInterval
+  }
+
+  func startMikanPolling() {
+    isMikanSurfaceVisible = true
+    observeMikanAppLifecycleIfNeeded()
+    evaluateMikanPollingSchedule()
+  }
+
+  func stopMikanPolling() {
+    isMikanSurfaceVisible = false
+    teardownMikanPolling()
+  }
+
   func refreshAllHelperSubscriptions() async {
     let pairedIDs = Set(pairedHelperServers.map(\.id))
     helperSubscriptionStates = helperSubscriptionStates.filter { pairedIDs.contains($0.key) }
@@ -477,12 +520,20 @@ final class AppModel {
         token: authorization.token
       )
       let loaded = try await (snapshot, status)
-      helperSubscriptionStates[serverID] = .loaded(
-        snapshot: loaded.0,
-        status: loaded.1
-      )
+      applyLoadedHelperSubscriptions(serverID: serverID, snapshot: loaded.0, status: loaded.1)
     } catch {
-      handleHelperContentError(error, serverID: serverID)
+      if error as? HelperServiceError == .unauthorized {
+        try? helperCredentialStore.deleteToken(for: serverID)
+      }
+      if let cached = loadHelperCache(for: serverID) {
+        helperSubscriptionStates[serverID] = .loaded(
+          snapshot: cached.snapshot,
+          status: cached.status,
+          source: .cache
+        )
+      } else {
+        helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
+      }
     }
   }
 
@@ -523,7 +574,8 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[serverID] = .loaded(
+        applyLoadedHelperSubscriptions(
+          serverID: serverID,
           snapshot: mutation.snapshot,
           status: status
         )
@@ -561,7 +613,11 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[serverID] = .loaded(snapshot: mutation.snapshot, status: status)
+        applyLoadedHelperSubscriptions(
+          serverID: serverID,
+          snapshot: mutation.snapshot,
+          status: status
+        )
       } catch {
         handleHelperContentError(error, serverID: serverID)
         throw error
@@ -582,7 +638,8 @@ final class AppModel {
           at: authorization.baseURL,
           token: authorization.token
         )
-        helperSubscriptionStates[target.serverID] = .loaded(
+        applyLoadedHelperSubscriptions(
+          serverID: target.serverID,
           snapshot: mutation.snapshot,
           status: status
         )
@@ -675,10 +732,7 @@ final class AppModel {
         at: authorization.baseURL,
         token: authorization.token
       )
-      helperSubscriptionStates[serverID] = .loaded(
-        snapshot: mutation.snapshot,
-        status: status
-      )
+      applyLoadedHelperSubscriptions(serverID: serverID, snapshot: mutation.snapshot, status: status)
     } catch {
       handleHelperContentError(error, serverID: serverID)
       throw error
@@ -1052,6 +1106,115 @@ final class AppModel {
     helperSubscriptionStates[serverID] = .failed(error.localizedDescription)
   }
 
+  private func applyLoadedHelperSubscriptions(
+    serverID: UUID,
+    snapshot: HelperSubscriptionSnapshot,
+    status: HelperRuntimeStatus
+  ) {
+    helperSubscriptionStates[serverID] = .loaded(snapshot: snapshot, status: status, source: .helper)
+    persistHelperCache(for: serverID, snapshot: snapshot, status: status)
+  }
+
+  private func persistHelperCache(
+    for serverID: UUID,
+    snapshot: HelperSubscriptionSnapshot,
+    status: HelperRuntimeStatus
+  ) {
+    let cache = HelperSubscriptionCache(snapshot: snapshot, status: status)
+    guard let data = try? JSONEncoder().encode(cache) else { return }
+    defaults.set(data, forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+  }
+
+  private func loadHelperCache(for serverID: UUID) -> HelperSubscriptionCache? {
+    guard let data = defaults.data(forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+    else { return nil }
+    return try? JSONDecoder().decode(HelperSubscriptionCache.self, from: data)
+  }
+
+  private func clearHelperCache(for serverID: UUID) {
+    defaults.removeObject(forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+  }
+
+  private func observeMikanAppLifecycleIfNeeded() {
+    guard mikanBackgroundObserver == nil else { return }
+    mikanBackgroundObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.didEnterBackgroundNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      Task { @MainActor in
+        self?.isAppActiveForMikanPolling = false
+        self?.evaluateMikanPollingSchedule()
+      }
+    }
+    mikanForegroundObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.willEnterForegroundNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      Task { @MainActor in
+        self?.isAppActiveForMikanPolling = true
+        self?.evaluateMikanPollingSchedule()
+      }
+    }
+  }
+
+  private func evaluateMikanPollingSchedule() {
+    guard isMikanSurfaceVisible, isAppActiveForMikanPolling else {
+      mikanPollTimerTask?.cancel()
+      mikanPollTimerTask = nil
+      mikanPollInFlightTask?.cancel()
+      mikanPollInFlightTask = nil
+      isMikanPollInFlight = false
+      return
+    }
+    guard mikanPollTimerTask == nil else { return }
+    scheduleNextMikanPollTick()
+  }
+
+  private func scheduleNextMikanPollTick() {
+    let interval = mikanPollIntervalOverride ?? Self.mikanPollingInterval(
+      forEpisodeStates: trackedMikanEpisodeStates
+    )
+    mikanPollTimerTask = Task { [weak self] in
+      try? await Task.sleep(for: interval)
+      guard !Task.isCancelled else { return }
+      await self?.performMikanPollTick()
+    }
+  }
+
+  private func performMikanPollTick() async {
+    guard isMikanSurfaceVisible, isAppActiveForMikanPolling else { return }
+    scheduleNextMikanPollTick()
+
+    guard !isMikanPollInFlight else { return }
+    isMikanPollInFlight = true
+    let task = Task { [weak self] in
+      guard let self else { return }
+      await self.refreshAllHelperSubscriptions()
+    }
+    mikanPollInFlightTask = task
+    await task.value
+    mikanPollInFlightTask = nil
+    isMikanPollInFlight = false
+  }
+
+  private func teardownMikanPolling() {
+    mikanPollTimerTask?.cancel()
+    mikanPollTimerTask = nil
+    mikanPollInFlightTask?.cancel()
+    mikanPollInFlightTask = nil
+    isMikanPollInFlight = false
+    if let observer = mikanBackgroundObserver {
+      NotificationCenter.default.removeObserver(observer)
+      mikanBackgroundObserver = nil
+    }
+    if let observer = mikanForegroundObserver {
+      NotificationCenter.default.removeObserver(observer)
+      mikanForegroundObserver = nil
+    }
+  }
+
   private static func mikanRSSURL(
     baseURL: URL,
     bangumiID: String,
@@ -1112,6 +1275,11 @@ private struct ServerDraft: Sendable {
   let username: String
   let password: String
   let helperURL: URL?
+}
+
+private struct HelperSubscriptionCache: Codable, Sendable {
+  let snapshot: HelperSubscriptionSnapshot
+  let status: HelperRuntimeStatus
 }
 
 enum ServerValidationError: Equatable, LocalizedError {

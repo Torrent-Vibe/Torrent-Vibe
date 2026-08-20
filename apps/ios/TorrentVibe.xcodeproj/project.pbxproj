@@ -73,6 +73,9 @@
 		E9972017A7A9CAB693857549 /* MikanHelperActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B9989B753934F8E9A36E6A5 /* MikanHelperActionView.swift */; };
 		EB5CA55F63969FD2FA598C05 /* ContentSourceConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */; };
 		F6AF9AC574D77ACCEF4280C3 /* HelperServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5722F85E5798D04467E710A /* HelperServiceTests.swift */; };
+		5E5622F7C0BCEF9E51B65A3E /* AppModelMikanTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */; };
+		BC65D4F51CEC93EF52FE41F5 /* AppModelHelperCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */; };
+		5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */; };
 		F7E4CEB07D420752A1608ED5 /* TorrentVibeShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -164,6 +167,9 @@
 		A41EBDD29B7EFB5AC3CB6DEF /* HelperContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperContent.swift; sourceTree = "<group>"; };
 		A438DF31829510E18D7B6001 /* MikanSubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanSubscriptionsView.swift; sourceTree = "<group>"; };
 		A5722F85E5798D04467E710A /* HelperServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceTests.swift; sourceTree = "<group>"; };
+		2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanTestSupport.swift; sourceTree = "<group>"; };
+		81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelHelperCacheTests.swift; sourceTree = "<group>"; };
+		00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanPollingTests.swift; sourceTree = "<group>"; };
 		AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TorrentVibeShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B873C8888711E916CBE5A4DF /* MTeamBatchImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamBatchImportView.swift; sourceTree = "<group>"; };
 		BA34353EC7DAA24B175869C5 /* MikanJavaScriptRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanJavaScriptRuntime.swift; sourceTree = "<group>"; };
@@ -323,6 +329,9 @@
 		D1F065BDF57EE8F6E26BCA48 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */,
+				00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */,
+				2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */,
 				7E38882EDDC649625E5D90F0 /* AppModelServerTests.swift */,
 				1F7006A0FD560D596A2F19DB /* AppToastTests.swift */,
 				171F9E117575D0C173F58718 /* ContentSourceConnectionTesterTests.swift */,
@@ -535,6 +544,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BC65D4F51CEC93EF52FE41F5 /* AppModelHelperCacheTests.swift in Sources */,
+				5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */,
+				5E5622F7C0BCEF9E51B65A3E /* AppModelMikanTestSupport.swift in Sources */,
 				0E6F6B0C28FE8B468B628185 /* AppModelServerTests.swift in Sources */,
 				C3CFE287F95F96B18520E1B6 /* AppToastTests.swift in Sources */,
 				973D357827536437F0EDC812 /* ContentSourceConnectionTesterTests.swift in Sources */,

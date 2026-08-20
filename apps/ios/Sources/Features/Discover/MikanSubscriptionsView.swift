@@ -225,7 +225,7 @@ private struct MikanSubscriptionsContentView: View {
             }
           }
         }
-      case .loaded(let snapshot, _):
+      case .loaded(let snapshot, _, _):
         if snapshot.replicas.isEmpty, model.helperSubscriptionGroups.isEmpty {
           Section {
             Text("\(server.name) 暂无持续订阅。")
@@ -239,7 +239,7 @@ private struct MikanSubscriptionsContentView: View {
   @ViewBuilder
   private var backfillSections: some View {
     ForEach(model.pairedHelperServers) { server in
-      if case .loaded(_, let status) = model.helperSubscriptionState(for: server.id),
+      if case .loaded(_, let status, _) = model.helperSubscriptionState(for: server.id),
         !status.jobs.isEmpty
       {
         Section("\(server.name) · 一次性导入") {
