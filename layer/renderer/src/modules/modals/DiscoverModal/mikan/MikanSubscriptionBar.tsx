@@ -11,10 +11,12 @@ import {
   subscriptionFor,
   subscriptionProgress,
 } from '~/modules/subscriptions'
+import type { SubscriptionsState } from '~/modules/subscriptions/store'
 import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
 import {
   buildSubscriptionBarModel,
+  showFailedCount,
   showSubscriptionBarDetails,
 } from './subscription-bar-model'
 import { serverNamesForIds } from './subscription-view'
@@ -51,10 +53,22 @@ export const MikanSubscriptionBar = ({
   onOpenLogs,
 }: MikanSubscriptionBarProps) => {
   const { t } = useTranslation('app')
-  const state = useSubscriptionsStore((store) => store)
+  const items = useSubscriptionsStore((store) => store.items)
+  const optimistic = useSubscriptionsStore((store) => store.optimistic)
+  const statusByServer = useSubscriptionsStore((store) => store.statusByServer)
+  const capabilitiesByServer = useSubscriptionsStore(
+    (store) => store.capabilitiesByServer,
+  )
   const targets = useServerHelperTargets()
 
   const variant = useMemo(() => {
+    const state: SubscriptionsState = {
+      items,
+      optimistic,
+      statusByServer,
+      capabilitiesByServer,
+      syncing: false,
+    }
     const resolved = subscriptionFor(bangumiId, subgroupId, state)
     if (!resolved) return null
     const checkSupportByServerId = Object.fromEntries(
@@ -71,14 +85,22 @@ export const MikanSubscriptionBar = ({
       syncedAtIso: resolved.record.updatedAt,
       checkSupportByServerId,
     })
-  }, [bangumiId, subgroupId, state, targets])
+  }, [
+    bangumiId,
+    subgroupId,
+    items,
+    optimistic,
+    statusByServer,
+    capabilitiesByServer,
+    targets,
+  ])
 
   if (!variant) return null
 
   const showDetails = showSubscriptionBarDetails(variant, Boolean(onOpenLogs))
 
   const segments: { key: string; node: ReactNode }[] = [
-    { key: 'servers', node: variant.serverNames.join(', ') || '—' },
+    { key: 'servers', node: variant.serverLabel },
   ]
 
   if (variant.type === 'healthy') {
@@ -89,7 +111,7 @@ export const MikanSubscriptionBar = ({
         total: variant.total,
       }),
     })
-    if (variant.failed > 0) {
+    if (showFailedCount(variant)) {
       segments.push({
         key: 'failed',
         node: t('discover.modal.mikan.subscriptionBar.failed', {

@@ -4,6 +4,8 @@ import type { SubscriptionTargetHealth } from '~/modules/subscriptions/selectors
 
 import {
   buildSubscriptionBarModel,
+  formatServerNames,
+  showFailedCount,
   showSubscriptionBarDetails,
 } from './subscription-bar-model'
 
@@ -41,7 +43,7 @@ describe('buildSubscriptionBarModel', () => {
     })
     expect(variant).toEqual({
       type: 'offline',
-      serverNames: ['NAS'],
+      serverLabel: 'NAS',
       syncedAtIso: '2026-08-15T00:00:00.000Z',
     })
   })
@@ -59,7 +61,7 @@ describe('buildSubscriptionBarModel', () => {
     })
     expect(variant).toEqual({
       type: 'check-failed',
-      serverNames: ['NAS'],
+      serverLabel: 'NAS',
       checkError: 'RSS fetch failed',
       consecutiveFailures: 4,
     })
@@ -175,5 +177,44 @@ describe('showSubscriptionBarDetails', () => {
 
     const healthy = buildSubscriptionBarModel(baseInput)
     expect(showSubscriptionBarDetails(healthy, true)).toBe(false)
+  })
+})
+
+describe('formatServerNames', () => {
+  it('joins multiple server names with a comma', () => {
+    expect(formatServerNames(['NAS', 'VPS'])).toBe('NAS, VPS')
+  })
+
+  it('falls back to an em dash when there are no target servers', () => {
+    expect(formatServerNames([])).toBe('—')
+  })
+})
+
+describe('showFailedCount', () => {
+  it('is false when the healthy variant has zero failures', () => {
+    const variant = buildSubscriptionBarModel({
+      ...baseInput,
+      progress: { ready: 12, total: 12, failed: 0 },
+    })
+    expect(showFailedCount(variant)).toBe(false)
+  })
+
+  it('is true when the healthy variant has at least one failure', () => {
+    const variant = buildSubscriptionBarModel({
+      ...baseInput,
+      progress: { ready: 11, total: 12, failed: 1 },
+    })
+    expect(showFailedCount(variant)).toBe(true)
+  })
+
+  it('is false on non-healthy variants regardless of any failure count', () => {
+    const checkFailed = buildSubscriptionBarModel({
+      ...baseInput,
+      targets: [target({ serverId: 'srv-a', checkError: 'boom' })],
+    })
+    expect(showFailedCount(checkFailed)).toBe(false)
+
+    const offline = buildSubscriptionBarModel({ ...baseInput, source: 'cache' })
+    expect(showFailedCount(offline)).toBe(false)
   })
 })

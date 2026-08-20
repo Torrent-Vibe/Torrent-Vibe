@@ -14,18 +14,18 @@ export type SubscriptionBarVariant =
       checkedAt: SubscriptionBarCheckState
       failed: number
       ready: number
-      serverNames: string[]
+      serverLabel: string
       total: number
       type: 'healthy'
     }
   | {
       checkError: string
       consecutiveFailures: number
-      serverNames: string[]
+      serverLabel: string
       type: 'check-failed'
     }
   | {
-      serverNames: string[]
+      serverLabel: string
       syncedAtIso: string
       type: 'offline'
     }
@@ -38,6 +38,9 @@ export interface SubscriptionBarModelInput {
   syncedAtIso: string
   targets: SubscriptionTargetHealth[]
 }
+
+export const formatServerNames = (serverNames: string[]): string =>
+  serverNames.join(', ') || '—'
 
 const worstFailingTarget = (
   targets: SubscriptionTargetHealth[],
@@ -86,16 +89,17 @@ export const buildSubscriptionBarModel = (
     syncedAtIso,
     targets,
   } = input
+  const serverLabel = formatServerNames(serverNames)
 
   if (source === 'cache') {
-    return { type: 'offline', serverNames, syncedAtIso }
+    return { type: 'offline', serverLabel, syncedAtIso }
   }
 
   const failing = worstFailingTarget(targets)
   if (failing) {
     return {
       type: 'check-failed',
-      serverNames,
+      serverLabel,
       checkError: failing.checkError as string,
       consecutiveFailures: failing.consecutiveFailures ?? 1,
     }
@@ -103,7 +107,7 @@ export const buildSubscriptionBarModel = (
 
   return {
     type: 'healthy',
-    serverNames,
+    serverLabel,
     ready: progress.ready,
     total: progress.total,
     failed: progress.failed,
@@ -115,3 +119,6 @@ export const showSubscriptionBarDetails = (
   variant: SubscriptionBarVariant,
   hasLogHandler: boolean,
 ): boolean => variant.type === 'check-failed' && hasLogHandler
+
+export const showFailedCount = (variant: SubscriptionBarVariant): boolean =>
+  variant.type === 'healthy' && variant.failed > 0
