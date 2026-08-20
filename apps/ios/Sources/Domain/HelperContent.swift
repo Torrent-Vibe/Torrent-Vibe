@@ -287,8 +287,32 @@ struct HelperSubscriptionTarget: Hashable, Identifiable, Sendable {
   let serverName: String
   let replicaID: String
   let episodes: [HelperEpisodeStatus]
+  let source: HelperSubscriptionSource
+  let checkedAt: Date?
+  let checkError: String?
+  let consecutiveFailures: Int?
 
   var id: UUID { serverID }
+
+  init(
+    serverID: UUID,
+    serverName: String,
+    replicaID: String,
+    episodes: [HelperEpisodeStatus],
+    source: HelperSubscriptionSource = .helper,
+    checkedAt: Date? = nil,
+    checkError: String? = nil,
+    consecutiveFailures: Int? = nil
+  ) {
+    self.serverID = serverID
+    self.serverName = serverName
+    self.replicaID = replicaID
+    self.episodes = episodes
+    self.source = source
+    self.checkedAt = checkedAt
+    self.checkError = checkError
+    self.consecutiveFailures = consecutiveFailures
+  }
 }
 
 struct HelperSubscriptionGroup: Hashable, Identifiable, Sendable {

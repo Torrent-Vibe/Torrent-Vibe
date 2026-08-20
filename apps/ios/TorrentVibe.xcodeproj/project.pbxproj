@@ -17,6 +17,12 @@
 		1B3AE2EC4D34BF18FE5FC42E /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDB94733F976B73337A759E8 /* HelperService.swift */; };
 		CC3791E069CFEF5C40A03F57 /* DemoHelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFFFEB33AD985051A61982B /* DemoHelperService.swift */; };
 		1D86DAA644EB840FA0E10CCC /* MikanContentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BBF6C5EA6457BCFAFECBF0 /* MikanContentService.swift */; };
+		08D9941FCB3A2A1AE2A25C49 /* MikanSubscriptionBarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23244F771D0CA85E55252685 /* MikanSubscriptionBarModel.swift */; };
+		02ACFB9F8809107E971BA140 /* MikanEpisodeRowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0BD32BCD01C86F247FB69C /* MikanEpisodeRowModel.swift */; };
+		E0E2B2C8CF521EFF12BF3789 /* MikanSubscriptionBarModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264EFD2F5EBBBE91ACED9A04 /* MikanSubscriptionBarModelTests.swift */; };
+		4D2EABDBE44792B13C62DEFD /* MikanEpisodeRowModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A619A913CCE202F788354DBB /* MikanEpisodeRowModelTests.swift */; };
+		831D0279E9B5E9D38005E96D /* MikanDetailSurfacePollingWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2252E1E4012B955A71F0B56 /* MikanDetailSurfacePollingWiringTests.swift */; };
+		6CE2719725BC1711B58CBE70 /* AppModelMikanSubscriptionBarInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D1232B8D8574FA33D547B0 /* AppModelMikanSubscriptionBarInputTests.swift */; };
 		21D19E97BE66C5C7F9145A9F /* IOSIntegrationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B767A5B2CD4B8D683A7723 /* IOSIntegrationsTests.swift */; };
 		21EBD1C2AFFB260A68DA4EE1 /* HelperConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA44D4CD2D72EA0E0C6A9844 /* HelperConnectionView.swift */; };
 		24957C73F4F943F83BFDB77A /* TorrentLiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB1FC4982F670959DFC149A /* TorrentLiveActivityCoordinator.swift */; };
@@ -26,6 +32,8 @@
 		4CED85FA59EF8F8F562ACC7C /* TorrentSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E69881D46153D487A181E0F /* TorrentSummary.swift */; };
 		4DA26BBCEA867A12A0AC0B10 /* AppContentLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2D27817126601C4E5C8D5A /* AppContentLayout.swift */; };
 		554D0020A9A1F5ED27DAB88E /* MikanDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2785CB74ECAC4C80AB91DEF0 /* MikanDetailView.swift */; };
+		B2F005EC3D3D4BAE869BB679 /* MikanDetailContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A82F476857F95B602DB072C /* MikanDetailContentView.swift */; };
+		47E4CCCED75DF9FB7FE37799 /* MikanEpisodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3D31848FEE9EC9B0EC0D44E /* MikanEpisodeRow.swift */; };
 		55AC630E91265E1BA4FF96CF /* TorrentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5133C244E6327B15F7BC40FC /* TorrentRepository.swift */; };
 		5958C0A9D1258F00AFA0AEDE /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0744FDFAF15095044A734F /* ShareViewController.swift */; };
 		5B471E0ACA64178456B87AC1 /* MikanParser.js in Resources */ = {isa = PBXBuildFile; fileRef = DD3D627BA0C3C26CD1C0073A /* MikanParser.js */; };
@@ -135,6 +143,8 @@
 		229627CA1BCF12DE066581DC /* RootTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabBarController.swift; sourceTree = "<group>"; };
 		25C92F9A31603987D36B1E25 /* TorrentVibeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TorrentVibeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2785CB74ECAC4C80AB91DEF0 /* MikanDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDetailView.swift; sourceTree = "<group>"; };
+		3A82F476857F95B602DB072C /* MikanDetailContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDetailContentView.swift; sourceTree = "<group>"; };
+		E3D31848FEE9EC9B0EC0D44E /* MikanEpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanEpisodeRow.swift; sourceTree = "<group>"; };
 		3C52B9D3AB8BB425297DBEC1 /* TorrentVibeShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentVibeShortcuts.swift; sourceTree = "<group>"; };
 		402CC23EDB0CFC6C5C3AA783 /* TorrentVibeLiveActivity.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TorrentVibeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSourceConnectionTester.swift; sourceTree = "<group>"; };
@@ -147,6 +157,12 @@
 		5DDE332BC6744C9DC330E798 /* TorrentImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentImportView.swift; sourceTree = "<group>"; };
 		61AA0C06F2E17091FC9949D3 /* TorrentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentListView.swift; sourceTree = "<group>"; };
 		6A42E0723A5A11E9961783FA /* MikanContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContent.swift; sourceTree = "<group>"; };
+		ED0BD32BCD01C86F247FB69C /* MikanEpisodeRowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanEpisodeRowModel.swift; sourceTree = "<group>"; };
+		23244F771D0CA85E55252685 /* MikanSubscriptionBarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanSubscriptionBarModel.swift; sourceTree = "<group>"; };
+		264EFD2F5EBBBE91ACED9A04 /* MikanSubscriptionBarModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanSubscriptionBarModelTests.swift; sourceTree = "<group>"; };
+		A619A913CCE202F788354DBB /* MikanEpisodeRowModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanEpisodeRowModelTests.swift; sourceTree = "<group>"; };
+		E2252E1E4012B955A71F0B56 /* MikanDetailSurfacePollingWiringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDetailSurfacePollingWiringTests.swift; sourceTree = "<group>"; };
+		52D1232B8D8574FA33D547B0 /* AppModelMikanSubscriptionBarInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanSubscriptionBarInputTests.swift; sourceTree = "<group>"; };
 		6B9989B753934F8E9A36E6A5 /* MikanHelperActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanHelperActionView.swift; sourceTree = "<group>"; };
 		7450A7F2C342A5147E828521 /* TorrentManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentManagementView.swift; sourceTree = "<group>"; };
 		7A00A8BE90B9747875FA0780 /* TorrentVibeShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TorrentVibeShare.entitlements; sourceTree = "<group>"; };
@@ -273,6 +289,8 @@
 				FDFAFD5BC7BB234FAACF8CD2 /* AppearanceMode.swift */,
 				A41EBDD29B7EFB5AC3CB6DEF /* HelperContent.swift */,
 				6A42E0723A5A11E9961783FA /* MikanContent.swift */,
+				ED0BD32BCD01C86F247FB69C /* MikanEpisodeRowModel.swift */,
+				23244F771D0CA85E55252685 /* MikanSubscriptionBarModel.swift */,
 				F56BCBF3EDE5E2FAA0B786B7 /* ServerConfiguration.swift */,
 				1671F06F637BEE08D7288159 /* TorrentInput.swift */,
 				8C678F63C96D16B73996E688 /* TorrentInspectorItem.swift */,
@@ -285,8 +303,10 @@
 			isa = PBXGroup;
 			children = (
 				02F0425929EB19494E6DA680 /* DiscoverView.swift */,
+				3A82F476857F95B602DB072C /* MikanDetailContentView.swift */,
 				F0D0DEED6777ADD4D8DD7C64 /* MikanDetailHeader.swift */,
 				2785CB74ECAC4C80AB91DEF0 /* MikanDetailView.swift */,
+				E3D31848FEE9EC9B0EC0D44E /* MikanEpisodeRow.swift */,
 				6B9989B753934F8E9A36E6A5 /* MikanHelperActionView.swift */,
 				A438DF31829510E18D7B6001 /* MikanSubscriptionsView.swift */,
 				B873C8888711E916CBE5A4DF /* MTeamBatchImportView.swift */,
@@ -334,12 +354,16 @@
 				81C2ECC2BAF2CA35004A4484 /* AppModelHelperCacheTests.swift */,
 				00A99D6CBA1F9CF6AB9494AD /* AppModelMikanPollingTests.swift */,
 				9BD563D89EC147BE99D27E0E /* AppModelMikanSubscribeTests.swift */,
+				52D1232B8D8574FA33D547B0 /* AppModelMikanSubscriptionBarInputTests.swift */,
 				2746B859F0A7328AD9BADA12 /* AppModelMikanTestSupport.swift */,
 				7E38882EDDC649625E5D90F0 /* AppModelServerTests.swift */,
 				1F7006A0FD560D596A2F19DB /* AppToastTests.swift */,
 				171F9E117575D0C173F58718 /* ContentSourceConnectionTesterTests.swift */,
 				A5722F85E5798D04467E710A /* HelperServiceTests.swift */,
 				59B767A5B2CD4B8D683A7723 /* IOSIntegrationsTests.swift */,
+				E2252E1E4012B955A71F0B56 /* MikanDetailSurfacePollingWiringTests.swift */,
+				A619A913CCE202F788354DBB /* MikanEpisodeRowModelTests.swift */,
+				264EFD2F5EBBBE91ACED9A04 /* MikanSubscriptionBarModelTests.swift */,
 				7A754AFD47C2D2BED78C339A /* MTeamServiceTests.swift */,
 				8B4E557F8572DDB0F4268B65 /* TorrentInspectorKindTests.swift */,
 				846020FA6014BDADF23560C7 /* TorrentLiveActivityStateTests.swift */,
@@ -550,12 +574,16 @@
 				BC65D4F51CEC93EF52FE41F5 /* AppModelHelperCacheTests.swift in Sources */,
 				5051AC259343FBCF11700D4C /* AppModelMikanPollingTests.swift in Sources */,
 				AB9027471A88219B78CC1A45 /* AppModelMikanSubscribeTests.swift in Sources */,
+				6CE2719725BC1711B58CBE70 /* AppModelMikanSubscriptionBarInputTests.swift in Sources */,
 				5E5622F7C0BCEF9E51B65A3E /* AppModelMikanTestSupport.swift in Sources */,
 				0E6F6B0C28FE8B468B628185 /* AppModelServerTests.swift in Sources */,
 				C3CFE287F95F96B18520E1B6 /* AppToastTests.swift in Sources */,
 				973D357827536437F0EDC812 /* ContentSourceConnectionTesterTests.swift in Sources */,
 				F6AF9AC574D77ACCEF4280C3 /* HelperServiceTests.swift in Sources */,
 				21D19E97BE66C5C7F9145A9F /* IOSIntegrationsTests.swift in Sources */,
+				831D0279E9B5E9D38005E96D /* MikanDetailSurfacePollingWiringTests.swift in Sources */,
+				4D2EABDBE44792B13C62DEFD /* MikanEpisodeRowModelTests.swift in Sources */,
+				E0E2B2C8CF521EFF12BF3789 /* MikanSubscriptionBarModelTests.swift in Sources */,
 				0424B7A9D4A239F39A9AF2CA /* MTeamServiceTests.swift in Sources */,
 				2BF41BB13CFA3D94AF14B807 /* TorrentInspectorKindTests.swift in Sources */,
 				A9044891322BFB4197BB201D /* TorrentLiveActivityStateTests.swift in Sources */,
@@ -608,10 +636,14 @@
 				634B251D09E4CA01BCC65F80 /* MTeamService.swift in Sources */,
 				75CE6E34F1807684712F6347 /* MikanContent.swift in Sources */,
 				1D86DAA644EB840FA0E10CCC /* MikanContentService.swift in Sources */,
+				B2F005EC3D3D4BAE869BB679 /* MikanDetailContentView.swift in Sources */,
 				C7192EA9E36E378CB999B23B /* MikanDetailHeader.swift in Sources */,
 				554D0020A9A1F5ED27DAB88E /* MikanDetailView.swift in Sources */,
+				47E4CCCED75DF9FB7FE37799 /* MikanEpisodeRow.swift in Sources */,
+				02ACFB9F8809107E971BA140 /* MikanEpisodeRowModel.swift in Sources */,
 				E9972017A7A9CAB693857549 /* MikanHelperActionView.swift in Sources */,
 				CDDF5F067163DB87B5A0B9A6 /* MikanJavaScriptRuntime.swift in Sources */,
+				08D9941FCB3A2A1AE2A25C49 /* MikanSubscriptionBarModel.swift in Sources */,
 				05197A4704E5E46F1CBDAC16 /* MikanSubscriptionsView.swift in Sources */,
 				42CBBE956B327CAF3D9F8F66 /* RootTabBarController.swift in Sources */,
 				7D05C52ADD57A06B44998267 /* SceneDelegate.swift in Sources */,

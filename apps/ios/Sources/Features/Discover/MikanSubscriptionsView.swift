@@ -59,7 +59,13 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
+    model.startMikanPolling()
     Task { await model.refreshAllHelperSubscriptions() }
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    model.stopMikanPolling()
   }
 
   private func showTargetEditor(for group: HelperSubscriptionGroup) {

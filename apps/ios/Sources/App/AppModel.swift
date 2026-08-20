@@ -138,7 +138,7 @@ final class AppModel {
     var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
 
     for server in pairedHelperServers {
-      guard case .loaded(let snapshot, let status, _) = helperSubscriptionState(for: server.id)
+      guard case .loaded(let snapshot, let status, let source) = helperSubscriptionState(for: server.id)
       else { continue }
 
       for replica in snapshot.replicas {
@@ -151,7 +151,11 @@ final class AppModel {
           serverID: server.id,
           serverName: server.name,
           replicaID: replica.id,
-          episodes: runtime?.episodes ?? []
+          episodes: runtime?.episodes ?? [],
+          source: source,
+          checkedAt: runtime?.checkedAt,
+          checkError: runtime?.checkError,
+          consecutiveFailures: runtime?.consecutiveFailures
         )
         if var existing = groups[key] {
           existing.targets.append(target)
@@ -176,6 +180,44 @@ final class AppModel {
     helperSubscriptionGroups.first {
       $0.replica.bangumiId == bangumiID && $0.replica.subgroupId == subgroupID
     }
+  }
+
+  func mikanSubscriptionBarInput(bangumiID: String, subgroupID: String) -> MikanSubscriptionBarInput? {
+    let group = helperSubscriptionGroup(bangumiID: bangumiID, subgroupID: subgroupID)
+
+    var targets: [MikanSubscriptionBarTarget] =
+      (group?.targets ?? []).map { target in
+        MikanSubscriptionBarTarget(
+          serverName: target.serverName,
+          source: target.source,
+          checkedAt: target.checkedAt,
+          checkError: target.checkError,
+          consecutiveFailures: target.consecutiveFailures,
+          needsRepairing: false
+        )
+      }
+
+    for server in helperSubscriptionVisibleServers
+    where helperSubscriptionState(for: server.id) == .needsRepairing {
+      guard let cached = loadHelperCache(for: server.id),
+        cached.snapshot.replicas.contains(where: {
+          $0.bangumiId == bangumiID && $0.subgroupId == subgroupID
+        })
+      else { continue }
+      targets.append(
+        MikanSubscriptionBarTarget(
+          serverName: server.name,
+          source: .cache,
+          needsRepairing: true
+        )
+      )
+    }
+
+    guard !targets.isEmpty else { return nil }
+
+    let progress = group.map { MikanSubscriptionBarModel.progress(from: $0.targets) }
+      ?? MikanSubscriptionBarProgress(ready: 0, total: 0, failed: 0)
+    return MikanSubscriptionBarInput(targets: targets, progress: progress)
   }
 
   func helperEpisodeStatus(
