@@ -45,7 +45,7 @@ export const buildEpisodeRowModel = (input: {
     badge: state ? episodeBadgeFor(state) : null,
     liveProgress:
       state === 'downloading' ? episodeLiveProgressFor(torrent) : null,
-    showRetry: state === 'failed' || state === 'needs-manual',
+    showRetry: state === 'failed',
     torrentHash: torrent?.hash ?? null,
   }
 }

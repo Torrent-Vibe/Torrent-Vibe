@@ -147,8 +147,81 @@ describe('buildEpisodeRowModel showRetry', () => {
       subscribed: true,
       torrentIndex: emptyIndex,
     })
-    expect(model.showRetry).toBe(state === 'failed' || state === 'needs-manual')
+    expect(model.showRetry).toBe(state === 'failed')
   })
+})
+
+describe('buildEpisodeRowModel one remedy per problem state', () => {
+  const subscribedCases: Array<{
+    state: HelperEpisodeState
+    showRetry: boolean
+    actionLabelKey: I18nKeys | null
+  }> = [
+    { state: 'failed', showRetry: true, actionLabelKey: null },
+    {
+      state: 'needs-manual',
+      showRetry: false,
+      actionLabelKey: 'discover.modal.mikan.downloadAnyway',
+    },
+    {
+      state: 'skipped',
+      showRetry: false,
+      actionLabelKey: 'discover.modal.mikan.downloadAnyway',
+    },
+  ]
+
+  it.each(subscribedCases)(
+    'subscribed $state rows show exactly one remedy: showRetry=$showRetry actionLabelKey=$actionLabelKey',
+    ({ state, showRetry, actionLabelKey }) => {
+      const model = buildEpisodeRowModel({
+        infohash: undefined,
+        state,
+        subscribed: true,
+        torrentIndex: emptyIndex,
+      })
+      expect(model.showRetry).toBe(showRetry)
+      expect(model.actionLabelKey).toBe(actionLabelKey)
+      expect(
+        [model.showRetry, model.actionLabelKey !== null].filter(Boolean),
+      ).toHaveLength(1)
+    },
+  )
+
+  const unsubscribedCases: Array<{
+    state: HelperEpisodeState
+    showRetry: boolean
+    actionLabelKey: I18nKeys | null
+  }> = [
+    {
+      state: 'failed',
+      showRetry: true,
+      actionLabelKey: 'discover.modal.mikan.importEpisode',
+    },
+    {
+      state: 'needs-manual',
+      showRetry: false,
+      actionLabelKey: 'discover.modal.mikan.importEpisode',
+    },
+    {
+      state: 'skipped',
+      showRetry: false,
+      actionLabelKey: 'discover.modal.mikan.importEpisode',
+    },
+  ]
+
+  it.each(unsubscribedCases)(
+    'unsubscribed $state rows: showRetry=$showRetry actionLabelKey=$actionLabelKey',
+    ({ state, showRetry, actionLabelKey }) => {
+      const model = buildEpisodeRowModel({
+        infohash: undefined,
+        state,
+        subscribed: false,
+        torrentIndex: emptyIndex,
+      })
+      expect(model.showRetry).toBe(showRetry)
+      expect(model.actionLabelKey).toBe(actionLabelKey)
+    },
+  )
 })
 
 describe('buildEpisodeRowModel badge', () => {
