@@ -9,11 +9,13 @@ import { useServerHelperTargets } from '~/modules/helper-client/hooks'
 import {
   capabilitiesForServer,
   subscriptionFor,
+  subscriptionKey,
   subscriptionProgress,
 } from '~/modules/subscriptions'
 import type { SubscriptionsState } from '~/modules/subscriptions/store'
 import { useSubscriptionsStore } from '~/modules/subscriptions/store'
 
+import { useCheckingSubscriptionsStore } from './checking-store'
 import {
   buildSubscriptionBarModel,
   showFailedCount,
@@ -60,6 +62,9 @@ export const MikanSubscriptionBar = ({
     (store) => store.capabilitiesByServer,
   )
   const targets = useServerHelperTargets()
+  const isChecking = useCheckingSubscriptionsStore((store) =>
+    Boolean(store.checkingKeys[subscriptionKey(bangumiId, subgroupId)]),
+  )
 
   const model = useMemo(() => {
     const state: SubscriptionsState = {
@@ -165,7 +170,11 @@ export const MikanSubscriptionBar = ({
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary/60 px-3 py-2 text-sm text-text-secondary">
-      <span className={cn('size-2 shrink-0 rounded-full', dotClassName)} />
+      {isChecking ? (
+        <i className="i-mingcute-loading-3-line size-3 shrink-0 animate-spin text-text-tertiary" />
+      ) : (
+        <span className={cn('size-2 shrink-0 rounded-full', dotClassName)} />
+      )}
       <span className="min-w-0 flex-1 truncate">
         {segments.map(({ key, node }, index) => (
           <Fragment key={key}>

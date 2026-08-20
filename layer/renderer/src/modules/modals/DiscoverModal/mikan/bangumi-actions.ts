@@ -9,8 +9,15 @@ import { getI18n } from '~/i18n'
 import type { MikanEpisodeExtra } from '~/modules/discover/providers/mikan/utils'
 import { checkHelper, getHelperBinding } from '~/modules/helper-client'
 import { presentSettingsModal } from '~/modules/modals/SettingsModal'
-import { SubscriptionActions } from '~/modules/subscriptions'
+import {
+  SubscriptionActions,
+  subscriptionFor,
+  subscriptionKey,
+  subscriptionStore,
+} from '~/modules/subscriptions'
 
+import { runCheckNow } from './check-now'
+import { setSubscriptionChecking } from './checking-store'
 import type {
   HeaderActionSubscribeTrigger,
   PresentBangumiSubscribeInput,
@@ -111,11 +118,9 @@ export const backfillReleasedEpisodes = async (
   toast.error(t('discover.modal.mikan.bulkImportFailed'))
 }
 
-export const checkSubscriptionNow = async (
-  subscription: SubscriptionRecord,
-): Promise<void> => {
+const startHelperChecks = async (serverIds: string[]): Promise<void> => {
   await Promise.all(
-    subscription.targetServerIds.map(async (serverId) => {
+    serverIds.map(async (serverId) => {
       const binding = getHelperBinding(serverId)
       if (!binding) {
         return
@@ -123,11 +128,28 @@ export const checkSubscriptionNow = async (
       try {
         await checkHelper(binding.url, binding.token)
       } catch {
-        // The subscription bar reflects the failure via replica checkError once refreshStatus below lands.
+        // The subscription bar reflects the failure via replica checkError once refreshStatus lands.
       }
     }),
   )
-  await SubscriptionActions.shared.refreshStatus(subscription.targetServerIds)
+}
+
+export const checkSubscriptionNow = async (
+  subscription: SubscriptionRecord,
+): Promise<void> => {
+  const key = subscriptionKey(subscription.bangumiId, subscription.subgroupId)
+  await runCheckNow(subscription.targetServerIds, {
+    startChecks: startHelperChecks,
+    refreshStatus: (serverIds) =>
+      SubscriptionActions.shared.refreshStatus(serverIds),
+    resolveTargets: () =>
+      subscriptionFor(
+        subscription.bangumiId,
+        subscription.subgroupId,
+        subscriptionStore.getState(),
+      )?.targets ?? [],
+    setChecking: (checking) => setSubscriptionChecking(key, checking),
+  })
 }
 
 export const runHeaderSubscribeTrigger = (
