@@ -10,6 +10,7 @@ import { useDiscoverModalStore } from '../store'
 import { presentBangumiUnsubscribe } from './bangumi-actions'
 import { resolveMikanCoverUrl, weekdayLabelKey } from './helpers'
 import { MikanEpisodeList } from './MikanEpisodeList'
+import { MikanSubscriptionBar } from './MikanSubscriptionBar'
 
 export const MikanBangumiPage = () => {
   const { t } = useTranslation('app')
@@ -104,6 +105,13 @@ export const MikanBangumiPage = () => {
                 {t('discover.modal.mikan.noSubgroups')}
               </p>
             )
+          )}
+
+          {bangumiId && subgroupId && (
+            <MikanSubscriptionBar
+              bangumiId={bangumiId}
+              subgroupId={subgroupId}
+            />
           )}
 
           {subscription && (
