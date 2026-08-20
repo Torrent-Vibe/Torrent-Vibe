@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '~/components/ui/button'
@@ -10,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
+import { cn } from '~/lib/cn'
 import {
   getCurrentMikanSeason,
   MIKAN_SEASONS,
@@ -21,6 +23,7 @@ import { DiscoverModalActions } from '../actions'
 import { DiscoverSearchInput } from '../components'
 import { useDiscoverModalStore } from '../store'
 import { mikanSeasonControlsVisible } from './stack'
+import { buildSubscriptionBadgeModel } from './subscription-badge-model'
 
 const MIKAN_SEASON_LABELS = {
   春: 'discover.modal.mikan.season.spring',
@@ -108,8 +111,25 @@ export const MikanSeasonPicker = () => {
 
 export const MikanSubscriptionBadge = () => {
   const { t } = useTranslation('app')
-  const count = useSubscriptionsStore((state) => state.items.length)
+  const items = useSubscriptionsStore((state) => state.items)
+  const optimistic = useSubscriptionsStore((state) => state.optimistic)
+  const statusByServer = useSubscriptionsStore((state) => state.statusByServer)
+  const capabilitiesByServer = useSubscriptionsStore(
+    (state) => state.capabilitiesByServer,
+  )
   const { mikan } = DiscoverModalActions.shared.slices
+
+  const { count, tone } = useMemo(
+    () =>
+      buildSubscriptionBadgeModel({
+        items,
+        optimistic,
+        statusByServer,
+        capabilitiesByServer,
+        syncing: false,
+      }),
+    [items, optimistic, statusByServer, capabilitiesByServer],
+  )
   const label = t('discover.modal.mikan.subscriptionBadge', { count })
 
   return (
@@ -122,7 +142,12 @@ export const MikanSubscriptionBadge = () => {
     >
       <i className="i-mingcute-notification-line text-lg" />
       {count > 0 && (
-        <span className="absolute top-0.5 right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] leading-none font-medium text-background">
+        <span
+          className={cn(
+            'absolute top-0.5 right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[10px] leading-none font-medium text-background',
+            tone === 'destructive' ? 'bg-red' : 'bg-accent',
+          )}
+        >
           {count}
         </span>
       )}
