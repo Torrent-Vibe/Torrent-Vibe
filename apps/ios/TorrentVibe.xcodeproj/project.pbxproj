@@ -15,6 +15,7 @@
 		16CBA00AB033F0F25A2C2A00 /* HelperCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2526A5233AC2CA4DA99C13A /* HelperCredentialStore.swift */; };
 		17BBB37806C138C00ED72006 /* ServerEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843F8023B76EE8DC16A7B6CC /* ServerEditorView.swift */; };
 		1B3AE2EC4D34BF18FE5FC42E /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDB94733F976B73337A759E8 /* HelperService.swift */; };
+		CC3791E069CFEF5C40A03F57 /* DemoHelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFFFEB33AD985051A61982B /* DemoHelperService.swift */; };
 		1D86DAA644EB840FA0E10CCC /* MikanContentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BBF6C5EA6457BCFAFECBF0 /* MikanContentService.swift */; };
 		21D19E97BE66C5C7F9145A9F /* IOSIntegrationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B767A5B2CD4B8D683A7723 /* IOSIntegrationsTests.swift */; };
 		21EBD1C2AFFB260A68DA4EE1 /* HelperConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA44D4CD2D72EA0E0C6A9844 /* HelperConnectionView.swift */; };
@@ -172,6 +173,7 @@
 		CA44D4CD2D72EA0E0C6A9844 /* HelperConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnectionView.swift; sourceTree = "<group>"; };
 		D10CC839E5C94B0FC1DD75AE /* MTeamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamService.swift; sourceTree = "<group>"; };
 		D2526A5233AC2CA4DA99C13A /* HelperCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperCredentialStore.swift; sourceTree = "<group>"; };
+		EBFFFEB33AD985051A61982B /* DemoHelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHelperService.swift; sourceTree = "<group>"; };
 		D756B1586A7C6D74BB8E9A7E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		DD3D627BA0C3C26CD1C0073A /* MikanParser.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = MikanParser.js; sourceTree = "<group>"; };
 		EA2DDD4E7F6E8858F75F4A87 /* HelperDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperDiscovery.swift; sourceTree = "<group>"; };
@@ -352,6 +354,7 @@
 			isa = PBXGroup;
 			children = (
 				4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */,
+				EBFFFEB33AD985051A61982B /* DemoHelperService.swift */,
 				D2526A5233AC2CA4DA99C13A /* HelperCredentialStore.swift */,
 				EA2DDD4E7F6E8858F75F4A87 /* HelperDiscovery.swift */,
 				EDB94733F976B73337A759E8 /* HelperService.swift */,
@@ -575,6 +578,7 @@
 				AE71F3D08FFB5B4B00DCE249 /* AppearanceMode.swift in Sources */,
 				EB5CA55F63969FD2FA598C05 /* ContentSourceConnectionTester.swift in Sources */,
 				93E44EF8B52B13F8F58CB7B7 /* DiscoverView.swift in Sources */,
+				CC3791E069CFEF5C40A03F57 /* DemoHelperService.swift in Sources */,
 				21EBD1C2AFFB260A68DA4EE1 /* HelperConnectionView.swift in Sources */,
 				6D026E17D91E69B9AC4B14D9 /* HelperContent.swift in Sources */,
 				16CBA00AB033F0F25A2C2A00 /* HelperCredentialStore.swift in Sources */,

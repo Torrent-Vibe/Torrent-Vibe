@@ -68,7 +68,7 @@ extension HelperSubscriptionSnapshot: Decodable {
   }
 }
 
-struct HelperReplicaStatus: Encodable, Hashable, Identifiable, Sendable {
+struct HelperReplicaStatus: Hashable, Identifiable, Sendable {
   let id: String
   let bangumiId: String
   let title: String
@@ -77,6 +77,35 @@ struct HelperReplicaStatus: Encodable, Hashable, Identifiable, Sendable {
   let subgroupName: String
   let rssUrl: String
   let episodes: [HelperEpisodeStatus]
+  let checkedAt: Date?
+  let checkError: String?
+  let consecutiveFailures: Int?
+
+  init(
+    id: String,
+    bangumiId: String,
+    title: String,
+    bangumiSubjectId: String?,
+    subgroupId: String,
+    subgroupName: String,
+    rssUrl: String,
+    episodes: [HelperEpisodeStatus],
+    checkedAt: Date? = nil,
+    checkError: String? = nil,
+    consecutiveFailures: Int? = nil
+  ) {
+    self.id = id
+    self.bangumiId = bangumiId
+    self.title = title
+    self.bangumiSubjectId = bangumiSubjectId
+    self.subgroupId = subgroupId
+    self.subgroupName = subgroupName
+    self.rssUrl = rssUrl
+    self.episodes = episodes
+    self.checkedAt = checkedAt
+    self.checkError = checkError
+    self.consecutiveFailures = consecutiveFailures
+  }
 
   var replica: HelperReplica {
     HelperReplica(
@@ -91,7 +120,7 @@ struct HelperReplicaStatus: Encodable, Hashable, Identifiable, Sendable {
   }
 }
 
-extension HelperReplicaStatus: Decodable {
+extension HelperReplicaStatus: Codable {
   enum CodingKeys: String, CodingKey {
     case id
     case bangumiId
@@ -101,6 +130,9 @@ extension HelperReplicaStatus: Decodable {
     case subgroupName
     case rssUrl
     case episodes
+    case checkedAt
+    case checkError
+    case consecutiveFailures
   }
 
   init(from decoder: Decoder) throws {
@@ -113,6 +145,24 @@ extension HelperReplicaStatus: Decodable {
     subgroupName = try container.decode(String.self, forKey: .subgroupName)
     rssUrl = try container.decode(String.self, forKey: .rssUrl)
     episodes = try container.decodeMissingOrNull([HelperEpisodeStatus].self, forKey: .episodes)
+    checkedAt = try container.decodeTimestampIfPresent(forKey: .checkedAt)
+    checkError = try container.decodeIfPresent(String.self, forKey: .checkError)
+    consecutiveFailures = try container.decodeIfPresent(Int.self, forKey: .consecutiveFailures)
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(id, forKey: .id)
+    try container.encode(bangumiId, forKey: .bangumiId)
+    try container.encode(title, forKey: .title)
+    try container.encodeIfPresent(bangumiSubjectId, forKey: .bangumiSubjectId)
+    try container.encode(subgroupId, forKey: .subgroupId)
+    try container.encode(subgroupName, forKey: .subgroupName)
+    try container.encode(rssUrl, forKey: .rssUrl)
+    try container.encode(episodes, forKey: .episodes)
+    try container.encodeIfPresent(checkedAt.map(HelperTimestamp.format), forKey: .checkedAt)
+    try container.encodeIfPresent(checkError, forKey: .checkError)
+    try container.encodeIfPresent(consecutiveFailures, forKey: .consecutiveFailures)
   }
 }
 
@@ -257,6 +307,96 @@ enum HelperSubscriptionLoadState: Equatable, Sendable {
   case loading
 }
 
+struct HelperEvent: Hashable, Identifiable, Sendable {
+  let seq: UInt64
+  let at: Date
+  let level: String
+  let kind: String
+  let replicaId: String?
+  let bangumiId: String?
+  let subgroupId: String?
+  let episodeId: String?
+  let message: String
+
+  var id: UInt64 { seq }
+}
+
+extension HelperEvent: Codable {
+  enum CodingKeys: String, CodingKey {
+    case seq
+    case at
+    case level
+    case kind
+    case replicaId
+    case bangumiId
+    case subgroupId
+    case episodeId
+    case message
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    seq = try container.decode(UInt64.self, forKey: .seq)
+    at = try container.decodeTimestamp(forKey: .at)
+    level = try container.decode(String.self, forKey: .level)
+    kind = try container.decode(String.self, forKey: .kind)
+    replicaId = try container.decodeIfPresent(String.self, forKey: .replicaId)
+    bangumiId = try container.decodeIfPresent(String.self, forKey: .bangumiId)
+    subgroupId = try container.decodeIfPresent(String.self, forKey: .subgroupId)
+    episodeId = try container.decodeIfPresent(String.self, forKey: .episodeId)
+    message = try container.decode(String.self, forKey: .message)
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(seq, forKey: .seq)
+    try container.encode(HelperTimestamp.format(at), forKey: .at)
+    try container.encode(level, forKey: .level)
+    try container.encode(kind, forKey: .kind)
+    try container.encodeIfPresent(replicaId, forKey: .replicaId)
+    try container.encodeIfPresent(bangumiId, forKey: .bangumiId)
+    try container.encodeIfPresent(subgroupId, forKey: .subgroupId)
+    try container.encodeIfPresent(episodeId, forKey: .episodeId)
+    try container.encode(message, forKey: .message)
+  }
+}
+
+struct HelperEventsPage: Encodable, Hashable, Sendable {
+  let events: [HelperEvent]
+  let cursor: UInt64
+}
+
+extension HelperEventsPage: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case events
+    case cursor
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    events = try container.decodeMissingOrNull([HelperEvent].self, forKey: .events)
+    cursor = try container.decodeIfPresent(UInt64.self, forKey: .cursor) ?? 0
+  }
+}
+
+private enum HelperTimestamp {
+  static func parse(_ value: String) -> Date? {
+    withFractionalSeconds.date(from: value) ?? standard.date(from: value)
+  }
+
+  static func format(_ date: Date) -> String {
+    ISO8601DateFormatter().string(from: date)
+  }
+
+  private static var withFractionalSeconds: ISO8601DateFormatter {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }
+
+  private static var standard: ISO8601DateFormatter { ISO8601DateFormatter() }
+}
+
 private extension KeyedDecodingContainer {
   func decodeMissingOrNull<T: Decodable>(_ type: [T].Type, forKey key: Key) throws -> [T] {
     try decodeIfPresent([T].self, forKey: key) ?? []
@@ -267,5 +407,23 @@ private extension KeyedDecodingContainer {
       return []
     }
     return try decode([T].self, forKey: key)
+  }
+
+  func decodeTimestamp(forKey key: Key) throws -> Date {
+    let value = try decode(String.self, forKey: key)
+    guard let date = HelperTimestamp.parse(value) else {
+      throw DecodingError.dataCorruptedError(
+        forKey: key, in: self, debugDescription: "invalid timestamp")
+    }
+    return date
+  }
+
+  func decodeTimestampIfPresent(forKey key: Key) throws -> Date? {
+    guard let value = try decodeIfPresent(String.self, forKey: key) else { return nil }
+    guard let date = HelperTimestamp.parse(value) else {
+      throw DecodingError.dataCorruptedError(
+        forKey: key, in: self, debugDescription: "invalid timestamp")
+    }
+    return date
   }
 }

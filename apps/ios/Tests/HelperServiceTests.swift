@@ -632,6 +632,199 @@ final class HelperServiceTests: XCTestCase {
     }
   }
 
+  func testRuntimeStatusDecodesCheckFieldsAndDistinguishesNeverCheckedFromHealthy() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.url?.path, "/status")
+      return Self.response(
+        request,
+        status: 200,
+        json: [
+          "replicas": [
+            [
+              "id": "sub-checked",
+              "bangumiId": "4101",
+              "title": "夏日观测站",
+              "subgroupId": "583",
+              "subgroupName": "ANi",
+              "rssUrl": "https://mikan.test/rss",
+              "episodes": [],
+              "checkedAt": "2026-08-20T12:00:00Z",
+              "consecutiveFailures": 0,
+            ],
+            [
+              "id": "sub-never-checked",
+              "bangumiId": "4102",
+              "title": "星海列车",
+              "subgroupId": "370",
+              "subgroupName": "LoliHouse",
+              "rssUrl": "https://mikan.test/rss2",
+              "episodes": [],
+            ],
+            [
+              "id": "sub-failing",
+              "bangumiId": "4103",
+              "title": "雨后通信",
+              "subgroupId": "111",
+              "subgroupName": "Sub",
+              "rssUrl": "https://mikan.test/rss3",
+              "episodes": [],
+              "checkedAt": "2026-08-20T12:05:00Z",
+              "checkError": "RSS 请求超时",
+              "consecutiveFailures": 3,
+            ],
+          ],
+          "jobs": [],
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let status = try await service.runtimeStatus(at: baseURL, token: "token-value")
+
+    let checked = try XCTUnwrap(status.replicas.first { $0.id == "sub-checked" })
+    XCTAssertNotNil(checked.checkedAt)
+    XCTAssertEqual(checked.consecutiveFailures, 0)
+    XCTAssertNil(checked.checkError)
+
+    let neverChecked = try XCTUnwrap(status.replicas.first { $0.id == "sub-never-checked" })
+    XCTAssertNil(neverChecked.checkedAt)
+    XCTAssertNil(neverChecked.consecutiveFailures)
+    XCTAssertNil(neverChecked.checkError)
+
+    let failing = try XCTUnwrap(status.replicas.first { $0.id == "sub-failing" })
+    XCTAssertEqual(failing.checkError, "RSS 请求超时")
+    XCTAssertEqual(failing.consecutiveFailures, 3)
+  }
+
+  func testRuntimeStatusDecodesLegacyPayloadWithoutCheckFields() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.url?.path, "/status")
+      return Self.response(
+        request,
+        status: 200,
+        json: [
+          "replicas": [
+            [
+              "id": "sub-legacy",
+              "bangumiId": "4101",
+              "title": "夏日观测站",
+              "subgroupId": "583",
+              "subgroupName": "ANi",
+              "rssUrl": "https://mikan.test/rss",
+              "episodes": [],
+            ]
+          ],
+          "jobs": [],
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let status = try await service.runtimeStatus(at: baseURL, token: "token-value")
+
+    let replica = try XCTUnwrap(status.replicas.first)
+    XCTAssertNil(replica.checkedAt)
+    XCTAssertNil(replica.checkError)
+    XCTAssertNil(replica.consecutiveFailures)
+  }
+
+  func testEventsBuildsQueryStringAndDecodesPage() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.url?.path, "/events")
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+      let url = try XCTUnwrap(request.url)
+      let items = try XCTUnwrap(
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+      let byName = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value) })
+      XCTAssertEqual(byName["since"] ?? nil, "42")
+      XCTAssertEqual(byName["level"] ?? nil, "warn")
+      XCTAssertEqual(byName["replicaId"] ?? nil, "sub-1")
+      XCTAssertEqual(byName["limit"] ?? nil, "50")
+      return Self.response(
+        request,
+        status: 200,
+        json: [
+          "events": [
+            [
+              "seq": 7,
+              "at": "2026-08-20T12:00:00Z",
+              "level": "warn",
+              "kind": "subscription.check",
+              "replicaId": "sub-1",
+              "message": "RSS 检查失败",
+            ]
+          ],
+          "cursor": 7,
+        ]
+      )
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let page = try await service.events(
+      at: baseURL,
+      token: "token-value",
+      since: 42,
+      level: "warn",
+      replicaID: "sub-1",
+      limit: 50
+    )
+    XCTAssertEqual(page.cursor, 7)
+    XCTAssertEqual(page.events.first?.seq, 7)
+    XCTAssertEqual(page.events.first?.message, "RSS 检查失败")
+    XCTAssertEqual(page.events.first?.replicaId, "sub-1")
+    XCTAssertNil(page.events.first?.bangumiId)
+  }
+
+  func testLogsRequestsTailAndReturnsPlainText() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.httpMethod, "GET")
+      XCTAssertEqual(request.url?.path, "/logs")
+      let url = try XCTUnwrap(request.url)
+      let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+      XCTAssertEqual(items?.first(where: { $0.name == "tail" })?.value, "100")
+      let response = HTTPURLResponse(
+        url: url,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "text/plain; charset=utf-8"]
+      )!
+      return (response, Data("line one\nline two\n".utf8))
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    let text = try await service.logs(at: baseURL, token: "token-value", tail: 100)
+    XCTAssertEqual(text, "line one\nline two\n")
+  }
+
+  func testCheckPostsAndAccepts202() async throws {
+    StubURLProtocol.handler = { request in
+      XCTAssertEqual(request.httpMethod, "POST")
+      XCTAssertEqual(request.url?.path, "/check")
+      XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token-value")
+      return Self.response(request, status: 202, json: ["ok": true])
+    }
+
+    let service = makeService()
+    let baseURL = try XCTUnwrap(URL(string: "http://helper.test:17890"))
+    try await service.check(at: baseURL, token: "token-value")
+  }
+
+  func testDiscoveryInfoReportsCapabilitySupport() async throws {
+    let info = HelperDiscoveryInfo(
+      version: "2.2.0",
+      capabilities: ["events", "logs"],
+      clientCount: 1,
+      requiresPairingCode: true
+    )
+    XCTAssertTrue(info.supports(.events))
+    XCTAssertTrue(info.supports(.logs))
+    XCTAssertFalse(info.supports(.check))
+  }
+
   private func makeService() -> URLSessionHelperService {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [StubURLProtocol.self]
