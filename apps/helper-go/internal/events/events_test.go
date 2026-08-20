@@ -21,13 +21,14 @@ func TestRingWrapsAndKeepsNewest(t *testing.T) {
 	}
 
 	got, cursor := r.Query(events.Query{Since: 0, Limit: events.MaxQueryLimit})
-	if cursor != uint64(total) {
-		t.Fatalf("cursor = %d, want %d", cursor, total)
+	wantFirstSeq := uint64(total - events.RingCapacity + 1)
+	wantCursor := wantFirstSeq + uint64(events.MaxQueryLimit) - 1
+	if cursor != wantCursor {
+		t.Fatalf("cursor = %d, want %d (last returned event's seq, page was capped by the limit)", cursor, wantCursor)
 	}
 	if len(got) != events.MaxQueryLimit {
 		t.Fatalf("len(got) = %d, want %d", len(got), events.MaxQueryLimit)
 	}
-	wantFirstSeq := uint64(total - events.RingCapacity + 1)
 	if got[0].Seq != wantFirstSeq {
 		t.Fatalf("got[0].Seq = %d, want %d (oldest surviving event)", got[0].Seq, wantFirstSeq)
 	}
@@ -35,6 +36,39 @@ func TestRingWrapsAndKeepsNewest(t *testing.T) {
 	newest, _ := r.Query(events.Query{Since: uint64(total - 1), Limit: 1})
 	if len(newest) != 1 || newest[0].Seq != uint64(total) {
 		t.Fatalf("newest = %+v, want seq %d", newest, total)
+	}
+}
+
+func TestCursorResumesWithoutSkippingAcrossCappedPage(t *testing.T) {
+	r := events.New(t.TempDir(), nil)
+	const total = 10
+	for i := 0; i < total; i++ {
+		r.Emit(events.Event{Level: "info", Kind: "poll", Message: fmt.Sprintf("m%d", i)})
+	}
+
+	var since uint64
+	var seen []uint64
+	for len(seen) < total {
+		page, cursor := r.Query(events.Query{Since: since, Limit: 4})
+		if len(page) == 0 {
+			t.Fatalf("page starved before collecting all events: seen=%v", seen)
+		}
+		for _, e := range page {
+			seen = append(seen, e.Seq)
+		}
+		if cursor == since {
+			t.Fatalf("cursor did not advance: since=%d cursor=%d", since, cursor)
+		}
+		since = cursor
+	}
+
+	if len(seen) != total {
+		t.Fatalf("len(seen) = %d, want %d: %v", len(seen), total, seen)
+	}
+	for i, seq := range seen {
+		if seq != uint64(i+1) {
+			t.Fatalf("seen[%d] = %d, want %d (no gaps or duplicates): %v", i, seq, i+1, seen)
+		}
 	}
 }
 

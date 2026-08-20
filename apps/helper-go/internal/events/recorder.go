@@ -64,7 +64,12 @@ func (r *recorder) Query(q Query) ([]Event, uint64) {
 	defer r.mu.Unlock()
 
 	result := make([]Event, 0, limit)
-	for i := 0; i < r.size && len(result) < limit; i++ {
+	truncated := false
+	for i := 0; i < r.size; i++ {
+		if len(result) >= limit {
+			truncated = true
+			break
+		}
 		e := r.ring[(r.head+i)%RingCapacity]
 		if e.Seq <= q.Since {
 			continue
@@ -80,7 +85,11 @@ func (r *recorder) Query(q Query) ([]Event, uint64) {
 		}
 		result = append(result, e)
 	}
-	return result, r.seq
+	cursor := r.seq
+	if truncated {
+		cursor = result[len(result)-1].Seq
+	}
+	return result, cursor
 }
 
 func (r *recorder) appendToRing(e Event) {
