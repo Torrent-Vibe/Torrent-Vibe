@@ -172,7 +172,6 @@
 		59630B99613FE352CC1BED4E /* TorrentLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		59B767A5B2CD4B8D683A7723 /* IOSIntegrationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSIntegrationsTests.swift; sourceTree = "<group>"; };
 		5A771D7BCF3CE7C3B103E1FF /* MikanSubscriptionBarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanSubscriptionBarModel.swift; sourceTree = "<group>"; };
-		5DB577115BB30F933F3795E9 /* IslandToast */ = {isa = PBXFileReference; lastKnownFileType = folder; name = IslandToast; path = ../../../IslandToast; sourceTree = SOURCE_ROOT; };
 		5DD549AB7BB6FBAC167EE9D7 /* ShareImportModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImportModel.swift; sourceTree = "<group>"; };
 		5DDE332BC6744C9DC330E798 /* TorrentImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentImportView.swift; sourceTree = "<group>"; };
 		61AA0C06F2E17091FC9949D3 /* TorrentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentListView.swift; sourceTree = "<group>"; };
@@ -373,14 +372,6 @@
 			path = LiveActivityExtension;
 			sourceTree = "<group>";
 		};
-		AA6AC0BE5E23EB6936BB5884 /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				5DB577115BB30F933F3795E9 /* IslandToast */,
-			);
-			name = Packages;
-			sourceTree = "<group>";
-		};
 		B0ECBED1478130B72B65E174 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -437,7 +428,6 @@
 			children = (
 				9ACD45714ED0D555F7E14E34 /* LiveActivityExtension */,
 				5174A293F7F6E4CF51F0FCB6 /* LiveActivityShared */,
-				AA6AC0BE5E23EB6936BB5884 /* Packages */,
 				57BB3D1811A1058B7E188179 /* Resources */,
 				4DC20615C35FD469EE0B2443 /* Shared */,
 				DFAB1FAFBBF9164F542E2D28 /* ShareExtension */,
@@ -605,7 +595,7 @@
 			mainGroup = D23A2685153746DF8DD9D7AA;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				09C45393D9FADCA7BF9925CB /* XCLocalSwiftPackageReference "../../../IslandToast" */,
+				868C31B53CDF8F76B7643307 /* XCRemoteSwiftPackageReference "IslandToast" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E32FA5C448F05A2B815CB090 /* Products */;
@@ -1143,16 +1133,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		09C45393D9FADCA7BF9925CB /* XCLocalSwiftPackageReference "../../../IslandToast" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../IslandToast;
+/* Begin XCRemoteSwiftPackageReference section */
+		868C31B53CDF8F76B7643307 /* XCRemoteSwiftPackageReference "IslandToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Innei/IslandToast.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.0;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		03DDE211EB55821510A49E9A /* IslandToast */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 868C31B53CDF8F76B7643307 /* XCRemoteSwiftPackageReference "IslandToast" */;
 			productName = IslandToast;
 		};
 /* End XCSwiftPackageProductDependency section */
