@@ -18,6 +18,9 @@ export const episodeStateLabelKey = (state: string): I18nKeys => {
     case 'needs-manual': {
       return 'discover.modal.mikan.episodeState.needsManual'
     }
+    case 'skipped': {
+      return 'discover.modal.mikan.episodeState.skipped'
+    }
     default: {
       return 'discover.modal.mikan.episodeState.pending'
     }

@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import type { HelperEpisodeStatus, HelperReplicaStatus } from '../helper-client'
 import {
   episodeStateFor,
+  episodeStatusFor,
   subscriptionFor,
   subscriptionProgress,
 } from './selectors'
@@ -369,6 +370,89 @@ describe('episodeStateFor', () => {
       ).toBe(lower)
     },
   )
+})
+
+describe('episodeStatusFor', () => {
+  it('returns the resolved episode including its infohash', () => {
+    const statusByServer: Record<string, HelperStatusSnapshot> = {
+      'srv-a': snapshot({
+        replicas: [
+          replica({
+            id: 'sub-1',
+            episodes: [
+              episode({
+                episodeId: 'e1',
+                title: 'E1',
+                state: 'downloading',
+                infohash: 'ABC123',
+              }),
+            ],
+          }),
+        ],
+      }),
+    }
+    expect(
+      episodeStatusFor(['srv-a'], 'bgm-1', 'sg-1', 'e1', statusByServer),
+    ).toEqual(
+      expect.objectContaining({ state: 'downloading', infohash: 'ABC123' }),
+    )
+  })
+
+  it('returns null when no target has the episode', () => {
+    expect(episodeStatusFor(['srv-a'], 'bgm-1', 'sg-1', 'e1', {})).toBeNull()
+  })
+
+  it('agrees with episodeStateFor on which target wins by rank', () => {
+    const statusByServer: Record<string, HelperStatusSnapshot> = {
+      'srv-a': snapshot({
+        replicas: [
+          replica({
+            id: 'sub-1',
+            episodes: [
+              episode({
+                episodeId: 'e1',
+                title: 'E1',
+                state: 'done',
+                infohash: 'done-hash',
+              }),
+            ],
+          }),
+        ],
+      }),
+      'srv-b': snapshot({
+        replicas: [
+          replica({
+            id: 'sub-1',
+            episodes: [
+              episode({
+                episodeId: 'e1',
+                title: 'E1',
+                state: 'failed',
+                infohash: 'failed-hash',
+              }),
+            ],
+          }),
+        ],
+      }),
+    }
+    const status = episodeStatusFor(
+      ['srv-a', 'srv-b'],
+      'bgm-1',
+      'sg-1',
+      'e1',
+      statusByServer,
+    )
+    expect(status?.infohash).toBe('failed-hash')
+    expect(
+      episodeStateFor(
+        ['srv-a', 'srv-b'],
+        'bgm-1',
+        'sg-1',
+        'e1',
+        statusByServer,
+      ),
+    ).toBe(status?.state)
+  })
 })
 
 describe('subscriptionProgress', () => {

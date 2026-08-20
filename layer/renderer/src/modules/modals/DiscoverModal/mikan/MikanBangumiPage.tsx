@@ -166,6 +166,7 @@ export const MikanBangumiPage = () => {
           importing={importingFlag}
           statusByServer={statusByServer}
           subgroupId={subgroupId}
+          subscribed={Boolean(subscription)}
           targetServerIds={subscription?.targetServerIds ?? []}
           onImport={(episodeId) => {
             void importing.importMikanEpisode(episodeId)

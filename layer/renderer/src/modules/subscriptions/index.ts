@@ -26,6 +26,7 @@ export {
   EPISODE_STATE_RANK,
   episodeStateFor,
   episodeStateForDisplay,
+  episodeStatusFor,
   subscriptionFor,
   subscriptionProgress,
 } from './selectors'

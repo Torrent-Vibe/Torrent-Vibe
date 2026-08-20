@@ -3,7 +3,7 @@ import type {
   SubscriptionRecord,
 } from '@torrent-vibe/helper-protocol'
 
-import type { HelperReplicaStatus } from '../helper-client'
+import type { HelperEpisodeStatus, HelperReplicaStatus } from '../helper-client'
 import type { HelperStatusSnapshot, SubscriptionsState } from './store'
 import { subscriptionKey } from './store'
 
@@ -177,14 +177,14 @@ export const subscriptionFor = (
   return null
 }
 
-export const episodeStateFor = (
+const resolveEpisodeStatus = (
   targetServerIds: string[],
   bangumiId: string,
   subgroupId: string,
   episodeId: string,
   statusByServer: SubscriptionsState['statusByServer'],
-): HelperEpisodeState | null => {
-  let resolved: HelperEpisodeState | null = null
+): HelperEpisodeStatus | null => {
+  let resolved: HelperEpisodeStatus | null = null
   for (const serverId of targetServerIds) {
     const snapshot = statusByServer[serverId]
     if (!snapshot) {
@@ -203,13 +203,43 @@ export const episodeStateFor = (
     }
     if (
       resolved === null ||
-      EPISODE_STATE_RANK[episode.state] < EPISODE_STATE_RANK[resolved]
+      EPISODE_STATE_RANK[episode.state] < EPISODE_STATE_RANK[resolved.state]
     ) {
-      resolved = episode.state
+      resolved = episode
     }
   }
   return resolved
 }
+
+export const episodeStateFor = (
+  targetServerIds: string[],
+  bangumiId: string,
+  subgroupId: string,
+  episodeId: string,
+  statusByServer: SubscriptionsState['statusByServer'],
+): HelperEpisodeState | null =>
+  resolveEpisodeStatus(
+    targetServerIds,
+    bangumiId,
+    subgroupId,
+    episodeId,
+    statusByServer,
+  )?.state ?? null
+
+export const episodeStatusFor = (
+  targetServerIds: string[],
+  bangumiId: string,
+  subgroupId: string,
+  episodeId: string,
+  statusByServer: SubscriptionsState['statusByServer'],
+): HelperEpisodeStatus | null =>
+  resolveEpisodeStatus(
+    targetServerIds,
+    bangumiId,
+    subgroupId,
+    episodeId,
+    statusByServer,
+  )
 
 export const episodeStateForDisplay = (
   targetServerIds: string[],
