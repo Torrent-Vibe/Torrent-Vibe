@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.2.0
+
+- Subscribing to a Mikan show now pulls already-released episodes right
+  away and keeps following new ones. The separate import-released action
+  is gone.
+- Bangumi detail shows live subscription status: which helper is
+  handling it, how many episodes are ready, failures, and when RSS was
+  last checked. Check now and unsubscribe live in a manage menu.
+- Episode rows show download progress (queued, percent, done, failed,
+  skipped) instead of grey status text.
+- Saving a subscription kicks the helper immediately instead of waiting
+  up to ten minutes for the next poll.
+- The helper records a structured event trail and a process log. Desktop
+  and iOS can inspect them from the paired-helper UI.
+- Pairing codes now persist across helper restarts. Print the current
+  code with `torrent-vibe-helper code` on the host; the pairing panel
+  explains where to find it.
+- Fixed subscription sync deleting helper replicas that this client had
+  not removed.
+- Fixed an empty helper subscription list being sent as null, which
+  blocked the first subscribe from iOS.
+- iOS: Mikan bangumi detail matches platform conventions more closely
+  (cover wash, navigation-bar actions, island-width toasts).
+
 ## 1.1.0
 
 - After pairing, you can upload or pull provider credentials (Mikan,
