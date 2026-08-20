@@ -8,6 +8,7 @@ import {
   listServerHelperTargets,
   resolveCurrentServerId,
 } from '../helper-client'
+import { subscriptionIdentity } from './desired-set'
 import {
   liveBackfill,
   liveHelperClient,
@@ -241,10 +242,11 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
     const deleteFiles = options?.deleteFiles === true
     let ok =
       (
-        await pushServers(current.targetServerIds, {
-          removeTorrents: true,
-          deleteFiles,
-        })
+        await pushServers(
+          current.targetServerIds,
+          { removeTorrents: true, deleteFiles },
+          [subscriptionIdentity(current.bangumiId, current.subgroupId)],
+        )
       ).failed.length === 0
     if (deps.loadHelperStatus && deps.deleteTorrents) {
       const leftoverOk = await dropLeftoverTorrents({
@@ -290,9 +292,14 @@ export const createSubscriptionActions = (deps: SubscriptionActionDeps) => {
         .getState()
         .items.map((item) => (item.id === id ? nextItem : item)),
     )
-    const ok =
-      (await pushServers([...current.targetServerIds, ...nextTargets])).failed
-        .length === 0
+    const releasedServerIds = current.targetServerIds.filter(
+      (serverId) => !nextTargets.includes(serverId),
+    )
+    const released = await pushServers(releasedServerIds, undefined, [
+      subscriptionIdentity(current.bangumiId, current.subgroupId),
+    ])
+    const kept = await pushServers(nextTargets)
+    const ok = released.failed.length === 0 && kept.failed.length === 0
     const saved = subscriptionStore
       .getState()
       .items.find((item) => item.id === id)

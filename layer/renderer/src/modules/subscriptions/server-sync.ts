@@ -75,17 +75,17 @@ export const createServerSync = (input: {
   const pushServer = async (
     serverId: string,
     options?: SubscriptionPushOptions,
+    removals?: readonly string[],
   ) => {
-    const base = await input.helper.getSubscriptions(serverId)
-    let snapshot = base
+    let snapshot = await input.helper.getSubscriptions(serverId)
     for (let attempt = 0; attempt < MAX_PUSH_ATTEMPTS; attempt++) {
       const desired = mergeDesiredReplicas({
-        base: base.replicas,
         desired: desiredReplicasForServer(
           subscriptionStore.getState().items,
           serverId,
         ),
         remote: snapshot.replicas,
+        removals,
       })
       if (desiredStateDiff(desired, snapshot.replicas).length === 0) {
         return
@@ -113,6 +113,7 @@ export const createServerSync = (input: {
   const pushServers = async (
     serverIds: string[],
     options?: SubscriptionPushOptions,
+    removals?: readonly string[],
   ): Promise<ServerPushResult> => {
     const result: ServerPushResult = { failed: [], pushed: [] }
     const ids = unique(serverIds)
@@ -128,7 +129,7 @@ export const createServerSync = (input: {
     try {
       for (const serverId of ids) {
         try {
-          await pushServer(serverId, options)
+          await pushServer(serverId, options, removals)
           result.pushed.push(serverId)
           input.persistItems(
             applySyncPatch(

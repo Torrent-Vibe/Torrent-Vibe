@@ -108,7 +108,6 @@ describe('mergeDesiredReplicas', () => {
     const remote = replica({ id: 'ios-1', title: 'stale' })
     expect(
       mergeDesiredReplicas({
-        base: [remote],
         desired: [replica()],
         remote: [remote],
       }),
@@ -124,14 +123,13 @@ describe('mergeDesiredReplicas', () => {
     })
     expect(
       mergeDesiredReplicas({
-        base: [],
         desired: [replica()],
         remote: [other],
       }),
     ).toEqual([other, replica()])
   })
 
-  it('still drops a replica the local set removed', () => {
+  it('drops only the replicas the caller explicitly removed', () => {
     const other = replica({
       id: 'sub-other',
       bangumiId: 'bgm-2',
@@ -140,10 +138,25 @@ describe('mergeDesiredReplicas', () => {
     })
     expect(
       mergeDesiredReplicas({
-        base: [replica()],
+        desired: [],
+        remote: [replica(), other],
+        removals: ['bgm-1::sg-1'],
+      }),
+    ).toEqual([other])
+  })
+
+  it('keeps every remote replica when the caller removed nothing', () => {
+    const other = replica({
+      id: 'sub-other',
+      bangumiId: 'bgm-2',
+      subgroupId: 'sg-2',
+      title: 'Bocchi',
+    })
+    expect(
+      mergeDesiredReplicas({
         desired: [],
         remote: [replica(), other],
       }),
-    ).toEqual([other])
+    ).toEqual([replica(), other])
   })
 })
