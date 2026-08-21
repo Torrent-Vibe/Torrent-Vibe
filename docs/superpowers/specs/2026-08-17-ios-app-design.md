@@ -34,6 +34,7 @@
 | IOS-D03    | 发现 Tab 页面布局与功能承载         | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 后续进入实现拆解      |
 | IOS-D04    | 设置 Tab 页面布局与功能承载         | 已确认 | [设置 Tab](ios-app/settings-tab.md)     | 后续进入实现拆解      |
 | IOS-D06    | iOS 内容密度与语义间距规范          | 已确认 | [全局基础](ios-app/foundation.md)       | 已由 IOS-E16 修正落地 |
+| IOS-D07    | 我的订阅升级为追番主页              | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 已由 IOS-E23 承接     |
 | IOS-R01    | 调研 Mikan 官方开放 API             | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01      |
 | IOS-R02    | 验证 Mikan 解析器的 JSC 兼容性      | 已完成 | [发现 Tab](ios-app/discover-tab.md)     | 结论并入 IOS-A01      |
 | IOS-A01    | iOS Discover 内容服务契约           | 已确认 | [发现 Tab](ios-app/discover-tab.md)     | 实现由 IOS-E03 承接   |
@@ -62,10 +63,11 @@
 | IOS-E20    | App Intents 与系统快捷指令          | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
 | IOS-E21    | 实时活动与灵动岛                    | 已完成 | [任务 Tab](ios-app/tasks-tab.md)        | —                     |
 | IOS-E22    | Helper 跨设备凭证同步               | 已完成 | [Helper](ios-app/helper-integration.md) | —                     |
+| IOS-E23    | 我的订阅升级为追番主页实现          | 已完成 | `apps/ios`、[发现 Tab](ios-app/discover-tab.md) | —                     |
 
 ## 当前焦点
 
-`IOS-E22` 已完成。下一实施任务待讨论确认。
+`IOS-E23` 已完成。下一实施任务待讨论确认。
 
 ## 执行记录
 
@@ -111,3 +113,5 @@
 | 2026-08-18 | 完成系统快捷指令            | 三个 App Intents、系统元数据与 Magnet 确认交接已验证   | IOS-E20 → 已完成                   |
 | 2026-08-18 | 完成实时活动与灵动岛        | 单任务跟踪、锁屏卡片、灵动岛与完成收尾均已验证         | IOS-E21 → 已完成                   |
 | 2026-08-19 | 完成 Helper 凭证同步        | 通用 Profile、桌面与 iOS 选择性上传/拉取均已验证       | IOS-E22 → 已完成                   |
+| 2026-08-22 | 确认追番主页设计            | 我的订阅升级为周条式追番主页，「全部」驻留与 lastSeen 基线敲定 | IOS-D07 → 已确认                   |
+| 2026-08-22 | 完成追番主页实现            | 周条、单日切换、lastSeen 新集基线与快照横幅均已验证     | IOS-E23 → 已完成                   |

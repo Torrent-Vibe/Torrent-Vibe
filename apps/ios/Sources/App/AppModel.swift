@@ -16,6 +16,8 @@ final class AppModel {
   private(set) var serverConnectionStates: [UUID: ServerConnectionState] = [:]
   private(set) var helperConnectionStates: [UUID: HelperConnectionState] = [:]
   private(set) var helperSubscriptionStates: [UUID: HelperSubscriptionLoadState] = [:]
+  private(set) var mikanDirectory: [String: MikanBangumiCard] = [:]
+  private(set) var subscriptionSeenCounts: [String: Int] = [:]
 
   let isDemoMode: Bool
 
@@ -30,6 +32,8 @@ final class AppModel {
   private static let activeServerStorageKey = "torrentVibe.activeServer"
   private static let helperClientIDStorageKey = "torrentVibe.helper.clientID"
   private static let helperCacheStorageKeyPrefix = "torrentVibe.helper.cache."
+  private static let mikanDirectoryStorageKey = "torrentVibe.mikan.directory"
+  private static let subscriptionSeenStorageKey = "torrentVibe.subscriptions.seen"
   private static let demoServerID = UUID(uuidString: "8ED0F2A8-F72B-49E2-B2D2-22671F367995")!
   private static let demoSecondaryServerID = UUID(
     uuidString: "A925BB90-A242-48DA-B984-6DA12D56DB1E"
@@ -113,6 +117,8 @@ final class AppModel {
         activeServerID = servers.first?.id
       }
     }
+    mikanDirectory = Self.loadMikanDirectory(from: defaults)
+    subscriptionSeenCounts = Self.loadSubscriptionSeenCounts(from: defaults)
   }
 
   var activeServer: ServerConfiguration? {
@@ -1244,6 +1250,41 @@ final class AppModel {
 
   private func clearHelperCache(for serverID: UUID) {
     defaults.removeObject(forKey: Self.helperCacheStorageKeyPrefix + serverID.uuidString)
+  }
+
+  func noteMikanCards(_ cards: [MikanBangumiCard]) {
+    var directory = mikanDirectory
+    var changed = false
+    for card in cards {
+      let merged = SubscriptionScheduleModel.mergedCard(directory[card.bangumiId], incoming: card)
+      if merged != directory[card.bangumiId] {
+        directory[card.bangumiId] = merged
+        changed = true
+      }
+    }
+    guard changed else { return }
+    mikanDirectory = directory
+    if let data = try? JSONEncoder().encode(directory) {
+      defaults.set(data, forKey: Self.mikanDirectoryStorageKey)
+    }
+  }
+
+  func markSubscriptionsSeen(_ counts: [String: Int]) {
+    guard subscriptionSeenCounts != counts else { return }
+    subscriptionSeenCounts = counts
+    if let data = try? JSONEncoder().encode(counts) {
+      defaults.set(data, forKey: Self.subscriptionSeenStorageKey)
+    }
+  }
+
+  private static func loadMikanDirectory(from defaults: UserDefaults) -> [String: MikanBangumiCard] {
+    guard let data = defaults.data(forKey: Self.mikanDirectoryStorageKey) else { return [:] }
+    return (try? JSONDecoder().decode([String: MikanBangumiCard].self, from: data)) ?? [:]
+  }
+
+  private static func loadSubscriptionSeenCounts(from defaults: UserDefaults) -> [String: Int] {
+    guard let data = defaults.data(forKey: Self.subscriptionSeenStorageKey) else { return [:] }
+    return (try? JSONDecoder().decode([String: Int].self, from: data)) ?? [:]
   }
 
   private func observeMikanAppLifecycleIfNeeded() {

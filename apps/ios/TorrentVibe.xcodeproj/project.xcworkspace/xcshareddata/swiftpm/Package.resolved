@@ -1,0 +1,15 @@
+{
+  "originHash" : "0c8c93fc3e2c610cf21f32bc8ee6d224e33ad1f88f41f62cb1b438a3a58b40f9",
+  "pins" : [
+    {
+      "identity" : "islandtoast",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Innei/IslandToast.git",
+      "state" : {
+        "revision" : "713bbc2aa592fdb6a4c20c44cb64bc5d94d3e842",
+        "version" : "0.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}

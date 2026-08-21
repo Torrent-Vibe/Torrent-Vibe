@@ -63,6 +63,7 @@ extension DiscoverViewController {
       guard !Task.isCancelled, state.query.trimmingCharacters(in: .whitespacesAndNewlines) == query
       else { return }
       state.searchResults = results
+      model.noteMikanCards(results)
       state.parserStatus = "实时搜索 · JavaScriptCore Bridge v1 · \(results.count) 部番组"
     } catch is CancellationError {
       return
@@ -74,6 +75,7 @@ extension DiscoverViewController {
 
   func apply(wall: MikanSeasonWall, source: String) {
     state.seasonWall = wall
+    model.noteMikanCards(wall.groups.flatMap(\.items))
     // Some Mikan responses omit the season heading even though the requested
     // wall is valid. Preserve the requested filter instead of presenting 0.
     if wall.year > 0 {
@@ -143,7 +145,10 @@ extension DiscoverViewController {
 
   @objc func showSubscriptions() {
     navigationController?.pushViewController(
-      SubscriptionsViewController(model: model) { [weak self] group in
+      SubscriptionsViewController(
+        model: model,
+        baseURL: configuredBaseURL()
+      ) { [weak self] group in
         self?.showDetail(
           MikanBangumiCard(
             bangumiId: group.replica.bangumiId,

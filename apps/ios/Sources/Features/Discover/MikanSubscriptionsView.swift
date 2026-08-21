@@ -8,18 +8,22 @@ final class MikanSubscriptionsScreenState {
   var errorMessage: String?
   var retryingEpisodeIDs: Set<String> = []
   var successMessage: String?
+  var scope: SubscriptionScope = .all
 }
 
 final class SubscriptionsViewController: SwiftUIHostingViewController {
   private let model: AppModel
+  private let baseURL: URL?
   private let onOpenSubscription: (HelperSubscriptionGroup) -> Void
   private let state = MikanSubscriptionsScreenState()
 
   init(
     model: AppModel,
+    baseURL: URL?,
     onOpenSubscription: @escaping (HelperSubscriptionGroup) -> Void
   ) {
     self.model = model
+    self.baseURL = baseURL
     self.onOpenSubscription = onOpenSubscription
     super.init(nibName: nil, bundle: nil)
   }
@@ -33,9 +37,10 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
     super.viewDidLoad()
     title = "我的订阅"
     view.backgroundColor = .systemGroupedBackground
-    navigationItem.largeTitleDisplayMode = .never
+    navigationItem.largeTitleDisplayMode = .always
     host(
       MikanSubscriptionsContentView(
+        baseURL: baseURL,
         onEditTargets: { [weak self] group in
           self?.showTargetEditor(for: group)
         },
@@ -66,6 +71,16 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
   override func viewWillDisappear(_ animated: Bool) {
     super.viewWillDisappear(animated)
     model.stopMikanPolling()
+    markSubscriptionSeen()
+  }
+
+  private func markSubscriptionSeen() {
+    let counts = Dictionary(
+      uniqueKeysWithValues: model.helperSubscriptionGroups.map {
+        ($0.id, SubscriptionScheduleModel.episodeCount(in: $0))
+      }
+    )
+    model.markSubscriptionsSeen(counts)
   }
 
   private func showTargetEditor(for group: HelperSubscriptionGroup) {
@@ -77,6 +92,14 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
       let targets = outcome.serverNames.joined(separator: "、")
       self?.state.errorMessage = nil
       self?.state.successMessage = "已更新订阅目标：\(targets)"
+    }
+  }
+
+  private func retryFailures(in group: HelperSubscriptionGroup) {
+    for target in group.targets {
+      for episode in target.episodes where episode.state.isRetryable {
+        retry(serverID: target.serverID, replica: group.replica, episode: episode)
+      }
     }
   }
 
@@ -140,11 +163,14 @@ private struct MikanSubscriptionsContentView: View {
   @Environment(AppModel.self) private var model
   @Environment(MikanSubscriptionsScreenState.self) private var state
 
+  let baseURL: URL?
   let onEditTargets: (HelperSubscriptionGroup) -> Void
   let onOpenSubscription: (HelperSubscriptionGroup) -> Void
   let onRefresh: () async -> Void
   let onRetry: (UUID, HelperReplica, HelperEpisodeStatus) -> Void
   let onUnsubscribe: (HelperSubscriptionGroup) -> Void
+
+  private static let dayCharacters = ["日", "一", "二", "三", "四", "五", "六"]
 
   var body: some View {
     Group {
@@ -157,7 +183,8 @@ private struct MikanSubscriptionsContentView: View {
       } else {
         List {
           feedbackSections
-          subscriptionSection
+          snapshotSections
+          scheduleSections
           helperStateSections
           backfillSections
         }
@@ -165,6 +192,14 @@ private struct MikanSubscriptionsContentView: View {
       }
     }
     .accessibilityIdentifier("helper-subscriptions-page")
+  }
+
+  private var schedule: SubscriptionSchedule {
+    SubscriptionScheduleModel.build(
+      groups: model.helperSubscriptionGroups,
+      directory: model.mikanDirectory,
+      seenCounts: model.subscriptionSeenCounts
+    )
   }
 
   @ViewBuilder
@@ -186,27 +221,131 @@ private struct MikanSubscriptionsContentView: View {
   }
 
   @ViewBuilder
-  private var subscriptionSection: some View {
+  private var snapshotSections: some View {
+    ForEach(model.helperSubscriptionVisibleServers) { server in
+      if case .loaded(_, let status, .cache) = model.helperSubscriptionState(for: server.id) {
+        Section {
+          Label(snapshotText(for: server.name, status: status), systemImage: "clock")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("subscription-snapshot-\(server.id.uuidString)")
+        }
+      }
+    }
+  }
+
+  private func snapshotText(for serverName: String, status: HelperRuntimeStatus) -> String {
+    let checkedAt = status.replicas.compactMap(\.checkedAt).max()
+    if let checkedAt {
+      let fragment = MikanSubscriptionBarModel.relativeTimeFragment(
+        from: checkedAt,
+        now: Date.now
+      )
+      return "无法连接 \(serverName)，正在显示 \(fragment)的本地快照。"
+    }
+    return "无法连接 \(serverName)，正在显示本地快照。"
+  }
+
+  @ViewBuilder
+  private var scheduleSections: some View {
+    let schedule = schedule
     if !model.helperSubscriptionGroups.isEmpty {
       Section {
-        ForEach(model.helperSubscriptionGroups) { group in
-          MikanSubscriptionRow(
-            group: group,
-            onEditTargets: onEditTargets,
-            onOpenSubscription: onOpenSubscription,
-            onRetry: onRetry
+        Text(summaryText(schedule))
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier("subscription-summary")
+        SubscriptionWeekStrip(
+          sections: schedule.sections,
+          daysWithNewEpisodes: schedule.daysWithNewEpisodes,
+          selection: Binding(
+            get: { state.scope },
+            set: { state.scope = $0 }
           )
-          .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button("取消订阅", role: .destructive) {
-              onUnsubscribe(group)
-            }
-          }
-        }
-      } header: {
-        Text("持续订阅")
+        )
+        .listRowInsets(EdgeInsets())
       } footer: {
         Text("同一番组与字幕组在多台 Helper 上合并为一个订阅；Helper 仍是各服务器的真相源。")
       }
+
+      switch state.scope {
+      case .all:
+        ForEach(schedule.sections.filter { !$0.entries.isEmpty }) { section in
+          Section(header: Text(Self.header(for: section))) {
+            ForEach(section.entries) { entry in
+              row(entry, showsWeekday: true)
+            }
+          }
+        }
+        if !schedule.unscheduled.isEmpty {
+          Section("未定档") {
+            ForEach(schedule.unscheduled) { entry in
+              row(entry, showsWeekday: false)
+            }
+          }
+        }
+      case .day(let weekday):
+        let entries = schedule.entries(mikanWeekday: weekday)
+        Section(header: Text(Self.header(for: section(for: weekday, in: schedule)))) {
+          if entries.isEmpty {
+            Text("这一天没有放送更新。")
+              .foregroundStyle(.secondary)
+              .accessibilityIdentifier("subscription-empty-day")
+          }
+          ForEach(entries) { entry in
+            row(entry, showsWeekday: false)
+          }
+        }
+      }
+    }
+  }
+
+  private func row(_ entry: SubscriptionScheduleEntry, showsWeekday: Bool) -> some View {
+    SubscriptionScheduleRow(
+      entry: entry,
+      showsWeekday: showsWeekday,
+      baseURL: baseURL,
+      onOpen: { onOpenSubscription(entry.group) },
+      onEditTargets: { onEditTargets(entry.group) },
+      onRetryFailures: {
+        for target in entry.group.targets {
+          for episode in target.episodes where episode.state.isRetryable {
+            onRetry(target.serverID, entry.group.replica, episode)
+          }
+        }
+      },
+      onUnsubscribe: { onUnsubscribe(entry.group) }
+    )
+  }
+
+  private func summaryText(_ schedule: SubscriptionSchedule) -> String {
+    if schedule.newCount > 0 {
+      return "\(schedule.totalCount) 部订阅 · \(schedule.newCount) 部有新集"
+    }
+    return "\(schedule.totalCount) 部订阅"
+  }
+
+  private func section(for weekday: Int, in schedule: SubscriptionSchedule) -> SubscriptionDaySection {
+    schedule.sections.first { $0.mikanWeekday == weekday }
+      ?? SubscriptionDaySection(
+        mikanWeekday: weekday,
+        daysFromToday: 0,
+        date: .now,
+        entries: []
+      )
+  }
+
+  private static func header(for section: SubscriptionDaySection) -> String {
+    let month = Calendar.current.component(.month, from: section.date)
+    let day = Calendar.current.component(.day, from: section.date)
+    let weekday = "周\(dayCharacters[section.mikanWeekday])"
+    switch section.daysFromToday {
+    case 0:
+      return "今天 · \(month)月\(day)日 \(weekday)"
+    case 1:
+      return "明天 · \(weekday)"
+    default:
+      return "\(weekday) · \(month)月\(day)日"
     }
   }
 

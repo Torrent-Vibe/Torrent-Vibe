@@ -14,7 +14,11 @@ final class MikanDetailSurfacePollingWiringTests: XCTestCase {
     let model = env.makeModel(
       helperService: ScriptedHelperService(), mikanPollIntervalOverride: Self.testPollInterval)
 
-    let controller = SubscriptionsViewController(model: model, onOpenSubscription: { _ in })
+    let controller = SubscriptionsViewController(
+      model: model,
+      baseURL: URL(string: "https://mikanani.me"),
+      onOpenSubscription: { _ in }
+    )
     _ = controller.view
 
     XCTAssertFalse(model.isObservingMikanAppLifecycle)
