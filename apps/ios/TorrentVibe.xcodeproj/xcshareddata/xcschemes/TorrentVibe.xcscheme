@@ -58,6 +58,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "45A892B78EB6C69930B229AB"
+               BuildableName = "TorrentVibeUITests.xctest"
+               BlueprintName = "TorrentVibeUITests"
+               ReferencedContainer = "container:TorrentVibe.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "09FD094142122FFEB22ECB38"
                BuildableName = "TorrentVibeTests.xctest"
                BlueprintName = "TorrentVibeTests"

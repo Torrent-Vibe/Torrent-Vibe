@@ -173,6 +173,22 @@ targets:
         DEVELOPMENT_TEAM: KAMM5N88X3
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Torrent Vibe.app/Torrent Vibe
 
+  TorrentVibeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: TorrentVibe
+    settings:
+      base:
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_NAME: TorrentVibeUITests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.innei.torrent-vibe.ui-tests
+        DEVELOPMENT_TEAM: KAMM5N88X3
+        TEST_TARGET_NAME: TorrentVibe
+
 schemes:
   TorrentVibe:
     build:
@@ -181,6 +197,7 @@ schemes:
         TorrentVibeTests: [test]
     test:
       targets:
+        - TorrentVibeUITests
         - TorrentVibeTests
     run:
       config: Debug

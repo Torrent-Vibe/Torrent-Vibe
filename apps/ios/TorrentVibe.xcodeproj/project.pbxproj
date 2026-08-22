@@ -24,10 +24,12 @@
 		24957C73F4F943F83BFDB77A /* TorrentLiveActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB1FC4982F670959DFC149A /* TorrentLiveActivityCoordinator.swift */; };
 		26D092713078D70013CF3B12 /* DemoHelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043D0092BF930407444CF973 /* DemoHelperService.swift */; };
 		2BF41BB13CFA3D94AF14B807 /* TorrentInspectorKindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4E557F8572DDB0F4268B65 /* TorrentInspectorKindTests.swift */; };
+		2FD36FA09A59FBC4891D513E /* TorrentRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E62DF5B545783C8A6A1EBF /* TorrentRow.swift */; };
 		3AB68B7CD87D86C5CFD5F403 /* MikanDetailSurfacePollingWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0126588D181EB43CBADDCC8 /* MikanDetailSurfacePollingWiringTests.swift */; };
 		3FABECA07685DA03047A7277 /* HelperLogTabGating.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE3106EAAA345A117880E05C /* HelperLogTabGating.swift */; };
 		42CBBE956B327CAF3D9F8F66 /* RootTabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229627CA1BCF12DE066581DC /* RootTabBarController.swift */; };
 		42D55E38C69DB6B5738029E8 /* HelperProfileSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD094DC69625C7F07ECF5A2D /* HelperProfileSyncView.swift */; };
+		47B941257C4A4C70BC997078 /* ComponentTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B591B583E455D5BE95599BB5 /* ComponentTransition.swift */; };
 		4CED85FA59EF8F8F562ACC7C /* TorrentSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E69881D46153D487A181E0F /* TorrentSummary.swift */; };
 		4DA26BBCEA867A12A0AC0B10 /* AppContentLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2D27817126601C4E5C8D5A /* AppContentLayout.swift */; };
 		5027C805679E943C101FD553 /* HelperEventFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06A88A6126539F6BD95C4618 /* HelperEventFieldValue.swift */; };
@@ -42,6 +44,8 @@
 		6710EE0B5DC6028549A80198 /* HelperSubscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0467FDE57B2A12D35B3D7C10 /* HelperSubscriptionCoordinator.swift */; };
 		6C8260E92FD7D6676EBD5F8F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5435DA47620575B7C20BC368 /* Assets.xcassets */; };
 		6D026E17D91E69B9AC4B14D9 /* HelperContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41EBDD29B7EFB5AC3CB6DEF /* HelperContent.swift */; };
+		6D40454427774769A7051ECD /* TorrentFilterPagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD28A65E725E9C65748DBA8 /* TorrentFilterPagerView.swift */; };
+		6FAC106417837CC892CAA2E6 /* TorrentFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C944B6637D8BB43EE937F0B /* TorrentFilterTests.swift */; };
 		742E71E7FDBC0C06675781DE /* TorrentVibeLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 402CC23EDB0CFC6C5C3AA783 /* TorrentVibeLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		75CE6E34F1807684712F6347 /* MikanContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A42E0723A5A11E9961783FA /* MikanContent.swift */; };
 		75F665B576F2FD2DD710BF04 /* TorrentVibeLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1D2796B00D7AFF18AAFBE9 /* TorrentVibeLiveActivityBundle.swift */; };
@@ -51,8 +55,10 @@
 		7AC6730E6D60BD3C880F0D8D /* MTeamDiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17552DE4367CCA278F908B75 /* MTeamDiscoverView.swift */; };
 		7BDE434A2228EF5E04C389B8 /* TorrentLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59630B99613FE352CC1BED4E /* TorrentLiveActivityAttributes.swift */; };
 		7D05C52ADD57A06B44998267 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881C68C271DDDA4FC168A989 /* SceneDelegate.swift */; };
+		7E436B2544BFB284162C58F4 /* HorizontalTabsComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7B9074ABB09D9080F0B9B4 /* HorizontalTabsComponent.swift */; };
 		7EB7A8E0AD6C6491AE5A8DB0 /* MTeamCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97A469EB88657971F7F66E62 /* MTeamCredentialStore.swift */; };
 		7FDCCE02F00B8939DADF8937 /* SwiftUIHostingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3886D7E220561988212DB0C /* SwiftUIHostingViewController.swift */; };
+		806EAEA9F2502DCB0690BA87 /* TorrentFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EC74032427F1F9972FED58A /* TorrentFilter.swift */; };
 		81368A30325BE023CCD06935 /* ServersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88815B5DDEF6C616AF1A8A2 /* ServersView.swift */; };
 		83BB650BE3C07A8D2F1CA957 /* AppModelMikanSubscribeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3AA03D9ED78E5E305C9F53 /* AppModelMikanSubscribeTests.swift */; };
 		852E6877C988D8FFCEE6C82A /* HelperEventsFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4FD799640ACD056FBF4F7F7 /* HelperEventsFilter.swift */; };
@@ -75,11 +81,14 @@
 		B3BE98ED06806E4714405919 /* HelperLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 733063C6137E5979744ADF3B /* HelperLogView.swift */; };
 		B728EFD7AAAB892DEF532806 /* HelperDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2DDD4E7F6E8858F75F4A87 /* HelperDiscovery.swift */; };
 		BA30E7F8B705FB8ACDB1FA18 /* TorrentShareInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0962EB9C22D8E0A223CEECE8 /* TorrentShareInbox.swift */; };
+		BD38BFFD0261F80A83701529 /* TorrentContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53745902F40959326F3D21D2 /* TorrentContentView.swift */; };
 		BE01CA385758C35300581D2E /* HelperLogTabGatingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50341E85B5F2947F234BD80 /* HelperLogTabGatingTests.swift */; };
 		BF6EC4687F328B9284C90BDA /* HelperLogPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A6BB4EB6FE44D34229F621 /* HelperLogPath.swift */; };
 		BF9F5A2E57440112EC35470A /* MikanEpisodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8479A26B0787BC0D84A43490 /* MikanEpisodeRow.swift */; };
+		C02F0FD04582074ED5EF1409 /* TorrentSelectionUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77E48A6E1F89904A359F140A /* TorrentSelectionUITests.swift */; };
 		C09086D2D5EBB2044FF37992 /* MikanDetailContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231606B623DE58F001379B30 /* MikanDetailContentView.swift */; };
 		C09AFC122DD01D5121522030 /* MikanSubscriptionScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05DFA23074EE8FB36144902 /* MikanSubscriptionScheduleViews.swift */; };
+		C3228F220697B658CCEF204B /* TorrentOverviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64AA556D1871BABC6385FE4 /* TorrentOverviewCard.swift */; };
 		C340109F4DD277A13B60536D /* MikanSubscriptionBarModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46F7D83D574EC54EA067147 /* MikanSubscriptionBarModelTests.swift */; };
 		C57EC503436742D7747DB54A /* TorrentManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7450A7F2C342A5147E828521 /* TorrentManagementView.swift */; };
 		C5CA95731CC73D1817F07191 /* ServerCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25B90B646D724EE89DBED10 /* ServerCredentialStore.swift */; };
@@ -92,11 +101,14 @@
 		CDDF5F067163DB87B5A0B9A6 /* MikanJavaScriptRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA34353EC7DAA24B175869C5 /* MikanJavaScriptRuntime.swift */; };
 		D1327D0152DE54F3AF91354D /* TorrentBackgroundStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17947D3C764CBCCD28F8C0D2 /* TorrentBackgroundStatus.swift */; };
 		D67BFFE359AEF3EA1C66FF55 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0230C018588B9C508BB5F72 /* AppModel.swift */; };
+		DFA34B53CEA9217792B94519 /* LiquidLensView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25F60742A8622879C7BC67 /* LiquidLensView.swift */; };
+		E02039D95B6A9A77F21B64BB /* TorrentFilterChipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B201065C015D34281F0CB3BE /* TorrentFilterChipsView.swift */; };
 		E08384F0E246A71D736CE9FE /* HelperEventsCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5303D77699610A218177463 /* HelperEventsCursor.swift */; };
 		E2EF42934E60F9F0C01D8B9D /* TorrentInspectorItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C678F63C96D16B73996E688 /* TorrentInspectorItem.swift */; };
 		E9972017A7A9CAB693857549 /* MikanHelperActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B9989B753934F8E9A36E6A5 /* MikanHelperActionView.swift */; };
 		EB5CA55F63969FD2FA598C05 /* ContentSourceConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */; };
 		EBC6B518C9666EE0B9F0E60A /* HelperLogState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC25A214814F95EA5D5C0DF /* HelperLogState.swift */; };
+		F5612D31668C95E541D0F739 /* LiquidLensSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241C22B0E9931B6C34C6EED3 /* LiquidLensSupport.swift */; };
 		F6AF9AC574D77ACCEF4280C3 /* HelperServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5722F85E5798D04467E710A /* HelperServiceTests.swift */; };
 		F7E4CEB07D420752A1608ED5 /* TorrentVibeShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F8F501108A1423B0D0D16B11 /* MikanEpisodeRowModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9233A9995E900C1BA6C5041B /* MikanEpisodeRowModelTests.swift */; };
@@ -125,6 +137,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = ED1926D007BC9BE5BA566C90;
 			remoteInfo = TorrentVibeShare;
+		};
+		EEFA5F295EA53D0FA551B6CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1B5D2469AE0844E24994E581 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1DDAC2B515265CAA373C5AED;
+			remoteInfo = TorrentVibe;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -159,9 +178,12 @@
 		1E69881D46153D487A181E0F /* TorrentSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentSummary.swift; sourceTree = "<group>"; };
 		229627CA1BCF12DE066581DC /* RootTabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabBarController.swift; sourceTree = "<group>"; };
 		231606B623DE58F001379B30 /* MikanDetailContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDetailContentView.swift; sourceTree = "<group>"; };
+		241C22B0E9931B6C34C6EED3 /* LiquidLensSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidLensSupport.swift; sourceTree = "<group>"; };
 		25A6BB4EB6FE44D34229F621 /* HelperLogPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogPath.swift; sourceTree = "<group>"; };
 		25C92F9A31603987D36B1E25 /* TorrentVibeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TorrentVibeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2785CB74ECAC4C80AB91DEF0 /* MikanDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDetailView.swift; sourceTree = "<group>"; };
+		298DD5C790BB2144BD01841C /* TorrentVibeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TorrentVibeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2C944B6637D8BB43EE937F0B /* TorrentFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentFilterTests.swift; sourceTree = "<group>"; };
 		3A3AA03D9ED78E5E305C9F53 /* AppModelMikanSubscribeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanSubscribeTests.swift; sourceTree = "<group>"; };
 		3C52B9D3AB8BB425297DBEC1 /* TorrentVibeShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentVibeShortcuts.swift; sourceTree = "<group>"; };
 		3E6513427A0F6427C54E2F87 /* MikanDiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanDiscoverView.swift; sourceTree = "<group>"; };
@@ -169,6 +191,7 @@
 		4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSourceConnectionTester.swift; sourceTree = "<group>"; };
 		50BBF6C5EA6457BCFAFECBF0 /* MikanContentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContentService.swift; sourceTree = "<group>"; };
 		5133C244E6327B15F7BC40FC /* TorrentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentRepository.swift; sourceTree = "<group>"; };
+		53745902F40959326F3D21D2 /* TorrentContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentContentView.swift; sourceTree = "<group>"; };
 		53C147BD69870FF56827FDA4 /* HelperEventsFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsFilterTests.swift; sourceTree = "<group>"; };
 		540D5E51CE18425F9866838C /* HelperEventsCursorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsCursorTests.swift; sourceTree = "<group>"; };
 		5435DA47620575B7C20BC368 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -179,12 +202,15 @@
 		5DDE332BC6744C9DC330E798 /* TorrentImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentImportView.swift; sourceTree = "<group>"; };
 		61AA0C06F2E17091FC9949D3 /* TorrentListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentListView.swift; sourceTree = "<group>"; };
 		6A42E0723A5A11E9961783FA /* MikanContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContent.swift; sourceTree = "<group>"; };
+		6AD28A65E725E9C65748DBA8 /* TorrentFilterPagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentFilterPagerView.swift; sourceTree = "<group>"; };
 		6B9989B753934F8E9A36E6A5 /* MikanHelperActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanHelperActionView.swift; sourceTree = "<group>"; };
 		733063C6137E5979744ADF3B /* HelperLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogView.swift; sourceTree = "<group>"; };
 		7450A7F2C342A5147E828521 /* TorrentManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentManagementView.swift; sourceTree = "<group>"; };
+		77E48A6E1F89904A359F140A /* TorrentSelectionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentSelectionUITests.swift; sourceTree = "<group>"; };
 		7A00A8BE90B9747875FA0780 /* TorrentVibeShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TorrentVibeShare.entitlements; sourceTree = "<group>"; };
 		7A754AFD47C2D2BED78C339A /* MTeamServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamServiceTests.swift; sourceTree = "<group>"; };
 		7E38882EDDC649625E5D90F0 /* AppModelServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelServerTests.swift; sourceTree = "<group>"; };
+		7EC74032427F1F9972FED58A /* TorrentFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentFilter.swift; sourceTree = "<group>"; };
 		843F8023B76EE8DC16A7B6CC /* ServerEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerEditorView.swift; sourceTree = "<group>"; };
 		846020FA6014BDADF23560C7 /* TorrentLiveActivityStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentLiveActivityStateTests.swift; sourceTree = "<group>"; };
 		8479A26B0787BC0D84A43490 /* MikanEpisodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanEpisodeRow.swift; sourceTree = "<group>"; };
@@ -210,8 +236,11 @@
 		A69230FF9C597E156B242620 /* MikanEpisodeRowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanEpisodeRowModel.swift; sourceTree = "<group>"; };
 		AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TorrentVibeShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AEF1A751A14E4D1E4E6A9910 /* AppModelHelperCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelHelperCacheTests.swift; sourceTree = "<group>"; };
+		B201065C015D34281F0CB3BE /* TorrentFilterChipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentFilterChipsView.swift; sourceTree = "<group>"; };
 		B46F7D83D574EC54EA067147 /* MikanSubscriptionBarModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanSubscriptionBarModelTests.swift; sourceTree = "<group>"; };
 		B5303D77699610A218177463 /* HelperEventsCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsCursor.swift; sourceTree = "<group>"; };
+		B591B583E455D5BE95599BB5 /* ComponentTransition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentTransition.swift; sourceTree = "<group>"; };
+		B64AA556D1871BABC6385FE4 /* TorrentOverviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentOverviewCard.swift; sourceTree = "<group>"; };
 		B873C8888711E916CBE5A4DF /* MTeamBatchImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamBatchImportView.swift; sourceTree = "<group>"; };
 		BA34353EC7DAA24B175869C5 /* MikanJavaScriptRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanJavaScriptRuntime.swift; sourceTree = "<group>"; };
 		BC0744FDFAF15095044A734F /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -224,12 +253,15 @@
 		D10CC839E5C94B0FC1DD75AE /* MTeamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTeamService.swift; sourceTree = "<group>"; };
 		D2526A5233AC2CA4DA99C13A /* HelperCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperCredentialStore.swift; sourceTree = "<group>"; };
 		D50341E85B5F2947F234BD80 /* HelperLogTabGatingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogTabGatingTests.swift; sourceTree = "<group>"; };
+		D5E62DF5B545783C8A6A1EBF /* TorrentRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentRow.swift; sourceTree = "<group>"; };
 		D756B1586A7C6D74BB8E9A7E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		DA38587CE0ADD3FFCF809CEA /* AppModelMikanSubscriptionBarInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanSubscriptionBarInputTests.swift; sourceTree = "<group>"; };
 		DD3D627BA0C3C26CD1C0073A /* MikanParser.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = MikanParser.js; sourceTree = "<group>"; };
+		DE25F60742A8622879C7BC67 /* LiquidLensView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidLensView.swift; sourceTree = "<group>"; };
 		DE3106EAAA345A117880E05C /* HelperLogTabGating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperLogTabGating.swift; sourceTree = "<group>"; };
 		E5D1658EBCC9EDB2B1B7F256 /* AppModelMikanPollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelMikanPollingTests.swift; sourceTree = "<group>"; };
 		EA2DDD4E7F6E8858F75F4A87 /* HelperDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperDiscovery.swift; sourceTree = "<group>"; };
+		ED7B9074ABB09D9080F0B9B4 /* HorizontalTabsComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalTabsComponent.swift; sourceTree = "<group>"; };
 		EDB94733F976B73337A759E8 /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
 		EE99BB2C9F836CBCB85097D5 /* TorrentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentDetailView.swift; sourceTree = "<group>"; };
 		EEAC99E7C8852668F5A113CB /* TorrentInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentInspectorView.swift; sourceTree = "<group>"; };
@@ -261,6 +293,15 @@
 				D756B1586A7C6D74BB8E9A7E /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		16674C73D96E1E1C4EEE0BBC /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				55F560419F31F99B3EA78F4E /* HorizontalTabsComponent */,
+				5154124BD0238DB1DD5632CB /* LiquidLens */,
+			);
+			path = Vendor;
 			sourceTree = "<group>";
 		};
 		23EA2FECB682730F9E2AFC1B /* Servers */ = {
@@ -309,12 +350,38 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		4E95D0A00788860D1876B271 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				77E48A6E1F89904A359F140A /* TorrentSelectionUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		5154124BD0238DB1DD5632CB /* LiquidLens */ = {
+			isa = PBXGroup;
+			children = (
+				B591B583E455D5BE95599BB5 /* ComponentTransition.swift */,
+				241C22B0E9931B6C34C6EED3 /* LiquidLensSupport.swift */,
+				DE25F60742A8622879C7BC67 /* LiquidLensView.swift */,
+			);
+			path = LiquidLens;
+			sourceTree = "<group>";
+		};
 		5174A293F7F6E4CF51F0FCB6 /* LiveActivityShared */ = {
 			isa = PBXGroup;
 			children = (
 				59630B99613FE352CC1BED4E /* TorrentLiveActivityAttributes.swift */,
 			);
 			path = LiveActivityShared;
+			sourceTree = "<group>";
+		};
+		55F560419F31F99B3EA78F4E /* HorizontalTabsComponent */ = {
+			isa = PBXGroup;
+			children = (
+				ED7B9074ABB09D9080F0B9B4 /* HorizontalTabsComponent.swift */,
+			);
+			path = HorizontalTabsComponent;
 			sourceTree = "<group>";
 		};
 		57BB3D1811A1058B7E188179 /* Resources */ = {
@@ -341,6 +408,7 @@
 				5A771D7BCF3CE7C3B103E1FF /* MikanSubscriptionBarModel.swift */,
 				F56BCBF3EDE5E2FAA0B786B7 /* ServerConfiguration.swift */,
 				F1CD10B8C9A8AC55D273BE52 /* SubscriptionScheduleModel.swift */,
+				7EC74032427F1F9972FED58A /* TorrentFilter.swift */,
 				1671F06F637BEE08D7288159 /* TorrentInput.swift */,
 				8C678F63C96D16B73996E688 /* TorrentInspectorItem.swift */,
 				1E69881D46153D487A181E0F /* TorrentSummary.swift */,
@@ -384,6 +452,7 @@
 				781AA29D370E8E84FB216DCD /* Domain */,
 				2F1615E76159025B0904829D /* Features */,
 				D9FE51D966F1D553F8E2FE45 /* Services */,
+				16674C73D96E1E1C4EEE0BBC /* Vendor */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -391,11 +460,16 @@
 		C7472A4DDB5CB63B7DE53FAC /* Torrents */ = {
 			isa = PBXGroup;
 			children = (
+				53745902F40959326F3D21D2 /* TorrentContentView.swift */,
 				EE99BB2C9F836CBCB85097D5 /* TorrentDetailView.swift */,
+				B201065C015D34281F0CB3BE /* TorrentFilterChipsView.swift */,
+				6AD28A65E725E9C65748DBA8 /* TorrentFilterPagerView.swift */,
 				5DDE332BC6744C9DC330E798 /* TorrentImportView.swift */,
 				EEAC99E7C8852668F5A113CB /* TorrentInspectorView.swift */,
 				61AA0C06F2E17091FC9949D3 /* TorrentListView.swift */,
 				7450A7F2C342A5147E828521 /* TorrentManagementView.swift */,
+				B64AA556D1871BABC6385FE4 /* TorrentOverviewCard.swift */,
+				D5E62DF5B545783C8A6A1EBF /* TorrentRow.swift */,
 			);
 			path = Torrents;
 			sourceTree = "<group>";
@@ -422,6 +496,7 @@
 				B46F7D83D574EC54EA067147 /* MikanSubscriptionBarModelTests.swift */,
 				7A754AFD47C2D2BED78C339A /* MTeamServiceTests.swift */,
 				09C2CC1B2CBD6E9EB3B908D9 /* SubscriptionScheduleModelTests.swift */,
+				2C944B6637D8BB43EE937F0B /* TorrentFilterTests.swift */,
 				8B4E557F8572DDB0F4268B65 /* TorrentInspectorKindTests.swift */,
 				846020FA6014BDADF23560C7 /* TorrentLiveActivityStateTests.swift */,
 				F3941630C73DB54F301038BE /* TorrentShareInboxTests.swift */,
@@ -439,6 +514,7 @@
 				DFAB1FAFBBF9164F542E2D28 /* ShareExtension */,
 				B0ECBED1478130B72B65E174 /* Sources */,
 				D1F065BDF57EE8F6E26BCA48 /* Tests */,
+				4E95D0A00788860D1876B271 /* UITests */,
 				E32FA5C448F05A2B815CB090 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -482,6 +558,7 @@
 				402CC23EDB0CFC6C5C3AA783 /* TorrentVibeLiveActivity.appex */,
 				AB56294E69A9758FF9045F11 /* TorrentVibeShare.appex */,
 				25C92F9A31603987D36B1E25 /* TorrentVibeTests.xctest */,
+				298DD5C790BB2144BD01841C /* TorrentVibeUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -529,6 +606,24 @@
 			productName = TorrentVibe;
 			productReference = 9551028A943D2688A3C7ADA9 /* TorrentVibe.app */;
 			productType = "com.apple.product-type.application";
+		};
+		45A892B78EB6C69930B229AB /* TorrentVibeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 344580A4BCFFCD69AE71B118 /* Build configuration list for PBXNativeTarget "TorrentVibeUITests" */;
+			buildPhases = (
+				6FC148AA17F7DD271E9B5A64 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1F84D7C01164F44B96E29490 /* PBXTargetDependency */,
+			);
+			name = TorrentVibeUITests;
+			packageProductDependencies = (
+			);
+			productName = TorrentVibeUITests;
+			productReference = 298DD5C790BB2144BD01841C /* TorrentVibeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		64F10CBC758838029ABB2827 /* TorrentVibeLiveActivity */ = {
 			isa = PBXNativeTarget;
@@ -581,6 +676,11 @@
 						DevelopmentTeam = KAMM5N88X3;
 						ProvisioningStyle = Automatic;
 					};
+					45A892B78EB6C69930B229AB = {
+						DevelopmentTeam = KAMM5N88X3;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 1DDAC2B515265CAA373C5AED;
+					};
 					64F10CBC758838029ABB2827 = {
 						DevelopmentTeam = KAMM5N88X3;
 						ProvisioningStyle = Automatic;
@@ -612,6 +712,7 @@
 				64F10CBC758838029ABB2827 /* TorrentVibeLiveActivity */,
 				ED1926D007BC9BE5BA566C90 /* TorrentVibeShare */,
 				09FD094142122FFEB22ECB38 /* TorrentVibeTests */,
+				45A892B78EB6C69930B229AB /* TorrentVibeUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -652,9 +753,18 @@
 				F8F501108A1423B0D0D16B11 /* MikanEpisodeRowModelTests.swift in Sources */,
 				C340109F4DD277A13B60536D /* MikanSubscriptionBarModelTests.swift in Sources */,
 				949EB171758591409C5337EC /* SubscriptionScheduleModelTests.swift in Sources */,
+				6FAC106417837CC892CAA2E6 /* TorrentFilterTests.swift in Sources */,
 				2BF41BB13CFA3D94AF14B807 /* TorrentInspectorKindTests.swift in Sources */,
 				A9044891322BFB4197BB201D /* TorrentLiveActivityStateTests.swift in Sources */,
 				AC9974FABC7113F6756DC5AF /* TorrentShareInboxTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6FC148AA17F7DD271E9B5A64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C02F0FD04582074ED5EF1409 /* TorrentSelectionUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -686,6 +796,7 @@
 				068CE11B7E837FD12517CC14 /* AppDelegate.swift in Sources */,
 				D67BFFE359AEF3EA1C66FF55 /* AppModel.swift in Sources */,
 				AE71F3D08FFB5B4B00DCE249 /* AppearanceMode.swift in Sources */,
+				47B941257C4A4C70BC997078 /* ComponentTransition.swift in Sources */,
 				EB5CA55F63969FD2FA598C05 /* ContentSourceConnectionTester.swift in Sources */,
 				26D092713078D70013CF3B12 /* DemoHelperService.swift in Sources */,
 				93E44EF8B52B13F8F58CB7B7 /* DiscoverView.swift in Sources */,
@@ -703,6 +814,9 @@
 				42D55E38C69DB6B5738029E8 /* HelperProfileSyncView.swift in Sources */,
 				1B3AE2EC4D34BF18FE5FC42E /* HelperService.swift in Sources */,
 				6710EE0B5DC6028549A80198 /* HelperSubscriptionCoordinator.swift in Sources */,
+				7E436B2544BFB284162C58F4 /* HorizontalTabsComponent.swift in Sources */,
+				F5612D31668C95E541D0F739 /* LiquidLensSupport.swift in Sources */,
+				DFA34B53CEA9217792B94519 /* LiquidLensView.swift in Sources */,
 				8AAB053704234E55B9A39969 /* MTeamBatchImportView.swift in Sources */,
 				7EB7A8E0AD6C6491AE5A8DB0 /* MTeamCredentialStore.swift in Sources */,
 				C775C29CF9E826B184FABB70 /* MTeamDiscoverActions.swift in Sources */,
@@ -731,7 +845,11 @@
 				9FF9D5B1A2713E344036A10D /* SubscriptionScheduleModel.swift in Sources */,
 				7FDCCE02F00B8939DADF8937 /* SwiftUIHostingViewController.swift in Sources */,
 				D1327D0152DE54F3AF91354D /* TorrentBackgroundStatus.swift in Sources */,
+				BD38BFFD0261F80A83701529 /* TorrentContentView.swift in Sources */,
 				78CFB57DDD068FCDBCC2703C /* TorrentDetailView.swift in Sources */,
+				806EAEA9F2502DCB0690BA87 /* TorrentFilter.swift in Sources */,
+				E02039D95B6A9A77F21B64BB /* TorrentFilterChipsView.swift in Sources */,
+				6D40454427774769A7051ECD /* TorrentFilterPagerView.swift in Sources */,
 				8E7DED3A11B12943B1C40E32 /* TorrentImportView.swift in Sources */,
 				0BCFD75E38CEA7A190D612BF /* TorrentInput.swift in Sources */,
 				E2EF42934E60F9F0C01D8B9D /* TorrentInspectorItem.swift in Sources */,
@@ -740,7 +858,9 @@
 				7905CDF0C52D46880173FF38 /* TorrentLiveActivityAttributes.swift in Sources */,
 				24957C73F4F943F83BFDB77A /* TorrentLiveActivityCoordinator.swift in Sources */,
 				C57EC503436742D7747DB54A /* TorrentManagementView.swift in Sources */,
+				C3228F220697B658CCEF204B /* TorrentOverviewCard.swift in Sources */,
 				55AC630E91265E1BA4FF96CF /* TorrentRepository.swift in Sources */,
+				2FD36FA09A59FBC4891D513E /* TorrentRow.swift in Sources */,
 				BA30E7F8B705FB8ACDB1FA18 /* TorrentShareInbox.swift in Sources */,
 				4CED85FA59EF8F8F562ACC7C /* TorrentSummary.swift in Sources */,
 				61253EEFA944A0C891938185 /* TorrentVibeShortcuts.swift in Sources */,
@@ -755,6 +875,11 @@
 			target = 64F10CBC758838029ABB2827 /* TorrentVibeLiveActivity */;
 			targetProxy = 9812E0F8151E657604BC4882 /* PBXContainerItemProxy */;
 		};
+		1F84D7C01164F44B96E29490 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1DDAC2B515265CAA373C5AED /* TorrentVibe */;
+			targetProxy = EEFA5F295EA53D0FA551B6CF /* PBXContainerItemProxy */;
+		};
 		365D06456EA8626D87B78B9B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = ED1926D007BC9BE5BA566C90 /* TorrentVibeShare */;
@@ -768,6 +893,26 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		270B4A33362FBE837E79BB70 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = KAMM5N88X3;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.innei.torrent-vibe.ui-tests";
+				PRODUCT_NAME = TorrentVibeUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TorrentVibe;
+			};
+			name = Debug;
+		};
 		310E6C6FA07989BC36428236 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -956,6 +1101,26 @@
 			};
 			name = Release;
 		};
+		9684D5706DF984513F61AE5B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = KAMM5N88X3;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.innei.torrent-vibe.ui-tests";
+				PRODUCT_NAME = TorrentVibeUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TorrentVibe;
+			};
+			name = Release;
+		};
 		A4FD51EBBA2BD4F681628A58 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1099,6 +1264,15 @@
 			buildConfigurations = (
 				A5DDAAAF7B404F69517C8F70 /* Debug */,
 				5B19E22AF8BE77A126FA1411 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		344580A4BCFFCD69AE71B118 /* Build configuration list for PBXNativeTarget "TorrentVibeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				270B4A33362FBE837E79BB70 /* Debug */,
+				9684D5706DF984513F61AE5B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
