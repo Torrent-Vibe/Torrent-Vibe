@@ -4,6 +4,8 @@ struct TorrentSnapshot: Sendable {
   let torrents: [TorrentSummary]
   let totalDownloadSpeed: String
   let totalUploadSpeed: String
+  let totalDownloadBytesPerSecond: Int64
+  let totalUploadBytesPerSecond: Int64
   let serverVersion: String?
 }
 
@@ -209,6 +211,8 @@ actor QBittorrentTorrentRepository: TorrentRepository {
       torrents: torrents.map(TorrentSummary.init(qbittorrent:)),
       totalDownloadSpeed: Self.formatSpeed(transfer.downloadSpeed),
       totalUploadSpeed: Self.formatSpeed(transfer.uploadSpeed),
+      totalDownloadBytesPerSecond: transfer.downloadSpeed,
+      totalUploadBytesPerSecond: transfer.uploadSpeed,
       serverVersion: version?.trimmingCharacters(in: .whitespacesAndNewlines)
     )
   }
@@ -532,6 +536,7 @@ private struct MultipartFile: Sendable {
 }
 
 actor DemoTorrentRepository: TorrentRepository {
+  private let reportsIdleTransfers: Bool
   private var nextImportedID = 1
   private var torrents = [
     TorrentSummary(
@@ -581,7 +586,130 @@ actor DemoTorrentRepository: TorrentRepository {
       tags: ["Linux"],
       addedAt: Date(timeIntervalSince1970: 1_786_550_400)
     ),
+    TorrentSummary(
+      id: "demo-dune",
+      name: "Dune: Part Two · 2160p HDR",
+      progress: 0.58,
+      size: "31.4 GB",
+      downloadSpeed: "11.7 MB/s",
+      uploadSpeed: "620 KB/s",
+      eta: "19 分钟",
+      status: .downloading,
+      shareRatio: 0.18,
+      savePath: "/Media/Movies/Dune Part Two",
+      category: "movies",
+      tags: ["4K", "HDR"]
+    ),
+    TorrentSummary(
+      id: "demo-cosmos",
+      name: "Cosmos: A Spacetime Odyssey · Complete",
+      progress: 1,
+      size: "48.2 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "2.3 MB/s",
+      eta: "已完成",
+      status: .seeding,
+      shareRatio: 1.76,
+      savePath: "/Media/Documentary/Cosmos",
+      category: "documentary",
+      tags: ["1080P", "TV"]
+    ),
+    TorrentSummary(
+      id: "demo-photos",
+      name: "Family Photo Archive · 2018–2025",
+      progress: 0.81,
+      size: "86.7 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "已暂停",
+      status: .paused,
+      savePath: "/Archive/Photos",
+      category: "archive"
+    ),
+    TorrentSummary(
+      id: "demo-blender",
+      name: "Blender Studio Open Movies Collection",
+      progress: 1,
+      size: "14.9 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "已完成",
+      status: .completed,
+      shareRatio: 1.04,
+      savePath: "/Media/Open Movies",
+      category: "movies",
+      tags: ["Creative Commons"]
+    ),
+    TorrentSummary(
+      id: "demo-swift",
+      name: "Swift 6.3 Development Snapshot",
+      progress: 0.43,
+      size: "2.8 GB",
+      downloadSpeed: "6.2 MB/s",
+      uploadSpeed: "84 KB/s",
+      eta: "4 分钟",
+      status: .downloading,
+      savePath: "/Downloads/Toolchains",
+      category: "software",
+      tags: ["Swift"]
+    ),
+    TorrentSummary(
+      id: "demo-debian",
+      name: "Debian 13.1.0 arm64 netinst",
+      progress: 1,
+      size: "743 MB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "1.1 MB/s",
+      eta: "已完成",
+      status: .seeding,
+      shareRatio: 5.62,
+      savePath: "/Downloads/ISO",
+      category: "software",
+      tags: ["Linux"]
+    ),
+    TorrentSummary(
+      id: "demo-course",
+      name: "Distributed Systems Course Materials",
+      progress: 0,
+      size: "9.4 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "排队中",
+      status: .queued,
+      savePath: "/Media/Courses",
+      category: "education"
+    ),
+    TorrentSummary(
+      id: "demo-backup",
+      name: "MacBook Pro Incremental Backup",
+      progress: 0.47,
+      size: "112.6 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "连接错误",
+      status: .error,
+      savePath: "/Archive/Backups",
+      category: "archive"
+    ),
+    TorrentSummary(
+      id: "demo-planet-earth",
+      name: "Planet Earth III · Complete Series",
+      progress: 1,
+      size: "27.3 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "已完成",
+      status: .completed,
+      shareRatio: 0.98,
+      savePath: "/Media/Documentary/Planet Earth III",
+      category: "documentary",
+      tags: ["4K", "TV"]
+    ),
   ]
+
+  init(reportsIdleTransfers: Bool = false) {
+    self.reportsIdleTransfers = reportsIdleTransfers
+  }
 
   func addTorrent(_ request: TorrentAddRequest, to server: ServerConfiguration) async throws {
     try await Task.sleep(for: .milliseconds(450))
@@ -801,10 +929,39 @@ actor DemoTorrentRepository: TorrentRepository {
   }
 
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot {
-    TorrentSnapshot(
-      torrents: torrents,
-      totalDownloadSpeed: "18.4 MB/s",
-      totalUploadSpeed: "5.9 MB/s",
+    let snapshotTorrents = reportsIdleTransfers
+      ? torrents.map { torrent in
+        switch torrent.status {
+        case .downloading:
+          torrent.updating(
+            status: .paused,
+            downloadSpeed: "0 KB/s",
+            uploadSpeed: "0 KB/s",
+            eta: "已暂停"
+          )
+        case .seeding:
+          torrent.updating(
+            status: .completed,
+            downloadSpeed: "0 KB/s",
+            uploadSpeed: "0 KB/s",
+            eta: "已完成"
+          )
+        default:
+          torrent.updating(
+            status: torrent.status,
+            downloadSpeed: "0 KB/s",
+            uploadSpeed: "0 KB/s"
+          )
+        }
+      }
+      : torrents
+
+    return TorrentSnapshot(
+      torrents: snapshotTorrents,
+      totalDownloadSpeed: reportsIdleTransfers ? "0 KB/s" : "18.4 MB/s",
+      totalUploadSpeed: reportsIdleTransfers ? "0 KB/s" : "5.9 MB/s",
+      totalDownloadBytesPerSecond: reportsIdleTransfers ? 0 : 19_293_798,
+      totalUploadBytesPerSecond: reportsIdleTransfers ? 0 : 6_186_598,
       serverVersion: "v5.1.2"
     )
   }

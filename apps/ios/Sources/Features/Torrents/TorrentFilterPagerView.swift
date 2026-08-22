@@ -285,17 +285,6 @@ private struct TorrentFilterPageView: View {
   var body: some View {
     List {
       Section {
-        TorrentOverviewCard(
-          serverName: model.activeServer?.name ?? "",
-          downloadSpeed: model.totalDownloadSpeed,
-          uploadSpeed: model.totalUploadSpeed
-        )
-        .listRowInsets(EdgeInsets())
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-      }
-
-      Section {
         if filteredTorrents.isEmpty {
           ContentUnavailableView {
             Label("当前范围没有任务", systemImage: filter.systemImage)
@@ -312,7 +301,8 @@ private struct TorrentFilterPageView: View {
     }
     .listStyle(.insetGrouped)
     .listSectionSpacing(.compact)
-    .contentMargins(.top, 8, for: .scrollContent)
+    .contentMargins(.top, 48, for: .scrollContent)
+    .scrollEdgeEffectStyle(.soft, for: .top)
     .refreshable {
       await model.refreshTorrents()
     }
@@ -333,6 +323,7 @@ private struct TorrentFilterPageView: View {
       )
     }
     .buttonStyle(.plain)
+    .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
     .accessibilityIdentifier("torrent-row-\(torrent.id)")
     .swipeActions(edge: .leading, allowsFullSwipe: true) {
       if !selectionState.isSelecting {

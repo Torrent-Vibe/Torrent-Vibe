@@ -13,6 +13,8 @@ final class AppModel {
   private(set) var integrationNotice: String?
   private(set) var totalDownloadSpeed = "—"
   private(set) var totalUploadSpeed = "—"
+  private(set) var totalDownloadBytesPerSecond: Int64 = 0
+  private(set) var totalUploadBytesPerSecond: Int64 = 0
   private(set) var serverConnectionStates: [UUID: ServerConnectionState] = [:]
   private(set) var helperConnectionStates: [UUID: HelperConnectionState] = [:]
   private(set) var helperSubscriptionStates: [UUID: HelperSubscriptionLoadState] = [:]
@@ -64,6 +66,7 @@ final class AppModel {
     mikanPollIntervalOverride: Duration? = nil
   ) {
     let demoMode = launchArguments.contains("-ui-demo")
+    let idleTransferDemo = demoMode && launchArguments.contains("-ui-demo-idle-transfers")
     isDemoMode = demoMode
     self.defaults = defaults
     self.mikanPollIntervalOverride = mikanPollIntervalOverride
@@ -77,7 +80,7 @@ final class AppModel {
     self.torrentRepository =
       torrentRepository
       ?? (demoMode
-        ? DemoTorrentRepository()
+        ? DemoTorrentRepository(reportsIdleTransfers: idleTransferDemo)
         : QBittorrentTorrentRepository(credentialStore: credentialStore))
 
     if demoMode {
@@ -97,8 +100,10 @@ final class AppModel {
       )
       servers = [demoServer, demoSecondaryServer]
       activeServerID = demoServer.id
-      totalDownloadSpeed = "18.4 MB/s"
-      totalUploadSpeed = "5.9 MB/s"
+      totalDownloadSpeed = idleTransferDemo ? "0 KB/s" : "18.4 MB/s"
+      totalUploadSpeed = idleTransferDemo ? "0 KB/s" : "5.9 MB/s"
+      totalDownloadBytesPerSecond = idleTransferDemo ? 0 : 19_293_798
+      totalUploadBytesPerSecond = idleTransferDemo ? 0 : 6_186_598
       if launchArguments.contains("-ui-helper-reset") {
         try? helperCredentialStore.deleteToken(for: demoServer.id)
         try? helperCredentialStore.deleteToken(for: demoSecondaryServer.id)
@@ -244,6 +249,8 @@ final class AppModel {
     integrationNotice = nil
     totalDownloadSpeed = "—"
     totalUploadSpeed = "—"
+    totalDownloadBytesPerSecond = 0
+    totalUploadBytesPerSecond = 0
     persistActiveServerID()
   }
 
@@ -321,6 +328,8 @@ final class AppModel {
         integrationNotice = nil
         totalDownloadSpeed = "—"
         totalUploadSpeed = "—"
+        totalDownloadBytesPerSecond = 0
+        totalUploadBytesPerSecond = 0
       }
     }
 
@@ -1041,6 +1050,8 @@ final class AppModel {
         torrents = snapshot.torrents
         totalDownloadSpeed = snapshot.totalDownloadSpeed
         totalUploadSpeed = snapshot.totalUploadSpeed
+        totalDownloadBytesPerSecond = snapshot.totalDownloadBytesPerSecond
+        totalUploadBytesPerSecond = snapshot.totalUploadBytesPerSecond
         integrationNotice = nil
         lastUpdated = .now
         await TorrentLiveActivityCoordinator.shared.synchronize(
@@ -1054,6 +1065,8 @@ final class AppModel {
         torrents = []
         totalDownloadSpeed = "—"
         totalUploadSpeed = "—"
+        totalDownloadBytesPerSecond = 0
+        totalUploadBytesPerSecond = 0
         integrationNotice = error.localizedDescription
       }
       serverConnectionStates[server.id] = .failed(message: error.localizedDescription)

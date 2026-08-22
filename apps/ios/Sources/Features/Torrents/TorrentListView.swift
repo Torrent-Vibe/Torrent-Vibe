@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import SwiftUI
 import UIKit
 
@@ -75,6 +76,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     selectButton.accessibilityIdentifier = "torrent-select"
     navigationItem.rightBarButtonItems = [addButton, selectButton]
     updateServerMenu()
+    observeNavigationSubtitle()
 
     Task { await refresh() }
   }
@@ -263,6 +265,32 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       title = selectedCount > 0 ? "已选 \(selectedCount)" : "选择任务"
     } else {
       title = "任务"
+    }
+    updateNavigationSubtitle()
+  }
+
+  private func observeNavigationSubtitle() {
+    withObservationTracking {
+      updateNavigationSubtitle()
+    } onChange: { [weak self] in
+      Task { @MainActor in
+        self?.observeNavigationSubtitle()
+      }
+    }
+  }
+
+  private func updateNavigationSubtitle() {
+    let hasActiveTransfer =
+      model.totalDownloadBytesPerSecond > 0 || model.totalUploadBytesPerSecond > 0
+    let subtitle =
+      selectionState.isSelecting || !hasActiveTransfer
+      ? nil
+      : "↓ \(model.totalDownloadSpeed)  ↑ \(model.totalUploadSpeed)"
+
+    guard navigationItem.subtitle != subtitle else { return }
+    UIView.performWithoutAnimation {
+      navigationItem.subtitle = subtitle
+      navigationController?.navigationBar.layoutIfNeeded()
     }
   }
 

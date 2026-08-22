@@ -85,7 +85,21 @@ struct TorrentContentView: View {
           Text(model.integrationNotice ?? "当前服务器没有符合条件的任务。")
         }
       } else {
-        VStack(spacing: 0) {
+        TorrentFilterPagerView(
+          model: model,
+          selectionState: selectionState,
+          selection: searchState.filter,
+          query: searchState.query,
+          pagingBridge: pagingBridge,
+          onSelectFilter: { searchState.select($0) },
+          onOpenTorrent: onOpenTorrent,
+          onDeleteTorrent: onDeleteTorrent,
+          onManageTorrent: onManageTorrent,
+          onToggleSelection: onToggleSelection,
+          onTogglePause: onTogglePause
+        )
+        .ignoresSafeArea()
+        .safeAreaBar(edge: .top, spacing: 0) {
           TorrentFilterTabsView(
             counts: TorrentFilterCounting.counts(for: model.torrents),
             selection: searchState.filter,
@@ -93,20 +107,7 @@ struct TorrentContentView: View {
             onSelect: { searchState.select($0) }
           )
           .padding(.horizontal, 16)
-
-          TorrentFilterPagerView(
-            model: model,
-            selectionState: selectionState,
-            selection: searchState.filter,
-            query: searchState.query,
-            pagingBridge: pagingBridge,
-            onSelectFilter: { searchState.select($0) },
-            onOpenTorrent: onOpenTorrent,
-            onDeleteTorrent: onDeleteTorrent,
-            onManageTorrent: onManageTorrent,
-            onToggleSelection: onToggleSelection,
-            onTogglePause: onTogglePause
-          )
+          .padding(.vertical, 4)
         }
       }
     }

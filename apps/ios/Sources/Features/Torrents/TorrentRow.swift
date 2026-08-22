@@ -6,56 +6,60 @@ struct TorrentRow: View {
   let isSelected: Bool
 
   var body: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: 10) {
       if isSelecting {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-          .font(.title3)
+          .font(.body)
           .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
           .accessibilityHidden(true)
       }
 
-      VStack(alignment: .leading, spacing: 7) {
-        HStack(alignment: .top, spacing: 8) {
-          Image(systemName: statusSymbol)
-            .foregroundStyle(statusColor)
-            .frame(width: 20)
-          Text(torrent.name)
-            .font(.body.weight(.medium))
-            .lineLimit(2)
-        }
+      Image(systemName: statusSymbol)
+        .font(.body)
+        .foregroundStyle(statusColor)
+        .frame(width: 18)
+        .accessibilityHidden(true)
 
-        HStack(spacing: 8) {
-          ProgressView(value: torrent.progress)
-            .tint(statusColor)
+      VStack(alignment: .leading, spacing: 5) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(torrent.name)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+
+          Spacer(minLength: 4)
+
           Text(torrent.progress, format: .percent.precision(.fractionLength(0)))
             .font(.caption.monospacedDigit().weight(.semibold))
             .foregroundStyle(.secondary)
-            .frame(minWidth: 36, alignment: .trailing)
         }
 
-        HStack(spacing: 10) {
+        ProgressView(value: torrent.progress)
+          .tint(statusColor)
+
+        HStack(spacing: 6) {
           Text(torrent.size)
-            .foregroundStyle(.secondary)
-          Spacer(minLength: 8)
+            .foregroundStyle(.tertiary)
+
           if torrent.status == .downloading {
             Text(torrent.downloadSpeed)
-              .font(.caption.weight(.semibold))
               .foregroundStyle(.blue)
-            Text(torrent.eta)
-              .font(.caption.weight(.semibold))
-              .foregroundStyle(.secondary)
           } else if torrent.status == .seeding {
             Text(torrent.uploadSpeed)
-              .font(.caption.weight(.semibold))
               .foregroundStyle(.green)
           }
+
+          Spacer(minLength: 6)
+
+          if torrent.status == .downloading {
+            Text(torrent.eta)
+              .foregroundStyle(.secondary)
+          }
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        .font(.caption.weight(.medium))
+        .monospacedDigit()
         .lineLimit(1)
       }
     }
-    .padding(.vertical, 4)
     .accessibilityElement(children: .combine)
     .accessibilityValue(isSelecting ? (isSelected ? "已选择" : "未选择") : "")
   }
