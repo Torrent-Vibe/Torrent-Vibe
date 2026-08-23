@@ -9,6 +9,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
   let uploadSpeed: String
   let eta: String
   let status: TorrentStatus
+  let statusGroup: TorrentStatusGroup
   let shareRatio: Double
   let savePath: String
   let category: String?
@@ -29,6 +30,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     uploadSpeed: String,
     eta: String,
     status: TorrentStatus,
+    statusGroup: TorrentStatusGroup? = nil,
     shareRatio: Double = 0,
     savePath: String = "—",
     category: String? = nil,
@@ -48,6 +50,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
     self.uploadSpeed = uploadSpeed
     self.eta = eta
     self.status = status
+    self.statusGroup = statusGroup ?? status.defaultStatusGroup
     self.shareRatio = shareRatio
     self.savePath = savePath
     self.category = category
@@ -88,6 +91,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       uploadSpeed: uploadSpeed ?? self.uploadSpeed,
       eta: eta ?? self.eta,
       status: status,
+      statusGroup: status.defaultStatusGroup,
       shareRatio: shareRatio,
       savePath: savePath,
       category: category,
@@ -116,6 +120,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       uploadSpeed: uploadSpeed,
       eta: eta,
       status: status,
+      statusGroup: statusGroup,
       shareRatio: shareRatio,
       savePath: savePath,
       category: category,
@@ -142,6 +147,7 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
       uploadSpeed: uploadSpeed,
       eta: eta,
       status: status,
+      statusGroup: statusGroup,
       shareRatio: shareRatio,
       savePath: savePath,
       category: category,

@@ -23,7 +23,7 @@ final class TorrentFilterPagingBridge {
     tabsView?.updateTabSwitchFraction(
       fraction: 0.0,
       isDragging: false,
-      transition: .spring(duration: 0.35)
+      transition: .easeInOut(duration: 0.2)
     )
   }
 }
@@ -35,6 +35,7 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
   let query: String
   let pagingBridge: TorrentFilterPagingBridge
   let onSelectFilter: (TorrentFilter) -> Void
+  let onVisibleScrollViewChange: (UIScrollView?) -> Void
   let onOpenTorrent: (TorrentSummary) -> Void
   let onDeleteTorrent: (TorrentSummary) -> Void
   let onManageTorrent: (TorrentSummary) -> Void
@@ -99,6 +100,7 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
           self, action: #selector(pagePanChanged(_:)))
       }
       stopProgressUpdates()
+      parent.onVisibleScrollViewChange(nil)
       pagingScrollView = nil
       pageViewController = nil
     }
@@ -122,16 +124,15 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
         [targetPage],
         direction: direction,
         animated: shouldAnimate
-      ) { [weak self] completed in
+      ) { [weak self] _ in
         guard let self else { return }
         visibleFilter = parent.selection
         isProgrammaticTransition = false
-        if completed {
-          parent.pagingBridge.settle()
-        }
+        publishContentScrollView(for: targetPage)
       }
       if !shouldAnimate {
         visibleFilter = parent.selection
+        publishContentScrollView(for: targetPage)
       }
     }
 
@@ -179,8 +180,10 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
       {
         visibleFilter = page.filter
         parent.onSelectFilter(page.filter)
+        publishContentScrollView(for: page)
+      } else {
+        parent.pagingBridge.settle()
       }
-      parent.pagingBridge.settle()
     }
 
     @objc private func pagePanChanged(_ recognizer: UIPanGestureRecognizer) {
@@ -191,7 +194,9 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
       case .cancelled, .failed:
         stopProgressUpdates()
         parent.pagingBridge.settle()
-      case .ended, .possible:
+      case .ended:
+        stopProgressUpdates()
+      case .possible:
         break
       @unknown default:
         break
@@ -221,6 +226,21 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
       progressDisplayLink = nil
     }
 
+    private func publishContentScrollView(
+      for page: TorrentFilterPageHostingController,
+      remainingAttempts: Int = 2
+    ) {
+      DispatchQueue.main.async { [weak self, weak page] in
+        guard let self, let page else { return }
+        page.view.layoutIfNeeded()
+        if let scrollView = page.view.firstDescendantScrollView() {
+          parent.onVisibleScrollViewChange(scrollView)
+        } else if remainingAttempts > 0 {
+          publishContentScrollView(for: page, remainingAttempts: remainingAttempts - 1)
+        }
+      }
+    }
+
     private func updatePageRoots() {
       for filter in TorrentFilter.allCases {
         let rootView = AnyView(
@@ -244,6 +264,20 @@ struct TorrentFilterPagerView: UIViewControllerRepresentable {
         }
       }
     }
+  }
+}
+
+extension UIView {
+  fileprivate func firstDescendantScrollView() -> UIScrollView? {
+    if let scrollView = self as? UIScrollView {
+      return scrollView
+    }
+    for subview in subviews {
+      if let scrollView = subview.firstDescendantScrollView() {
+        return scrollView
+      }
+    }
+    return nil
   }
 }
 
@@ -301,7 +335,7 @@ private struct TorrentFilterPageView: View {
     }
     .listStyle(.insetGrouped)
     .listSectionSpacing(.compact)
-    .contentMargins(.top, 48, for: .scrollContent)
+    .contentMargins(.top, 40 + AppSpacing.related, for: .scrollContent)
     .scrollEdgeEffectStyle(.soft, for: .top)
     .refreshable {
       await model.refreshTorrents()

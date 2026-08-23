@@ -4,7 +4,10 @@ import XCTest
 @testable import Torrent_Vibe
 
 final class TorrentFilterTests: XCTestCase {
-  private func torrent(status: TorrentStatus) -> TorrentSummary {
+  private func torrent(
+    status: TorrentStatus,
+    statusGroup: TorrentStatusGroup? = nil
+  ) -> TorrentSummary {
     TorrentSummary(
       id: UUID().uuidString,
       name: "task",
@@ -13,7 +16,8 @@ final class TorrentFilterTests: XCTestCase {
       downloadSpeed: "0 KB/s",
       uploadSpeed: "0 KB/s",
       eta: "—",
-      status: status
+      status: status,
+      statusGroup: statusGroup
     )
   }
 
@@ -45,5 +49,45 @@ final class TorrentFilterTests: XCTestCase {
     XCTAssertEqual(counts[.all], 1)
     XCTAssertEqual(counts[.downloading], 0)
     XCTAssertEqual(counts[.paused], 0)
+  }
+
+  func testDesktopStatusGroupBoundariesDriveVisibleFilters() {
+    let queuedDownload = torrent(
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "queuedDL")
+    )
+    let queuedUpload = torrent(
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "queuedUP")
+    )
+    let checkingUpload = torrent(
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "checkingUP")
+    )
+    let pausedUpload = torrent(
+      status: .paused,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "pausedUP")
+    )
+    let pausedDownload = torrent(
+      status: .paused,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "pausedDL")
+    )
+    let missingFiles = torrent(
+      status: .error,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "missingFiles")
+    )
+    let checkingDownload = torrent(
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "checkingDL")
+    )
+
+    XCTAssertTrue(TorrentFilter.downloading.includes(queuedDownload))
+    XCTAssertTrue(TorrentFilter.seeding.includes(queuedUpload))
+    XCTAssertTrue(TorrentFilter.completed.includes(checkingUpload))
+    XCTAssertTrue(TorrentFilter.completed.includes(pausedUpload))
+    XCTAssertFalse(TorrentFilter.paused.includes(pausedUpload))
+    XCTAssertTrue(TorrentFilter.paused.includes(pausedDownload))
+    XCTAssertTrue(TorrentFilter.error.includes(missingFiles))
+    XCTAssertFalse(TorrentFilter.allCases.dropFirst().contains { $0.includes(checkingDownload) })
   }
 }

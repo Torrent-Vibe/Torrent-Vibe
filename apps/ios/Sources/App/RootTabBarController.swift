@@ -1,3 +1,4 @@
+import Observation
 import UIKit
 
 final class RootTabBarController: UITabBarController {
@@ -6,7 +7,10 @@ final class RootTabBarController: UITabBarController {
   private let model: AppModel
   private let backgroundStatusService: TorrentBackgroundStatusService
   private let mikanRuntime: MikanRuntimeInstallation
+  private let transferAccessoryView = TorrentTransferAccessoryView()
   private weak var torrentsNavigationController: UINavigationController?
+  private lazy var transferAccessory = UITabAccessory(contentView: transferAccessoryView)
+  private var isTransferAccessorySuppressed = false
 
   init(model: AppModel) {
     self.model = model
@@ -28,6 +32,8 @@ final class RootTabBarController: UITabBarController {
     super.viewDidLoad()
     viewControllers = makeViewControllers()
     selectedIndex = 0
+    tabBarMinimizeBehavior = .onScrollDown
+    observeTransferAccessory()
   }
 
   private func makeViewControllers() -> [UIViewController] {
@@ -42,6 +48,9 @@ final class RootTabBarController: UITabBarController {
     torrents.onOpenServers = { [weak self] in
       self?.selectedIndex = 2
       settings.showServers()
+    }
+    torrents.onSelectionModeChange = { [weak self] isSelecting in
+      self?.setTransferAccessorySuppressed(isSelecting)
     }
     discover.onOpenContentSources = { [weak self] in
       self?.selectedIndex = 2
@@ -117,6 +126,43 @@ final class RootTabBarController: UITabBarController {
     alert.addAction(UIAlertAction(title: "好", style: .default))
     alert.view.accessibilityIdentifier = "shared-import-error"
     present(alert, animated: true)
+  }
+
+  private func observeTransferAccessory() {
+    withObservationTracking {
+      updateTransferAccessory(animated: viewIfLoaded?.window != nil)
+    } onChange: { [weak self] in
+      Task { @MainActor in
+        self?.observeTransferAccessory()
+      }
+    }
+  }
+
+  private func setTransferAccessorySuppressed(_ isSuppressed: Bool) {
+    guard isTransferAccessorySuppressed != isSuppressed else { return }
+    isTransferAccessorySuppressed = isSuppressed
+    updateTransferAccessory(animated: false)
+  }
+
+  private func updateTransferAccessory(animated: Bool) {
+    let hasActiveTransfer =
+      model.totalDownloadBytesPerSecond > 0 || model.totalUploadBytesPerSecond > 0
+    let shouldShowAccessory = hasActiveTransfer && !isTransferAccessorySuppressed
+
+    guard shouldShowAccessory else {
+      if bottomAccessory != nil {
+        setBottomAccessory(nil, animated: animated)
+      }
+      return
+    }
+
+    transferAccessoryView.update(
+      downloadSpeed: model.totalDownloadSpeed,
+      uploadSpeed: model.totalUploadSpeed
+    )
+    if bottomAccessory == nil {
+      setBottomAccessory(transferAccessory, animated: animated)
+    }
   }
 
   private func makeNavigationController(

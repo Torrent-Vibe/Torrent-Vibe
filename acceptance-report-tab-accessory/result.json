@@ -1,0 +1,84 @@
+{
+  "branch": "main",
+  "cases": [
+    {
+      "id": "active-transfer-accessory",
+      "name": "活动传输速度显示为系统 Tab Bar 附件",
+      "category": "传输状态",
+      "surface": "mobile",
+      "status": "pass",
+      "observation": "活动传输 Demo 中，导航标题仅显示“任务”；系统 regular 附件独立显示下载 18.4 MB/s 与上传 5.9 MB/s。",
+      "evidence": [
+        "assets/active-regular.png",
+        "assets/verification.txt"
+      ]
+    },
+    {
+      "id": "inline-accessory-on-scroll",
+      "name": "向下滚动后附件进入收缩 Tab Bar 的 inline 位置",
+      "category": "滚动交互",
+      "surface": "mobile",
+      "status": "pass",
+      "observation": "AXe 注入纵向滑动后，系统将三项 Tab Bar 收缩为左侧当前 Tab，速度附件成为右侧紧凑 inline 胶囊；回滚至顶部后恢复 regular 附件和完整 Tab Bar。",
+      "evidence": [
+        "assets/scroll-transition.mp4",
+        "assets/active-inline.png",
+        "assets/active-restored.png"
+      ]
+    },
+    {
+      "id": "accessory-state-boundaries",
+      "name": "空闲及多选状态不会留下速度附件",
+      "category": "状态边界",
+      "surface": "mobile",
+      "status": "pass",
+      "observation": "零速率 Demo 中没有附件；活动传输进入多选后，附件与 Tab Bar 均让位于底部批量操作 Toolbar，退出后由 UI 测试确认附件恢复。",
+      "evidence": [
+        "assets/idle-no-accessory.png",
+        "assets/selection-no-accessory.png",
+        "assets/verification.txt"
+      ]
+    }
+  ],
+  "createdAt": "2026-08-23T01:24:19+08:00",
+  "entry": "Torrent Vibe iOS demo mode on iPhone 17 Pro Simulator",
+  "plan": [
+    {
+      "id": "active-transfer-accessory",
+      "title": "活动传输速度显示为系统 Tab Bar 附件",
+      "category": "传输状态",
+      "verifier": "agent",
+      "method": "以活动传输 Demo 启动 App，查看任务页标题和底部系统 Tab Bar 区域。",
+      "expected": "任务标题不再包含速度副标题；底部附件同时显示下载和上传速度。",
+      "requiredEvidence": ["screenshot", "text"]
+    },
+    {
+      "id": "inline-accessory-on-scroll",
+      "title": "向下滚动后附件进入收缩 Tab Bar 的 inline 位置",
+      "category": "滚动交互",
+      "verifier": "agent",
+      "method": "从任务列表顶部连续向上滑动内容，观察 Tab Bar 与速度附件的系统过渡。",
+      "expected": "Tab Bar 随向下浏览收缩，速度附件保持可见并进入与收缩 Tab Bar 同排的位置；向上回滚时恢复。",
+      "requiredEvidence": ["video", "screenshot"]
+    },
+    {
+      "id": "accessory-state-boundaries",
+      "title": "空闲及多选状态不会留下速度附件",
+      "category": "状态边界",
+      "verifier": "agent",
+      "method": "分别以零速率 Demo 启动，并在活动传输 Demo 中进入多选模式。",
+      "expected": "零速率时不出现附件；多选时附件与 Tab Bar 一同让位给底部操作 Toolbar，退出多选后恢复。",
+      "requiredEvidence": ["screenshot", "text"]
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "blocked": 0,
+    "verdict": "pass",
+    "conclusion": "iOS 26 系统 Tab Bar 已接管传输速度附件的 regular 与 inline 布局；活动、滚动、空闲和多选边界均由当前构建的 Simulator 证据验证。"
+  },
+  "surfaces": ["mobile"],
+  "title": "Torrent Vibe iOS 26 Tab Bar 传输速度附件验收"
+}

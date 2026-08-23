@@ -1,5 +1,6 @@
 import Observation
 import SwiftUI
+import UIKit
 
 @MainActor
 @Observable
@@ -60,6 +61,7 @@ struct TorrentContentView: View {
   @State private var pagingBridge = TorrentFilterPagingBridge()
 
   let onOpenServers: () -> Void
+  let onVisibleScrollViewChange: (UIScrollView?) -> Void
   let onOpenTorrent: (TorrentSummary) -> Void
   let onDeleteTorrent: (TorrentSummary) -> Void
   let onManageTorrent: (TorrentSummary) -> Void
@@ -92,6 +94,7 @@ struct TorrentContentView: View {
           query: searchState.query,
           pagingBridge: pagingBridge,
           onSelectFilter: { searchState.select($0) },
+          onVisibleScrollViewChange: onVisibleScrollViewChange,
           onOpenTorrent: onOpenTorrent,
           onDeleteTorrent: onDeleteTorrent,
           onManageTorrent: onManageTorrent,
@@ -107,7 +110,6 @@ struct TorrentContentView: View {
             onSelect: { searchState.select($0) }
           )
           .padding(.horizontal, 16)
-          .padding(.vertical, 4)
         }
       }
     }

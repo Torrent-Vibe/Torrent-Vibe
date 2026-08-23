@@ -43,7 +43,7 @@ private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
         id: filter,
         content: .title(.init(text: filter.title)),
         badge: count > 0
-          ? .init(title: "\(count)", isAccent: filter == .downloading)
+          ? .init(title: "\(count)")
           : nil,
         accessibilityLabel: "任务状态筛选：\(filter.title)，\(count) 个",
         accessibilityIdentifier: "torrent-filter-chip-\(filter.rawValue)",
@@ -57,9 +57,10 @@ private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
         selectedTab: selection,
         isEditing: false,
         layout: .fill,
-        liftWhileSwitching: false
+        liftWhileSwitching: false,
+        verticalInset: 0
       ),
-      transition: selectionChanged ? .spring(duration: 0.45) : .immediate
+      transition: selectionChanged ? .easeInOut(duration: 0.25) : .immediate
     )
     context.coordinator.selection = selection
   }

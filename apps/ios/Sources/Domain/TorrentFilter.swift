@@ -2,11 +2,11 @@ import Foundation
 
 enum TorrentFilter: String, CaseIterable, Identifiable, Sendable {
   case all
-  case completed
   case downloading
-  case error
-  case paused
   case seeding
+  case completed
+  case paused
+  case error
 
   var id: String { rawValue }
 
@@ -35,11 +35,50 @@ enum TorrentFilter: String, CaseIterable, Identifiable, Sendable {
   func includes(_ torrent: TorrentSummary) -> Bool {
     switch self {
     case .all: true
-    case .completed: torrent.status == .completed
-    case .downloading: torrent.status == .downloading
-    case .error: torrent.status == .error
-    case .paused: torrent.status == .paused
-    case .seeding: torrent.status == .seeding
+    case .downloading: torrent.statusGroup == .downloading
+    case .seeding: torrent.statusGroup == .seeding
+    case .completed: torrent.statusGroup == .completed
+    case .paused: torrent.statusGroup == .paused
+    case .error: torrent.statusGroup == .error
+    }
+  }
+}
+
+enum TorrentStatusGroup: String, Sendable {
+  case downloading
+  case seeding
+  case completed
+  case paused
+  case error
+  case other
+
+  init(qbittorrentState state: String) {
+    switch state.lowercased() {
+    case "downloading", "stalleddl", "queueddl", "forceddl", "metadl", "forcedmetadl":
+      self = .downloading
+    case "uploading", "stalledup", "queuedup", "forcedup":
+      self = .seeding
+    case "checkingup", "pausedup", "stoppedup":
+      self = .completed
+    case "pauseddl", "stoppeddl":
+      self = .paused
+    case "error", "missingfiles":
+      self = .error
+    default:
+      self = .other
+    }
+  }
+}
+
+extension TorrentStatus {
+  var defaultStatusGroup: TorrentStatusGroup {
+    switch self {
+    case .downloading: .downloading
+    case .seeding: .seeding
+    case .paused: .paused
+    case .completed: .completed
+    case .error: .error
+    case .queued: .other
     }
   }
 }

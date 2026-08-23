@@ -633,8 +633,9 @@ actor DemoTorrentRepository: TorrentRepository {
       size: "14.9 GB",
       downloadSpeed: "0 KB/s",
       uploadSpeed: "0 KB/s",
-      eta: "已完成",
-      status: .completed,
+      eta: "校验中",
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "checkingUP"),
       shareRatio: 1.04,
       savePath: "/Media/Open Movies",
       category: "movies",
@@ -660,8 +661,9 @@ actor DemoTorrentRepository: TorrentRepository {
       size: "743 MB",
       downloadSpeed: "0 KB/s",
       uploadSpeed: "1.1 MB/s",
-      eta: "已完成",
-      status: .seeding,
+      eta: "排队做种",
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "queuedUP"),
       shareRatio: 5.62,
       savePath: "/Downloads/ISO",
       category: "software",
@@ -676,6 +678,7 @@ actor DemoTorrentRepository: TorrentRepository {
       uploadSpeed: "0 KB/s",
       eta: "排队中",
       status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "queuedDL"),
       savePath: "/Media/Courses",
       category: "education"
     ),
@@ -688,6 +691,7 @@ actor DemoTorrentRepository: TorrentRepository {
       uploadSpeed: "0 KB/s",
       eta: "连接错误",
       status: .error,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "missingFiles"),
       savePath: "/Archive/Backups",
       category: "archive"
     ),
@@ -698,12 +702,123 @@ actor DemoTorrentRepository: TorrentRepository {
       size: "27.3 GB",
       downloadSpeed: "0 KB/s",
       uploadSpeed: "0 KB/s",
-      eta: "已完成",
-      status: .completed,
+      eta: "已暂停",
+      status: .paused,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "pausedUP"),
       shareRatio: 0.98,
       savePath: "/Media/Documentary/Planet Earth III",
       category: "documentary",
       tags: ["4K", "TV"]
+    ),
+    TorrentSummary(
+      id: "demo-artemis",
+      name: "NASA Artemis Mission Archive · 4K",
+      progress: 0.67,
+      size: "54.8 GB",
+      downloadSpeed: "8.6 MB/s",
+      uploadSpeed: "310 KB/s",
+      eta: "27 分钟",
+      status: .downloading,
+      shareRatio: 0.21,
+      savePath: "/Media/Documentary/Artemis",
+      category: "documentary",
+      tags: ["4K", "Space"]
+    ),
+    TorrentSummary(
+      id: "demo-last-of-us",
+      name: "The Last of Us · Season 2",
+      progress: 0.29,
+      size: "42.1 GB",
+      downloadSpeed: "5.3 MB/s",
+      uploadSpeed: "190 KB/s",
+      eta: "1 小时",
+      status: .downloading,
+      shareRatio: 0.08,
+      savePath: "/Media/TV/The Last of Us",
+      category: "tv",
+      tags: ["2160P", "HDR"]
+    ),
+    TorrentSummary(
+      id: "demo-fedora",
+      name: "Fedora Workstation 43 · x86_64",
+      progress: 1,
+      size: "2.4 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "860 KB/s",
+      eta: "已完成",
+      status: .seeding,
+      shareRatio: 4.26,
+      savePath: "/Downloads/ISO",
+      category: "software",
+      tags: ["Linux"]
+    ),
+    TorrentSummary(
+      id: "demo-arch-linux",
+      name: "Arch Linux Monthly Snapshot",
+      progress: 1,
+      size: "1.3 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "540 KB/s",
+      eta: "已完成",
+      status: .seeding,
+      shareRatio: 7.14,
+      savePath: "/Downloads/ISO",
+      category: "software",
+      tags: ["Linux"]
+    ),
+    TorrentSummary(
+      id: "demo-wwdc",
+      name: "WWDC 2026 Session Videos",
+      progress: 1,
+      size: "18.6 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "已完成",
+      status: .completed,
+      shareRatio: 1.08,
+      savePath: "/Media/Development/WWDC 2026",
+      category: "education",
+      tags: ["Apple", "Development"]
+    ),
+    TorrentSummary(
+      id: "demo-xcode-symbols",
+      name: "Xcode Device Support Symbols",
+      progress: 0.76,
+      size: "7.8 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "已暂停",
+      status: .paused,
+      savePath: "/Downloads/Development",
+      category: "software",
+      tags: ["Apple"]
+    ),
+    TorrentSummary(
+      id: "demo-unreal",
+      name: "Unreal Engine Sample Projects",
+      progress: 0,
+      size: "36.9 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "排队中",
+      status: .queued,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "queuedDL"),
+      savePath: "/Media/Development/Unreal",
+      category: "software",
+      tags: ["3D"]
+    ),
+    TorrentSummary(
+      id: "demo-cold-storage",
+      name: "Cold Storage Recovery Set · 2024",
+      progress: 0.12,
+      size: "248.3 GB",
+      downloadSpeed: "0 KB/s",
+      uploadSpeed: "0 KB/s",
+      eta: "文件缺失",
+      status: .error,
+      statusGroup: TorrentStatusGroup(qbittorrentState: "missingFiles"),
+      savePath: "/Archive/Cold Storage",
+      category: "archive"
     ),
   ]
 
@@ -929,7 +1044,8 @@ actor DemoTorrentRepository: TorrentRepository {
   }
 
   func snapshot(for server: ServerConfiguration) async throws -> TorrentSnapshot {
-    let snapshotTorrents = reportsIdleTransfers
+    let snapshotTorrents =
+      reportsIdleTransfers
       ? torrents.map { torrent in
         switch torrent.status {
         case .downloading:
@@ -1138,6 +1254,7 @@ extension TorrentSummary {
       uploadSpeed: Self.formatSpeed(torrent.uploadSpeed),
       eta: Self.formatETA(torrent.eta),
       status: Self.status(for: torrent.state, progress: torrent.progress),
+      statusGroup: TorrentStatusGroup(qbittorrentState: torrent.state),
       shareRatio: torrent.ratio ?? 0,
       savePath: torrent.savePath ?? "—",
       category: torrent.category.flatMap { $0.isEmpty ? nil : $0 },

@@ -145,32 +145,42 @@ private final class HorizontalTabsReorderingGestureRecognizer: UIGestureRecogniz
 @MainActor
 public final class HorizontalTabsComponent {
   public struct Theme {
-    public let textColor: UIColor
-    public let accentBadgeBackgroundColor: UIColor
-    public let inactiveBadgeBackgroundColor: UIColor
-    public let badgeForegroundColor: UIColor
+    public let selectedSegmentBackgroundColor: UIColor
+    public let selectedTextColor: UIColor
+    public let unselectedTextColor: UIColor
+    public let selectedBadgeBackgroundColor: UIColor
+    public let unselectedBadgeBackgroundColor: UIColor
+    public let selectedBadgeForegroundColor: UIColor
+    public let unselectedBadgeForegroundColor: UIColor
 
     public init(
-      textColor: UIColor,
-      accentBadgeBackgroundColor: UIColor,
-      inactiveBadgeBackgroundColor: UIColor,
-      badgeForegroundColor: UIColor
+      selectedSegmentBackgroundColor: UIColor,
+      selectedTextColor: UIColor,
+      unselectedTextColor: UIColor,
+      selectedBadgeBackgroundColor: UIColor,
+      unselectedBadgeBackgroundColor: UIColor,
+      selectedBadgeForegroundColor: UIColor,
+      unselectedBadgeForegroundColor: UIColor
     ) {
-      self.textColor = textColor
-      self.accentBadgeBackgroundColor = accentBadgeBackgroundColor
-      self.inactiveBadgeBackgroundColor = inactiveBadgeBackgroundColor
-      self.badgeForegroundColor = badgeForegroundColor
+      self.selectedSegmentBackgroundColor = selectedSegmentBackgroundColor
+      self.selectedTextColor = selectedTextColor
+      self.unselectedTextColor = unselectedTextColor
+      self.selectedBadgeBackgroundColor = selectedBadgeBackgroundColor
+      self.unselectedBadgeBackgroundColor = unselectedBadgeBackgroundColor
+      self.selectedBadgeForegroundColor = selectedBadgeForegroundColor
+      self.unselectedBadgeForegroundColor = unselectedBadgeForegroundColor
     }
 
     @MainActor public static let system = Theme(
-      textColor: .secondaryLabel,
-      accentBadgeBackgroundColor: .systemBlue,
-      inactiveBadgeBackgroundColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-          ? UIColor(red: 0.38, green: 0.42, blue: 0.47, alpha: 1.0)
-          : UIColor(red: 0.67, green: 0.71, blue: 0.75, alpha: 1.0)
+      selectedSegmentBackgroundColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .secondarySystemFill : .systemBackground
       },
-      badgeForegroundColor: .white
+      selectedTextColor: .label,
+      unselectedTextColor: .secondaryLabel,
+      selectedBadgeBackgroundColor: .clear,
+      unselectedBadgeBackgroundColor: .clear,
+      selectedBadgeForegroundColor: .secondaryLabel,
+      unselectedBadgeForegroundColor: .tertiaryLabel
     )
   }
 
@@ -179,11 +189,9 @@ public final class HorizontalTabsComponent {
 
     public struct Badge: Equatable {
       public let title: String
-      public let isAccent: Bool
 
-      public init(title: String, isAccent: Bool) {
+      public init(title: String) {
         self.title = title
-        self.isAccent = isAccent
       }
     }
 
@@ -279,6 +287,7 @@ public final class HorizontalTabsComponent {
   public let isEditing: Bool
   public let layout: Layout
   public let liftWhileSwitching: Bool
+  public let verticalInset: CGFloat
   public let reorderAction: (([Tab.Id]) -> Void)?
 
   public init(
@@ -288,6 +297,7 @@ public final class HorizontalTabsComponent {
     isEditing: Bool,
     layout: Layout = .fill,
     liftWhileSwitching: Bool = true,
+    verticalInset: CGFloat = 3.0,
     reorderAction: (([Tab.Id]) -> Void)? = nil
   ) {
     self.theme = theme
@@ -296,6 +306,7 @@ public final class HorizontalTabsComponent {
     self.isEditing = isEditing
     self.layout = layout
     self.liftWhileSwitching = liftWhileSwitching
+    self.verticalInset = verticalInset
     self.reorderAction = reorderAction
   }
 
@@ -355,12 +366,11 @@ public final class HorizontalTabsComponent {
       scrollView.alwaysBounceHorizontal = false
       scrollView.alwaysBounceVertical = false
       scrollView.scrollsToTop = false
-      scrollView.clipsToBounds = true
+      scrollView.clipsToBounds = false
       scrollView.delegate = self
 
-      contentClipView.clipsToBounds = true
+      contentClipView.clipsToBounds = false
 
-      selectionView.backgroundColor = .secondarySystemFill
       selectionView.clipsToBounds = true
       selectionView.isUserInteractionEnabled = false
       selectionView.accessibilityElementsHidden = true
@@ -433,10 +443,12 @@ public final class HorizontalTabsComponent {
 
       if previousComponent?.selectedTab != component.selectedTab {
         tabSwitchFraction = 0.0
+        isDraggingTabs = false
         shouldFocusOnSelectedTab = true
       }
 
       self.component = component
+      selectionView.backgroundColor = component.theme.selectedSegmentBackgroundColor
       reorderingGesture?.isEnabled = component.isEditing
 
       pendingTransition = normalizedTransition(requestedTransition)
@@ -660,7 +672,7 @@ public final class HorizontalTabsComponent {
 
       var validIds = Set<Tab.Id>()
       var items: [(tab: Tab, itemView: ItemView, size: CGSize, isNew: Bool)] = []
-      let contentHeight = availableSize.height - 6.0
+      let contentHeight = availableSize.height - component.verticalInset * 2.0
 
       for tab in orderedTabs {
         validIds.insert(tab.id)
@@ -856,9 +868,14 @@ public final class HorizontalTabsComponent {
 
       transition.setFrame(
         view: contentClipView,
-        frame: CGRect(x: 3.0, y: 3.0, width: size.width - 6.0, height: contentHeight)
+        frame: CGRect(
+          x: 3.0,
+          y: component.verticalInset,
+          width: size.width - 6.0,
+          height: contentHeight
+        )
       )
-      contentClipView.layer.cornerRadius = contentHeight * 0.5
+      contentClipView.layer.cornerRadius = 0
       selectionView.layer.cornerRadius = contentHeight * 0.5
       ignoreScrolling = false
 
@@ -870,7 +887,7 @@ public final class HorizontalTabsComponent {
 
       let contentSize = CGSize(
         width: layoutData.size.width - 6.0,
-        height: layoutData.size.height - 6.0
+        height: layoutData.size.height - (component?.verticalInset ?? 3.0) * 2.0
       )
       let selectedItemFrame = layoutData.selectedItemFrame
       selectionView.isHidden = selectedItemFrame == .zero
@@ -955,9 +972,10 @@ private final class HorizontalTabItemView: UIView, UIContextMenuInteractionDeleg
     transition: ComponentTransition
   ) -> CGSize {
     self.tab = tab
-    titleLabel.textColor = theme.textColor
-    badgeLabel.textColor = theme.badgeForegroundColor
-    deleteButton.tintColor = theme.textColor
+    titleLabel.textColor = isSelected ? theme.selectedTextColor : theme.unselectedTextColor
+    badgeLabel.textColor =
+      isSelected ? theme.selectedBadgeForegroundColor : theme.unselectedBadgeForegroundColor
+    deleteButton.tintColor = isSelected ? theme.selectedTextColor : theme.unselectedTextColor
 
     var size = CGSize(width: Self.sideInset, height: availableSize.height)
     let contentSize: CGSize
@@ -998,9 +1016,7 @@ private final class HorizontalTabItemView: UIView, UIContextMenuInteractionDeleg
     if let badge = tab.badge, showsBadge {
       badgeLabel.text = badge.title
       badgeView.backgroundColor =
-        badge.isAccent
-        ? theme.accentBadgeBackgroundColor
-        : theme.inactiveBadgeBackgroundColor
+        isSelected ? theme.selectedBadgeBackgroundColor : theme.unselectedBadgeBackgroundColor
       size.width += Self.badgeSpacing
       let badgeTextSize = badgeLabel.sizeThatFits(CGSize(width: 100.0, height: 100.0))
       let badgeSize = CGSize(

@@ -1,10 +1,10 @@
 import Foundation
-import Observation
 import SwiftUI
 import UIKit
 
 final class TorrentViewController: SwiftUIHostingViewController, UISearchResultsUpdating {
   var onOpenServers: (() -> Void)?
+  var onSelectionModeChange: ((Bool) -> Void)?
 
   private var didPresentLiveActivityDemo = false
   private let launchesLiveActivityDemo = ProcessInfo.processInfo.arguments.contains(
@@ -48,6 +48,9 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
         onOpenServers: { [weak self] in
           self?.onOpenServers?()
         },
+        onVisibleScrollViewChange: { [weak self] scrollView in
+          self?.setContentScrollView(scrollView, for: .bottom)
+        },
         onOpenTorrent: { [weak self] torrent in
           self?.showDetail(for: torrent)
         },
@@ -76,7 +79,6 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     selectButton.accessibilityIdentifier = "torrent-select"
     navigationItem.rightBarButtonItems = [addButton, selectButton]
     updateServerMenu()
-    observeNavigationSubtitle()
 
     Task { await refresh() }
   }
@@ -160,6 +162,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     )
     done.accessibilityIdentifier = "torrent-select-done"
     navigationItem.rightBarButtonItems = [done]
+    onSelectionModeChange?(true)
     tabBarController?.setTabBarHidden(true, animated: false)
     configureSelectionToolbar()
     updateSelectionChrome()
@@ -173,6 +176,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     DispatchQueue.main.async { [weak self] in
       guard let self, !selectionState.isSelecting else { return }
       tabBarController?.setTabBarHidden(false, animated: false)
+      onSelectionModeChange?(false)
     }
     updateSelectionChrome()
   }
@@ -265,32 +269,6 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       title = selectedCount > 0 ? "已选 \(selectedCount)" : "选择任务"
     } else {
       title = "任务"
-    }
-    updateNavigationSubtitle()
-  }
-
-  private func observeNavigationSubtitle() {
-    withObservationTracking {
-      updateNavigationSubtitle()
-    } onChange: { [weak self] in
-      Task { @MainActor in
-        self?.observeNavigationSubtitle()
-      }
-    }
-  }
-
-  private func updateNavigationSubtitle() {
-    let hasActiveTransfer =
-      model.totalDownloadBytesPerSecond > 0 || model.totalUploadBytesPerSecond > 0
-    let subtitle =
-      selectionState.isSelecting || !hasActiveTransfer
-      ? nil
-      : "↓ \(model.totalDownloadSpeed)  ↑ \(model.totalUploadSpeed)"
-
-    guard navigationItem.subtitle != subtitle else { return }
-    UIView.performWithoutAnimation {
-      navigationItem.subtitle = subtitle
-      navigationController?.navigationBar.layoutIfNeeded()
     }
   }
 

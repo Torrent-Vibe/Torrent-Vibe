@@ -1,0 +1,40 @@
+Repository: /Users/innei/git/innei-repo/Torrent-Vibe
+Branch: main
+Base commit: 35bb054
+Working tree: dirty; this verification used the current combined working tree
+Xcode: 26.5 (17F42)
+Simulator: iPhone 17 Pro, iOS 26.5
+UDID: 7346BD6D-0CF6-447F-8FC7-A8A5D1A2F90E
+Bundle identifier: dev.innei.torrent-vibe
+Tested at: 2026-08-23T01:24:19+08:00
+
+Build/install identity:
+- Product: /tmp/torrent-vibe-tab-accessory-derived/Build/Products/Debug-iphonesimulator/Torrent Vibe.app
+- Build command completed successfully with the iOS 26.5 Simulator SDK.
+- The product was installed with simctl immediately before capture.
+- Active launch arguments: -ui-demo
+- Idle launch arguments: -ui-demo -ui-demo-idle-transfers
+
+Observed active state:
+- Navigation title is “任务” without the previous transfer-speed subtitle.
+- The regular system UITabAccessory displays download 18.4 MB/s and upload 5.9 MB/s.
+- The demo filter count is 20.
+
+Gesture and transition:
+- Input: axe swipe --start-x 200 --start-y 650 --end-x 200 --end-y 220 --duration 0.8
+- Postcondition: the full three-item Tab Bar minimized to the current Task icon, while the transfer accessory became a compact inline capsule beside it.
+- Reverse input used two downward swipes to return the list to the top.
+- Postcondition: UIKit restored the full Tab Bar and regular accessory.
+- Video: H.264, 1206x2622, 17.898333 seconds, 484 frames, observed average 27.04 fps.
+
+State boundaries:
+- Idle demo: both aggregate byte rates are zero and no transfer accessory is rendered.
+- Selection mode: the transfer accessory and Tab Bar are absent; the bulk-action Toolbar is visible.
+- Leaving selection mode restores the accessory when an active transfer remains.
+
+Automated shipping gates:
+- Focused UI behavior: 2 accessory tests passed with 0 failures.
+- Select-all behavior with 20 demo tasks: 1 UI test passed with 0 failures.
+- Unit suite: 148 tests passed with 0 failures.
+- Current iOS working tree: build succeeded.
+- Formatting and whitespace: swift-format strict lint and git diff --check succeeded.
