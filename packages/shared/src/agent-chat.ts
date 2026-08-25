@@ -55,6 +55,7 @@ export interface AgentOperationTarget {
   error?: string
   hash: string
   name: string
+  newName?: string
   outcome?: AgentOperationTargetOutcome
   savePath?: string
   seedingTimeLimitMinutes?: number

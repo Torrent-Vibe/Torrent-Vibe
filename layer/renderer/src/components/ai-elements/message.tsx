@@ -8,6 +8,8 @@ import { Streamdown } from 'streamdown'
 
 import { cn } from '~/lib/cn'
 
+import { chatMarkdownClassName, chatMarkdownComponents } from './markdown'
+
 // Adapted from Vercel AI Elements Message for this app's design tokens.
 export const Message = ({
   className,
@@ -16,7 +18,7 @@ export const Message = ({
 }: ComponentProps<'div'> & { from: 'assistant' | 'user' }) => (
   <div
     className={cn(
-      'group flex w-full items-end gap-2',
+      'group flex w-full min-w-0 items-end gap-2',
       from === 'user' ? 'justify-end' : 'justify-start',
       className,
     )}
@@ -32,7 +34,7 @@ export const MessageContent = ({
 }: ComponentProps<'div'> & { from: 'assistant' | 'user' }) => (
   <div
     className={cn(
-      'min-w-0 text-sm leading-6',
+      'min-w-0 max-w-full overflow-x-hidden text-sm leading-6',
       from === 'user'
         ? 'max-w-[88%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-background shadow-sm'
         : 'w-full text-text-secondary',
@@ -50,9 +52,11 @@ export const MessageResponse = memo(
   ({ className, ...props }: ComponentProps<typeof Streamdown>) => (
     <Streamdown
       animated
+      components={chatMarkdownComponents}
       plugins={plugins}
       className={cn(
-        'size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2',
+        'w-full min-w-0 max-w-full overflow-x-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2',
+        chatMarkdownClassName,
         className,
       )}
       {...props}

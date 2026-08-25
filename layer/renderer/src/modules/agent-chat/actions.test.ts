@@ -190,4 +190,16 @@ describe('AgentChatActions stream reconciliation', () => {
       selectedTorrentHashes: ['hash-a', 'hash-b'],
     })
   })
+
+  it('clears draft context after removing the last composer attachment', () => {
+    agentChatStore.reset()
+    storeMocks.torrent.filterState = 'all'
+    storeMocks.torrent.searchQuery = ''
+    AgentChatActions.shared.openPanel(['hash-a'])
+    expect(
+      agentChatStore.getState().draftContext?.selectedTorrentHashes,
+    ).toEqual(['hash-a'])
+    AgentChatActions.shared.removeDraftContextPart('selection')
+    expect(agentChatStore.getState().draftContext).toBeNull()
+  })
 })

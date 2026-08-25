@@ -10,7 +10,7 @@ const statusIcon: Record<AgentChatActivity['status'], string> = {
 
 // Adapted from Vercel AI Elements Tool for Agent activity events.
 export const Tool = ({ activity }: { activity: AgentChatActivity }) => (
-  <details className="group rounded-lg border border-border/70 bg-fill-secondary/35 text-xs">
+  <details className="group min-w-0 overflow-hidden rounded-lg border border-border/70 bg-fill-secondary/35 text-xs">
     <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-text-secondary">
       <i className={cn('shrink-0', statusIcon[activity.status])} />
       <span className="min-w-0 flex-1 truncate">{activity.label}</span>
@@ -19,7 +19,7 @@ export const Tool = ({ activity }: { activity: AgentChatActivity }) => (
       )}
     </summary>
     {activity.summary && (
-      <div className="border-t border-border/60 px-2.5 py-2 text-text-tertiary">
+      <div className="border-t border-border/60 px-2.5 py-2 font-mono text-text-tertiary whitespace-pre-wrap break-all">
         {activity.summary}
       </div>
     )}

@@ -14,12 +14,15 @@ import type {
 } from '@torrent-vibe/shared'
 
 import { sharedQbSessionPool } from '../../ipc/qb-session-pool'
+import { auditTorrents, type LibraryAuditResult } from './library-audit'
 
 const PLAN_TTL_MS = 10 * 60 * 1000
 const MAX_ADD_SOURCES = 10
 const MAX_OPERATION_TARGETS = 50
 const MAX_QUERY_RESULTS = 100
 const MAX_MEDIA_FILES = 120
+const DEFAULT_AUDIT_LIMIT = 200
+const MAX_AUDIT_RESULTS = 500
 
 export interface AgentTorrentSummary {
   category: string
@@ -303,12 +306,16 @@ const sameTags = (left: string[], right: string[]): boolean =>
 export interface PrepareTorrentOperationInput {
   action: AgentTorrentOperation
   category?: string
+  completedOnly?: boolean
   deleteFiles?: boolean
   limitBytesPerSecond?: number
   newName?: string
+  offset?: number
+  renames?: Array<{ hash: string; newName: string }>
   savePath?: string
   seedingTimeLimitMinutes?: number
   shareRatioLimit?: number
+  states?: string[]
   tags?: string[]
 }
 
@@ -495,6 +502,23 @@ const normalizeOperation = (
     return { action: input.action, deleteFiles: input.deleteFiles }
   }
   if (input.action === 'rename_torrent') {
+    if (input.renames?.length) {
+      const renames = input.renames.map((entry) => ({
+        hash: entry.hash.trim(),
+        newName: normalizeTorrentName(entry.newName),
+      }))
+      const hashes = normalizeHashes(renames.map((entry) => entry.hash))
+      if (
+        hashes.length === 0 ||
+        hashes.length > MAX_OPERATION_TARGETS ||
+        hashes.length !== renames.length
+      ) {
+        throw new Error(
+          `Rename plans require 1 to ${MAX_OPERATION_TARGETS} unique torrent targets`,
+        )
+      }
+      return { action: input.action, renames }
+    }
     return {
       action: input.action,
       newName: normalizeTorrentName(input.newName),
@@ -574,7 +598,12 @@ const needsAction = (
       : !isStopped(torrent.state)
   }
   if (operation.action === 'rename_torrent') {
-    return torrent.name !== operation.newName
+    const newName =
+      operation.renames?.find(
+        (entry) =>
+          entry.hash.toLocaleLowerCase() === torrent.hash.toLocaleLowerCase(),
+      )?.newName ?? operation.newName
+    return torrent.name !== newName
   }
   if (operation.action === 'move_torrent') {
     return torrent.save_path !== operation.savePath
@@ -695,6 +724,33 @@ export class AgentTorrentOperations {
       .map(projectTorrent)
   }
 
+  async audit(
+    input: { hashes?: string[]; limit?: number; offset?: number },
+    scopeKey = this.captureScope(),
+  ): Promise<LibraryAuditResult> {
+    const hashes = normalizeHashes(input.hashes ?? [])
+    const torrents = await this.gateway.list(
+      scopeKey,
+      hashes.length ? hashes : undefined,
+    )
+    const limit = Math.min(
+      Math.max(1, Math.floor(input.limit ?? DEFAULT_AUDIT_LIMIT)),
+      MAX_AUDIT_RESULTS,
+    )
+    const offset = Math.max(0, Math.floor(input.offset ?? 0))
+    const total = torrents.length
+    const page = torrents.slice(offset, offset + limit)
+    const scanned = page.length
+    const hasMore = offset + scanned < total
+    return {
+      ...auditTorrents(page),
+      hasMore,
+      nextOffset: hasMore ? offset + scanned : null,
+      scanned,
+      total,
+    }
+  }
+
   async files(
     hash: string,
     scopeKey = this.captureScope(),
@@ -717,7 +773,27 @@ export class AgentTorrentOperations {
   ): Promise<AgentOperationPlan> {
     this.expirePlans()
     const operation = normalizeOperation(operationInput)
-    const hashes = normalizeHashes(requestedHashes)
+    if (
+      operation.action === 'recheck' &&
+      normalizeHashes(requestedHashes).length === 0 &&
+      (operationInput.completedOnly || operationInput.states?.length)
+    ) {
+      const matched = await this.query(
+        {
+          completedOnly: operationInput.completedOnly,
+          states: operationInput.states,
+          limit: MAX_OPERATION_TARGETS,
+          offset: operationInput.offset ?? 0,
+        },
+        scopeKey,
+      )
+      requestedHashes = matched.map((item) => item.hash)
+    }
+    const hashes = normalizeHashes(
+      operation.renames?.length
+        ? operation.renames.map((entry) => entry.hash)
+        : requestedHashes,
+    )
     if (hashes.length === 0) {
       throw new Error('No torrent targets were provided')
     }
@@ -725,9 +801,6 @@ export class AgentTorrentOperations {
       throw new Error(
         `A single operation plan supports at most ${MAX_OPERATION_TARGETS} torrents`,
       )
-    }
-    if (operation.action === 'rename_torrent' && hashes.length !== 1) {
-      throw new Error('Rename plans require exactly one torrent target')
     }
 
     const torrents = await this.gateway.list(scopeKey, hashes)
@@ -741,13 +814,20 @@ export class AgentTorrentOperations {
       throw new Error(`${missing.length} torrent target(s) no longer exist`)
     }
 
+    const nameFor = (hash: string): string | undefined =>
+      operation.renames?.find(
+        (entry) => entry.hash.toLocaleLowerCase() === hash.toLocaleLowerCase(),
+      )?.newName ?? operation.newName
+
     const targets: AgentOperationTarget[] = hashes.map((hash) => {
       const torrent = torrentsByHash.get(hash.toLocaleLowerCase())!
+      const newName = nameFor(hash)
       return {
         category: torrent.category || '',
         downloadLimitBytesPerSecond: torrent.dl_limit,
         hash: torrent.hash,
         name: torrent.name,
+        ...(newName ? { newName } : {}),
         outcome: needsAction(torrent, operation) ? 'pending' : 'skipped',
         savePath: torrent.save_path,
         seedingTimeLimitMinutes: torrent.seeding_time_limit,
@@ -1079,7 +1159,11 @@ export class AgentTorrentOperations {
               plan.seedingTimeLimitMinutes,
             )
           } else if (plan.action === 'rename_torrent') {
-            await this.gateway.rename(scopeKey, target.hash, plan.newName!)
+            await this.gateway.rename(
+              scopeKey,
+              target.hash,
+              target.newName ?? plan.newName!,
+            )
           } else if (plan.action === 'move_torrent') {
             await this.gateway.move(scopeKey, [target.hash], plan.savePath!)
           } else if (plan.action === 'remove_torrent') {

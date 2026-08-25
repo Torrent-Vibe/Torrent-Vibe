@@ -182,8 +182,17 @@ export class AgentChatActions {
       current.filter = { ...filter, categories: [], statuses: [], tags: [] }
     }
 
+    const attachedFilter = current.filter
+    const hasAttachment =
+      current.selectedTorrentHashes.length > 0 ||
+      Boolean(attachedFilter?.search) ||
+      (attachedFilter?.categories?.length ?? 0) > 0 ||
+      (attachedFilter?.statuses?.length ?? 0) > 0 ||
+      (attachedFilter?.tags?.length ?? 0) > 0 ||
+      current.activeServerId === null
+
     agentChatStore.setState((state) => {
-      state.draftContext = current
+      state.draftContext = hasAttachment ? current : null
     })
   }
 

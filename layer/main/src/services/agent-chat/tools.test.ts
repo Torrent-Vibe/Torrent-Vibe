@@ -102,3 +102,45 @@ describe('Agent organization preview tool', () => {
     expect(onPlan).not.toHaveBeenCalled()
   })
 })
+
+describe('Agent audit_download_library tool', () => {
+  it('calls operations.audit and does not call onPlan', async () => {
+    const audit = vi.fn(async () => ({
+      byCategory: { Movie: 1 },
+      byState: { stoppedUP: 1 },
+      hasMore: false,
+      helper: [],
+      issues: [],
+      nextOffset: null,
+      observedRoots: ['/downloads/Movie'],
+      scanned: 1,
+      total: 1,
+    }))
+    const onPlan = vi.fn()
+    const tools = buildAgentChatTools({
+      context: {
+        activeServerId: 'server-a',
+        activeServerName: 'Primary',
+        locale: 'en',
+        selectedTorrentHashes: [],
+        visibleTorrentCount: 3,
+      },
+      onPlan,
+      operations: { audit } as unknown as AgentTorrentOperations,
+      scopeKey: 'server-a',
+      userMessages: ['Audit my library'],
+    })
+    const tool = tools.find((item) => item.name === 'audit_download_library')!
+
+    const result = await tool.execute('call-audit', { limit: 50 })
+    const content = result.content[0]
+    const payload = JSON.parse(
+      content?.type === 'text' ? content.text : '{}',
+    ) as { observedRoots: string[] }
+
+    expect(audit).toHaveBeenCalledWith({ limit: 50 }, 'server-a')
+    expect(onPlan).not.toHaveBeenCalled()
+    expect(payload.observedRoots).toEqual(['/downloads/Movie'])
+    expect(tools.some((item) => item.name === 'read_skill')).toBe(true)
+  })
+})
