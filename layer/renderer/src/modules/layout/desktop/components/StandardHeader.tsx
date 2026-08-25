@@ -11,6 +11,7 @@ import {
   useThemeAtomValue,
 } from '~/hooks/common/useDark'
 import { cn } from '~/lib/cn'
+import { AgentChatActions } from '~/modules/agent-chat'
 import { useHasSelection } from '~/modules/torrent/hooks/use-torrent-computed'
 import { useTorrentDataStore } from '~/modules/torrent/stores'
 import { TorrentActions } from '~/modules/torrent/stores/torrent-actions'
@@ -87,6 +88,8 @@ export const StandardHeader = ({
       }
     }
   }
+
+  const openAgent = () => AgentChatActions.shared.openPanel()
 
   return (
     <header
@@ -165,6 +168,16 @@ export const StandardHeader = ({
 
         <div className="flex items-center gap-2">
           {showSearch && <TorrentSearchInput />}
+          {ELECTRON && (
+            <Button
+              className="p-2"
+              title={t('agent.open')}
+              variant="ghost"
+              onClick={openAgent}
+            >
+              <i className="i-mingcute-brain-line text-lg" />
+            </Button>
+          )}
           <Button
             className="p-2"
             title={t('buttons.discover')}

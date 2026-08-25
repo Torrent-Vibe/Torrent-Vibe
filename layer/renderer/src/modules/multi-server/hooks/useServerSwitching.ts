@@ -63,15 +63,14 @@ const switchToServer = async (
       ...server.config,
       password: remembered ?? server.config.password,
     }
-    QBittorrentClient.configure(cfg)
+    QBittorrentClient.configure(cfg, serverId)
 
     await qbQueryManager.scenarios.onConnectionChange()
 
     let loginOk = true
     try {
       loginOk = await QBittorrentClient.shared.login()
-    }
-    catch {
+    } catch {
       loginOk = false
     }
 
@@ -83,8 +82,7 @@ const switchToServer = async (
       )
       jotaiStore.set(connectionStatusAtom, 'error')
       toast.error(getI18n().t('messages.authFailed'))
-    }
-    else {
+    } else {
       jotaiStore.set(authStatusAtom, 'authenticated')
       jotaiStore.set(connectionStatusAtom, 'connected')
       multiServerStoreSetters.setActiveServer(serverId)
@@ -95,8 +93,7 @@ const switchToServer = async (
         getI18n().t('messages.serverSwitched', { serverName: server.name }),
       )
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error(getI18n().t('messages.serverSwitchFailed'), error)
     jotaiStore.set(connectionStatusAtom, 'error')
     jotaiStore.set(
@@ -104,15 +101,14 @@ const switchToServer = async (
       error instanceof Error ? error.message : 'Unknown error',
     )
     toast.error(getI18n().t('messages.serverSwitchFailed'))
-  }
-  finally {
+  } finally {
     multiServerStoreSetters.setSwitching(null)
   }
 }
 
 export function useServerSwitching() {
-  const activeId = useMultiServerStore(s => s.activeServerId)
-  const servers = useMultiServerStore(s => s.servers)
+  const activeId = useMultiServerStore((s) => s.activeServerId)
+  const servers = useMultiServerStore((s) => s.servers)
 
   const switchTo = useCallback(
     (serverId: string) => switchToServer(serverId, activeId, servers),

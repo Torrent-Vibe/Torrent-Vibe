@@ -4,13 +4,11 @@ import type {
   TorrentAIEnrichmentResult,
   TorrentAIMetadata,
 } from '@torrent-vibe/shared'
-import { API_TOKENS } from '@torrent-vibe/shared'
 
 import { i18n } from '~/utils/i18n'
 
 import { getLogger } from '../../config/log-config'
 import { ConcurrencyGate } from '../../utils/concurrency-gate'
-import { ApiTokenStore } from '../api-token-store'
 import { AppSettingsStore } from '../app-settings-store'
 import { buildBashTool } from './agentTools/bashTool'
 import { buildReadSkillTool } from './agentTools/skillTool'
@@ -19,13 +17,9 @@ import { buildTmdbTools } from './agentTools/tmdbTools'
 import { buildWebSearchTool } from './agentTools/webSearchTool'
 import { clamp, normalizePayloadShape } from './normalize-payload'
 import { renderUserPrompt } from './prompts'
+import { resolveAiProviderConfig } from './provider-config'
 import type { AiProviderRuntime } from './providers'
 import { getProviderById, selectProvider } from './providers'
-import {
-  DEFAULT_CODEX_MODEL,
-  DEFAULT_OPENAI_MODEL,
-  DEFAULT_OPENROUTER_MODEL,
-} from './providers/pi-runtime'
 import type { TorrentAiMetadataPayload } from './schema'
 import { TorrentAiMetadataSchema } from './schema'
 import { runAnalysisAgent } from './session'
@@ -55,7 +49,6 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
   }
 
   private readonly logger = getLogger('[torrent-ai]')
-  private readonly tokenStore = ApiTokenStore.getInstance()
   private readonly metadataStore = TorrentAiDatabase.getInstance()
   private readonly inFlight = new Map<
     TorrentAiCacheKey,
@@ -64,7 +57,6 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
 
   private readonly tmdbClient = new TmdbClient()
   private readonly appSettingsStore = AppSettingsStore.getInstance()
-
   private constructor() {}
 
   async analyzeName(
@@ -85,10 +77,10 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       return { ok: false, error: 'ai.invalidRawName', transient: false }
     }
 
-    const config = this.resolveProviderConfig()
+    const config = resolveAiProviderConfig()
 
-    const { digest: fileDigest, summary: fileTreeSummary }
-      = this.prepareFileListContext(options.fileList)
+    const { digest: fileDigest, summary: fileTreeSummary } =
+      this.prepareFileListContext(options.fileList)
 
     if (fileTreeSummary) {
       this.logger.debug('File context prepared', {
@@ -144,8 +136,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       }
 
       this.logger.debug('Cache miss', { requestId, rawName, cacheKeys })
-    }
-    else {
+    } else {
       this.logger.debug('Force refresh requested - bypassing cache', {
         requestId,
       })
@@ -206,56 +197,14 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
   }
 
   hasConfiguredProvider(): boolean {
-    const config = this.resolveProviderConfig()
+    const config = resolveAiProviderConfig()
     const selection = selectProvider(config)
     return Boolean(selection.runtime)
   }
 
-  private resolveProviderConfig(): ProviderConfig {
-    const openaiApiKey
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.openai.apiKey)?.trim() || null
-    const openaiModel
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.openai.model)?.trim()
-        || DEFAULT_OPENAI_MODEL
-    const openaiBaseUrl
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.openai.baseUrl)?.trim()
-        || null
-    const openrouterApiKey
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.openrouter.apiKey)?.trim()
-        || null
-    const openrouterModel
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.openrouter.model)?.trim()
-        || DEFAULT_OPENROUTER_MODEL
-    const codexModel
-      = this.tokenStore.getTokenValue(API_TOKENS.ai.codex.model)?.trim()
-        || DEFAULT_CODEX_MODEL
-    const tmdbApiKey
-      = this.tokenStore.getTokenValue(API_TOKENS.metadata.tmdb.apiKey)?.trim()
-        || null
-
-    return {
-      providers: {
-        openai: {
-          apiKey: openaiApiKey,
-          model: openaiModel,
-          baseUrl: openaiBaseUrl,
-        },
-        openrouter: {
-          apiKey: openrouterApiKey,
-          model: openrouterModel,
-        },
-        codex: {
-          model: codexModel,
-        },
-      },
-      preferredProviders: this.appSettingsStore.getPreferredAiProviders(),
-      tmdbApiKey,
-    }
-  }
-
   private prepareFileListContext(
-    fileList?: Array<{ path: string, size?: number }> | null,
-  ): { digest: string | null, summary: string | null } {
+    fileList?: Array<{ path: string; size?: number }> | null,
+  ): { digest: string | null; summary: string | null } {
     if (!fileList || fileList.length === 0) {
       return { digest: null, summary: null }
     }
@@ -264,11 +213,11 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       // Normalize and cap the list to avoid oversized prompts
       const MAX_ENTRIES = 120
       const entries = fileList
-        .map(item => ({
+        .map((item) => ({
           path: String(item.path || '').trim(),
           size: item.size,
         }))
-        .filter(it => it.path)
+        .filter((it) => it.path)
         .slice(0, MAX_ENTRIES)
 
       if (entries.length === 0) {
@@ -313,33 +262,34 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       }
       // List a few representative files
       const sampleFiles = entries
-        .filter(e => !e.path.includes('/')) // top-level files
+        .filter((e) => !e.path.includes('/')) // top-level files
         .slice(0, 5)
-        .map(e =>
+        .map((e) =>
           typeof e.size === 'number'
             ? `${e.path} (${this.formatBytes(e.size)})`
-            : e.path)
+            : e.path,
+        )
 
       if (sampleFiles.length > 0) {
-        lines.push('Top-level files:', ...sampleFiles.map(s => `- ${s}`))
+        lines.push('Top-level files:', ...sampleFiles.map((s) => `- ${s}`))
       }
 
       // Also include a few deep files to show structure
       const deepFiles = entries
-        .filter(e => e.path.includes('/'))
+        .filter((e) => e.path.includes('/'))
         .slice(0, 10)
-        .map(e =>
+        .map((e) =>
           typeof e.size === 'number'
             ? `${e.path} (${this.formatBytes(e.size)})`
-            : e.path)
+            : e.path,
+        )
       if (deepFiles.length > 0) {
-        lines.push('Sample nested files:', ...deepFiles.map(s => `- ${s}`))
+        lines.push('Sample nested files:', ...deepFiles.map((s) => `- ${s}`))
       }
 
       const summary = lines.join('\n')
       return { digest, summary }
-    }
-    catch {
+    } catch {
       return { digest: null, summary: null }
     }
   }
@@ -537,8 +487,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       })
 
       return finishRun({ ok: true, metadata })
-    }
-    catch (error) {
+    } catch (error) {
       const errorDetails = {
         requestId,
         rawName: input.rawName,
@@ -571,15 +520,14 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
           : `${runtime.errorNamespace}.unexpectedError`,
         transient,
       })
-    }
-    finally {
+    } finally {
       analysisConcurrencyGate.release()
     }
   }
 
   private mapToMetadata(
     payload: TorrentAiMetadataPayload,
-    input: { rawName: string, language: string },
+    input: { rawName: string; language: string },
     runtime: AiProviderRuntime,
   ): TorrentAIMetadata {
     const normalizedName = payload.normalizedName?.trim()
@@ -592,15 +540,15 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
       if (!Array.isArray(value) || value.length === 0) {
         return null
       }
-      const normalized = value.map(entry => entry?.trim()).filter(Boolean)
+      const normalized = value.map((entry) => entry?.trim()).filter(Boolean)
       return normalized.length > 0 ? Array.from(new Set(normalized)) : null
     }
 
-    const fallbackPreview
-      = payload.previewImageUrl?.trim()
-        || payload.tmdb?.posterUrl?.trim()
-        || payload.tmdb?.backdropUrl?.trim()
-        || null
+    const fallbackPreview =
+      payload.previewImageUrl?.trim() ||
+      payload.tmdb?.posterUrl?.trim() ||
+      payload.tmdb?.backdropUrl?.trim() ||
+      null
 
     const metadata: TorrentAIMetadata = {
       rawName: input.rawName,
@@ -623,9 +571,9 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
         seasonNumber:
           payload.series?.seasonNumber ?? payload.title.seasonNumber ?? null,
         episodeNumbers:
-          payload.series?.episodeNumbers
-          ?? payload.title.episodeNumbers
-          ?? null,
+          payload.series?.episodeNumbers ??
+          payload.title.episodeNumbers ??
+          null,
         episodeRange: payload.series?.episodeRange ?? null,
         totalEpisodesInSeason: payload.series?.totalEpisodesInSeason ?? null,
       },
@@ -677,10 +625,10 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
     if (error instanceof Error) {
       const message = error.message || ''
       if (
-        message.includes('429')
-        || message.includes('timeout')
-        || message.includes('ETIMEDOUT')
-        || message.includes('ECONNRESET')
+        message.includes('429') ||
+        message.includes('timeout') ||
+        message.includes('ETIMEDOUT') ||
+        message.includes('ECONNRESET')
       ) {
         return true
       }
@@ -690,13 +638,13 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
 
   private parseMetadataPayload(
     rawInput: unknown,
-    input: { rawName: string, language: string },
+    input: { rawName: string; language: string },
     runtime: AiProviderRuntime,
     requestId: string,
   ): TorrentAIEnrichmentResult | null {
     try {
-      const parsed
-        = typeof rawInput === 'string'
+      const parsed =
+        typeof rawInput === 'string'
           ? rawInput.trim()
             ? JSON.parse(rawInput)
             : null
@@ -714,7 +662,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
           requestId,
           rawName: input.rawName,
           issuesCount: result.error.issues.length,
-          issues: result.error.issues.map(issue => ({
+          issues: result.error.issues.map((issue) => ({
             path: issue.path.join('.'),
             message: issue.message,
             code: issue.code,
@@ -725,8 +673,7 @@ export class TorrentAiEngine implements TorrentAiEngineContract {
 
       const metadata = this.mapToMetadata(result.data, input, runtime)
       return { ok: true, metadata }
-    }
-    catch (parseError) {
+    } catch (parseError) {
       this.logger.warn('Recovery parse failed', {
         requestId,
         rawName: input.rawName,

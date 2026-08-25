@@ -5,7 +5,7 @@ import type {
 import { IpcMethod, IpcService } from 'electron-ipc-decorator'
 
 import { getLogger } from '../config/log-config'
-import { QbSessionPool } from './qb-session-pool'
+import { sharedQbSessionPool } from './qb-session-pool'
 
 type AnyArgs = any[]
 
@@ -14,7 +14,7 @@ const ExpiryTime = 800
 export class QBittorrentIPCService extends IpcService {
   static override readonly groupName = 'qb'
 
-  private readonly pool = new QbSessionPool()
+  private readonly pool = sharedQbSessionPool
   private readonly logger = getLogger('QBittorrentIPC')
 
   private readonly cacheableMethods = new Set<string>([
@@ -26,9 +26,9 @@ export class QBittorrentIPCService extends IpcService {
   private readonly inFlight = new Map<string, Promise<any>>()
 
   @IpcMethod()
-  setSharedConfig(config: QBittorrentConfig): void {
+  setSharedConfig(config: QBittorrentConfig, scopeId?: string): void {
     this.logger.info('setSharedConfig', this.redactConfig(config))
-    this.pool.setSharedConfig(config)
+    this.pool.setSharedConfig(config, scopeId)
   }
 
   @IpcMethod()

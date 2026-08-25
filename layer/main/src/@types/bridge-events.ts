@@ -1,8 +1,10 @@
-import type { AiTraceEvent } from '@torrent-vibe/shared'
+import type { AgentChatStreamEvent, AiTraceEvent } from '@torrent-vibe/shared'
 
 import type { UpdaterUiStatus } from '~/updater/status'
 
 export interface BridgeEventMap {
+  'agent-chat:stream': AgentChatStreamEvent
+
   // Deeplink events
   'deeplink:magnet': {
     links: string[]

@@ -6,6 +6,7 @@ import type {
   QBittorrentConfig,
   TorrentFile,
   TorrentFilters,
+  TorrentInfo,
   TorrentPeer,
   TorrentProperties,
   TorrentTracker,
@@ -50,7 +51,7 @@ const normalizeInfoHash = (value: string): string => {
   return trimmed.toUpperCase()
 }
 
-const extractMagnetMetadata = (
+export const extractMagnetMetadata = (
   magnetUrl: string,
 ): { infoHash: string; displayName?: string } | null => {
   try {
@@ -186,7 +187,7 @@ export class QBittorrentClient extends QBittorrent {
     return this.request<TransferInfo>('/transfer/info', 'GET')
   }
 
-  async requestTorrentsInfo(filters?: TorrentFilters): Promise<any[]> {
+  async requestTorrentsInfo(filters?: TorrentFilters): Promise<TorrentInfo[]> {
     const params: Record<string, string> = {}
     if (filters?.filter) {
       params.filter = filters.filter
@@ -214,7 +215,7 @@ export class QBittorrentClient extends QBittorrent {
         ? filters.hashes.join('|')
         : filters.hashes
     }
-    return this.request<any[]>('/torrents/info', 'GET', params)
+    return this.request<TorrentInfo[]>('/torrents/info', 'GET', params)
   }
 
   async requestTorrentFiles(hash: string): Promise<TorrentFile[]> {
@@ -376,6 +377,24 @@ export class QBittorrentClient extends QBittorrent {
     const formData = new URLSearchParams()
     formData.append('hashes', hashString)
     return this.request('/torrents/reannounce', 'POST', undefined, formData)
+  }
+
+  async requestRenameTorrent(hash: string, name: string): Promise<boolean> {
+    const formData = new URLSearchParams()
+    formData.append('hash', hash)
+    formData.append('name', name)
+    return this.request('/torrents/rename', 'POST', undefined, formData)
+  }
+
+  async requestSetTorrentLocation(
+    hashes: string | string[],
+    location: string,
+  ): Promise<boolean> {
+    const hashString = Array.isArray(hashes) ? hashes.join('|') : hashes
+    const formData = new URLSearchParams()
+    formData.append('hashes', hashString)
+    formData.append('location', location)
+    return this.request('/torrents/setLocation', 'POST', undefined, formData)
   }
 
   async requestAddTrackers(hash: string, urls: string): Promise<boolean> {

@@ -1,5 +1,12 @@
 # PRP: AI-Powered Content Recognition & Intelligent File Management for Torrent Vibe
 
+> [!IMPORTANT]
+> This document is a legacy proposal and does not describe the current AI
+> runtime. Torrent Vibe now uses `@earendil-works/pi-agent-core`; the active
+> product, UI, tool, approval, and implementation contracts are defined in
+> [AI Agent and Chat Specification](../docs/ai-agent-chat-spec.md) and
+> [AI Agent and Chat Implementation Plan](../docs/ai-agent-chat-implementation-plan.md).
+
 ## Executive Summary
 
 This PRP outlines the integration of advanced AI capabilities using Vercel AI SDK, web search tools, and TMDb API to create an intelligent content recognition and automated file management system for Torrent Vibe. This feature will transform the torrent client from a basic download manager into a fully AI-driven media management platform with sophisticated content identification, intelligent file organization, and automated metadata enrichment capabilities.

@@ -1,3 +1,4 @@
+export * from './agent-chat'
 export * from './ai'
 export * from './api-tokens'
 export * from './app-error'

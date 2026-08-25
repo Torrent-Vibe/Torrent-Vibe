@@ -1,7 +1,10 @@
 import type { LogFunctions } from 'electron-log'
 import type { Database as SqliteDatabase } from 'sqlite3'
 
-import { TORRENT_AI_METADATA_TABLE_NAME } from './schema'
+import {
+  AGENT_CHAT_CONVERSATIONS_TABLE_NAME,
+  TORRENT_AI_METADATA_TABLE_NAME,
+} from './schema'
 import { all, exec, get } from './sqlite-utils'
 
 type MigrationStep = {
@@ -78,6 +81,28 @@ const MIGRATIONS: MigrationStep[] = [
           ON ${TORRENT_AI_METADATA_TABLE_NAME} (provider);
         CREATE INDEX IF NOT EXISTS idx_${TORRENT_AI_METADATA_TABLE_NAME}_model
           ON ${TORRENT_AI_METADATA_TABLE_NAME} (model);
+      `,
+      )
+    },
+  },
+  {
+    version: 3,
+    name: 'create agent chat conversations table',
+    up: async (db) => {
+      await exec(
+        db,
+        `
+        CREATE TABLE IF NOT EXISTS ${AGENT_CHAT_CONVERSATIONS_TABLE_NAME} (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          messages TEXT NOT NULL,
+          message_count INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_${AGENT_CHAT_CONVERSATIONS_TABLE_NAME}_updated_at
+          ON ${AGENT_CHAT_CONVERSATIONS_TABLE_NAME} (updated_at DESC);
       `,
       )
     },

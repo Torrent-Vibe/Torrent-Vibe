@@ -1,6 +1,7 @@
 import type { MergeIpcService } from 'electron-ipc-decorator'
 import { createServices } from 'electron-ipc-decorator'
 
+import { AgentChatIPCService } from './agent-chat.service'
 import { ApiTokenIPCService } from './api-token.service'
 import { AppService } from './app.service'
 import { AppSettingsIPCService } from './app-settings.service'
@@ -23,6 +24,7 @@ export const services = createServices([
   FileAssociationService,
   SecurityIPCService,
   ApiTokenIPCService,
+  AgentChatIPCService,
   FloatWindowService,
   // PanelWindowService,
   QBittorrentIPCService,

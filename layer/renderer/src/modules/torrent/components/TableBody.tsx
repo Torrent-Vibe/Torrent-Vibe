@@ -24,6 +24,7 @@ import {
   formatBytesSmart,
   formatSpeedWithStatus,
 } from '~/lib/format'
+import { AgentChatActions } from '~/modules/agent-chat'
 import { CategorySelectPrompt } from '~/modules/dialogs/CategorySelectPrompt'
 import { TagsSelectPrompt } from '~/modules/dialogs/TagsSelectPrompt'
 import { ShareRatioLimitModal } from '~/modules/modals/ShareRatioLimitModal'
@@ -1119,12 +1120,15 @@ const ActiveCellWrapper: FC<
       const { sortedTorrents, selectedTorrents } =
         useTorrentDataStore.getState()
       const currentTorrent = sortedTorrents[rowIndex]
-      const torrents = [...new Set([currentTorrent.hash, ...selectedTorrents])]
 
       const { t } = getI18n()
       if (!currentTorrent) {
         return
       }
+      const torrents = [...new Set([currentTorrent.hash, ...selectedTorrents])]
+      const agentTargets = selectedTorrents.includes(currentTorrent.hash)
+        ? selectedTorrents
+        : [currentTorrent.hash]
 
       const items = [
         ...(ELECTRON
@@ -1149,6 +1153,16 @@ const ActiveCellWrapper: FC<
                 click: () => {
                   void openTorrentSaveLocation(currentTorrent)
                 },
+              }),
+              MENU_ITEM_SEPARATOR,
+            ] as const)
+          : []),
+        ...(ELECTRON
+          ? ([
+              new MenuItemText({
+                label: t('contextMenu.askAgent'),
+                icon: <i className="i-mingcute-brain-line" />,
+                click: () => AgentChatActions.shared.openPanel(agentTargets),
               }),
               MENU_ITEM_SEPARATOR,
             ] as const)

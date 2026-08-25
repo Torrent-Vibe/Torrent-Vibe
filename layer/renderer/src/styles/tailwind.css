@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @import 'tailwindcss-safe-area';
+@import 'katex/dist/katex.min.css';
+@import 'streamdown/styles.css';
 
 @plugin "@tailwindcss/typography";
 @plugin '@egoist/tailwindcss-icons';
@@ -9,6 +11,11 @@
 @import '@pastel-palette/tailwindcss/dist/theme-oklch.css';
 
 @source "./src/**/*.{js,jsx,ts,tsx}";
+@source "../../../../node_modules/streamdown/dist/*.js";
+@source "../../../../node_modules/@streamdown/cjk/dist/*.js";
+@source "../../../../node_modules/@streamdown/code/dist/*.js";
+@source "../../../../node_modules/@streamdown/math/dist/*.js";
+@source "../../../../node_modules/@streamdown/mermaid/dist/*.js";
 @custom-variant dark (&:where([data-color-mode='dark'], [data-color-mode='dark'] *));
 @custom-variant hc (&:where([data-contrast='high'], [data-contrast='high'] *));
 

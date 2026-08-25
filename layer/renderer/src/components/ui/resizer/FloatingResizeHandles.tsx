@@ -15,6 +15,7 @@ export interface FloatingResizeHandlesProps {
   onHeightChange?: (height: number) => void
   onWidthChange?: (width: number) => void
   width: number
+  zIndex?: number
 }
 
 /**
@@ -33,6 +34,7 @@ export function FloatingResizeHandles(props: FloatingResizeHandlesProps) {
     onHeightChange,
     onCommit,
     offset = 16,
+    zIndex = 60,
   } = props
 
   const styleElementRef = useRef<HTMLStyleElement | null>(null)
@@ -156,11 +158,12 @@ export function FloatingResizeHandles(props: FloatingResizeHandlesProps) {
     <>
       {/* Width handle (left edge of floating panel) */}
       <div
-        className={cn('fixed z-[60] top-auto left-auto h-0 w-0')}
+        className={cn('fixed top-auto left-auto h-0 w-0')}
         style={{
           bottom: `${offset}px`,
           right: `${displayWidth + offset}px`,
           height: `${displayHeight}px`,
+          zIndex,
         }}
         onMouseDown={widthOnMouseDown}
       >
@@ -175,11 +178,12 @@ export function FloatingResizeHandles(props: FloatingResizeHandlesProps) {
 
       {/* Height handle (top edge of floating panel) */}
       <div
-        className={cn('fixed z-[60] top-auto left-auto w-0 h-0')}
+        className={cn('fixed top-auto left-auto w-0 h-0')}
         style={{
           bottom: `${displayHeight + offset}px`,
           right: `${offset}px`,
           width: `${displayWidth}px`,
+          zIndex,
         }}
         onMouseDown={heightOnMouseDown}
       >
@@ -194,8 +198,8 @@ export function FloatingResizeHandles(props: FloatingResizeHandlesProps) {
 
       {/* Corner handle (top-left corner of floating panel) */}
       <div
-        className="fixed z-[60]"
-        style={{ bottom, right }}
+        className="fixed"
+        style={{ bottom, right, zIndex }}
         onMouseDown={(event) => {
           event.preventDefault()
           event.stopPropagation()

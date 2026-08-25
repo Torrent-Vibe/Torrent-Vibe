@@ -6,6 +6,7 @@ import { dragDropStateAtom } from '~/atoms/drag-drop'
 import { DragOverlay } from '~/components/ui/drag-overlay'
 import { isMacOS } from '~/constants/os'
 import { useMagnetClipboardOnFocus } from '~/hooks/use-magnet-clipboard-on-focus'
+import { useAgentChatStore } from '~/modules/agent-chat'
 import {
   useDetailPanelFloatingValue,
   useDetailPanelVisibleValue,
@@ -31,6 +32,12 @@ import { useRegisterAppHotkeys } from '../hooks/use-register-app-hotkeys'
 import { Header } from './Header'
 import type { ResizablePanelConfig } from './ResizableLayout'
 import { ResizableLayout } from './ResizableLayout'
+
+const AgentPanel = React.lazy(() =>
+  import('~/modules/agent-chat/AgentPanel').then((module) => ({
+    default: module.AgentPanel,
+  })),
+)
 
 const PrefetchTorrents = () => {
   usePrefetchTorrents()
@@ -62,7 +69,6 @@ export const Layout = () => {
   const detailPanelWidth = useDetailPanelWidthValue()
   const setDetailPanelWidth = useSetDetailPanelWidth()
   const isDetailPanelFloating = useDetailPanelFloatingValue()
-
   const showDetailInLayout = detailPanelVisible && !isDetailPanelFloating
 
   const resizablePanel = React.useMemo<ResizablePanelConfig | undefined>(() => {
@@ -116,7 +122,22 @@ export const Layout = () => {
         isVisible={dragDropState.isDragging && dragDropState.hasValidFiles}
       />
       <DetailPanelConditionRender />
+      <AgentPanelConditionRender />
     </div>
+  )
+}
+
+const AgentPanelConditionRender = () => {
+  const panelVisible = useAgentChatStore((state) => state.panelVisible)
+
+  return (
+    <AnimatePresence>
+      {panelVisible && (
+        <React.Suspense key="agent-panel-float">
+          <AgentPanel />
+        </React.Suspense>
+      )}
+    </AnimatePresence>
   )
 }
 

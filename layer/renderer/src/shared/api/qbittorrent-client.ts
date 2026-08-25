@@ -15,7 +15,7 @@ const forceUseRendererRequest =
 
 export class QBittorrentClient {
   static shared: (typeof import('@torrent-vibe/qb-client').QBittorrentClient)['shared']
-  static configure: (config: QBittorrentConfig) => void
+  static configure: (config: QBittorrentConfig, scopeId?: string) => void
   static create: (
     config: QBittorrentConfig,
   ) => typeof import('@torrent-vibe/qb-client').QBittorrentClient & QBittorrent
@@ -59,10 +59,10 @@ if (!useElectronAdapter || forceUseRendererRequest) {
 
     static shared: AdapterImpl = new AdapterImpl()
 
-    static configure(config: QBittorrentConfig): void {
+    static configure(config: QBittorrentConfig, scopeId?: string): void {
       // Set shared config in main and reset shared instance
       AdapterImpl.ready = (async () => {
-        await ipcServices?.qb.setSharedConfig(config)
+        await ipcServices?.qb.setSharedConfig(config, scopeId)
       })()
       AdapterImpl.shared = new AdapterImpl()
     }

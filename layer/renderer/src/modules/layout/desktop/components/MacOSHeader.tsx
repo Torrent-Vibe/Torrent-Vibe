@@ -5,6 +5,7 @@ import { SpeedIndicators } from '~/components/common/SpeedIndicators'
 import { Button } from '~/components/ui/button/Button'
 import { Modal } from '~/components/ui/modal/ModalManager'
 import { cn } from '~/lib/cn'
+import { AgentChatActions } from '~/modules/agent-chat'
 import { useDiscoverProviders } from '~/modules/discover/hooks/useDiscoverProviders'
 import { openDiscover } from '~/modules/modals/DiscoverModal'
 import { ServerSwitcher } from '~/modules/multi-server/components/ServerSwitcher'
@@ -65,6 +66,7 @@ export const MacOSHeader = ({
   const providers = useDiscoverProviders()
   const hasReadyProviders = providers.some((provider) => provider.ready)
   const { t } = useTranslation()
+  const openAgent = () => AgentChatActions.shared.openPanel()
   return (
     <header
       className={cn(
@@ -89,6 +91,17 @@ export const MacOSHeader = ({
         {showSearch && (
           <div className="flex items-center gap-2 [&_input]:shadow-none">
             <TorrentSearchInput fullRounded variant="compact" />
+
+            <Button
+              aria-label={t('agent.open')}
+              className="p-2 hover:bg-fill rounded-full"
+              size="md"
+              title={t('agent.open')}
+              variant="ghost"
+              onClick={openAgent}
+            >
+              <i className="i-mingcute-brain-line text-sm" />
+            </Button>
 
             {hasReadyProviders && (
               <Button

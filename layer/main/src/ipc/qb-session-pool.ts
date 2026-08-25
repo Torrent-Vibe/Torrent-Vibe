@@ -42,16 +42,20 @@ export function isForbiddenError(error: unknown): boolean {
 
 export class QbSessionPool {
   private readonly sessions = new Map<string, QbSession>()
+  private readonly scopeKeys = new Map<string, string>()
   private activeKey: string | null = null
   private readonly logger = getLogger('QBittorrentIPC')
 
-  setSharedConfig(config: QBittorrentConfig): QbSession {
+  setSharedConfig(config: QBittorrentConfig, scopeId?: string): QbSession {
     const key = connectionKey(config)
     const existing = this.sessions.get(key)
     const sid =
       existing && sameCredentials(existing.config, config) ? existing.sid : null
     const session = this.createSession(config, key, sid)
     this.sessions.set(key, session)
+    if (scopeId) {
+      this.scopeKeys.set(scopeId, key)
+    }
     this.activeKey = key
     return session
   }
@@ -61,6 +65,15 @@ export class QbSessionPool {
       return null
     }
     return this.sessions.get(this.activeKey) ?? null
+  }
+
+  getByKey(key: string): QbSession | null {
+    return this.sessions.get(key) ?? null
+  }
+
+  getByScopeId(scopeId: string): QbSession | null {
+    const key = this.scopeKeys.get(scopeId)
+    return key ? this.getByKey(key) : null
   }
 
   sessionFor(config: QBittorrentConfig): QbSession {
@@ -327,3 +340,5 @@ export class QbSessionPool {
     return name
   }
 }
+
+export const sharedQbSessionPool = new QbSessionPool()

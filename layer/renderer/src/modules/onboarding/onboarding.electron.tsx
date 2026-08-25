@@ -99,7 +99,7 @@ export const Onboarding = () => {
         (active ? hasServerPassword(active.id) : false) ??
         false,
     }
-  }, [active, order.length, servers])
+  }, [active, order, servers])
 
   const { control, handleSubmit, getValues, reset, setValue, watch } =
     useForm<OnboardingFormData>({
@@ -176,7 +176,10 @@ export const Onboarding = () => {
           activeServerId: useMultiServerStore.getState().activeServerId,
         })
 
-        QBittorrentClient.configure(config)
+        QBittorrentClient.configure(
+          config,
+          useMultiServerStore.getState().activeServerId ?? undefined,
+        )
         await QBittorrentClient.shared.login()
         await qbQueryManager.scenarios.onConnectionChange()
         jotaiStore.set(authStatusAtom, 'authenticated')
