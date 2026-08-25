@@ -133,7 +133,7 @@ const targetChange = (
     ].join(' · ')
   }
   if (plan.action === 'rename_torrent') {
-    return `${target.name} → ${plan.newName}`
+    return `${target.name} → ${target.newName ?? plan.newName}`
   }
   if (plan.action === 'move_torrent') {
     return `${target.savePath || '—'} → ${plan.savePath}`
@@ -236,58 +236,79 @@ const ContextChip = ({
   )
 }
 
+const hasComposerContext = (
+  context: AgentChatContext,
+  multiServer: boolean,
+) => {
+  const filter = context.filter
+  return (
+    (multiServer && !context.activeServerId) ||
+    context.selectedTorrentHashes.length > 0 ||
+    Boolean(filter?.search) ||
+    (filter?.categories?.length ?? 0) > 0 ||
+    (filter?.statuses?.length ?? 0) > 0 ||
+    (filter?.tags?.length ?? 0) > 0
+  )
+}
+
 const AgentContextChips = ({
   context,
   label,
-  pinned = false,
+  multiServer = false,
   removable = false,
+  variant = 'snapshot',
 }: {
   context: AgentChatContext
   label: string
-  pinned?: boolean
+  multiServer?: boolean
   removable?: boolean
+  variant?: 'composer' | 'snapshot'
 }) => {
   const { t, i18n } = useTranslation()
   const filter = context.filter
-  const filterLabels = [
+  const filterLabel = [
     ...(filter?.statuses ?? []).map((status) => {
       const key = `torrent.filters.${status}`
       return i18n.exists(key) ? String(t(key as never)) : status
     }),
     ...(filter?.categories ?? []),
     ...(filter?.tags ?? []).map((tag) => `#${tag}`),
-  ]
-  const filterLabel = filterLabels.join(' · ')
+  ].join(' · ')
   const serverLabel = context.activeServerName || t('agent.context.noServer')
+  const showServer =
+    variant === 'snapshot' ||
+    (multiServer &&
+      (!context.activeServerId ||
+        context.selectedTorrentHashes.length > 0 ||
+        Boolean(filterLabel) ||
+        Boolean(context.filter?.search)))
+  const showVisible = variant === 'snapshot'
 
   return (
     <div
       aria-label={label}
-      className="flex min-w-0 items-center gap-1.5"
-      data-agent-context={pinned ? 'pinned' : removable ? 'live' : 'snapshot'}
+      className="flex min-w-0 flex-nowrap items-center gap-1.5"
+      data-agent-context={variant}
     >
-      {pinned ? (
-        <i
-          aria-label={t('agent.context.pinned')}
-          className="i-mingcute-pin-2-fill shrink-0 text-xs text-accent"
-          title={t('agent.context.pinned')}
+      {showServer ? (
+        <ContextChip
+          icon="i-mingcute-server-line"
+          label={serverLabel}
+          onRemove={
+            removable && context.activeServerId
+              ? () => actions.removeDraftContextPart('server')
+              : undefined
+          }
         />
       ) : null}
-      <ContextChip
-        icon="i-mingcute-server-line"
-        label={serverLabel}
-        onRemove={
-          removable && context.activeServerId
-            ? () => actions.removeDraftContextPart('server')
-            : undefined
-        }
-      />
-      <ContextChip
-        icon="i-mingcute-eye-2-line"
-        label={t('agent.context.visible', {
-          count: context.visibleTorrentCount,
-        })}
-      />
+      {showVisible ? (
+        <ContextChip
+          icon="i-mingcute-eye-2-line"
+          label={t('agent.context.visible', {
+            count: context.visibleTorrentCount,
+          })}
+        />
+      ) : null}
       {context.selectedTorrentHashes.length > 0 ? (
         <ContextChip
           icon="i-mingcute-check-circle-line"
@@ -350,7 +371,7 @@ const MessageMetadataBar = ({
   return (
     <div
       aria-label={detail}
-      className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 pt-2 text-[10px] text-text-quaternary"
+      className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden border-t border-border/70 pt-2 text-[10px] text-text-quaternary"
       title={detail}
     >
       <span className="inline-flex min-w-0 items-center gap-1">
@@ -541,12 +562,9 @@ const AssistantMessage = ({ message }: { message: AgentChatUiMessage }) => {
 
   return (
     <Message from="assistant">
-      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-border bg-fill-secondary text-accent">
-        <i className="i-mingcute-brain-line text-sm" />
-      </div>
       <MessageContent from="assistant">
         {message.activities.length > 0 && (
-          <div className="mb-3 space-y-1">
+          <div className="mb-3 min-w-0 space-y-1">
             {message.activities.map((activity) => (
               <Tool activity={activity} key={activity.id} />
             ))}
@@ -673,23 +691,31 @@ export const AgentChatPanel = () => {
       return {
         activeServerId: state.activeServerId,
         activeServerName: activeServer?.name ?? null,
+        multiServer: Object.keys(state.servers).length > 1,
       }
     }),
   )
   const activeTorrentHash = useTorrentTableSelectors.useActiveTorrentHash()
   const liveContext = createAgentContext({
-    ...serverContext,
-    ...torrentContext,
+    activeServerId: serverContext.activeServerId,
+    activeServerName: serverContext.activeServerName,
+    filterState: torrentContext.filterState,
     locale: i18n.language,
+    searchQuery: torrentContext.searchQuery,
     selectedTorrentHashes:
       torrentContext.selectedTorrentHashes.length > 0
         ? torrentContext.selectedTorrentHashes
         : activeTorrentHash
           ? [activeTorrentHash]
           : [],
+    visibleTorrentCount: torrentContext.visibleTorrentCount,
   })
   const composerContext = draftContext ?? liveContext
   const selectedCount = composerContext.selectedTorrentHashes.length
+  const showComposerContext = hasComposerContext(
+    composerContext,
+    serverContext.multiServer,
+  )
   const displayError = error
     ? i18n.exists(error)
       ? String(i18n.t(error as never))
@@ -698,31 +724,12 @@ export const AgentChatPanel = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="shrink-0 overflow-x-auto border-b border-border bg-fill-secondary/20 px-3 py-2">
-        <AgentContextChips
-          label={t('agent.context.draftScope')}
-          pinned={Boolean(draftContext)}
-          removable={!isDemo}
-          context={
-            isDemo
-              ? {
-                  ...composerContext,
-                  activeServerId: 'local-demo',
-                  activeServerName: t('agent.demo.badge'),
-                  selectedTorrentHashes: [],
-                  visibleTorrentCount: 12,
-                }
-              : composerContext
-          }
-        />
-      </div>
-
       <Conversation>
         <ConversationContent>
           {messages.length === 0 ? (
             <EmptyState selectedCount={selectedCount} />
           ) : (
-            <div className="space-y-5 px-4 py-5">
+            <div className="min-w-0 space-y-5 px-4 py-5">
               {messages.map((message) =>
                 message.role === 'user' ? (
                   <UserMessage key={message.id} message={message} />
@@ -744,6 +751,17 @@ export const AgentChatPanel = () => {
           </div>
         )}
         <div className="rounded-xl border border-border bg-background shadow-sm transition-colors focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10">
+          {showComposerContext ? (
+            <div className="min-w-0 overflow-x-auto px-2.5 pt-2">
+              <AgentContextChips
+                context={composerContext}
+                label={t('agent.context.draftScope')}
+                multiServer={serverContext.multiServer}
+                removable={!isDemo}
+                variant="composer"
+              />
+            </div>
+          ) : null}
           <Textarea
             data-agent-composer
             aria-label={t('agent.composer.placeholder')}

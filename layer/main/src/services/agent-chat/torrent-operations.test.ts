@@ -428,6 +428,55 @@ describe('AgentTorrentOperations', () => {
     expect(fake.reannounce).toHaveBeenCalledTimes(2)
   })
 
+  it('prepares recheck for completed torrents without explicit hashes', async () => {
+    const fake = createGateway([
+      torrent('done', 'Done', 'stoppedUP', { progress: 1 }),
+      torrent('dl', 'Down', 'downloading', { progress: 0.2 }),
+    ])
+    const operations = new AgentTorrentOperations(fake.gateway)
+    const plan = await operations.prepare(
+      { action: 'recheck', completedOnly: true },
+      [],
+    )
+    expect(plan.targets.map((target) => target.hash)).toEqual(['done'])
+    const result = await operations.execute(plan.id)
+    expect(result.ok).toBe(true)
+    expect(fake.recheck).toHaveBeenCalledWith('server-a', ['done'])
+  })
+
+  it('does not expand completedOnly filters for non-recheck actions', async () => {
+    const fake = createGateway([
+      torrent('done', 'Done', 'stoppedUP', { progress: 1 }),
+      torrent('dl', 'Down', 'downloading', { progress: 0.2 }),
+    ])
+    const operations = new AgentTorrentOperations(fake.gateway)
+
+    await expect(
+      operations.prepare({ action: 'pause', completedOnly: true }, []),
+    ).rejects.toThrow('No torrent targets were provided')
+  })
+
+  it('pages audit results and reports truncation fields', async () => {
+    const fake = createGateway([
+      torrent('a', 'A', 'stoppedUP', { progress: 1 }),
+      torrent('b', 'B', 'stoppedUP', { progress: 1 }),
+      torrent('c', 'C', 'stoppedUP', { progress: 1 }),
+    ])
+    const operations = new AgentTorrentOperations(fake.gateway)
+
+    const page = await operations.audit({ limit: 2, offset: 0 })
+    expect(page.scanned).toBe(2)
+    expect(page.total).toBe(3)
+    expect(page.hasMore).toBe(true)
+    expect(page.nextOffset).toBe(2)
+
+    const rest = await operations.audit({ limit: 2, offset: 2 })
+    expect(rest.scanned).toBe(1)
+    expect(rest.total).toBe(3)
+    expect(rest.hasMore).toBe(false)
+    expect(rest.nextOffset).toBeNull()
+  })
+
   it('previews and executes qBittorrent-owned rename and save-location changes', async () => {
     const fake = createGateway([
       torrent('a', 'Show A', 'stoppedUP', { savePath: '/downloads' }),
@@ -457,6 +506,32 @@ describe('AgentTorrentOperations', () => {
     ])
     await operations.execute(movePlan.id)
     expect(fake.move).toHaveBeenCalledWith('server-a', ['a'], '/library/anime')
+  })
+
+  it('renames multiple torrents with per-target names', async () => {
+    const fake = createGateway([
+      torrent('a', 'Old A', 'stoppedUP'),
+      torrent('b', 'Old B', 'stoppedUP'),
+    ])
+    const operations = new AgentTorrentOperations(fake.gateway)
+    const plan = await operations.prepare(
+      {
+        action: 'rename_torrent',
+        renames: [
+          { hash: 'a', newName: 'New A' },
+          { hash: 'b', newName: 'New B' },
+        ],
+      },
+      [],
+    )
+    expect(plan.targets.map((target) => target.newName)).toEqual([
+      'New A',
+      'New B',
+    ])
+    const result = await operations.execute(plan.id)
+    expect(result.ok).toBe(true)
+    expect(fake.rename).toHaveBeenCalledWith('server-a', 'a', 'New A')
+    expect(fake.rename).toHaveBeenCalledWith('server-a', 'b', 'New B')
   })
 
   it('keeps removal side-effect free and requires final confirmation for file deletion', async () => {
@@ -574,12 +649,6 @@ describe('AgentTorrentOperations', () => {
         ['a'],
       ),
     ).rejects.toThrow('Save path')
-    await expect(
-      operations.prepare({ action: 'rename_torrent', newName: 'Shared name' }, [
-        'a',
-        'b',
-      ]),
-    ).rejects.toThrow('exactly one')
     await expect(
       operations.prepare({ action: 'remove_torrent' }, ['a']),
     ).rejects.toThrow('deleteFiles')

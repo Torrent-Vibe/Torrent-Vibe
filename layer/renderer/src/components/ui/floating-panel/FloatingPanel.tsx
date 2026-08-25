@@ -44,16 +44,12 @@ export const FloatingPanel = ({
   onWidthChange,
 }: FloatingPanelProps) => (
   <div className="relative">
-    <m.aside
+    <m.div
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      aria-label={title}
+      className="origin-bottom-right"
       exit={{ opacity: 0, scale: 0.6, y: 20 }}
       initial={{ opacity: 0, scale: 0.6, y: 20 }}
       transition={Spring.presets.smooth}
-      className={cn(
-        'relative flex origin-bottom-right flex-col rounded-lg border border-border bg-background shadow-2xl outline-1 outline-border backdrop-blur-sm container-type-[inline-size]',
-        className,
-      )}
       style={{
         position: 'fixed',
         bottom: offset,
@@ -63,17 +59,25 @@ export const FloatingPanel = ({
         zIndex,
       }}
     >
-      <header className="flex h-[50px] shrink-0 items-center border-b border-border pl-4">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          {icon}
-          <h2 className="truncate font-medium text-text">{title}</h2>
+      <aside
+        aria-label={title}
+        className={cn(
+          'relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl outline-1 outline-border backdrop-blur-sm container-type-[inline-size]',
+          className,
+        )}
+      >
+        <header className="flex h-[50px] shrink-0 items-center border-b border-border pl-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {icon}
+            <h2 className="truncate font-medium text-text">{title}</h2>
+          </div>
+          <div className="flex items-center pr-2">{actions}</div>
+        </header>
+        <div className={cn('min-h-0 flex-1 overflow-auto', contentClassName)}>
+          {children}
         </div>
-        <div className="flex items-center pr-2">{actions}</div>
-      </header>
-      <div className={cn('min-h-0 flex-1 overflow-auto', contentClassName)}>
-        {children}
-      </div>
-    </m.aside>
+      </aside>
+    </m.div>
 
     <FloatingResizeHandles
       height={height}
