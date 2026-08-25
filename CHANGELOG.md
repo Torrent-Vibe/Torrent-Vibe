@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+
+- The workspace Agent can organize a qBittorrent library through a
+  built-in skill: audit the queue, then confirm recheck, rename, move,
+  category, or remove in the chat. Helper torrents tagged `tv-mikan:`
+  are left alone unless you accept that Helper will not re-add that
+  episode.
+- Agent chat drops the avatar, puts live selection/filter context on the
+  composer, and keeps tool output and markdown from overflowing the
+  panel. Floating panel corners are no longer clipped.
+
 ## 1.2.0
 
 - Subscribing to a Mikan show now pulls already-released episodes right
