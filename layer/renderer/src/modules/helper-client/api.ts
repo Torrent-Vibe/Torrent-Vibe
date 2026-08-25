@@ -3,17 +3,22 @@ import type {
   HelperSubscriptionSnapshot,
 } from '@torrent-vibe/helper-protocol'
 
+import {
+  helperConfigPublicSchema,
+  helperDiscoverSchema,
+  helperPairResultSchema,
+  helperProfileSnapshotSchema,
+  helperStatusResponseSchema,
+  helperSubscriptionSnapshotSchema,
+  parseOrThrow,
+} from './schema'
 import type {
   HelperBackfillInput,
   HelperConfigPatch,
   HelperConfigPublic,
   HelperDiscoverInfo,
-  HelperEpisodeStatus,
-  HelperJobStatus,
   HelperProfileMutation,
-  HelperProfileRecord,
   HelperProfileSnapshot,
-  HelperReplicaStatus,
   HelperStatusResponse,
 } from './types'
 
@@ -83,64 +88,15 @@ export const request = async (
 
 export const discoverHelper = async (
   baseUrl: string,
-): Promise<HelperDiscoverInfo> => {
-  const body = await request(baseUrl, '/discover', { method: 'GET' })
-  if (!body || typeof body !== 'object') {
-    throw new Error('invalid discover payload')
-  }
-  const record = body as Record<string, unknown>
-  return {
-    version: typeof record.version === 'string' ? record.version : '',
-    bindState:
-      typeof record.bindState === 'string' ? record.bindState : 'unbound',
-    advertisedQbitUrl:
-      typeof record.advertisedQbitUrl === 'string'
-        ? record.advertisedQbitUrl
-        : '',
-    capabilities: Array.isArray(record.capabilities)
-      ? record.capabilities.filter(
-          (capability): capability is string => typeof capability === 'string',
-        )
-      : [],
-    clientCount:
-      typeof record.clientCount === 'number' ? record.clientCount : 0,
-    port: typeof record.port === 'number' ? record.port : 17890,
-    requiresPairingCode: record.requiresPairingCode !== false,
-  }
-}
+): Promise<HelperDiscoverInfo> =>
+  parseOrThrow(
+    helperDiscoverSchema,
+    await request(baseUrl, '/discover', { method: 'GET' }),
+    'invalid discover payload',
+  )
 
-const parseProfileSnapshot = (body: unknown): HelperProfileSnapshot => {
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    typeof (body as { revision?: unknown }).revision !== 'number' ||
-    !Array.isArray((body as { records?: unknown }).records)
-  ) {
-    throw new Error('invalid profile payload')
-  }
-  const records = (body as { records: unknown[] }).records.flatMap((entry) => {
-    if (!entry || typeof entry !== 'object') {
-      return []
-    }
-    const record = entry as Record<string, unknown>
-    if (typeof record.key !== 'string' || typeof record.value !== 'string') {
-      return []
-    }
-    return [
-      {
-        key: record.key,
-        value: record.value,
-        secret: record.secret === true,
-        updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : '',
-        updatedBy: typeof record.updatedBy === 'string' ? record.updatedBy : '',
-      } satisfies HelperProfileRecord,
-    ]
-  })
-  return {
-    revision: (body as { revision: number }).revision,
-    records,
-  }
-}
+const parseProfileSnapshot = (body: unknown): HelperProfileSnapshot =>
+  parseOrThrow(helperProfileSnapshotSchema, body, 'invalid profile payload')
 
 export const getHelperProfile = async (
   baseUrl: string,
@@ -178,38 +134,23 @@ export const pairHelper = async (
     method: 'POST',
     body: JSON.stringify({ clientId, clientName, code }),
   })
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    typeof (body as { token?: unknown }).token !== 'string'
-  ) {
-    throw new Error('invalid pair payload')
-  }
+  const parsed = parseOrThrow(
+    helperPairResultSchema,
+    body,
+    'invalid pair payload',
+  )
   return {
-    clientId:
-      typeof (body as { clientId?: unknown }).clientId === 'string'
-        ? (body as { clientId: string }).clientId
-        : clientId,
-    token: (body as { token: string }).token,
+    clientId: parsed.clientId ?? clientId,
+    token: parsed.token,
   }
 }
 
-const parseSubscriptionSnapshot = (
-  body: unknown,
-): HelperSubscriptionSnapshot => {
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    typeof (body as { revision?: unknown }).revision !== 'number' ||
-    !Array.isArray((body as { replicas?: unknown }).replicas)
-  ) {
-    throw new Error('invalid subscriptions payload')
-  }
-  return {
-    revision: (body as { revision: number }).revision,
-    replicas: (body as { replicas: HelperReplica[] }).replicas,
-  }
-}
+const parseSubscriptionSnapshot = (body: unknown): HelperSubscriptionSnapshot =>
+  parseOrThrow(
+    helperSubscriptionSnapshotSchema,
+    body,
+    'invalid subscriptions payload',
+  )
 
 export const getHelperSubscriptions = async (
   baseUrl: string,
@@ -252,127 +193,16 @@ export const putHelperSubscriptions = async (
   return parseSubscriptionSnapshot(body)
 }
 
-const parseEpisodes = (value: unknown): HelperEpisodeStatus[] => {
-  if (!Array.isArray(value)) {
-    return []
-  }
-  return value.flatMap((entry) => {
-    if (!entry || typeof entry !== 'object') {
-      return []
-    }
-    const episode = entry as Record<string, unknown>
-    if (
-      typeof episode.episodeId !== 'string' ||
-      typeof episode.title !== 'string'
-    ) {
-      return []
-    }
-    return [
-      {
-        episodeId: episode.episodeId,
-        title: episode.title,
-        season: typeof episode.season === 'number' ? episode.season : null,
-        episode: typeof episode.episode === 'number' ? episode.episode : null,
-        state:
-          typeof episode.state === 'string'
-            ? (episode.state as HelperEpisodeStatus['state'])
-            : 'pending',
-        ...(typeof episode.infohash === 'string'
-          ? { infohash: episode.infohash }
-          : {}),
-        ...(typeof episode.lastError === 'string'
-          ? { lastError: episode.lastError }
-          : {}),
-      },
-    ]
-  })
-}
-
-const parseReplicaStatus = (value: unknown): HelperReplicaStatus | null => {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-  const record = value as Record<string, unknown>
-  if (
-    typeof record.id !== 'string' ||
-    typeof record.bangumiId !== 'string' ||
-    typeof record.title !== 'string' ||
-    typeof record.subgroupId !== 'string' ||
-    typeof record.subgroupName !== 'string' ||
-    typeof record.rssUrl !== 'string'
-  ) {
-    return null
-  }
-  return {
-    id: record.id,
-    bangumiId: record.bangumiId,
-    title: record.title,
-    ...(typeof record.bangumiSubjectId === 'string'
-      ? { bangumiSubjectId: record.bangumiSubjectId }
-      : {}),
-    subgroupId: record.subgroupId,
-    subgroupName: record.subgroupName,
-    rssUrl: record.rssUrl,
-    episodes: parseEpisodes(record.episodes),
-    ...(typeof record.checkedAt === 'string'
-      ? { checkedAt: record.checkedAt }
-      : {}),
-    ...(typeof record.checkError === 'string' && record.checkError
-      ? { checkError: record.checkError }
-      : {}),
-    ...(typeof record.consecutiveFailures === 'number'
-      ? { consecutiveFailures: record.consecutiveFailures }
-      : {}),
-  }
-}
-
-const parseJobStatus = (value: unknown): HelperJobStatus | null => {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-  const record = value as Record<string, unknown>
-  if (
-    typeof record.bangumiId !== 'string' ||
-    typeof record.subgroupId !== 'string'
-  ) {
-    return null
-  }
-  return {
-    bangumiId: record.bangumiId,
-    subgroupId: record.subgroupId,
-    episodes: parseEpisodes(record.episodes),
-  }
-}
-
 export const getHelperStatus = async (
   baseUrl: string,
   token: string,
   signal?: AbortSignal,
-): Promise<HelperStatusResponse> => {
-  const body = await request(
-    baseUrl,
-    '/status',
-    { method: 'GET', signal },
-    token,
+): Promise<HelperStatusResponse> =>
+  parseOrThrow(
+    helperStatusResponseSchema,
+    await request(baseUrl, '/status', { method: 'GET', signal }, token),
+    'invalid status payload',
   )
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    !Array.isArray((body as { replicas?: unknown }).replicas)
-  ) {
-    throw new Error('invalid status payload')
-  }
-  const record = body as { replicas: unknown[]; jobs?: unknown }
-  const replicas = record.replicas
-    .map(parseReplicaStatus)
-    .filter((item): item is HelperReplicaStatus => item !== null)
-  const jobs = Array.isArray(record.jobs)
-    ? record.jobs
-        .map(parseJobStatus)
-        .filter((item): item is HelperJobStatus => item !== null)
-    : []
-  return { replicas, jobs }
-}
 
 export const backfillHelper = async (
   baseUrl: string,
@@ -404,31 +234,12 @@ export const unpairHelper = async (
 export const getHelperConfig = async (
   baseUrl: string,
   token: string,
-): Promise<HelperConfigPublic> => {
-  const body = await request(baseUrl, '/config', { method: 'GET' }, token)
-  if (!body || typeof body !== 'object') {
-    throw new Error('invalid config payload')
-  }
-  const record = body as Record<string, unknown>
-  return {
-    libraryRoot:
-      typeof record.libraryRoot === 'string' ? record.libraryRoot : '',
-    category: typeof record.category === 'string' ? record.category : 'Bangumi',
-    qbitUrl: typeof record.qbitUrl === 'string' ? record.qbitUrl : '',
-    qbitUser: typeof record.qbitUser === 'string' ? record.qbitUser : '',
-    hasQbitPass: record.hasQbitPass === true,
-    pollIntervalMs:
-      typeof record.pollIntervalMs === 'number'
-        ? record.pollIntervalMs
-        : 600_000,
-    proxyUrl: typeof record.proxyUrl === 'string' ? record.proxyUrl : '',
-    variantPrefer:
-      typeof record.variantPrefer === 'string' && record.variantPrefer !== ''
-        ? record.variantPrefer
-        : 'internal,sc,tc',
-    hasTmdbApiKey: record.hasTmdbApiKey === true,
-  }
-}
+): Promise<HelperConfigPublic> =>
+  parseOrThrow(
+    helperConfigPublicSchema,
+    await request(baseUrl, '/config', { method: 'GET' }, token),
+    'invalid config payload',
+  )
 
 export const putHelperConfig = async (
   baseUrl: string,

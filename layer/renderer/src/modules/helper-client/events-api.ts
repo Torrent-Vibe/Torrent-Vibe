@@ -1,47 +1,6 @@
-import type { HelperEvent } from '@torrent-vibe/helper-protocol'
-
 import { rawFetch, request } from './api'
+import { helperEventsResponseSchema } from './schema'
 import type { HelperEventsQuery, HelperEventsResponse } from './types'
-
-const parseHelperEvent = (value: unknown): HelperEvent | null => {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-  const record = value as Record<string, unknown>
-  if (
-    typeof record.seq !== 'number' ||
-    typeof record.at !== 'string' ||
-    typeof record.level !== 'string' ||
-    typeof record.kind !== 'string' ||
-    typeof record.message !== 'string'
-  ) {
-    return null
-  }
-  return {
-    seq: record.seq,
-    at: record.at,
-    level: record.level,
-    kind: record.kind,
-    message: record.message,
-    ...(typeof record.replicaId === 'string'
-      ? { replicaId: record.replicaId }
-      : {}),
-    ...(typeof record.bangumiId === 'string'
-      ? { bangumiId: record.bangumiId }
-      : {}),
-    ...(typeof record.subgroupId === 'string'
-      ? { subgroupId: record.subgroupId }
-      : {}),
-    ...(typeof record.episodeId === 'string'
-      ? { episodeId: record.episodeId }
-      : {}),
-    ...(record.fields &&
-    typeof record.fields === 'object' &&
-    !Array.isArray(record.fields)
-      ? { fields: record.fields as Record<string, unknown> }
-      : {}),
-  }
-}
 
 const eventsQueryString = (query?: HelperEventsQuery): string => {
   if (!query) {
@@ -78,20 +37,8 @@ export const getHelperEvents = async (
     { method: 'GET' },
     token,
   )
-  if (
-    !body ||
-    typeof body !== 'object' ||
-    !Array.isArray((body as { events?: unknown }).events)
-  ) {
-    return { events: [], cursor: 0 }
-  }
-  const record = body as { events: unknown[]; cursor?: unknown }
-  return {
-    events: record.events
-      .map(parseHelperEvent)
-      .filter((item): item is HelperEvent => item !== null),
-    cursor: typeof record.cursor === 'number' ? record.cursor : 0,
-  }
+  const parsed = helperEventsResponseSchema.safeParse(body)
+  return parsed.success ? parsed.data : { cursor: 0, events: [] }
 }
 
 export const getHelperLogs = async (

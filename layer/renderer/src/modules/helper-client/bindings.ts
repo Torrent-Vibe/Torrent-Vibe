@@ -5,46 +5,14 @@ import { storage, STORAGE_KEYS } from '~/lib/storage-keys'
 import { useMultiServerStore } from '~/modules/multi-server/stores/multi-server-store'
 import { loadStoredConnectionConfig } from '~/shared/config'
 
+import { helperBindingsSchema } from './schema'
 import type { HelperBinding, ServerHelperTarget } from './types'
 import { WEB_SERVER_ID } from './types'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === 'object'
-
-const parseBinding = (value: unknown): HelperBinding | null => {
-  if (!isRecord(value)) {
-    return null
-  }
-  if (typeof value.url !== 'string' || typeof value.token !== 'string') {
-    return null
-  }
-  if (!value.url.trim() || !value.token.trim()) {
-    return null
-  }
-  return {
-    clientId:
-      typeof value.clientId === 'string' && value.clientId.trim()
-        ? value.clientId.trim()
-        : 'legacy-desktop',
-    url: value.url.trim(),
-    token: value.token,
-  }
-}
-
-const loadHelperBindingsFromStorage = (): Record<string, HelperBinding> => {
-  const stored = storage.getJSON<unknown>(STORAGE_KEYS.HELPER_BINDINGS)
-  if (!isRecord(stored)) {
-    return {}
-  }
-  const next: Record<string, HelperBinding> = {}
-  for (const [serverId, value] of Object.entries(stored)) {
-    const parsed = parseBinding(value)
-    if (parsed) {
-      next[serverId] = parsed
-    }
-  }
-  return next
-}
+const loadHelperBindingsFromStorage = (): Record<string, HelperBinding> =>
+  helperBindingsSchema.parse(
+    storage.getJSON<unknown>(STORAGE_KEYS.HELPER_BINDINGS),
+  )
 
 export const useHelperBindingsStore = createWithEqualityFn<{
   bindings: Record<string, HelperBinding>
