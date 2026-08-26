@@ -30,6 +30,27 @@ export const createAgentChatDemo = (sessionId: string, runId: string) => {
   }
   const completedActivity: AgentChatActivity = {
     ...activity,
+    payload: {
+      count: 12,
+      torrents: [
+        {
+          category: 'TV',
+          downloadSpeed: 4_200_000,
+          name: 'Example.Download.S01E01.mkv',
+          progress: 0.42,
+          size: 1_500_000_000,
+          state: 'downloading',
+        },
+        {
+          category: 'Movie',
+          downloadSpeed: 0,
+          name: 'Example.Movie.2024.1080p.mkv',
+          progress: 1,
+          size: 8_200_000_000,
+          state: 'uploading',
+        },
+      ],
+    },
     status: 'succeeded',
     summary: 'Returned 12 visible torrents without mutation.',
   }

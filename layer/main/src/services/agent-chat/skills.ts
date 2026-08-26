@@ -2,11 +2,13 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import agentBrowserSkill from './skills/agent-browser/SKILL.md?raw'
 import libraryOrganizeSkill from './skills/library-organize/SKILL.md?raw'
 
 export type SkillMeta = { name: string; description: string; dir: string }
 
 const builtinContents = new Map<string, string>([
+  ['agent-browser', agentBrowserSkill],
   ['library-organize', libraryOrganizeSkill],
 ])
 

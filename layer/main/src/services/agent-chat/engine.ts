@@ -15,6 +15,7 @@ import type { AiProviderRuntime } from '../torrent-ai/providers'
 import { selectProvider } from '../torrent-ai/providers'
 import { openRouterAppHeaders } from '../torrent-ai/providers/openrouter-provider'
 import { extractAssistantText } from '../torrent-ai/text'
+import { extractActivityPayload, summarizeToolResult } from './activity-payload'
 import { hasUngroundedPlanClaim } from './plan-grounding'
 import { AgentChatStreamEmitter } from './stream-events'
 import { renderSystemPrompt } from './system-prompt'
@@ -62,24 +63,6 @@ const projectHistory = (
       timestamp: now + index,
     }
   })
-}
-
-const summarizeToolResult = (result: unknown): string | undefined => {
-  if (!result || typeof result !== 'object' || !('content' in result)) {
-    return undefined
-  }
-  const content = (
-    result as { content?: Array<{ text?: string; type?: string }> }
-  ).content
-  const text = content
-    ?.filter((block) => block.type === 'text' && block.text)
-    .map((block) => block.text)
-    .join(' ')
-    .trim()
-  if (!text) {
-    return undefined
-  }
-  return text.length > 160 ? `${text.slice(0, 157)}...` : text
 }
 
 export class AgentChatEngine {
@@ -184,6 +167,7 @@ export class AgentChatEngine {
       scopeKey: agentTorrentOperations.captureScope(
         input.context.activeServerId,
       ),
+      sessionId: input.sessionId,
       userMessages: [
         ...input.history
           .filter((message) => message.role === 'user')
@@ -320,6 +304,7 @@ export class AgentChatEngine {
           return
         }
         activity.status = event.isError ? 'failed' : 'succeeded'
+        activity.payload = extractActivityPayload(event.result)
         activity.summary = summarizeToolResult(event.result)
         emitter.emit({
           activity: { ...activity },

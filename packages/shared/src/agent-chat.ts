@@ -88,6 +88,7 @@ export interface AgentOperationPlan {
 export interface AgentChatActivity {
   id: string
   label: string
+  payload?: unknown
   status: 'running' | 'succeeded' | 'failed'
   summary?: string
   toolName: string

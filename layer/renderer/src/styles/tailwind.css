@@ -261,6 +261,48 @@ body {
   }
 }
 
+.agent-md [data-streamdown='table-wrapper'],
+.agent-md [data-streamdown='code-block'],
+.agent-md [data-streamdown='mermaid-block'] {
+  margin-block: 0.5rem;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.agent-md [data-streamdown='table-wrapper'] > div,
+.agent-md [data-streamdown='code-block-body'],
+.agent-md [data-streamdown='mermaid-block'] > div:last-child {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.agent-md [data-streamdown='code-block-header'],
+.agent-md [data-streamdown='mermaid-block'] > .flex.h-8 {
+  display: none;
+}
+
+.agent-md [data-streamdown='table-header'] {
+  background: transparent;
+}
+
+.agent-md [data-streamdown='table'] {
+  margin: 0;
+}
+
+.agent-md h1,
+.agent-md h2,
+.agent-md h3 {
+  font-size: 0.925rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
 @custom-variant electron (&:where([data-electron='true'], [data-electron='true'] *));
 @custom-variant web (&:where([data-web='true'], [data-web='true'] *));
 @custom-variant macos (&:where([data-macos='true'], [data-macos='true'] *));

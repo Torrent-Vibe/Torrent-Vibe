@@ -53,9 +53,10 @@ export const MessageResponse = memo(
     <Streamdown
       animated
       components={chatMarkdownComponents}
+      controls={false}
       plugins={plugins}
       className={cn(
-        'w-full min-w-0 max-w-full overflow-x-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2',
+        'agent-md w-full min-w-0 max-w-full overflow-x-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-2',
         chatMarkdownClassName,
         className,
       )}

@@ -15,6 +15,10 @@ vi.mock('../torrent-ai', () => ({
   },
 }))
 
+vi.mock('./lookup-tools', () => ({
+  buildAgentChatLookupTools: () => [],
+}))
+
 const completedTorrent = (hash: string, name: string) => ({
   category: 'TV',
   downloadLimitBytesPerSecond: 0,
@@ -66,6 +70,7 @@ describe('Agent organization preview tool', () => {
       onPlan,
       operations: { files, query } as unknown as AgentTorrentOperations,
       scopeKey: 'server-a',
+      sessionId: 'session-a',
       userMessages: ['Preview my completed downloads'],
     })
     const tool = tools.find(
@@ -128,6 +133,7 @@ describe('Agent audit_download_library tool', () => {
       onPlan,
       operations: { audit } as unknown as AgentTorrentOperations,
       scopeKey: 'server-a',
+      sessionId: 'session-a',
       userMessages: ['Audit my library'],
     })
     const tool = tools.find((item) => item.name === 'audit_download_library')!

@@ -4,6 +4,7 @@ import type { AgentChatContext, AgentOperationPlan } from '@torrent-vibe/shared'
 
 import { TorrentAiEngine } from '../torrent-ai'
 import { buildReadSkillTool } from './agentTools/skillTool'
+import { buildAgentChatLookupTools } from './lookup-tools'
 import { loadAgentChatSkillIndex } from './skills'
 import type { AgentTorrentOperations } from './torrent-operations'
 
@@ -182,6 +183,7 @@ export const buildAgentChatTools = (input: {
   operations: AgentTorrentOperations
   onPlan: (plan: AgentOperationPlan) => void
   scopeKey: string | null
+  sessionId: string
   userMessages: string[]
 }): AgentTool[] => {
   const resolveTorrentMetadata = async (
@@ -395,5 +397,6 @@ export const buildAgentChatTools = (input: {
     previewDownloadOrganization,
     prepareOperation,
     buildReadSkillTool(loadAgentChatSkillIndex()),
+    ...buildAgentChatLookupTools(input.sessionId),
   ]
 }

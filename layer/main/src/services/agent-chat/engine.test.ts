@@ -38,6 +38,9 @@ describe('renderSystemPrompt', () => {
     expect(prompt).toContain('audit_download_library')
     expect(prompt).toContain('read_skill')
     expect(prompt).toContain('read_skill("library-organize")')
+    expect(prompt).toContain('tmdbSearch')
+    expect(prompt).toContain('webSearch')
+    expect(prompt).toContain('read_skill("agent-browser")')
     expect(prompt).toContain('renames: [{ hash, newName }]')
     expect(prompt).not.toContain('Rename exactly one torrent at a time')
     expect(prompt).not.toContain(

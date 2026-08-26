@@ -11,6 +11,7 @@ describe('agent-chat skills', () => {
   it('indexes library-organize and read_skill returns the body', async () => {
     const index = loadAgentChatSkillIndex()
     expect(index.some((skill) => skill.name === 'library-organize')).toBe(true)
+    expect(index.some((skill) => skill.name === 'agent-browser')).toBe(true)
     const body = readSkill(index, 'library-organize')
     expect(body).toContain('audit_download_library')
     expect(body).toContain('hasMore')
