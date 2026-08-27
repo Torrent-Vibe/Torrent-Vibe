@@ -5,22 +5,37 @@ import UIKit
 @MainActor
 @Observable
 final class TorrentSearchState {
+  private let defaults: UserDefaults
+  private let persistsSelection: Bool
   private var filtersByServerID: [UUID: TorrentFilter] = [:]
   private var serverID: UUID?
 
-  var filter: TorrentFilter = .all
+  var filter: TorrentFilter
   var query = ""
+
+  init(defaults: UserDefaults = .standard, persistsSelection: Bool = true) {
+    self.defaults = defaults
+    self.persistsSelection = persistsSelection
+    filter = persistsSelection ? TorrentFilter.storedSelection(in: defaults) : .all
+  }
 
   func activate(serverID: UUID?) {
     if let currentServerID = self.serverID {
       filtersByServerID[currentServerID] = filter
     }
     self.serverID = serverID
-    filter = serverID.flatMap { filtersByServerID[$0] } ?? .all
+    filter =
+      serverID.flatMap { filtersByServerID[$0] }
+      ?? (persistsSelection ? TorrentFilter.storedSelection(in: defaults) : .all)
   }
 
   func select(_ filter: TorrentFilter) {
     self.filter = filter
+    if persistsSelection,
+      defaults.object(forKey: TorrentFilter.remembersLastSelectionStorageKey) as? Bool ?? true
+    {
+      defaults.set(filter.rawValue, forKey: TorrentFilter.lastSelectionStorageKey)
+    }
     if let serverID {
       filtersByServerID[serverID] = filter
     }
@@ -58,7 +73,6 @@ struct TorrentContentView: View {
   @Environment(AppModel.self) private var model
   @Environment(TorrentSearchState.self) private var searchState
   @Environment(TorrentSelectionState.self) private var selectionState
-  @State private var pagingBridge = TorrentFilterPagingBridge()
 
   let onOpenServers: () -> Void
   let onVisibleScrollViewChange: (UIScrollView?) -> Void
@@ -92,7 +106,6 @@ struct TorrentContentView: View {
           selectionState: selectionState,
           selection: searchState.filter,
           query: searchState.query,
-          pagingBridge: pagingBridge,
           onSelectFilter: { searchState.select($0) },
           onVisibleScrollViewChange: onVisibleScrollViewChange,
           onOpenTorrent: onOpenTorrent,
@@ -101,15 +114,15 @@ struct TorrentContentView: View {
           onToggleSelection: onToggleSelection,
           onTogglePause: onTogglePause
         )
-        .ignoresSafeArea()
+        .ignoresSafeArea(edges: .bottom)
         .safeAreaBar(edge: .top, spacing: 0) {
           TorrentFilterTabsView(
             counts: TorrentFilterCounting.counts(for: model.torrents),
             selection: searchState.filter,
-            pagingBridge: pagingBridge,
             onSelect: { searchState.select($0) }
           )
           .padding(.horizontal, 16)
+          .padding(.bottom, AppSpacing.group)
         }
       }
     }

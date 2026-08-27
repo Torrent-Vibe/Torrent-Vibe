@@ -11,7 +11,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     "-ui-live-activity-demo"
   )
   private let model: AppModel
-  private let searchState = TorrentSearchState()
+  private let searchState: TorrentSearchState
   private let selectionState = TorrentSelectionState()
   private weak var selectAllItem: UIBarButtonItem?
   private lazy var addButton = UIBarButtonItem(
@@ -28,6 +28,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
   init(model: AppModel) {
     self.model = model
+    searchState = TorrentSearchState(persistsSelection: !model.isDemoMode)
     super.init(nibName: nil, bundle: nil)
   }
 

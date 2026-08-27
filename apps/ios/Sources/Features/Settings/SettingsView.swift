@@ -129,6 +129,8 @@ final class SettingsViewController: SwiftUIHostingViewController {
 private struct SettingsContentView: View {
   @AppStorage("appearanceMode") private var appearanceMode = AppearanceMode.system.rawValue
   @AppStorage("refreshInterval") private var refreshInterval = 5
+  @AppStorage(TorrentFilter.remembersLastSelectionStorageKey)
+  private var remembersLastTorrentFilter = true
   @Environment(AppModel.self) private var model
 
   let onAppearanceModeChange: (AppearanceMode) -> Void
@@ -177,6 +179,8 @@ private struct SettingsContentView: View {
           Text("10 秒").tag(10)
           Text("30 秒").tag(30)
         }
+
+        Toggle("记住上次任务筛选", isOn: $remembersLastTorrentFilter)
 
         SettingsNavigationButton(
           title: String(localized: "后台与通知"),

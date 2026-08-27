@@ -90,4 +90,25 @@ final class TorrentFilterTests: XCTestCase {
     XCTAssertTrue(TorrentFilter.error.includes(missingFiles))
     XCTAssertFalse(TorrentFilter.allCases.dropFirst().contains { $0.includes(checkingDownload) })
   }
+
+  @MainActor
+  func testLastSelectedFilterIsRestoredUnlessRememberingIsDisabled() {
+    let suiteName = "TorrentFilterTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let serverID = UUID()
+
+    let firstLaunch = TorrentSearchState(defaults: defaults)
+    firstLaunch.activate(serverID: serverID)
+    firstLaunch.select(.downloading)
+
+    let relaunched = TorrentSearchState(defaults: defaults)
+    relaunched.activate(serverID: serverID)
+    XCTAssertEqual(relaunched.filter, .downloading)
+
+    defaults.set(false, forKey: TorrentFilter.remembersLastSelectionStorageKey)
+    let disabled = TorrentSearchState(defaults: defaults)
+    disabled.activate(serverID: serverID)
+    XCTAssertEqual(disabled.filter, .all)
+  }
 }

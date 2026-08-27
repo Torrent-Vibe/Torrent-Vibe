@@ -4,14 +4,12 @@ import UIKit
 struct TorrentFilterTabsView: View {
   let counts: [TorrentFilter: Int]
   let selection: TorrentFilter
-  let pagingBridge: TorrentFilterPagingBridge
   let onSelect: (TorrentFilter) -> Void
 
   var body: some View {
     TorrentFilterTabsRepresentable(
       counts: counts,
       selection: selection,
-      pagingBridge: pagingBridge,
       onSelect: onSelect
     )
     .frame(height: 40)
@@ -21,7 +19,6 @@ struct TorrentFilterTabsView: View {
 private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
   let counts: [TorrentFilter: Int]
   let selection: TorrentFilter
-  let pagingBridge: TorrentFilterPagingBridge
   let onSelect: (TorrentFilter) -> Void
 
   func makeCoordinator() -> Coordinator {
@@ -29,10 +26,7 @@ private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
   }
 
   func makeUIView(context: Context) -> HorizontalTabsComponent.View {
-    let view = HorizontalTabsComponent.View()
-    context.coordinator.pagingBridge = pagingBridge
-    pagingBridge.tabsView = view
-    return view
+    HorizontalTabsComponent.View()
   }
 
   func updateUIView(_ view: HorizontalTabsComponent.View, context: Context) {
@@ -65,12 +59,7 @@ private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
     context.coordinator.selection = selection
   }
 
-  static func dismantleUIView(_ view: HorizontalTabsComponent.View, coordinator: Coordinator) {
-    coordinator.pagingBridge?.clearTabsView(view)
-  }
-
   final class Coordinator {
     var selection: TorrentFilter?
-    weak var pagingBridge: TorrentFilterPagingBridge?
   }
 }

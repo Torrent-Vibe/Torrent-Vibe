@@ -1,6 +1,9 @@
 import Foundation
 
 enum TorrentFilter: String, CaseIterable, Identifiable, Sendable {
+  static let remembersLastSelectionStorageKey = "torrentVibe.torrents.remembersLastFilter"
+  static let lastSelectionStorageKey = "torrentVibe.torrents.lastFilter"
+
   case all
   case downloading
   case seeding
@@ -41,6 +44,13 @@ enum TorrentFilter: String, CaseIterable, Identifiable, Sendable {
     case .paused: torrent.statusGroup == .paused
     case .error: torrent.statusGroup == .error
     }
+  }
+
+  static func storedSelection(in defaults: UserDefaults) -> TorrentFilter {
+    guard defaults.object(forKey: remembersLastSelectionStorageKey) as? Bool ?? true else {
+      return .all
+    }
+    return defaults.string(forKey: lastSelectionStorageKey).flatMap(TorrentFilter.init) ?? .all
   }
 }
 

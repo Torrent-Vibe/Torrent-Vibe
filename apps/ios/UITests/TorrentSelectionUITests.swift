@@ -86,23 +86,45 @@ final class TorrentSelectionUITests: XCTestCase {
     let downloadingChip = app.buttons["torrent-filter-chip-downloading"]
     XCTAssertTrue(allChip.waitForExistence(timeout: 10))
 
-    let forwardStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.38))
+    let forwardStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.38))
     let forwardEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.38))
     forwardStart.press(forDuration: 0.05, thenDragTo: forwardEnd)
 
     XCTAssertTrue(downloadingChip.waitForExistence(timeout: 5))
     XCTAssertTrue(downloadingChip.isSelected)
     XCTAssertFalse(allChip.isSelected)
-    XCTAssertTrue(app.buttons["torrent-row-demo-blue-planet"].exists)
-    XCTAssertFalse(app.buttons["torrent-row-demo-frieren"].exists)
+    XCTAssertTrue(app.cells["torrent-row-demo-blue-planet"].exists)
+    XCTAssertFalse(app.cells["torrent-row-demo-frieren"].exists)
 
-    let reverseStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.38))
+    let reverseStart = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.38))
     let reverseEnd = app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.38))
     reverseStart.press(forDuration: 0.05, thenDragTo: reverseEnd)
 
     XCTAssertTrue(allChip.isSelected)
     XCTAssertFalse(downloadingChip.isSelected)
-    XCTAssertTrue(app.buttons["torrent-row-demo-frieren"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.cells["torrent-row-demo-frieren"].waitForExistence(timeout: 5))
+  }
+
+  @MainActor
+  func testTorrentRowLeadingSwipeCanPauseTheTask() throws {
+    let app = XCUIApplication()
+    app.launchArguments = ["-ui-demo"]
+    app.launch()
+
+    let row = app.cells["torrent-row-demo-blue-planet"]
+    XCTAssertTrue(row.waitForExistence(timeout: 10))
+    let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.5))
+    let end = row.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+    start.press(
+      forDuration: 0.1,
+      thenDragTo: end,
+      withVelocity: .slow,
+      thenHoldForDuration: 0.1
+    )
+
+    let paused = NSPredicate(format: "label CONTAINS %@", "已暂停")
+    expectation(for: paused, evaluatedWith: row)
+    waitForExpectations(timeout: 5)
   }
 
   @MainActor
@@ -138,5 +160,21 @@ final class TorrentSelectionUITests: XCTestCase {
     app.buttons["torrent-import-back"].tap()
     XCTAssertTrue(source.waitForExistence(timeout: 5))
     XCTAssertEqual(source.value as? String, magnet)
+  }
+
+  @MainActor
+  func testLiveActivityCanStartFromTorrentDetail() throws {
+    let app = XCUIApplication()
+    app.launchArguments = ["-ui-demo", "-ui-live-activity-demo"]
+    app.launch()
+
+    let liveActivity = app.buttons["torrent-detail-live-activity"]
+    XCTAssertTrue(liveActivity.waitForExistence(timeout: 10))
+    liveActivity.tap()
+
+    XCTAssertEqual(liveActivity.label, "停止实时活动")
+    XCTAssertTrue(
+      app.staticTexts["torrent-detail-live-activity-status"].label.contains("正在锁屏与灵动岛跟踪")
+    )
   }
 }
