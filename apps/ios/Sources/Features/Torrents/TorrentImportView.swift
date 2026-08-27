@@ -96,6 +96,7 @@ private final class TorrentImportState {
   init(draft: TorrentImportDraft, selectedServerID: UUID?) {
     fileData = draft.fileData
     fileName = draft.fileName
+    isShowingSettings = draft.locksSource
     sourceText = draft.sourceText
     self.selectedServerID = selectedServerID
   }
@@ -199,7 +200,7 @@ final class TorrentImportViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = String(localized: "添加 Torrent")
+    updateTitle()
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -213,8 +214,7 @@ final class TorrentImportViewController: SwiftUIHostingViewController {
       TorrentImportContentView(
         draft: draft,
         onBack: { [weak self] in
-          self?.state.errorMessage = nil
-          self?.state.isShowingSettings = false
+          self?.showSource()
         },
         onCancel: { [weak self] in
           self?.cancel()
@@ -270,9 +270,22 @@ final class TorrentImportViewController: SwiftUIHostingViewController {
       _ = try AppModel.validatedTorrentAddRequest(state.request())
       state.errorMessage = nil
       state.isShowingSettings = true
+      updateTitle()
     } catch {
       state.errorMessage = error.localizedDescription
     }
+  }
+
+  private func showSource() {
+    state.errorMessage = nil
+    state.isShowingSettings = false
+    updateTitle()
+  }
+
+  private func updateTitle() {
+    title = state.isShowingSettings
+      ? String(localized: "Torrent 设置")
+      : String(localized: "添加 Torrent")
   }
 
   private func setSubmitting(_ isSubmitting: Bool) {
@@ -368,10 +381,8 @@ private struct TorrentImportContentView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      TorrentImportStepHeader(isShowingSettings: state.isShowingSettings)
-      Divider()
       if state.isShowingSettings {
-        TorrentImportSettingsView()
+        TorrentImportSettingsView(draft: draft)
       } else {
         TorrentImportSourceView(
           draft: draft,
@@ -383,6 +394,7 @@ private struct TorrentImportContentView: View {
     .accessibilityIdentifier("torrent-import-sheet")
     .safeAreaInset(edge: .bottom, spacing: 0) {
       TorrentImportFooter(
+        allowsBack: !draft.locksSource,
         isShowingSettings: state.isShowingSettings,
         isSubmitting: state.isSubmitting,
         primaryTitle: state.isShowingSettings ? confirmTitle : String(localized: "下一步"),
@@ -413,47 +425,6 @@ private struct TorrentImportContentView: View {
     return state.isSubmitting
       ? String(localized: "正在添加到 \(server.name)")
       : String(localized: "添加到 \(server.name)")
-  }
-}
-
-private struct TorrentImportStepHeader: View {
-  let isShowingSettings: Bool
-
-  var body: some View {
-    HStack(spacing: 12) {
-      step(
-        number: 1, title: String(localized: "来源"), isActive: !isShowingSettings,
-        isCompleted: isShowingSettings)
-        .accessibilityIdentifier("torrent-import-step-source")
-      Capsule()
-        .fill(isShowingSettings ? Color.accentColor : Color.secondary.opacity(0.25))
-        .frame(height: 2)
-        .accessibilityHidden(true)
-      step(
-        number: 2, title: String(localized: "设置"), isActive: isShowingSettings, isCompleted: false)
-        .accessibilityIdentifier("torrent-import-step-settings")
-    }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 14)
-    .background(Color(uiColor: .secondarySystemGroupedBackground))
-  }
-
-  private func step(
-    number: Int,
-    title: String,
-    isActive: Bool,
-    isCompleted: Bool
-  ) -> some View {
-    HStack(spacing: 6) {
-      Image(systemName: isCompleted ? "checkmark.circle.fill" : "\(number).circle.fill")
-        .imageScale(.medium)
-      Text(title)
-        .font(.subheadline.weight(isActive ? .semibold : .regular))
-    }
-    .foregroundStyle(isActive || isCompleted ? Color.accentColor : Color.secondary)
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel("第 \(number) 步，共 2 步：\(title)")
-    .accessibilityAddTraits(isActive ? .isSelected : [])
   }
 }
 
@@ -559,10 +530,28 @@ private struct TorrentImportSettingsView: View {
   @Environment(AppModel.self) private var model
   @Environment(TorrentImportState.self) private var state
 
+  let draft: TorrentImportDraft
+
   var body: some View {
     @Bindable var state = state
 
     Form {
+      if draft.locksSource {
+        Section {
+          Label(
+            draft.displayTitle ?? draft.fileName ?? String(localized: "已选择 Torrent"),
+            systemImage: draft.fileData == nil ? "link" : "doc"
+          )
+          .accessibilityIdentifier("torrent-import-origin")
+        } header: {
+          Text("导入资源")
+        } footer: {
+          if let sourceFooterText = draft.sourceFooterText {
+            Text(sourceFooterText)
+          }
+        }
+      }
+
       Section("目标服务器") {
         if model.servers.isEmpty {
           Label("尚未配置服务器", systemImage: "externaldrive.badge.exclamationmark")
@@ -699,6 +688,7 @@ private struct TorrentImportCategoryField: View {
 }
 
 private struct TorrentImportFooter: View {
+  let allowsBack: Bool
   let isShowingSettings: Bool
   let isSubmitting: Bool
   let primaryTitle: String
@@ -708,9 +698,11 @@ private struct TorrentImportFooter: View {
   let onPrimaryAction: () -> Void
 
   var body: some View {
+    let showsBack = isShowingSettings && allowsBack
+
     HStack(spacing: 12) {
-      Button(isShowingSettings ? "上一步" : "取消") {
-        if isShowingSettings {
+      Button(showsBack ? "上一步" : "取消") {
+        if showsBack {
           onBack()
         } else {
           onCancel()
@@ -721,7 +713,7 @@ private struct TorrentImportFooter: View {
       .disabled(isSubmitting)
       .frame(maxWidth: .infinity)
       .accessibilityIdentifier(
-        isShowingSettings ? "torrent-import-back" : "torrent-import-footer-cancel"
+        showsBack ? "torrent-import-back" : "torrent-import-footer-cancel"
       )
 
       Button(action: onPrimaryAction) {
