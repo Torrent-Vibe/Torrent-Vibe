@@ -328,24 +328,24 @@ enum MTeamServiceError: LocalizedError {
     switch self {
     case .httpStatus(let status, let message):
       if let message, !message.isEmpty {
-        "M-Team 返回 HTTP \(status)：\(message)"
+        String(localized: "M-Team 返回 HTTP \(status)：\(message)")
       } else {
-        "M-Team 返回 HTTP \(status)。"
+        String(localized: "M-Team 返回 HTTP \(status)。")
       }
     case .invalidBaseURL:
-      "M-Team Base URL 必须使用 http:// 或 https://。"
+      String(localized: "M-Team Base URL 必须使用 http:// 或 https://。")
     case .invalidPageSize:
-      "M-Team 每页数量必须介于 1 到 100。"
+      String(localized: "M-Team 每页数量必须介于 1 到 100。")
     case .invalidPayload:
-      "M-Team 返回了无法识别的数据。"
+      String(localized: "M-Team 返回了无法识别的数据。")
     case .invalidResponse:
-      "M-Team 返回了无效响应。"
+      String(localized: "M-Team 返回了无效响应。")
     case .missingAPIKey:
-      "请先在设置中保存 M-Team API Key。"
+      String(localized: "请先在设置中保存 M-Team API Key。")
     case .missingDetail:
-      "M-Team 没有返回此 Torrent 的详情。"
+      String(localized: "M-Team 没有返回此 Torrent 的详情。")
     case .missingDownloadURL(let message):
-      message?.isEmpty == false ? message : "M-Team 没有返回 Torrent 下载链接。"
+      message?.isEmpty == false ? message : String(localized: "M-Team 没有返回 Torrent 下载链接。")
     }
   }
 }

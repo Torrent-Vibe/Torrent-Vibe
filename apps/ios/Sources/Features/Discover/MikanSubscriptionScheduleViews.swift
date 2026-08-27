@@ -10,7 +10,7 @@ struct SubscriptionWeekStrip: View {
   let daysWithNewEpisodes: Set<Int>
   @Binding var selection: SubscriptionScope
 
-  private static let dayCharacters = ["日", "一", "二", "三", "四", "五", "六"]
+  private static let dayCharacters = [String(localized: "日"), String(localized: "一"), String(localized: "二"), String(localized: "三"), String(localized: "四"), String(localized: "五"), String(localized: "六")]
 
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
@@ -116,7 +116,7 @@ struct SubscriptionScheduleRow: View {
   let onRetryFailures: () -> Void
   let onUnsubscribe: () -> Void
 
-  private static let dayCharacters = ["日", "一", "二", "三", "四", "五", "六"]
+  private static let dayCharacters = [String(localized: "日"), String(localized: "一"), String(localized: "二"), String(localized: "三"), String(localized: "四"), String(localized: "五"), String(localized: "六")]
 
   var body: some View {
     Button(action: onOpen) {
@@ -156,9 +156,9 @@ struct SubscriptionScheduleRow: View {
   }
 
   private var subtitle: String {
-    var parts = [entry.group.replica.subgroupName, "已收 \(entry.episodeCount) 集"]
+    var parts = [entry.group.replica.subgroupName, String(localized: "已收 \(entry.episodeCount) 集")]
     if showsWeekday, let weekday = entry.mikanWeekday {
-      parts.append("周\(Self.dayCharacters[weekday])")
+      parts.append(String(localized: "周\(Self.dayCharacters[weekday])"))
     }
     return parts.joined(separator: " · ")
   }

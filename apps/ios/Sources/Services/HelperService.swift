@@ -392,19 +392,19 @@ enum HelperServiceError: LocalizedError, Equatable {
   var errorDescription: String? {
     switch self {
     case .httpStatus(let status):
-      "Helper 请求失败（HTTP \(status)）。"
+      String(localized: "Helper 请求失败（HTTP \(status)）。")
     case .invalidPairingCode:
-      "配对码无效或已经过期。"
+      String(localized: "配对码无效或已经过期。")
     case .invalidResponse:
-      "Helper 返回了无法识别的数据。"
+      String(localized: "Helper 返回了无法识别的数据。")
     case .profileRevisionConflict:
-      "Helper 凭证 Profile 已被其他客户端更新。"
+      String(localized: "Helper 凭证 Profile 已被其他客户端更新。")
     case .revisionConflict:
-      "Helper 订阅已被其他客户端更新。"
+      String(localized: "Helper 订阅已被其他客户端更新。")
     case .unauthorized:
-      "此设备的 Helper 授权已失效，请重新配对。"
+      String(localized: "此设备的 Helper 授权已失效，请重新配对。")
     case .unsupportedProtocol:
-      "Helper 版本不支持独立客户端配对，请先升级 Helper。"
+      String(localized: "Helper 版本不支持独立客户端配对，请先升级 Helper。")
     }
   }
 }

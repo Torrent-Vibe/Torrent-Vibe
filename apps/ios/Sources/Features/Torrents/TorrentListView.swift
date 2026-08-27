@@ -38,7 +38,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "任务"
+    title = String(localized: "任务")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
 
@@ -73,9 +73,9 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     )
 
     configureSearchController()
-    addButton.accessibilityLabel = "添加 Torrent"
+    addButton.accessibilityLabel = String(localized: "添加 Torrent")
     addButton.accessibilityIdentifier = "torrent-add"
-    selectButton.accessibilityLabel = "选择任务"
+    selectButton.accessibilityLabel = String(localized: "选择任务")
     selectButton.accessibilityIdentifier = "torrent-select"
     navigationItem.rightBarButtonItems = [addButton, selectButton]
     updateServerMenu()
@@ -100,7 +100,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     let searchController = UISearchController(searchResultsController: nil)
     searchController.obscuresBackgroundDuringPresentation = false
     searchController.searchResultsUpdater = self
-    searchController.searchBar.placeholder = "搜索任务"
+    searchController.searchBar.placeholder = String(localized: "搜索任务")
     searchController.searchBar.accessibilityIdentifier = "torrent-search"
     navigationItem.searchController = searchController
     definesPresentationContext = true
@@ -130,9 +130,9 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
     let button = UIBarButtonItem(
       image: UIImage(systemName: "externaldrive"),
-      menu: UIMenu(title: "选择服务器", children: actions)
+      menu: UIMenu(title: String(localized: "选择服务器"), children: actions)
     )
-    button.accessibilityLabel = model.activeServer?.name ?? "选择服务器"
+    button.accessibilityLabel = model.activeServer?.name ?? String(localized: "选择服务器")
     button.accessibilityIdentifier = "torrent-server-menu"
     navigationItem.leftBarButtonItem = button
     addButton.isEnabled = true
@@ -155,7 +155,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     selectionState.begin()
     navigationItem.leftBarButtonItem?.isEnabled = false
     let done = UIBarButtonItem(
-      title: "完成",
+      title: String(localized: "完成"),
       style: .prominent,
       target: self,
       action: #selector(endSelection)
@@ -198,7 +198,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
   private func configureSelectionToolbar() {
     let selectAll = UIBarButtonItem(
-      title: "全选",
+      title: String(localized: "全选"),
       style: .plain,
       target: self,
       action: #selector(toggleSelectAll)
@@ -212,7 +212,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       target: self,
       action: #selector(pauseSelected)
     )
-    pause.accessibilityLabel = "暂停所选任务"
+    pause.accessibilityLabel = String(localized: "暂停所选任务")
     pause.accessibilityIdentifier = "torrent-selection-pause"
     pause.tag = 1
 
@@ -222,7 +222,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       target: self,
       action: #selector(resumeSelected)
     )
-    resume.accessibilityLabel = "继续所选任务"
+    resume.accessibilityLabel = String(localized: "继续所选任务")
     resume.accessibilityIdentifier = "torrent-selection-resume"
     resume.tag = 2
 
@@ -233,7 +233,7 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
       action: #selector(deleteSelected)
     )
     delete.tintColor = .systemRed
-    delete.accessibilityLabel = "删除所选任务"
+    delete.accessibilityLabel = String(localized: "删除所选任务")
     delete.accessibilityIdentifier = "torrent-selection-delete"
     delete.tag = 3
 
@@ -264,11 +264,15 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
     for item in toolbarItems ?? [] where item.tag > 0 {
       item.isEnabled = isEnabled
     }
-    selectAllItem?.title = selectedCount == totalCount && totalCount > 0 ? "取消全选" : "全选"
+    selectAllItem?.title =
+      selectedCount == totalCount && totalCount > 0
+      ? String(localized: "取消全选") : String(localized: "全选")
     if selectionState.isSelecting {
-      title = selectedCount > 0 ? "已选 \(selectedCount)" : "选择任务"
+      title =
+        selectedCount > 0
+        ? String(localized: "已选 \(selectedCount)") : String(localized: "选择任务")
     } else {
-      title = "任务"
+      title = String(localized: "任务")
     }
   }
 
@@ -329,19 +333,22 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
   private func confirmDelete(torrents: [TorrentSummary]) {
     guard !torrents.isEmpty else { return }
-    let title = torrents.count == 1 ? "移除“\(torrents[0].name)”？" : "移除 \(torrents.count) 个任务？"
+    let title =
+      torrents.count == 1
+      ? String(localized: "移除“\(torrents[0].name)”？")
+      : String(localized: "移除 \(torrents.count) 个任务？")
     let alert = UIAlertController(
       title: title,
-      message: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。",
+      message: String(localized: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。"),
       preferredStyle: .actionSheet
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "仅移除任务，保留文件", style: .default) { [weak self] _ in
+      UIAlertAction(title: String(localized: "仅移除任务，保留文件"), style: .default) { [weak self] _ in
         self?.performDelete(torrents: torrents, deleteFiles: false)
       })
     alert.addAction(
-      UIAlertAction(title: "移除任务并删除文件", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "移除任务并删除文件"), style: .destructive) { [weak self] _ in
         self?.performDelete(torrents: torrents, deleteFiles: true)
       })
     if let popover = alert.popoverPresentationController {
@@ -396,11 +403,11 @@ final class TorrentViewController: SwiftUIHostingViewController, UISearchResults
 
   private func presentError(_ error: Error) {
     let alert = UIAlertController(
-      title: "无法更新任务",
+      title: String(localized: "无法更新任务"),
       message: error.localizedDescription,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "完成", style: .default))
+    alert.addAction(UIAlertAction(title: String(localized: "完成"), style: .default))
     present(alert, animated: true)
   }
 

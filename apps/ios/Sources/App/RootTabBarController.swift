@@ -62,7 +62,7 @@ final class RootTabBarController: UITabBarController {
 
     let torrentsNavigationController = makeNavigationController(
       root: torrents,
-      title: "任务",
+      title: String(localized: "任务"),
       systemImage: "arrow.down.circle",
       accessibilityIdentifier: "tab-torrents"
     )
@@ -72,13 +72,13 @@ final class RootTabBarController: UITabBarController {
       torrentsNavigationController,
       makeNavigationController(
         root: discover,
-        title: "发现",
+        title: String(localized: "发现"),
         systemImage: "safari",
         accessibilityIdentifier: "tab-discover"
       ),
       makeNavigationController(
         root: settings,
-        title: "设置",
+        title: String(localized: "设置"),
         systemImage: "gearshape",
         accessibilityIdentifier: "tab-settings"
       ),
@@ -119,11 +119,11 @@ final class RootTabBarController: UITabBarController {
   func presentSharedTorrentImportError(_ message: String) {
     guard presentedViewController == nil else { return }
     let alert = UIAlertController(
-      title: "无法读取分享内容",
+      title: String(localized: "无法读取分享内容"),
       message: message,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(UIAlertAction(title: String(localized: "好"), style: .default))
     alert.view.accessibilityIdentifier = "shared-import-error"
     present(alert, animated: true)
   }

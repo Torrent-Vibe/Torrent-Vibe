@@ -16,7 +16,7 @@ final class HelperLogViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "日志"
+    title = String(localized: "日志")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     host(HelperLogContentView(state: state))
@@ -284,7 +284,7 @@ private struct HelperLogRawTabView: View {
           HelperLogErrorBanner(message: error)
         }
         ScrollView {
-          Text(state.rawText.isEmpty ? "暂无日志" : state.rawText)
+          Text(state.rawText.isEmpty ? String(localized: "暂无日志") : state.rawText)
             .font(.caption.monospaced())
             .foregroundStyle(state.rawText.isEmpty ? .secondary : .primary)
             .frame(maxWidth: .infinity, alignment: .leading)

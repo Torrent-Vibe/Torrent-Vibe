@@ -35,7 +35,7 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "我的订阅"
+    title = String(localized: "我的订阅")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .always
     host(
@@ -91,7 +91,7 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
     ) { [weak self] outcome in
       let targets = outcome.serverNames.joined(separator: "、")
       self?.state.errorMessage = nil
-      self?.state.successMessage = "已更新订阅目标：\(targets)"
+      self?.state.successMessage = String(localized: "已更新订阅目标：\(targets)")
     }
   }
 
@@ -129,13 +129,13 @@ final class SubscriptionsViewController: SwiftUIHostingViewController {
   private func confirmUnsubscribe(_ group: HelperSubscriptionGroup) {
     let targets = group.targets.map(\.serverName).joined(separator: "、")
     let alert = UIAlertController(
-      title: "取消《\(group.replica.title)》订阅？",
-      message: "将从 \(targets) 的 Helper 移除此订阅；已经添加的 Torrent 与文件会保留。",
+      title: String(localized: "取消《\(group.replica.title)》订阅？"),
+      message: String(localized: "将从 \(targets) 的 Helper 移除此订阅；已经添加的 Torrent 与文件会保留。"),
       preferredStyle: .actionSheet
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "取消订阅", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "取消订阅"), style: .destructive) { [weak self] _ in
         self?.unsubscribe(group)
       }
     )
@@ -170,7 +170,7 @@ private struct MikanSubscriptionsContentView: View {
   let onRetry: (UUID, HelperReplica, HelperEpisodeStatus) -> Void
   let onUnsubscribe: (HelperSubscriptionGroup) -> Void
 
-  private static let dayCharacters = ["日", "一", "二", "三", "四", "五", "六"]
+  private static let dayCharacters = [String(localized: "日"), String(localized: "一"), String(localized: "二"), String(localized: "三"), String(localized: "四"), String(localized: "五"), String(localized: "六")]
 
   var body: some View {
     Group {
@@ -178,7 +178,7 @@ private struct MikanSubscriptionsContentView: View {
         ContentUnavailableView {
           Label("尚未配对 Helper", systemImage: "bookmark")
         } description: {
-          Text("前往设置中的服务器详情完成 Helper 配对后，可在这里管理持续订阅。")
+          Text("在设置里配对 Helper 后，可在这里管理订阅。")
         }
       } else {
         List {
@@ -241,9 +241,9 @@ private struct MikanSubscriptionsContentView: View {
         from: checkedAt,
         now: Date.now
       )
-      return "无法连接 \(serverName)，正在显示 \(fragment)的本地快照。"
+      return String(localized: "无法连接 \(serverName)，正在显示 \(fragment)的本地快照。")
     }
-    return "无法连接 \(serverName)，正在显示本地快照。"
+    return String(localized: "无法连接 \(serverName)，正在显示本地快照。")
   }
 
   @ViewBuilder
@@ -265,7 +265,7 @@ private struct MikanSubscriptionsContentView: View {
         )
         .listRowInsets(EdgeInsets())
       } footer: {
-        Text("同一番组与字幕组在多台 Helper 上合并为一个订阅；Helper 仍是各服务器的真相源。")
+        Text("同一番组与字幕组只显示一条订阅。")
       }
 
       switch state.scope {
@@ -320,9 +320,9 @@ private struct MikanSubscriptionsContentView: View {
 
   private func summaryText(_ schedule: SubscriptionSchedule) -> String {
     if schedule.newCount > 0 {
-      return "\(schedule.totalCount) 部订阅 · \(schedule.newCount) 部有新集"
+      return String(localized: "\(schedule.totalCount) 部订阅 · \(schedule.newCount) 部有新集")
     }
-    return "\(schedule.totalCount) 部订阅"
+    return String(localized: "\(schedule.totalCount) 部订阅")
   }
 
   private func section(for weekday: Int, in schedule: SubscriptionSchedule) -> SubscriptionDaySection {
@@ -338,14 +338,14 @@ private struct MikanSubscriptionsContentView: View {
   private static func header(for section: SubscriptionDaySection) -> String {
     let month = Calendar.current.component(.month, from: section.date)
     let day = Calendar.current.component(.day, from: section.date)
-    let weekday = "周\(dayCharacters[section.mikanWeekday])"
+    let weekday = String(localized: "周\(dayCharacters[section.mikanWeekday])")
     switch section.daysFromToday {
     case 0:
-      return "今天 · \(month)月\(day)日 \(weekday)"
+      return String(localized: "今天 · \(month)月\(day)日 \(weekday)")
     case 1:
-      return "明天 · \(weekday)"
+      return String(localized: "明天 · \(weekday)")
     default:
-      return "\(weekday) · \(month)月\(day)日"
+      return String(localized: "\(weekday) · \(month)月\(day)日")
     }
   }
 
@@ -358,7 +358,7 @@ private struct MikanSubscriptionsContentView: View {
           Section {
             HStack {
               ProgressView()
-              Text("正在读取 \(server.name) 的 Helper 真相源")
+              Text("正在读取 \(server.name) 的订阅")
                 .foregroundStyle(.secondary)
             }
           }
@@ -413,7 +413,7 @@ private struct MikanSubscriptionsContentView: View {
     VStack(alignment: .leading, spacing: 8) {
       Text("番组 \(job.bangumiId) · 字幕组 \(job.subgroupId)")
         .font(.subheadline)
-      Text("\(job.episodes.count) 个剧集 · \(job.episodes.first?.state.title ?? "等待处理")")
+      Text("\(job.episodes.count) 个剧集 · \(job.episodes.first?.state.title ?? String(localized: "等待处理"))")
         .font(.caption)
         .foregroundStyle(.secondary)
     }
@@ -458,18 +458,18 @@ final class MikanSubscriptionTargetsViewController: SwiftUIHostingViewController
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "订阅目标"
+    title = String(localized: "订阅目标")
     view.backgroundColor = .systemGroupedBackground
     view.accessibilityIdentifier = "helper-targets-sheet"
     navigationItem.leftBarButtonItem = UIBarButtonItem(
-      title: "取消",
+      title: String(localized: "取消"),
       style: .plain,
       target: self,
       action: #selector(cancel)
     )
     navigationItem.leftBarButtonItem?.accessibilityIdentifier = "helper-targets-cancel"
     navigationItem.rightBarButtonItem = UIBarButtonItem(
-      title: "保存",
+      title: String(localized: "保存"),
       style: .prominent,
       target: self,
       action: #selector(save)
@@ -508,7 +508,7 @@ final class MikanSubscriptionTargetsViewController: SwiftUIHostingViewController
 
   @objc private func save() {
     guard !state.selectedServerIDs.isEmpty else {
-      state.errorMessage = "请至少保留一个目标服务器。"
+      state.errorMessage = String(localized: "请至少保留一个目标服务器。")
       return
     }
     state.errorMessage = nil
@@ -566,14 +566,14 @@ private struct MikanSubscriptionTargetsContentView: View {
           }
           .buttonStyle(.plain)
           .accessibilityValue(
-            state.selectedServerIDs.contains(server.id) ? "已选择" : "未选择"
+            state.selectedServerIDs.contains(server.id) ? String(localized: "已选择") : String(localized: "未选择")
           )
           .accessibilityIdentifier("helper-target-toggle-\(server.id.uuidString)")
         }
       } header: {
         Text(group.replica.title)
       } footer: {
-        Text("保存时先添加新目标，再移除未选择目标；每台 Helper 均以自身最新 revision 合并。")
+        Text("取消选择的服务器会停止这个订阅。")
       }
 
       if state.isSaving {

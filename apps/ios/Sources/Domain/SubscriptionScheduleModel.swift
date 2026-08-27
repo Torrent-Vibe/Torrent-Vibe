@@ -7,9 +7,9 @@ enum SubscriptionBadge: Equatable, Sendable {
 
   var title: String {
     switch self {
-    case .failureRetry: "失败 · 重试"
-    case .newEpisodes: "有新集"
-    case .syncing: "同步中"
+    case .failureRetry: String(localized: "失败 · 重试")
+    case .newEpisodes: String(localized: "有新集")
+    case .syncing: String(localized: "同步中")
     }
   }
 }

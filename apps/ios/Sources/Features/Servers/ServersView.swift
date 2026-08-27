@@ -16,7 +16,7 @@ final class ServersViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "服务器"
+    title = String(localized: "服务器")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .always
     navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -24,7 +24,7 @@ final class ServersViewController: SwiftUIHostingViewController {
       target: self,
       action: #selector(presentAddServer)
     )
-    navigationItem.rightBarButtonItem?.accessibilityLabel = "添加服务器"
+    navigationItem.rightBarButtonItem?.accessibilityLabel = String(localized: "添加服务器")
     navigationItem.rightBarButtonItem?.accessibilityIdentifier = "server-toolbar-add"
 
     host(
@@ -106,7 +106,7 @@ private struct ServersContentView: View {
           }
 
           Section {
-            Text("密码仅保存在本机 Keychain；服务器配置不会包含明文凭据。")
+            Text("密码只保存在本机 Keychain。")
               .font(.footnote)
               .foregroundStyle(.secondary)
           }
@@ -152,7 +152,7 @@ private struct ServerRow: View {
     }
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
-    .accessibilityValue(isActive ? "当前服务器" : "")
+    .accessibilityValue(isActive ? String(localized: "当前服务器") : "")
   }
 }
 
@@ -173,11 +173,11 @@ private final class ServerDetailViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = model.servers.first(where: { $0.id == serverID })?.name ?? "服务器"
+    title = model.servers.first(where: { $0.id == serverID })?.name ?? String(localized: "服务器")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.rightBarButtonItem = UIBarButtonItem(
-      title: "编辑",
+      title: String(localized: "编辑"),
       style: .plain,
       target: self,
       action: #selector(presentEditor)
@@ -202,7 +202,7 @@ private final class ServerDetailViewController: SwiftUIHostingViewController {
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
-    title = model.servers.first(where: { $0.id == serverID })?.name ?? "服务器"
+    title = model.servers.first(where: { $0.id == serverID })?.name ?? String(localized: "服务器")
   }
 
   @objc private func presentEditor() {
@@ -224,16 +224,16 @@ private final class ServerDetailViewController: SwiftUIHostingViewController {
     let isCurrent = server.id == model.activeServerID
     let message =
       isCurrent
-      ? "这是当前服务器。删除后将切换到其他服务器；如无其他服务器，App 将进入无服务器状态。"
-      : "服务器凭据和本地配置将一并移除；远端 Torrent 不受影响。"
+      ? String(localized: "这是当前服务器。删除后将切换到其他服务器；如无其他服务器，App 将进入无服务器状态。")
+      : String(localized: "服务器凭据和本地配置将一并移除；远端 Torrent 不受影响。")
     let alert = UIAlertController(
-      title: "删除“\(server.name)”？",
+      title: String(localized: "删除“\(server.name)”？"),
       message: message,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "删除"), style: .destructive) { [weak self] _ in
         guard let self else { return }
         model.removeServer(id: serverID)
         navigationController?.popViewController(animated: true)
@@ -257,16 +257,17 @@ private struct ServerDetailContentView: View {
           Section("状态") {
             LabeledContent(
               "当前服务器",
-              value: server.id == model.activeServerID ? "是" : "否"
+              value: server.id == model.activeServerID
+                ? String(localized: "是") : String(localized: "否")
             )
             LabeledContent(
               "连接",
               value: model.isDemoMode
-                ? "演示环境"
+                ? String(localized: "演示环境")
                 : model.connectionStatusText(for: server.id)
             )
             if !model.isDemoMode {
-              Button(model.isRefreshing ? "正在测试连接" : "测试连接") {
+              Button(model.isRefreshing ? String(localized: "正在测试连接") : String(localized: "测试连接")) {
                 Task { await model.testConnection(for: server) }
               }
               .disabled(model.isRefreshing)
@@ -282,10 +283,14 @@ private struct ServerDetailContentView: View {
 
           Section("qBittorrent") {
             LabeledContent("地址", value: server.baseURL.absoluteString)
-            LabeledContent("用户名", value: server.username.isEmpty ? "未设置" : server.username)
+            LabeledContent(
+              "用户名",
+              value: server.username.isEmpty ? String(localized: "未设置") : server.username
+            )
             LabeledContent(
               "密码",
-              value: model.hasStoredPassword(for: server.id) ? "已存入 Keychain" : "未保存"
+              value: model.hasStoredPassword(for: server.id)
+                ? String(localized: "已存入 Keychain") : String(localized: "未保存")
             )
             Button("编辑连接信息", action: onEdit)
               .accessibilityIdentifier("server-edit-connection")

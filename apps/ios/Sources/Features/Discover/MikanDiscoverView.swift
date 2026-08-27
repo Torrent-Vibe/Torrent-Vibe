@@ -5,15 +5,15 @@ extension DiscoverViewController {
   func loadInitialContent() async {
     guard state.provider == .mikan else { return }
     guard let runtime else {
-      state.errorMessage = "Mikan JavaScriptCore Bridge 不可用。"
-      state.parserStatus = "解析器不可用"
+      state.errorMessage = String(localized: "Mikan 内容解析不可用。")
+      state.parserStatus = String(localized: "解析器不可用")
       return
     }
 
     if model.isDemoMode {
       do {
         let wall = try await runtime.parseSeasonWall(html: Self.demoSeasonHTML)
-        apply(wall: wall, source: "演示内容")
+        apply(wall: wall, source: String(localized: "演示内容"))
       } catch {
         state.errorMessage = error.localizedDescription
       }
@@ -41,7 +41,7 @@ extension DiscoverViewController {
         season: state.selectedSeason
       )
       guard !Task.isCancelled else { return }
-      apply(wall: wall, source: "实时内容")
+      apply(wall: wall, source: String(localized: "实时内容"))
     } catch is CancellationError {
       return
     } catch {
@@ -64,7 +64,7 @@ extension DiscoverViewController {
       else { return }
       state.searchResults = results
       model.noteMikanCards(results)
-      state.parserStatus = "实时搜索 · JavaScriptCore Bridge v1 · \(results.count) 部番组"
+      state.parserStatus = String(localized: "实时搜索 · JavaScriptCore Bridge v1 · \(results.count) 部番组")
     } catch is CancellationError {
       return
     } catch {
@@ -85,7 +85,7 @@ extension DiscoverViewController {
       state.selectedSeason = wall.season
     }
     let count = wall.groups.reduce(0) { $0 + $1.items.count }
-    let status = "\(source) · JavaScriptCore Bridge v1 · \(count) 部番组"
+    let status = String(localized: "\(source) · JavaScriptCore Bridge v1 · \(count) 部番组")
     state.parserStatus = status
     state.wallParserStatus = status
   }
@@ -99,7 +99,7 @@ extension DiscoverViewController {
       ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
       url.host != nil
     else {
-      state.errorMessage = "请在设置中填写有效的 Mikan Base URL。"
+      state.errorMessage = String(localized: "请在设置中填写有效的 Mikan Base URL。")
       return nil
     }
     return url
@@ -338,14 +338,14 @@ struct MikanDiscoverContentView: View {
 
   private func weekdayName(_ weekday: Int) -> String {
     switch weekday {
-    case 0: "星期日"
-    case 1: "星期一"
-    case 2: "星期二"
-    case 3: "星期三"
-    case 4: "星期四"
-    case 5: "星期五"
-    case 6: "星期六"
-    default: "特别放送"
+    case 0: String(localized: "星期日")
+    case 1: String(localized: "星期一")
+    case 2: String(localized: "星期二")
+    case 3: String(localized: "星期三")
+    case 4: String(localized: "星期四")
+    case 5: String(localized: "星期五")
+    case 6: String(localized: "星期六")
+    default: String(localized: "特别放送")
     }
   }
 }

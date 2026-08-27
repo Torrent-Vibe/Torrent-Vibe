@@ -2,7 +2,27 @@ import XCTest
 
 @testable import Torrent_Vibe
 
+@MainActor
 final class TorrentLiveActivityStateTests: XCTestCase {
+  func testLiveActivityKeepsBackgroundRefreshIndependentOfNotifications() {
+    XCTAssertTrue(
+      TorrentBackgroundStatusService.shouldScheduleRefresh(
+        notificationsEnabled: false,
+        hasActiveLiveActivity: true
+      ))
+    XCTAssertFalse(
+      TorrentBackgroundStatusService.shouldScheduleRefresh(
+        notificationsEnabled: false,
+        hasActiveLiveActivity: false
+      ))
+  }
+
+  func testForegroundRefreshHonorsThreeSecondSetting() {
+    XCTAssertEqual(SceneDelegate.foregroundRefreshInterval(0), 3)
+    XCTAssertEqual(SceneDelegate.foregroundRefreshInterval(3), 3)
+    XCTAssertEqual(SceneDelegate.foregroundRefreshInterval(10), 10)
+  }
+
   func testContentStatePreservesTransferStatusForIncompleteTorrent() {
     let updatedAt = Date(timeIntervalSince1970: 1_750_000_000)
     let state = TorrentLiveActivityAttributes.ContentState(

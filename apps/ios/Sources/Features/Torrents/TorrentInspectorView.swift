@@ -11,9 +11,9 @@ enum TorrentInspectorKind: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .files: "文件"
-    case .trackers: "Tracker"
-    case .peers: "Peer"
+    case .files: String(localized: "文件")
+    case .trackers: String(localized: "Tracker")
+    case .peers: String(localized: "Peer")
     }
   }
 
@@ -262,7 +262,7 @@ private struct TorrentTrackerInspectorRow: View {
         HStack(spacing: TorrentInspectorRowSpacing.metrics) {
           CompactMetric(
             item: CompactMetricItem(
-              accessibilityTitle: "做种数",
+              accessibilityTitle: String(localized: "做种数"),
               id: "tracker-seeders",
               systemImage: "arrow.up.circle",
               value: "\(tracker.seedCount)"
@@ -270,7 +270,7 @@ private struct TorrentTrackerInspectorRow: View {
           )
           CompactMetric(
             item: CompactMetricItem(
-              accessibilityTitle: "下载数",
+              accessibilityTitle: String(localized: "下载数"),
               id: "tracker-leechers",
               systemImage: "arrow.down.circle",
               value: "\(tracker.leechCount)"
@@ -278,7 +278,7 @@ private struct TorrentTrackerInspectorRow: View {
           )
           CompactMetric(
             item: CompactMetricItem(
-              accessibilityTitle: "Peer 数",
+              accessibilityTitle: String(localized: "Peer 数"),
               id: "tracker-peers",
               systemImage: "person.2",
               value: "\(tracker.peerCount)"
@@ -343,7 +343,7 @@ private struct TorrentPeerInspectorRow: View {
         HStack(spacing: TorrentInspectorRowSpacing.metrics) {
           CompactMetric(
             item: CompactMetricItem(
-              accessibilityTitle: "下载速度",
+              accessibilityTitle: String(localized: "下载速度"),
               id: "peer-download-speed",
               systemImage: "arrow.down",
               value: peer.formattedDownloadSpeed,
@@ -352,7 +352,7 @@ private struct TorrentPeerInspectorRow: View {
           )
           CompactMetric(
             item: CompactMetricItem(
-              accessibilityTitle: "上传速度",
+              accessibilityTitle: String(localized: "上传速度"),
               id: "peer-upload-speed",
               systemImage: "arrow.up",
               value: peer.formattedUploadSpeed,

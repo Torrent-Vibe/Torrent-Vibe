@@ -104,4 +104,39 @@ final class TorrentSelectionUITests: XCTestCase {
     XCTAssertFalse(downloadingChip.isSelected)
     XCTAssertTrue(app.buttons["torrent-row-demo-frieren"].waitForExistence(timeout: 5))
   }
+
+  @MainActor
+  func testAddTorrentUsesTwoStepsAndLoadsServerCategories() throws {
+    let app = XCUIApplication()
+    app.launchArguments = ["-ui-demo"]
+    app.launch()
+
+    let addButton = app.buttons["torrent-add"]
+    XCTAssertTrue(addButton.waitForExistence(timeout: 10))
+    addButton.tap()
+
+    let source = app.textFields["torrent-import-source"]
+    XCTAssertTrue(source.waitForExistence(timeout: 5))
+    let magnet = "magnet:?xt=urn:btih:0123456789ABCDEF0123456789ABCDEF01234567"
+    source.tap()
+    source.typeText(magnet)
+
+    let next = app.buttons["torrent-import-next"]
+    XCTAssertTrue(next.isEnabled)
+    next.tap()
+
+    let category = app.buttons["torrent-import-category"]
+    XCTAssertTrue(category.waitForExistence(timeout: 5))
+    category.tap()
+    let anime = app.buttons["anime"]
+    XCTAssertTrue(anime.waitForExistence(timeout: 5))
+    anime.tap()
+    let categoryPath = app.staticTexts["torrent-import-category-path"]
+    XCTAssertTrue(categoryPath.waitForExistence(timeout: 5))
+    XCTAssertTrue(categoryPath.label.contains("/Media/Anime"))
+
+    app.buttons["torrent-import-back"].tap()
+    XCTAssertTrue(source.waitForExistence(timeout: 5))
+    XCTAssertEqual(source.value as? String, magnet)
+  }
 }

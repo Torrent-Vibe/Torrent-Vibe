@@ -18,10 +18,10 @@ struct TorrentFileSummary: Hashable, Identifiable, Sendable {
 
   var priorityTitle: String {
     switch priority {
-    case 0: "不下载"
-    case 6: "高"
-    case 7: "最高"
-    default: "普通"
+    case 0: String(localized: "不下载")
+    case 6: String(localized: "高")
+    case 7: String(localized: "最高")
+    default: String(localized: "普通")
     }
   }
 
@@ -50,12 +50,12 @@ struct TorrentTrackerSummary: Hashable, Identifiable, Sendable {
 
   var statusTitle: String {
     switch status {
-    case 0: "已禁用"
-    case 1: "尚未联系"
-    case 2: "工作中"
-    case 3: "更新中"
-    case 4: "不可用"
-    default: "未知"
+    case 0: String(localized: "已禁用")
+    case 1: String(localized: "尚未联系")
+    case 2: String(localized: "工作中")
+    case 3: String(localized: "更新中")
+    case 4: String(localized: "不可用")
+    default: String(localized: "未知")
     }
   }
 }
@@ -86,11 +86,11 @@ struct TorrentPeerSummary: Hashable, Identifiable, Sendable {
   }
 
   private static func formatSpeed(_ bytesPerSecond: Int64) -> String {
-    guard bytesPerSecond > 0 else { return "0 KB/s" }
+    guard bytesPerSecond > 0 else { return String(localized: "0 KB/s") }
     let formatter = ByteCountFormatter()
     formatter.countStyle = .binary
     formatter.allowedUnits = [.useKB, .useMB, .useGB]
     formatter.isAdaptive = true
-    return "\(formatter.string(fromByteCount: bytesPerSecond))/s"
+    return String(localized: "\(formatter.string(fromByteCount: bytesPerSecond))/s")
   }
 }

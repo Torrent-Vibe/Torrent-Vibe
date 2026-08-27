@@ -11,7 +11,7 @@ private enum HelperProfileGroup: String, CaseIterable, Hashable, Identifiable {
   var title: String {
     switch self {
     case .mteam: "M-Team"
-    case .mikan: "Mikan 配置"
+    case .mikan: String(localized: "Mikan 配置")
     }
   }
 
@@ -102,7 +102,7 @@ private final class HelperProfileSyncState {
           mutations: mutations
         )
       }
-      notice = "已上传 \(records.count) 项配置；未选择的项目保持不变。"
+      notice = String(localized: "已上传 \(records.count) 项配置；未选择的项目保持不变。")
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -119,7 +119,7 @@ private final class HelperProfileSyncState {
     do {
       let applied = try apply(records: records)
       localRecords = try collectLocalRecords()
-      notice = "已拉取并应用 \(applied) 项配置；未选择的项目保持不变。"
+      notice = String(localized: "已拉取并应用 \(applied) 项配置；未选择的项目保持不变。")
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -231,7 +231,7 @@ final class HelperProfileSyncViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "凭证同步"
+    title = String(localized: "凭证同步")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     host(HelperProfileSyncContentView(state: state))
@@ -264,8 +264,10 @@ private struct HelperProfileSyncContentView: View {
               VStack(alignment: .leading, spacing: 3) {
                 Text(group.title)
                 Text(
-                  "本机 \(state.localCount(for: group)) 项 · "
-                    + "Helper \(state.remoteCount(for: group)) 项"
+                  String(
+                    localized:
+                      "本机 \(state.localCount(for: group)) 项 · Helper \(state.remoteCount(for: group)) 项"
+                  )
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -276,7 +278,7 @@ private struct HelperProfileSyncContentView: View {
         } header: {
           Text("同步项目")
         } footer: {
-          Text("未选择的项目不会上传、拉取或删除。iOS 当前应用 M-Team 与 Mikan 配置；Helper 中其他凭证保持不变。")
+          Text("未选择的项目保持不变。")
         }
 
         Section {
@@ -292,7 +294,7 @@ private struct HelperProfileSyncContentView: View {
           .disabled(state.isWorking || state.remote == nil || state.selectedGroups.isEmpty)
           .accessibilityIdentifier("helper-profile-pull")
         } footer: {
-          Text("操作前会再次确认。来源端已存在的所选项目会覆盖目标端对应值。")
+          Text("同名项目会被覆盖，操作前会再次确认。")
         }
       }
 
@@ -326,7 +328,7 @@ private struct HelperProfileSyncContentView: View {
         Task { await state.upload() }
       }
     } message: {
-      Text("本机已存在的所选项目将覆盖 Helper 对应值；未选择的项目保持不变。")
+      Text("所选项目会覆盖 Helper 上的同名配置。")
     }
     .alert("从 Helper 拉取凭证？", isPresented: $confirmsPull) {
       Button("取消", role: .cancel) {}
@@ -334,7 +336,7 @@ private struct HelperProfileSyncContentView: View {
         Task { await state.pull() }
       }
     } message: {
-      Text("Helper 中已存在的所选项目将覆盖本机对应值；未选择的项目保持不变。")
+      Text("所选项目会覆盖本机的同名配置。")
     }
   }
 }

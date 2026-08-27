@@ -948,7 +948,7 @@ private final class HorizontalTabItemView: UIView, UIContextMenuInteractionDeleg
 
     deleteButton.setImage(Self.makeDeleteImage(), for: .normal)
     deleteButton.addTarget(self, action: #selector(deletePressed), for: .touchUpInside)
-    deleteButton.accessibilityLabel = "删除标签页"
+    deleteButton.accessibilityLabel = String(localized: "删除标签页")
 
     addSubview(contentView)
     contentView.addSubview(titleLabel)
@@ -1067,7 +1067,7 @@ private final class HorizontalTabItemView: UIView, UIContextMenuInteractionDeleg
     isAccessibilityElement = true
     accessibilityLabel = tab.accessibilityLabel ?? defaultAccessibilityLabel(for: tab)
     accessibilityIdentifier = tab.accessibilityIdentifier
-    accessibilityValue = isAccessibilitySelected ? "已选择" : nil
+    accessibilityValue = isAccessibilitySelected ? String(localized: "已选择") : nil
     accessibilityTraits = isAccessibilitySelected ? [.button, .selected] : [.button]
 
     updateIsShaking(isEditing && tab.isEditable)

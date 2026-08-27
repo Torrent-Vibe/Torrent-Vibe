@@ -28,7 +28,7 @@ final class ServerEditorViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = form.isEditing ? "编辑服务器" : "添加服务器"
+    title = form.isEditing ? String(localized: "编辑服务器") : String(localized: "添加服务器")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -72,11 +72,11 @@ final class ServerEditorViewController: SwiftUIHostingViewController {
       dismiss(animated: true)
     } catch {
       let alert = UIAlertController(
-        title: form.isEditing ? "无法更新服务器" : "无法保存服务器",
+        title: form.isEditing ? String(localized: "无法更新服务器") : String(localized: "无法保存服务器"),
         message: error.localizedDescription,
         preferredStyle: .alert
       )
-      alert.addAction(UIAlertAction(title: "好", style: .cancel))
+      alert.addAction(UIAlertAction(title: String(localized: "好"), style: .cancel))
       present(alert, animated: true)
     }
   }
@@ -112,7 +112,7 @@ private struct ServerFormView: View {
           .textInputAutocapitalization(.never)
           .accessibilityIdentifier("server-add-username")
         SecureField(
-          form.isEditing ? "留空则保持原密码" : "密码",
+          form.isEditing ? String(localized: "留空则保持原密码") : String(localized: "密码"),
           text: $form.password
         )
         .textContentType(form.isEditing ? .newPassword : .password)
@@ -130,16 +130,16 @@ private struct ServerFormView: View {
       } footer: {
         Text(
           form.isEditing
-            ? "更改 Helper 地址会解除当前配对，需要重新输入配对码。"
-            : "Helper 使用 spec 中定义的普通 JSON API。此处只登记端点，不执行自动绑定。"
+            ? String(localized: "更改 Helper 地址会解除当前配对，需要重新输入配对码。")
+            : String(localized: "填写地址后，还需要输入配对码才能连接。")
         )
       }
 
       Section {
         Label(
           form.isEditing
-            ? "密码留空则继续使用本机 Keychain 中已保存的凭据。"
-            : "密码仅写入本机 Keychain，不进入服务器配置或日志。",
+            ? String(localized: "密码留空则继续使用本机 Keychain 中已保存的凭据。")
+            : String(localized: "密码仅写入本机 Keychain，不进入服务器配置或日志。"),
           systemImage: "key"
         )
         .font(.footnote)

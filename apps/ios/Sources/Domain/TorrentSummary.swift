@@ -67,12 +67,12 @@ struct TorrentSummary: Hashable, Identifiable, Sendable {
 
   var statusTitle: String {
     switch status {
-    case .downloading: "下载中"
-    case .seeding: "做种中"
-    case .paused: "已暂停"
-    case .completed: "已完成"
-    case .queued: "排队中"
-    case .error: "错误"
+    case .downloading: String(localized: "下载中")
+    case .seeding: String(localized: "做种中")
+    case .paused: String(localized: "已暂停")
+    case .completed: String(localized: "已完成")
+    case .queued: String(localized: "排队中")
+    case .error: String(localized: "错误")
     }
   }
 

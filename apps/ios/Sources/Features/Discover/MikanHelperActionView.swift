@@ -45,7 +45,7 @@ final class MikanHelperActionViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "订阅"
+    title = String(localized: "订阅")
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.leftBarButtonItem = UIBarButtonItem(
       barButtonSystemItem: .cancel,
@@ -183,11 +183,11 @@ private struct MikanHelperActionContentView: View {
   }
 
   private var confirmTitle: String {
-    state.isSubmitting ? "正在订阅" : "订阅"
+    state.isSubmitting ? String(localized: "正在订阅") : String(localized: "订阅")
   }
 
   private var footerText: String {
-    "Helper 是订阅真相源，可同时选择多台已配对服务器；订阅后会持续拉取更新，并导入本季已发布的剧集，而不仅是之后更新的剧集。"
+    String(localized: "可同时订阅到多台服务器。订阅后会导入本季已发布的剧集，并持续跟进更新。")
   }
 
   private func targetBinding(_ serverID: UUID) -> Binding<Bool> {

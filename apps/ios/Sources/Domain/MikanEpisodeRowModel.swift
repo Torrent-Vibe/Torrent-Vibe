@@ -63,7 +63,7 @@ struct MikanEpisodeTorrentIndex {
 
 enum MikanEpisodeLiveProgress {
   static func percentText(for torrent: TorrentSummary) -> String {
-    "\(Int((torrent.progress * 100).rounded()))%"
+    String(localized: "\(Int((torrent.progress * 100).rounded()))%")
   }
 }
 

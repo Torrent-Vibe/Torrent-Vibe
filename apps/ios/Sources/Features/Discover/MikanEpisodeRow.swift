@@ -54,7 +54,7 @@ struct MikanEpisodeRow: View {
     }
     .contentShape(Rectangle())
     .accessibilityElement(children: .combine)
-    .accessibilityHint(rowModel.remedy == .importEpisode && canImport ? "导入到当前服务器" : "")
+    .accessibilityHint(rowModel.remedy == .importEpisode && canImport ? String(localized: "导入到当前服务器") : "")
     .accessibilityIdentifier("mikan-episode-\(episode.episodeId)")
   }
 

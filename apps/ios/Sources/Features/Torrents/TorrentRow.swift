@@ -61,7 +61,8 @@ struct TorrentRow: View {
       }
     }
     .accessibilityElement(children: .combine)
-    .accessibilityValue(isSelecting ? (isSelected ? "已选择" : "未选择") : "")
+    .accessibilityValue(
+      isSelecting ? (isSelected ? String(localized: "已选择") : String(localized: "未选择")) : "")
   }
 
   private var statusColor: Color {

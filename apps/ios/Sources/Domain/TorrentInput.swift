@@ -44,12 +44,12 @@ enum TorrentInput {
   }
 
   static func formattedSpeedLimit(_ bytesPerSecond: Int64) -> String {
-    guard bytesPerSecond > 0 else { return "不限制" }
+    guard bytesPerSecond > 0 else { return String(localized: "不限制") }
     let formatter = ByteCountFormatter()
     formatter.countStyle = .binary
     formatter.allowedUnits = [.useKB, .useMB, .useGB]
     formatter.isAdaptive = true
-    return "\(formatter.string(fromByteCount: bytesPerSecond))/s"
+    return String(localized: "\(formatter.string(fromByteCount: bytesPerSecond))/s")
   }
 }
 
@@ -57,6 +57,6 @@ enum TorrentInputError: LocalizedError {
   case invalidSpeedLimit
 
   var errorDescription: String? {
-    "速度限制应使用 MB/s，且必须是大于或等于 0 的数值。"
+    String(localized: "速度限制应使用 MB/s，且必须是大于或等于 0 的数值。")
   }
 }

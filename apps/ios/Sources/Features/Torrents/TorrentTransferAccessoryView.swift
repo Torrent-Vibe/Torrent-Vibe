@@ -24,7 +24,7 @@ final class TorrentTransferAccessoryView: UIView {
   func update(downloadSpeed: String, uploadSpeed: String) {
     downloadLabel.text = downloadSpeed
     uploadLabel.text = uploadSpeed
-    accessibilityValue = "下载 \(downloadSpeed)，上传 \(uploadSpeed)"
+    accessibilityValue = String(localized: "下载 \(downloadSpeed)，上传 \(uploadSpeed)")
     invalidateIntrinsicContentSize()
   }
 
@@ -32,7 +32,7 @@ final class TorrentTransferAccessoryView: UIView {
     backgroundColor = .clear
     isAccessibilityElement = true
     accessibilityIdentifier = "torrent-transfer-accessory"
-    accessibilityLabel = "传输速度"
+    accessibilityLabel = String(localized: "传输速度")
     accessibilityTraits = [.updatesFrequently]
 
     let downloadMetric = makeMetric(

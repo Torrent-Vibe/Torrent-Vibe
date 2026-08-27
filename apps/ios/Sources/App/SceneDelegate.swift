@@ -52,6 +52,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     foregroundRefreshTask = nil
   }
 
+  func sceneDidEnterBackground(_ scene: UIScene) {
+    TorrentBackgroundStatusService.scheduleRefreshForLiveActivity()
+  }
+
   func scene(_ scene: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
     for context in urlContexts {
       _ = route(context.url, showErrors: true)
@@ -74,7 +78,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       while !Task.isCancelled {
         await model.refreshTorrents()
         let configuredInterval = UserDefaults.standard.integer(forKey: "refreshInterval")
-        let interval = max(configuredInterval, 5)
+        let interval = Self.foregroundRefreshInterval(configuredInterval)
         do {
           try await Task.sleep(for: .seconds(interval))
         } catch {
@@ -82,6 +86,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
       }
     }
+  }
+
+  static func foregroundRefreshInterval(_ configuredInterval: Int) -> Int {
+    max(configuredInterval, 3)
   }
 
   @discardableResult

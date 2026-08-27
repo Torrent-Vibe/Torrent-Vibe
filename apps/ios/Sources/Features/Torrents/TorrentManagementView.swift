@@ -51,7 +51,7 @@ final class TorrentManagementViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "任务选项"
+    title = String(localized: "任务选项")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -144,7 +144,7 @@ private struct TorrentManagementContentView: View {
       } header: {
         Text("传输限速")
       } footer: {
-        Text("0 表示不限制。限速由 qBittorrent 对当前任务执行。")
+        Text("0 表示不限速。")
       }
 
       if state.isSaving {

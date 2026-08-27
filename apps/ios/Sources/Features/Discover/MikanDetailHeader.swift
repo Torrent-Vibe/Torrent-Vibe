@@ -69,7 +69,7 @@ struct MikanDetailHeader: View {
 
   private var metadata: String {
     if let weekday = card.weekday {
-      return "\(Self.weekdayName(weekday)) · Mikan"
+      return String(localized: "\(Self.weekdayName(weekday)) · Mikan")
     }
     return "Mikan"
   }
@@ -94,13 +94,13 @@ struct MikanDetailHeader: View {
 
   private var selectedSubgroupCaption: String {
     if state.selectedSubgroupID == nil {
-      return "全部字幕组"
+      return String(localized: "全部字幕组")
     }
     let subgroup = actionSubgroup
     if let name = subgroup?.name, !name.isEmpty {
       return name
     }
-    return subgroup.map { "字幕组 \($0.id)" } ?? "字幕组"
+    return subgroup.map { String(localized: "字幕组 \($0.id)") } ?? String(localized: "字幕组")
   }
 
   private var subgroupMenu: some View {
@@ -109,7 +109,7 @@ struct MikanDetailHeader: View {
         state.selectedSubgroupID = nil
       }
       ForEach(detail.subgroups) { subgroup in
-        Button(subgroup.name.isEmpty ? "字幕组 \(subgroup.id)" : subgroup.name) {
+        Button(subgroup.name.isEmpty ? String(localized: "字幕组 \(subgroup.id)") : subgroup.name) {
           state.selectedSubgroupID = subgroup.id
         }
       }
@@ -166,14 +166,14 @@ struct MikanDetailHeader: View {
 
   private static func weekdayName(_ weekday: Int) -> String {
     switch weekday {
-    case 0: "星期日"
-    case 1: "星期一"
-    case 2: "星期二"
-    case 3: "星期三"
-    case 4: "星期四"
-    case 5: "星期五"
-    case 6: "星期六"
-    default: "特别放送"
+    case 0: String(localized: "星期日")
+    case 1: String(localized: "星期一")
+    case 2: String(localized: "星期二")
+    case 3: String(localized: "星期三")
+    case 4: String(localized: "星期四")
+    case 5: String(localized: "星期五")
+    case 6: String(localized: "星期六")
+    default: String(localized: "特别放送")
     }
   }
 }

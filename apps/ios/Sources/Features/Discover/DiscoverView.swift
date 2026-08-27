@@ -23,15 +23,15 @@ final class DiscoverState {
   var baseURL: URL?
   var errorMessage: String?
   var isLoading = false
-  var parserStatus = "正在加载 Mikan 内容"
+  var parserStatus = String(localized: "正在加载 Mikan 内容")
   var provider = DiscoverProvider.mikan
-  var providerAvailabilityMessage = "正在读取内容来源配置"
+  var providerAvailabilityMessage = String(localized: "正在读取内容来源配置")
   var query = ""
   var searchResults: [MikanBangumiCard] = []
   var seasonWall: MikanSeasonWall?
   var selectedSeason: String
   var selectedYear: Int
-  var wallParserStatus = "正在加载 Mikan 内容"
+  var wallParserStatus = String(localized: "正在加载 Mikan 内容")
 
   init(now: Date = .now, calendar: Calendar = .current) {
     let month = calendar.component(.month, from: now)
@@ -98,7 +98,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "发现"
+    title = String(localized: "发现")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
 
@@ -136,7 +136,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
       .environment(mteamState)
     )
     configureSearchController()
-    mteamSelectButton.accessibilityLabel = "选择 M-Team Torrent"
+    mteamSelectButton.accessibilityLabel = String(localized: "选择 M-Team Torrent")
     mteamSelectButton.accessibilityIdentifier = "mteam-select"
     refreshProviderAvailability()
   }
@@ -200,7 +200,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
     searchController.obscuresBackgroundDuringPresentation = false
     searchController.searchResultsUpdater = self
     searchController.searchBar.delegate = self
-    searchController.searchBar.placeholder = "搜索番组"
+    searchController.searchBar.placeholder = String(localized: "搜索番组")
     searchController.searchBar.accessibilityIdentifier = "discover-search"
     navigationItem.searchController = searchController
     navigationItem.hidesSearchBarWhenScrolling = false
@@ -232,7 +232,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
 
     state.availableProviders = providers
     guard !providers.isEmpty else {
-      state.providerAvailabilityMessage = "请先在设置中启用并完成至少一个内容来源。"
+      state.providerAvailabilityMessage = String(localized: "请先在设置中启用并完成至少一个内容来源。")
       navigationItem.subtitle = nil
       navigationItem.rightBarButtonItems = []
       navigationItem.searchController?.searchBar.isUserInteractionEnabled = false
@@ -255,7 +255,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
   func configureProviderChrome() {
     navigationItem.subtitle = state.provider.title
     guard let searchBar = navigationItem.searchController?.searchBar else { return }
-    searchBar.placeholder = state.provider == .mikan ? "搜索番组" : "搜索 M-Team Torrent"
+    searchBar.placeholder = state.provider == .mikan ? String(localized: "搜索番组") : String(localized: "搜索 M-Team Torrent")
     searchBar.text = state.provider == .mikan ? state.query : mteamState.query
     searchBar.returnKeyType = .search
 
@@ -267,7 +267,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
         target: self,
         action: #selector(showSubscriptions)
       )
-      subscriptions.accessibilityLabel = "我的订阅"
+      subscriptions.accessibilityLabel = String(localized: "我的订阅")
       subscriptions.accessibilityIdentifier = "discover-subscriptions"
       items.append(subscriptions)
     } else {
@@ -279,7 +279,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
         target: self,
         action: #selector(showMTeamFilters)
       )
-      filters.accessibilityLabel = "M-Team 筛选"
+      filters.accessibilityLabel = String(localized: "M-Team 筛选")
       filters.accessibilityIdentifier = "mteam-filters"
       items.append(filters)
     }
@@ -289,7 +289,7 @@ final class DiscoverViewController: SwiftUIHostingViewController, UISearchResult
         title: state.provider.title,
         image: UIImage(systemName: "chevron.up.chevron.down"),
         menu: UIMenu(
-          title: "内容来源",
+          title: String(localized: "内容来源"),
           children: state.availableProviders.map { provider in
             UIAction(
               title: provider.title,

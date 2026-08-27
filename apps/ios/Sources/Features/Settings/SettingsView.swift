@@ -36,7 +36,7 @@ final class SettingsViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "设置"
+    title = String(localized: "设置")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .always
     host(
@@ -143,7 +143,7 @@ private struct SettingsContentView: View {
     Form {
       Section("连接") {
         SettingsNavigationButton(
-          title: "服务器",
+          title: String(localized: "服务器"),
           detail: serverSummary,
           systemImage: "externaldrive.connected.to.line.below",
           action: onOpenServers
@@ -153,7 +153,7 @@ private struct SettingsContentView: View {
 
       Section("发现") {
         SettingsNavigationButton(
-          title: "内容来源",
+          title: String(localized: "内容来源"),
           detail: "Mikan · M-Team",
           systemImage: "safari",
           action: onOpenContentSources
@@ -179,16 +179,16 @@ private struct SettingsContentView: View {
         }
 
         SettingsNavigationButton(
-          title: "后台与通知",
-          detail: "下载完成",
+          title: String(localized: "后台与通知"),
+          detail: String(localized: "下载完成"),
           systemImage: "bell.badge",
           action: onOpenBackgroundStatus
         )
         .accessibilityIdentifier("settings-background-status")
 
         SettingsNavigationButton(
-          title: "系统指令",
-          detail: "3 个",
+          title: String(localized: "系统指令"),
+          detail: String(localized: "3 个"),
           systemImage: "command",
           action: onOpenSystemShortcuts
         )
@@ -197,7 +197,7 @@ private struct SettingsContentView: View {
 
       Section("支持") {
         SettingsNavigationButton(
-          title: "诊断",
+          title: String(localized: "诊断"),
           detail: diagnosticSummary,
           systemImage: "stethoscope",
           action: onOpenDiagnostics
@@ -205,7 +205,7 @@ private struct SettingsContentView: View {
         .accessibilityIdentifier("settings-diagnostics")
 
         SettingsNavigationButton(
-          title: "关于",
+          title: String(localized: "关于"),
           detail: appVersion,
           systemImage: "info.circle",
           action: onOpenAbout
@@ -217,13 +217,14 @@ private struct SettingsContentView: View {
 
   private var serverSummary: String {
     guard let activeServer = model.activeServer else {
-      return model.servers.isEmpty ? "未配置" : "\(model.servers.count) 台"
+      return model.servers.isEmpty
+        ? String(localized: "未配置") : String(localized: "\(model.servers.count) 台")
     }
-    return "\(activeServer.name) · \(model.servers.count) 台"
+    return String(localized: "\(activeServer.name) · \(model.servers.count) 台")
   }
 
   private var diagnosticSummary: String {
-    model.activeServer == nil ? "需要配置" : "可检查"
+    model.activeServer == nil ? String(localized: "需要配置") : String(localized: "可检查")
   }
 
   private var appVersion: String {
@@ -238,7 +239,7 @@ private struct SettingsContentView: View {
 private final class SystemShortcutsViewController: SwiftUIHostingViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "系统指令"
+    title = String(localized: "系统指令")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     host(
@@ -259,24 +260,24 @@ private struct SystemShortcutsContentView: View {
     Form {
       Section {
         ShortcutDescriptionRow(
-          title: "打开任务",
-          description: "直接进入任务 Tab。",
+          title: String(localized: "打开任务"),
+          description: String(localized: "直接进入任务 Tab。"),
           systemImage: "arrow.down.circle"
         )
         ShortcutDescriptionRow(
-          title: "刷新任务",
-          description: "打开 App 并刷新当前服务器。",
+          title: String(localized: "刷新任务"),
+          description: String(localized: "打开 App 并刷新当前服务器。"),
           systemImage: "arrow.clockwise"
         )
         ShortcutDescriptionRow(
-          title: "添加 Magnet",
-          description: "接收链接并进入导入确认，不自动提交。",
+          title: String(localized: "添加 Magnet"),
+          description: String(localized: "接收链接并进入导入确认，不自动提交。"),
           systemImage: "link.badge.plus"
         )
       } header: {
         Text("Torrent Vibe App Intents")
       } footer: {
-        Text("三个动作由系统索引，可用于快捷指令、Siri 与 Spotlight。")
+        Text("可在快捷指令、Siri 与 Spotlight 中使用。")
       }
 
       Section {
@@ -326,7 +327,7 @@ private final class BackgroundStatusViewController: SwiftUIHostingViewController
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "后台与通知"
+    title = String(localized: "后台与通知")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     host(BackgroundStatusContentView().environment(service))
@@ -358,7 +359,7 @@ private struct BackgroundStatusContentView: View {
       } header: {
         Text("系统状态")
       } footer: {
-        Text("iOS 决定实际运行时间；后台检查只读取任务状态，不会启动或删除下载。")
+        Text("检查时间由系统决定，只读取状态，不会改动下载。")
       }
 
       Section {
@@ -384,7 +385,7 @@ private struct BackgroundStatusContentView: View {
       } header: {
         Text("状态检查")
       } footer: {
-        Text("首次检查建立基线；此后仅对新完成的任务发送本地通知。")
+        Text("任务完成时通知你。")
       }
 
       if let errorMessage = service.errorMessage {
@@ -443,7 +444,7 @@ private final class ContentSourcesViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "内容来源"
+    title = String(localized: "内容来源")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     host(
@@ -548,7 +549,7 @@ private struct ContentSourcesContentView: View {
       } header: {
         Text("Mikan")
       } footer: {
-        Text("测试只检查站点可达性，不会保存配置；页面解析器固定随 App 发布。")
+        Text("测试不会保存配置。")
       }
 
       Section {
@@ -569,7 +570,7 @@ private struct ContentSourcesContentView: View {
           }
         }
         SecureField(
-          hasStoredAPIKey ? "API Key 已存储；留空表示保持" : "API Key",
+          hasStoredAPIKey ? String(localized: "API Key 已存储；留空表示保持") : String(localized: "API Key"),
           text: apiKeyInputBinding
         )
         .textContentType(.password)
@@ -612,7 +613,7 @@ private struct ContentSourcesContentView: View {
       } header: {
         Text("M-Team")
       } footer: {
-        Text("测试仅执行只读检索；保存后 API Key 才进入本机 Keychain。")
+        Text("API Key 保存后只存放在本机 Keychain。")
       }
     }
   }
@@ -663,7 +664,8 @@ private struct ContentSourcesContentView: View {
       let url = try mikanURL()
       defaults.set(mikanEnabled, forKey: "discover.mikan.enabled")
       defaults.set(url.absoluteString, forKey: "discover.mikan.baseURL")
-      mikanSavedMessage = mikanEnabled ? "Mikan 已启用" : "Mikan 配置已保存"
+      mikanSavedMessage =
+        mikanEnabled ? String(localized: "Mikan 已启用") : String(localized: "Mikan 配置已保存")
     } catch {
       mikanSaveError = error.localizedDescription
     }
@@ -693,7 +695,8 @@ private struct ContentSourcesContentView: View {
         forKey: "discover.mteam.baseURL")
       defaults.set(mteamMode, forKey: "discover.mteam.mode")
       defaults.set(mteamPageSize, forKey: "discover.mteam.pageSize")
-      mteamSavedMessage = mteamEnabled ? "M-Team 已启用" : "M-Team 配置已保存"
+      mteamSavedMessage =
+        mteamEnabled ? String(localized: "M-Team 已启用") : String(localized: "M-Team 配置已保存")
     } catch {
       mteamSaveError = error.localizedDescription
     }
@@ -708,7 +711,7 @@ private struct ContentSourcesContentView: View {
       hasStoredAPIKey = false
       mteamEnabled = false
       defaults.set(false, forKey: "discover.mteam.enabled")
-      mteamSavedMessage = "API Key 已从 Keychain 移除，M-Team 已停用"
+      mteamSavedMessage = String(localized: "API Key 已从 Keychain 移除，M-Team 已停用")
     } catch {
       mteamSaveError = error.localizedDescription
     }
@@ -842,7 +845,11 @@ private struct ContentSourceTestButtonLabel: View {
         ProgressView()
           .controlSize(.small)
       }
-      Text(state.isTesting ? "正在测试 \(provider)…" : "测试 \(provider) 连接")
+      Text(
+        state.isTesting
+          ? String(localized: "正在测试 \(provider)…")
+          : String(localized: "测试 \(provider) 连接")
+      )
     }
   }
 }
@@ -906,7 +913,7 @@ private final class DiagnosticsViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "诊断"
+    title = String(localized: "诊断")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     host(
@@ -935,11 +942,11 @@ private final class DiagnosticsViewController: SwiftUIHostingViewController {
     UIPasteboard.general.string = report
 
     let alert = UIAlertController(
-      title: "诊断报告已复制",
-      message: "报告不包含凭据或完整地址。",
+      title: String(localized: "诊断报告已复制"),
+      message: String(localized: "报告不包含凭据或完整地址。"),
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(UIAlertAction(title: String(localized: "好"), style: .default))
     present(alert, animated: true)
   }
 
@@ -949,12 +956,13 @@ private final class DiagnosticsViewController: SwiftUIHostingViewController {
 
   private var mteamStatus: String {
     guard UserDefaults.standard.bool(forKey: "discover.mteam.enabled") else {
-      return "未启用"
+      return String(localized: "未启用")
     }
     do {
-      return try mteamCredentialStore.apiKey()?.isEmpty == false ? "已配置" : "缺少 API Key"
+      return try mteamCredentialStore.apiKey()?.isEmpty == false
+        ? String(localized: "已配置") : String(localized: "缺少 API Key")
     } catch {
-      return "Keychain 不可读"
+      return String(localized: "Keychain 不可读")
     }
   }
 }
@@ -970,9 +978,14 @@ private struct DiagnosticsContentView: View {
       Section("连接") {
         LabeledContent(
           "qBittorrent",
-          value: model.activeServer.map { model.connectionStatusText(for: $0.id) } ?? "未配置"
+          value: model.activeServer.map { model.connectionStatusText(for: $0.id) }
+            ?? String(localized: "未配置")
         )
-        LabeledContent("Helper", value: model.activeServer?.helperBaseURL == nil ? "未配置" : "端点已登记")
+        LabeledContent(
+          "Helper",
+          value: model.activeServer?.helperBaseURL == nil
+            ? String(localized: "未配置") : String(localized: "已配置")
+        )
       }
 
       Section("内容") {
@@ -991,7 +1004,7 @@ private struct DiagnosticsContentView: View {
 private final class AboutViewController: SwiftUIHostingViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "关于"
+    title = String(localized: "关于")
     view.backgroundColor = .systemGroupedBackground
     navigationItem.largeTitleDisplayMode = .never
     host(AboutContentView())

@@ -16,10 +16,12 @@ struct TorrentOverviewCard: View {
 
       HStack(spacing: 0) {
         TorrentOverviewMetric(
-          title: "下载", value: downloadSpeed, systemImage: "arrow.down", color: .blue)
+          title: String(localized: "下载"), value: downloadSpeed, systemImage: "arrow.down",
+          color: .blue)
         Divider().frame(height: 28)
         TorrentOverviewMetric(
-          title: "上传", value: uploadSpeed, systemImage: "arrow.up", color: .green)
+          title: String(localized: "上传"), value: uploadSpeed, systemImage: "arrow.up",
+          color: .green)
       }
     }
     .padding(.top, 8)

@@ -12,14 +12,14 @@ enum HelperEpisodeState: String, Codable, Hashable, Sendable {
 
   var title: String {
     switch self {
-    case .pending: "等待处理"
-    case .added: "已添加"
-    case .downloading: "下载中"
-    case .renaming: "正在整理"
-    case .done: "已完成"
-    case .failed: "失败"
-    case .needsManual: "需要处理"
-    case .skipped: "已跳过"
+    case .pending: String(localized: "等待处理")
+    case .added: String(localized: "已添加")
+    case .downloading: String(localized: "下载中")
+    case .renaming: String(localized: "正在整理")
+    case .done: String(localized: "已完成")
+    case .failed: String(localized: "失败")
+    case .needsManual: String(localized: "需要处理")
+    case .skipped: String(localized: "已跳过")
     }
   }
 

@@ -106,7 +106,7 @@ extension DiscoverViewController {
     navigationItem.searchController?.searchBar.isUserInteractionEnabled = false
     navigationItem.leftBarButtonItem?.isEnabled = false
     let done = UIBarButtonItem(
-      title: "完成",
+      title: String(localized: "完成"),
       style: .prominent,
       target: self,
       action: #selector(endMTeamSelection)
@@ -135,10 +135,10 @@ extension DiscoverViewController {
   }
 
   func configureMTeamSelectionToolbar() {
-    let count = UIBarButtonItem(title: "已选择 0 项", style: .plain, target: nil, action: nil)
+    let count = UIBarButtonItem(title: String(localized: "已选择 0 项"), style: .plain, target: nil, action: nil)
     count.tag = 1
     let importItem = UIBarButtonItem(
-      title: "批量导入",
+      title: String(localized: "批量导入"),
       style: .prominent,
       target: self,
       action: #selector(presentMTeamBatchImport)
@@ -155,7 +155,7 @@ extension DiscoverViewController {
 
   func updateMTeamSelectionToolbar() {
     let count = mteamState.selectedIDs.count
-    toolbarItems?.first(where: { $0.tag == 1 })?.title = "已选择 \(count) 项"
+    toolbarItems?.first(where: { $0.tag == 1 })?.title = String(localized: "已选择 \(count) 项")
     toolbarItems?.first(where: { $0.tag == 2 })?.isEnabled = count > 0
   }
 

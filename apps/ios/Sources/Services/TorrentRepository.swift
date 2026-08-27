@@ -9,6 +9,13 @@ struct TorrentSnapshot: Sendable {
   let serverVersion: String?
 }
 
+struct TorrentCategory: Equatable, Identifiable, Sendable {
+  let name: String
+  let savePath: String
+
+  var id: String { name }
+}
+
 enum TorrentAddSource: Equatable, Sendable {
   case file(name: String, data: Data)
   case url(String)
@@ -19,6 +26,13 @@ struct TorrentAddRequest: Equatable, Sendable {
   let savePath: String?
   let category: String?
   let tags: [String]
+  let rename: String?
+  let isAutomaticTorrentManagementEnabled: Bool
+  let startsImmediately: Bool
+  let skipsHashChecking: Bool
+  let isSequentialDownloadEnabled: Bool
+  let isFirstLastPiecePriorityEnabled: Bool
+  let createsRootFolder: Bool
   let downloadLimit: Int64?
   let uploadLimit: Int64?
 
@@ -27,6 +41,13 @@ struct TorrentAddRequest: Equatable, Sendable {
     savePath: String? = nil,
     category: String? = nil,
     tags: [String] = [],
+    rename: String? = nil,
+    isAutomaticTorrentManagementEnabled: Bool = false,
+    startsImmediately: Bool = true,
+    skipsHashChecking: Bool = false,
+    isSequentialDownloadEnabled: Bool = false,
+    isFirstLastPiecePriorityEnabled: Bool = false,
+    createsRootFolder: Bool = false,
     downloadLimit: Int64? = nil,
     uploadLimit: Int64? = nil
   ) {
@@ -34,6 +55,13 @@ struct TorrentAddRequest: Equatable, Sendable {
     self.savePath = savePath
     self.category = category
     self.tags = tags
+    self.rename = rename
+    self.isAutomaticTorrentManagementEnabled = isAutomaticTorrentManagementEnabled
+    self.startsImmediately = startsImmediately
+    self.skipsHashChecking = skipsHashChecking
+    self.isSequentialDownloadEnabled = isSequentialDownloadEnabled
+    self.isFirstLastPiecePriorityEnabled = isFirstLastPiecePriorityEnabled
+    self.createsRootFolder = createsRootFolder
     self.downloadLimit = downloadLimit
     self.uploadLimit = uploadLimit
   }
@@ -48,6 +76,7 @@ struct TorrentManagementRequest: Equatable, Sendable {
 
 protocol TorrentRepository: Sendable {
   func addTorrent(_ request: TorrentAddRequest, to server: ServerConfiguration) async throws
+  func categories(on server: ServerConfiguration) async throws -> [TorrentCategory]
   func deleteTorrents(
     ids: [String],
     deleteFiles: Bool,
@@ -130,6 +159,18 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     if !torrent.tags.isEmpty {
       fields.append(("tags", torrent.tags.joined(separator: ",")))
     }
+    if let rename = torrent.rename {
+      fields.append(("rename", rename))
+    }
+    fields.append(("autoTMM", String(torrent.isAutomaticTorrentManagementEnabled)))
+    fields.append(("stopped", String(!torrent.startsImmediately)))
+    fields.append(("paused", String(!torrent.startsImmediately)))
+    fields.append(("skip_checking", String(torrent.skipsHashChecking)))
+    fields.append(("sequentialDownload", String(torrent.isSequentialDownloadEnabled)))
+    fields.append(("firstLastPiecePrio", String(torrent.isFirstLastPiecePriorityEnabled)))
+    if torrent.createsRootFolder {
+      fields.append(("contentLayout", "Subfolder"))
+    }
     if let downloadLimit = torrent.downloadLimit {
       fields.append(("dlLimit", String(downloadLimit)))
     }
@@ -162,6 +203,24 @@ actor QBittorrentTorrentRepository: TorrentRepository {
     {
       throw QBittorrentRepositoryError.addRejected
     }
+  }
+
+  func categories(on server: ServerConfiguration) async throws -> [TorrentCategory] {
+    let session = try await authenticatedSession(for: server)
+    defer { session.invalidateAndCancel() }
+
+    let data = try await get(session: session, server: server, path: "/torrents/categories")
+    guard let response = try? JSONDecoder().decode([String: QBittorrentCategory].self, from: data)
+    else {
+      throw QBittorrentRepositoryError.invalidResponse
+    }
+    return response.map { key, value in
+      let name = value.name.flatMap { $0.isEmpty ? nil : $0 } ?? key
+      return TorrentCategory(
+        name: name,
+        savePath: value.savePath ?? ""
+      )
+    }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
   }
 
   func deleteTorrents(
@@ -528,6 +587,11 @@ actor QBittorrentTorrentRepository: TorrentRepository {
   }
 }
 
+private struct QBittorrentCategory: Decodable {
+  let name: String?
+  let savePath: String?
+}
+
 private struct MultipartFile: Sendable {
   let fieldName: String
   let fileName: String
@@ -828,15 +892,17 @@ actor DemoTorrentRepository: TorrentRepository {
 
   func addTorrent(_ request: TorrentAddRequest, to server: ServerConfiguration) async throws {
     try await Task.sleep(for: .milliseconds(450))
-    let name: String
+    let sourceName: String
     switch request.source {
     case .file(let fileName, _):
-      name = (fileName as NSString).deletingPathExtension
+      sourceName = (fileName as NSString).deletingPathExtension
     case .url(let source):
-      name =
+      sourceName =
         URL(string: source)?.lastPathComponent.removingPercentEncoding
         .flatMap { $0.isEmpty ? nil : $0 } ?? "新建 Torrent"
     }
+    let name = request.rename ?? sourceName
+    let status: TorrentStatus = request.startsImmediately ? .queued : .paused
     torrents.insert(
       TorrentSummary(
         id: "demo-import-\(nextImportedID)",
@@ -845,18 +911,35 @@ actor DemoTorrentRepository: TorrentRepository {
         size: "—",
         downloadSpeed: "0 KB/s",
         uploadSpeed: "0 KB/s",
-        eta: "排队中",
-        status: .queued,
+        eta: request.startsImmediately ? "排队中" : "已暂停",
+        status: status,
         savePath: request.savePath ?? "/Downloads",
         category: request.category,
         tags: request.tags,
         addedAt: .now,
         downloadLimit: request.downloadLimit ?? 0,
-        uploadLimit: request.uploadLimit ?? 0
+        uploadLimit: request.uploadLimit ?? 0,
+        isSequentialDownloadEnabled: request.isSequentialDownloadEnabled,
+        isFirstLastPiecePriorityEnabled: request.isFirstLastPiecePriorityEnabled
       ),
       at: 0
     )
     nextImportedID += 1
+  }
+
+  func categories(on server: ServerConfiguration) async throws -> [TorrentCategory] {
+    try await Task.sleep(for: .milliseconds(180))
+    if server.name == "书房 Mac" {
+      return [
+        TorrentCategory(name: "education", savePath: "/Media/Courses"),
+        TorrentCategory(name: "software", savePath: "/Downloads/Software"),
+      ]
+    }
+    return [
+      TorrentCategory(name: "anime", savePath: "/Media/Anime"),
+      TorrentCategory(name: "documentary", savePath: "/Media/Documentary"),
+      TorrentCategory(name: "movies", savePath: "/Media/Movies"),
+    ]
   }
 
   func deleteTorrents(
@@ -1311,12 +1394,12 @@ extension TorrentSummary {
   }
 
   private static func formatETA(_ seconds: Int64) -> String {
-    if seconds <= 0 { return "即将完成" }
+    if seconds <= 0 { return String(localized: "即将完成") }
     if seconds >= 8_640_000 { return "∞" }
-    if seconds < 60 { return "\(seconds) 秒" }
-    if seconds < 3_600 { return "\(seconds / 60) 分钟" }
-    if seconds < 86_400 { return "\(seconds / 3_600) 小时" }
-    return "\(seconds / 86_400) 天"
+    if seconds < 60 { return String(localized: "\(seconds) 秒") }
+    if seconds < 3_600 { return String(localized: "\(seconds / 60) 分钟") }
+    if seconds < 86_400 { return String(localized: "\(seconds / 3_600) 小时") }
+    return String(localized: "\(seconds / 86_400) 天")
   }
 }
 
@@ -1333,21 +1416,21 @@ enum QBittorrentRepositoryError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .addRejected:
-      "qBittorrent 拒绝了此 Torrent，请检查来源是否仍然有效。"
+      String(localized: "qBittorrent 拒绝了此 Torrent，请检查来源是否仍然有效。")
     case .authenticationFailed:
-      "qBittorrent 登录失败，请检查用户名和密码。"
+      String(localized: "qBittorrent 登录失败，请检查用户名和密码。")
     case .httpStatus(let status):
-      "qBittorrent 返回 HTTP \(status)。"
+      String(localized: "qBittorrent 返回 HTTP \(status)。")
     case .invalidResponse:
-      "qBittorrent 返回了无效响应。"
+      String(localized: "qBittorrent 返回了无效响应。")
     case .invalidTorrent:
-      "qBittorrent 无法识别此 Torrent。"
+      String(localized: "qBittorrent 无法识别此 Torrent。")
     case .invalidServerURL:
-      "qBittorrent 地址无效。"
+      String(localized: "qBittorrent 地址无效。")
     case .missingPassword:
-      "Keychain 中没有此服务器的密码。"
+      String(localized: "Keychain 中没有此服务器的密码。")
     case .missingTorrentSelection:
-      "请至少选择一个 Torrent 任务。"
+      String(localized: "请至少选择一个 Torrent 任务。")
     }
   }
 }

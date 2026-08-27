@@ -74,12 +74,12 @@ enum HelperCredentialError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .invalidTokenData:
-      "Keychain 中的 Helper 凭据无法读取。"
+      String(localized: "Keychain 中的 Helper 凭据无法读取。")
     case .unexpectedStatus(let status):
       if let message = SecCopyErrorMessageString(status, nil) as String? {
-        "Helper Keychain 操作失败：\(message)"
+        String(localized: "Helper Keychain 操作失败：\(message)")
       } else {
-        "Helper Keychain 操作失败（\(status)）。"
+        String(localized: "Helper Keychain 操作失败（\(status)）。")
       }
     }
   }

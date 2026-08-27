@@ -1087,6 +1087,13 @@ final class TorrentRepositoryTests: XCTestCase {
         savePath: "/Media/Incoming",
         category: "review",
         tags: ["iOS", "TestFlight"],
+        rename: "Release Candidate",
+        isAutomaticTorrentManagementEnabled: true,
+        startsImmediately: false,
+        skipsHashChecking: true,
+        isSequentialDownloadEnabled: true,
+        isFirstLastPiecePriorityEnabled: true,
+        createsRootFolder: true,
         downloadLimit: 2_097_152,
         uploadLimit: 1_048_576
       ),
@@ -1100,6 +1107,14 @@ final class TorrentRepositoryTests: XCTestCase {
     XCTAssertTrue(add.body.contains("name=\"savepath\"\r\n\r\n/Media/Incoming"))
     XCTAssertTrue(add.body.contains("name=\"category\"\r\n\r\nreview"))
     XCTAssertTrue(add.body.contains("name=\"tags\"\r\n\r\niOS,TestFlight"))
+    XCTAssertTrue(add.body.contains("name=\"rename\"\r\n\r\nRelease Candidate"))
+    XCTAssertTrue(add.body.contains("name=\"autoTMM\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"stopped\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"paused\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"skip_checking\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"sequentialDownload\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"firstLastPiecePrio\"\r\n\r\ntrue"))
+    XCTAssertTrue(add.body.contains("name=\"contentLayout\"\r\n\r\nSubfolder"))
     XCTAssertTrue(add.body.contains("name=\"dlLimit\"\r\n\r\n2097152"))
     XCTAssertTrue(add.body.contains("name=\"upLimit\"\r\n\r\n1048576"))
 
@@ -1152,6 +1167,62 @@ final class TorrentRepositoryTests: XCTestCase {
     )
     XCTAssertTrue(sequential.body.contains("hashes=aaa%7Cbbb"))
     XCTAssertTrue(firstLast.body.contains("hashes=aaa%7Cbbb"))
+  }
+
+  func testQBittorrentRepositoryFetchesServerCategories() async throws {
+    StubURLProtocol.handler = { request in
+      let path = request.url?.path ?? ""
+      let body: Data
+      if path.hasSuffix("/auth/login") {
+        body = Data("Ok.".utf8)
+      } else if path.hasSuffix("/torrents/categories") {
+        XCTAssertEqual(request.httpMethod, "GET")
+        body = Data(
+          """
+          {
+            "movies": {"name": "", "savePath": "/Media/Movies"},
+            "anime": {"name": "anime", "savePath": "/Media/Anime"}
+          }
+          """.utf8
+        )
+      } else {
+        throw URLError(.badServerResponse)
+      }
+      let response = HTTPURLResponse(
+        url: request.url!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+      )!
+      return (response, body)
+    }
+    defer { StubURLProtocol.handler = nil }
+
+    let credentials = TorrentTestCredentialStore()
+    let server = ServerConfiguration(
+      name: "NAS",
+      baseURL: try XCTUnwrap(URL(string: "https://nas.example.test:8080")),
+      username: "admin"
+    )
+    try credentials.setPassword("secret", for: server.id)
+    let repository = QBittorrentTorrentRepository(
+      credentialStore: credentials,
+      sessionFactory: {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        return URLSession(configuration: configuration)
+      }
+    )
+
+    let categories = try await repository.categories(on: server)
+
+    XCTAssertEqual(
+      categories,
+      [
+        TorrentCategory(name: "anime", savePath: "/Media/Anime"),
+        TorrentCategory(name: "movies", savePath: "/Media/Movies"),
+      ]
+    )
   }
 
   func testQBittorrentRepositoryLoadsFilesTrackersAndPeersWithEncodedHash() async throws {

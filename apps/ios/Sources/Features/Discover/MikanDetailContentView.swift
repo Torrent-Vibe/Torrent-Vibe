@@ -53,7 +53,7 @@ struct MikanDetailContentView: View {
         ContentUnavailableView {
           Label("无法载入番组详情", systemImage: "exclamationmark.triangle")
         } description: {
-          Text(state.errorMessage ?? "未知错误")
+          Text(state.errorMessage ?? String(localized: "未知错误"))
         }
         .frame(maxWidth: .infinity, minHeight: 480)
       }
@@ -158,11 +158,11 @@ struct MikanDetailContentView: View {
 
   private var importAvailabilityText: String {
     if model.pairedHelperServers.isEmpty {
-      return "点按剧集可导入单集。配对 Helper 后可订阅或导入已出。"
+      return String(localized: "点按剧集可导入单集。配对 Helper 后可订阅整季。")
     }
     if let server = model.activeServer {
-      return "点按剧集可导入到 \(server.name)。"
+      return String(localized: "点按剧集可导入到 \(server.name)。")
     }
-    return "添加服务器后可导入单集。"
+    return String(localized: "添加服务器后可导入单集。")
   }
 }

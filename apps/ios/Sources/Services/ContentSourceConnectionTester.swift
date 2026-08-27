@@ -56,7 +56,7 @@ actor URLSessionContentSourceConnectionTester: ContentSourceConnectionTesting {
       throw ContentSourceConnectionError.invalidMikanDocument
     }
 
-    return ContentSourceConnectionResult(message: "Mikan 连接正常")
+    return ContentSourceConnectionResult(message: String(localized: "Mikan 连接正常"))
   }
 
   func testMTeam(
@@ -69,7 +69,7 @@ actor URLSessionContentSourceConnectionTester: ContentSourceConnectionTesting {
       filters: MTeamSearchFilters(mode: mode),
       page: 1
     )
-    return ContentSourceConnectionResult(message: "M-Team 连接正常，已完成只读检索")
+    return ContentSourceConnectionResult(message: String(localized: "M-Team 连接正常，已完成只读检索"))
   }
 }
 
@@ -82,7 +82,7 @@ struct DemoContentSourceConnectionTester: ContentSourceConnectionTesting {
       throw ContentSourceConnectionError.invalidMikanBaseURL
     }
     try await Task.sleep(for: .milliseconds(240))
-    return ContentSourceConnectionResult(message: "Mikan 连接正常（Demo）")
+    return ContentSourceConnectionResult(message: String(localized: "Mikan 连接正常（Demo）"))
   }
 
   func testMTeam(
@@ -95,7 +95,7 @@ struct DemoContentSourceConnectionTester: ContentSourceConnectionTesting {
       filters: MTeamSearchFilters(mode: mode),
       page: 1
     )
-    return ContentSourceConnectionResult(message: "M-Team 连接正常（Demo，只读检索）")
+    return ContentSourceConnectionResult(message: String(localized: "M-Team 连接正常（Demo，只读检索）"))
   }
 }
 
@@ -108,13 +108,13 @@ enum ContentSourceConnectionError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .invalidMikanBaseURL:
-      "Mikan Base URL 必须是完整的 http:// 或 https:// 地址。"
+      String(localized: "Mikan Base URL 必须是完整的 http:// 或 https:// 地址。")
     case .invalidMikanDocument:
-      "Mikan 返回的页面为空或不是有效的 UTF-8 文本。"
+      String(localized: "Mikan 返回的页面为空或不是有效的 UTF-8 文本。")
     case .invalidMikanResponse:
-      "Mikan 返回了无效响应。"
+      String(localized: "Mikan 返回了无效响应。")
     case .mikanHTTPStatus(let status):
-      "Mikan 返回 HTTP \(status)。"
+      String(localized: "Mikan 返回 HTTP \(status)。")
     }
   }
 }

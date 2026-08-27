@@ -71,7 +71,9 @@ private struct TorrentShareView: View {
         }
 
         Link(destination: model.handoffURL) {
-          Text(model.isOpeningApp ? "正在打开…" : "在 Torrent Vibe 中继续")
+          Text(
+            model.isOpeningApp
+              ? String(localized: "正在打开…") : String(localized: "在 Torrent Vibe 中继续"))
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.glassProminent)

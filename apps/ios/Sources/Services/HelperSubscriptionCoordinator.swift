@@ -88,6 +88,6 @@ enum HelperSubscriptionCoordinatorError: LocalizedError {
   case conflictLimitReached
 
   var errorDescription: String? {
-    "Helper 上的订阅仍在被其他客户端修改，请稍后重试。"
+    String(localized: "Helper 上的订阅仍在被其他客户端修改，请稍后重试。")
   }
 }

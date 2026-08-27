@@ -1,3 +1,4 @@
+@preconcurrency import ActivityKit
 import BackgroundTasks
 import Foundation
 import Observation
@@ -51,12 +52,12 @@ struct BackgroundStatusCheckResult: Equatable, Sendable {
 final class TorrentBackgroundStatusService {
   static let taskIdentifier = "dev.innei.torrent-vibe.refresh"
 
-  var authorizationText = "正在读取"
+  var authorizationText = String(localized: "正在读取")
   var errorMessage: String?
   var isChecking = false
   var isNotificationsEnabled: Bool
   var lastResult: String?
-  var schedulingText = "尚未安排"
+  var schedulingText = String(localized: "尚未安排")
 
   private let defaults: UserDefaults
   private let launchArguments: [String]
@@ -66,6 +67,12 @@ final class TorrentBackgroundStatusService {
 
   private static let enabledKey = "background.notifications.enabled"
   private static let completedIDsKeyPrefix = "background.completedIDs."
+
+  private static var hasActiveLiveActivity: Bool {
+    Activity<TorrentLiveActivityAttributes>.activities.contains {
+      $0.activityState == .active || $0.activityState == .stale
+    }
+  }
 
   init(
     model: AppModel,
@@ -86,7 +93,11 @@ final class TorrentBackgroundStatusService {
     if settings.authorizationStatus == .denied {
       isNotificationsEnabled = false
       defaults.set(false, forKey: Self.enabledKey)
-    } else if isNotificationsEnabled {
+    }
+    if Self.shouldScheduleRefresh(
+      notificationsEnabled: isNotificationsEnabled,
+      hasActiveLiveActivity: Self.hasActiveLiveActivity
+    ) {
       scheduleNextRefresh()
     }
   }
@@ -113,8 +124,12 @@ final class TorrentBackgroundStatusService {
     } else {
       isNotificationsEnabled = false
       defaults.set(false, forKey: Self.enabledKey)
-      BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.taskIdentifier)
-      schedulingText = "已关闭"
+      if Self.hasActiveLiveActivity {
+        scheduleNextRefresh()
+      } else {
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.taskIdentifier)
+        schedulingText = String(localized: "已关闭")
+      }
     }
     await refreshStatus()
   }
@@ -128,7 +143,7 @@ final class TorrentBackgroundStatusService {
     guard let server = model.activeServer else {
       let result = BackgroundStatusCheckResult(
         completions: [],
-        message: "尚未配置可检查的服务器。"
+        message: String(localized: "尚未配置可检查的服务器。")
       )
       lastResult = result.message
       return result
@@ -175,11 +190,11 @@ final class TorrentBackgroundStatusService {
 
     let message: String
     if detection.baselineEstablished {
-      message = "已建立完成状态基线；后续只通知新完成的任务。"
+      message = String(localized: "已开始监控，之后有任务完成会通知你。")
     } else if detection.newlyCompleted.isEmpty {
-      message = "检查完成，没有新的下载完成任务。"
+      message = String(localized: "检查完成，没有新的下载完成任务。")
     } else {
-      message = "检查完成，发现 \(detection.newlyCompleted.count) 个新完成任务。"
+      message = String(localized: "检查完成，发现 \(detection.newlyCompleted.count) 个新完成任务。")
     }
     let result = BackgroundStatusCheckResult(
       completions: detection.newlyCompleted,
@@ -191,12 +206,17 @@ final class TorrentBackgroundStatusService {
   }
 
   func scheduleNextRefresh() {
-    guard isNotificationsEnabled else {
-      schedulingText = "通知关闭时不安排"
+    guard
+      Self.shouldScheduleRefresh(
+        notificationsEnabled: isNotificationsEnabled,
+        hasActiveLiveActivity: Self.hasActiveLiveActivity
+      )
+    else {
+      schedulingText = String(localized: "通知关闭时不安排")
       return
     }
     #if targetEnvironment(simulator)
-      schedulingText = "Simulator · 使用立即检查"
+      schedulingText = String(localized: "Simulator · 使用立即检查")
       return
     #else
       BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.taskIdentifier)
@@ -204,11 +224,28 @@ final class TorrentBackgroundStatusService {
       request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
       do {
         try BGTaskScheduler.shared.submit(request)
-        schedulingText = "已请求系统后台刷新"
+        schedulingText = String(localized: "已请求系统后台刷新")
       } catch {
-        schedulingText = "系统暂未接受后台刷新"
+        schedulingText = String(localized: "系统暂未接受后台刷新")
         errorMessage = error.localizedDescription
       }
+    #endif
+  }
+
+  static func shouldScheduleRefresh(
+    notificationsEnabled: Bool,
+    hasActiveLiveActivity: Bool
+  ) -> Bool {
+    notificationsEnabled || hasActiveLiveActivity
+  }
+
+  static func scheduleRefreshForLiveActivity() {
+    guard hasActiveLiveActivity else { return }
+    #if !targetEnvironment(simulator)
+      BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
+      let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
+      request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+      try? BGTaskScheduler.shared.submit(request)
     #endif
   }
 
@@ -239,7 +276,7 @@ final class TorrentBackgroundStatusService {
   ) async {
     for completion in completions {
       let content = UNMutableNotificationContent()
-      content.title = "下载完成"
+      content.title = String(localized: "下载完成")
       content.body = "\(completion.name) · \(serverName)"
       content.sound = .default
       let request = UNNotificationRequest(
@@ -260,17 +297,17 @@ final class TorrentBackgroundStatusService {
   ) -> String {
     switch status {
     case .notDetermined:
-      "尚未请求"
+      String(localized: "尚未请求")
     case .denied:
-      "系统已拒绝"
+      String(localized: "系统已拒绝")
     case .authorized:
-      "系统已允许"
+      String(localized: "系统已允许")
     case .provisional:
-      "临时允许"
+      String(localized: "临时允许")
     case .ephemeral:
-      "本次允许"
+      String(localized: "本次允许")
     @unknown default:
-      "未知"
+      String(localized: "未知")
     }
   }
 }

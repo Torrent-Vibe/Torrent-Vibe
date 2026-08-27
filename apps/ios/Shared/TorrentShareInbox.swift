@@ -27,9 +27,9 @@ struct TorrentSharePayload: Equatable, Sendable {
     switch source {
     case .link(let value):
       if value.lowercased().hasPrefix("magnet:") {
-        return "Magnet 链接"
+        return String(localized: "Magnet 链接")
       }
-      return "Torrent 链接"
+      return String(localized: "Torrent 链接")
     case .file(let name, _):
       return name
     }
@@ -201,17 +201,17 @@ enum TorrentShareError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .corruptSharedPayload:
-      "共享内容已损坏，请重新分享。"
+      String(localized: "共享内容已损坏，请重新分享。")
     case .fileTooLarge:
-      "Torrent 文件不能超过 10 MB。"
+      String(localized: "Torrent 文件不能超过 10 MB。")
     case .invalidFile:
-      "请选择有效的 .torrent 文件。"
+      String(localized: "请选择有效的 .torrent 文件。")
     case .invalidLink:
-      "请选择 Magnet 或 HTTP(S) Torrent 链接。"
+      String(localized: "请选择 Magnet 或 HTTP(S) Torrent 链接。")
     case .missingSharedContainer:
-      "Torrent Vibe 无法访问共享导入空间。"
+      String(localized: "Torrent Vibe 无法访问共享导入空间。")
     case .unsupportedItem:
-      "此内容不是可识别的 Magnet 链接或 .torrent 文件。"
+      String(localized: "此内容不是可识别的 Magnet 链接或 .torrent 文件。")
     }
   }
 }

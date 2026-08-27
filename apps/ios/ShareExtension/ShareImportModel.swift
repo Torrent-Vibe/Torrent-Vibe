@@ -21,7 +21,7 @@ final class ShareImportModel {
   private(set) var phase: Phase = .loading
 
   var sourceTitle: String {
-    guard let payload else { return "正在读取分享内容…" }
+    guard let payload else { return String(localized: "正在读取分享内容…") }
     return payload.sourceSummary
   }
 
@@ -36,7 +36,7 @@ final class ShareImportModel {
   }
 
   var sourceDetail: String {
-    guard let payload else { return "支持 Magnet 链接与单个 .torrent 文件" }
+    guard let payload else { return String(localized: "支持 Magnet 链接与单个 .torrent 文件") }
     switch payload.source {
     case .link(let value):
       return value

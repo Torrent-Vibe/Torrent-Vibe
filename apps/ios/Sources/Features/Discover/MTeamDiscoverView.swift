@@ -31,7 +31,7 @@ final class MTeamDiscoverState {
       values.append(MTeamDisplay.discountLabel(discount))
     }
     if !filters.categories.isEmpty {
-      values.append("分类 \(filters.categories.map(String.init).joined(separator: ", "))")
+      values.append(String(localized: "分类 \(filters.categories.map(String.init).joined(separator: ", "))"))
     }
     return values.joined(separator: " · ")
   }
@@ -109,7 +109,7 @@ struct MTeamDiscoverContentView: View {
             .accessibilityIdentifier("mteam-result-\(item.id)")
             .accessibilityValue(
               state.isSelecting
-                ? (state.selectedIDs.contains(item.id) ? "已选择" : "未选择") : ""
+                ? (state.selectedIDs.contains(item.id) ? String(localized: "已选择") : String(localized: "未选择")) : ""
             )
           }
         } header: {
@@ -149,14 +149,14 @@ struct MTeamDiscoverContentView: View {
       } else if state.items.isEmpty, state.errorMessage == nil {
         ContentUnavailableView {
           Label(
-            state.submittedQuery.isEmpty ? "搜索 M-Team" : "没有找到 Torrent",
+            state.submittedQuery.isEmpty ? String(localized: "搜索 M-Team") : String(localized: "没有找到 Torrent"),
             systemImage: "magnifyingglass"
           )
         } description: {
           Text(
             state.submittedQuery.isEmpty
-              ? "输入关键词并点击键盘上的“搜索”；Tracker 不会在每次输入时请求。"
-              : "尝试更换关键词或调整筛选条件。"
+              ? String(localized: "输入关键词并点击键盘上的“搜索”；Tracker 不会在每次输入时请求。")
+              : String(localized: "尝试更换关键词或调整筛选条件。")
           )
         } actions: {
           if state.submittedQuery.isEmpty {
@@ -259,7 +259,7 @@ final class MTeamFilterViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "M-Team 筛选"
+    title = String(localized: "M-Team 筛选")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     host(
@@ -348,7 +348,7 @@ private struct MTeamFilterContentView: View {
         .accessibilityIdentifier("mteam-filter-apply")
         Button("取消", role: .cancel, action: onCancel)
       } footer: {
-        Text("筛选仅在用户提交搜索时发送；分类 ID 留空表示全部分类。")
+        Text("分类 ID 留空表示搜索全部分类。")
       }
     }
   }
@@ -396,11 +396,11 @@ final class MTeamDetailViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "Torrent 详情"
+    title = String(localized: "Torrent 详情")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     navigationItem.rightBarButtonItem = UIBarButtonItem(
-      title: "导入",
+      title: String(localized: "导入"),
       style: .prominent,
       target: self,
       action: #selector(importTorrent)
@@ -441,7 +441,7 @@ final class MTeamDetailViewController: SwiftUIHostingViewController {
             displayTitle: state.detail?.torrent.title ?? torrent.title,
             locksSource: true,
             sourceText: url.absoluteString,
-            sourceFooterText: "此临时 Torrent 链接由 M-Team 生成；确认目标服务器后再提交。"
+            sourceFooterText: String(localized: "此临时 Torrent 链接由 M-Team 生成；确认目标服务器后再提交。")
           )
         ) { [weak self] server in
           guard let self else { return }
@@ -482,11 +482,11 @@ final class MTeamDetailViewController: SwiftUIHostingViewController {
 
   private func presentError(_ message: String) {
     let alert = UIAlertController(
-      title: "无法准备 Torrent",
+      title: String(localized: "无法准备 Torrent"),
       message: message,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(UIAlertAction(title: String(localized: "好"), style: .default))
     present(alert, animated: true)
   }
 }
@@ -592,7 +592,7 @@ private struct MTeamDetailContentView: View {
         ContentUnavailableView {
           Label("无法载入 Torrent 详情", systemImage: "exclamationmark.triangle")
         } description: {
-          Text(state.errorMessage ?? "未知错误")
+          Text(state.errorMessage ?? String(localized: "未知错误"))
         } actions: {
           Button("重试", action: onRetry)
         }
@@ -634,21 +634,21 @@ private struct MTeamDetailContentView: View {
 
 enum MTeamDisplay {
   static let modes = [
-    (value: "normal", label: "常规"),
-    (value: "movie", label: "电影"),
-    (value: "tv", label: "电视"),
-    (value: "music", label: "音乐"),
-    (value: "adult", label: "成人"),
+    (value: "normal", label: String(localized: "常规")),
+    (value: "movie", label: String(localized: "电影")),
+    (value: "tv", label: String(localized: "电视")),
+    (value: "music", label: String(localized: "音乐")),
+    (value: "adult", label: String(localized: "成人")),
   ]
 
   static let discounts = [
-    (value: "any", label: "全部"),
-    (value: "FREE", label: "免费"),
-    (value: "PERCENT_50", label: "五折"),
-    (value: "PERCENT_30", label: "三折"),
-    (value: "_2X", label: "上传 ×2"),
-    (value: "_2X_FREE", label: "上传 ×2 + 免费"),
-    (value: "_2X_PERCENT_50", label: "上传 ×2 + 五折"),
+    (value: "any", label: String(localized: "全部")),
+    (value: "FREE", label: String(localized: "免费")),
+    (value: "PERCENT_50", label: String(localized: "五折")),
+    (value: "PERCENT_30", label: String(localized: "三折")),
+    (value: "_2X", label: String(localized: "上传 ×2")),
+    (value: "_2X_FREE", label: String(localized: "上传 ×2 + 免费")),
+    (value: "_2X_PERCENT_50", label: String(localized: "上传 ×2 + 五折")),
   ]
 
   static func discountLabel(_ value: String) -> String {
@@ -667,7 +667,7 @@ enum MTeamDisplay {
     if includesSize, let sizeBytes = torrent.sizeBytes {
       items.append(
         CompactMetricItem(
-          accessibilityTitle: "大小",
+          accessibilityTitle: String(localized: "大小"),
           id: "size",
           systemImage: "externaldrive",
           value: size(sizeBytes)
@@ -676,7 +676,7 @@ enum MTeamDisplay {
     }
     items.append(
       CompactMetricItem(
-        accessibilityTitle: "做种数",
+        accessibilityTitle: String(localized: "做种数"),
         id: "seeders",
         systemImage: "arrow.up.circle",
         value: torrent.seeders.map(String.init) ?? "—"
@@ -684,7 +684,7 @@ enum MTeamDisplay {
     )
     items.append(
       CompactMetricItem(
-        accessibilityTitle: "下载数",
+        accessibilityTitle: String(localized: "下载数"),
         id: "leechers",
         systemImage: "arrow.down.circle",
         value: torrent.leechers.map(String.init) ?? "—"
@@ -692,7 +692,7 @@ enum MTeamDisplay {
     )
     items.append(
       CompactMetricItem(
-        accessibilityTitle: "完成数",
+        accessibilityTitle: String(localized: "完成数"),
         id: "snatches",
         systemImage: "checkmark.circle",
         value: torrent.snatches.map(String.init) ?? "—"

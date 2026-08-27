@@ -46,7 +46,7 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     navigationItem.largeTitleDisplayMode = .never
-    navigationItem.backButtonTitle = "任务"
+    navigationItem.backButtonTitle = String(localized: "任务")
     view.backgroundColor = .systemGroupedBackground
 
     pauseButton.target = self
@@ -55,13 +55,13 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
 
     moreButton.menu = UIMenu(children: [
       UIAction(
-        title: "分类、标签与限速",
+        title: String(localized: "分类、标签与限速"),
         image: UIImage(systemName: "slider.horizontal.3")
       ) { [weak self] _ in
         self?.presentManagement()
       },
       UIAction(
-        title: "删除任务",
+        title: String(localized: "删除任务"),
         image: UIImage(systemName: "trash"),
         attributes: .destructive
       ) { [weak self] _ in
@@ -199,17 +199,17 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
 
   private func confirmDelete() {
     let alert = UIAlertController(
-      title: "移除“\(state.torrent.name)”？",
-      message: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。",
+      title: String(localized: "移除“\(state.torrent.name)”？"),
+      message: String(localized: "请选择是否同时删除服务器上的已下载文件。此操作无法撤销。"),
       preferredStyle: .actionSheet
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "仅移除任务，保留文件", style: .default) { [weak self] _ in
+      UIAlertAction(title: String(localized: "仅移除任务，保留文件"), style: .default) { [weak self] _ in
         self?.deleteTorrent(deleteFiles: false)
       })
     alert.addAction(
-      UIAlertAction(title: "移除任务并删除文件", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "移除任务并删除文件"), style: .destructive) { [weak self] _ in
         self?.deleteTorrent(deleteFiles: true)
       })
     alert.popoverPresentationController?.barButtonItem = moreButton
@@ -241,7 +241,8 @@ final class TorrentDetailViewController: SwiftUIHostingViewController {
     pauseButton.image = UIImage(
       systemName: state.torrent.isPaused ? "play.fill" : "pause.fill"
     )
-    pauseButton.accessibilityLabel = state.torrent.isPaused ? "继续任务" : "暂停任务"
+    pauseButton.accessibilityLabel =
+      state.torrent.isPaused ? String(localized: "继续任务") : String(localized: "暂停任务")
     pauseButton.isEnabled = !state.isPerformingAction
   }
 }
@@ -327,7 +328,7 @@ private struct TorrentDetailContentView: View {
             .foregroundStyle(.red)
             .accessibilityIdentifier("torrent-detail-live-activity-error")
         } else {
-          Text("同一时间跟踪一个任务；刷新任务时同步进度，完成后由系统自动收起。")
+          Text("一次只能跟踪一个任务，完成后自动收起。")
         }
       }
 
@@ -359,8 +360,8 @@ private struct TorrentDetailContentView: View {
           isOn: downloadStrategyBinding(.sequential),
           label: {
             strategyLabel(
-              title: "顺序下载",
-              subtitle: "按分片顺序请求，适合边下边看"
+              title: String(localized: "顺序下载"),
+              subtitle: String(localized: "按分片顺序请求，适合边下边看")
             )
           }
         )
@@ -371,8 +372,8 @@ private struct TorrentDetailContentView: View {
           isOn: downloadStrategyBinding(.firstLastPiecePriority),
           label: {
             strategyLabel(
-              title: "首尾分片优先",
-              subtitle: "优先完成每个文件的首尾分片"
+              title: String(localized: "首尾分片优先"),
+              subtitle: String(localized: "优先完成每个文件的首尾分片")
             )
           }
         )
@@ -389,11 +390,12 @@ private struct TorrentDetailContentView: View {
       }
 
       Section("位置与标识") {
-        detailRow(title: "保存路径", value: state.torrent.savePath)
-        LabeledContent("分类", value: state.torrent.category ?? "无")
+        detailRow(title: String(localized: "保存路径"), value: state.torrent.savePath)
+        LabeledContent("分类", value: state.torrent.category ?? String(localized: "无"))
         detailRow(
-          title: "标签",
-          value: state.torrent.tags.isEmpty ? "无" : state.torrent.tags.joined(separator: "、")
+          title: String(localized: "标签"),
+          value: state.torrent.tags.isEmpty
+            ? String(localized: "无") : state.torrent.tags.joined(separator: "、")
         )
         hashRow
         LabeledContent("添加时间", value: formatted(state.torrent.addedAt))
@@ -427,28 +429,28 @@ private struct TorrentDetailContentView: View {
 
   private var liveActivityButtonTitle: String {
     liveActivityCoordinator.activeTorrentID == state.torrent.id
-      ? "停止实时活动"
-      : "在锁屏与灵动岛跟踪"
+      ? String(localized: "停止实时活动")
+      : String(localized: "在锁屏与灵动岛跟踪")
   }
 
   private var transferMetrics: [CompactMetricItem] {
     [
       CompactMetricItem(
-        accessibilityTitle: "下载速度",
+        accessibilityTitle: String(localized: "下载速度"),
         id: "detail-download-speed",
         systemImage: "arrow.down",
         value: state.torrent.downloadSpeed,
         color: .blue
       ),
       CompactMetricItem(
-        accessibilityTitle: "上传速度",
+        accessibilityTitle: String(localized: "上传速度"),
         id: "detail-upload-speed",
         systemImage: "arrow.up",
         value: state.torrent.uploadSpeed,
         color: .green
       ),
       CompactMetricItem(
-        accessibilityTitle: "剩余时间",
+        accessibilityTitle: String(localized: "剩余时间"),
         id: "detail-eta",
         systemImage: "clock",
         value: state.torrent.eta

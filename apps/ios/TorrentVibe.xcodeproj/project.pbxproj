@@ -71,6 +71,7 @@
 		949EB171758591409C5337EC /* SubscriptionScheduleModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09C2CC1B2CBD6E9EB3B908D9 /* SubscriptionScheduleModelTests.swift */; };
 		973D357827536437F0EDC812 /* ContentSourceConnectionTesterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171F9E117575D0C173F58718 /* ContentSourceConnectionTesterTests.swift */; };
 		9829C6E8E1A0A7F8BA42AD23 /* TorrentInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC99E7C8852668F5A113CB /* TorrentInspectorView.swift */; };
+		9AAEE7B9693CE8EE9A975924 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 52707B7592C94C681D8F1D8A /* Localizable.xcstrings */; };
 		9E0F5068A4D610A9B6946FDB /* AppModelMikanPollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5D1658EBCC9EDB2B1B7F256 /* AppModelMikanPollingTests.swift */; };
 		9F72D02F131DCA7B9AA03F05 /* AppModelHelperCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF1A751A14E4D1E4E6A9910 /* AppModelHelperCacheTests.swift */; };
 		9FF9D5B1A2713E344036A10D /* SubscriptionScheduleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1CD10B8C9A8AC55D273BE52 /* SubscriptionScheduleModel.swift */; };
@@ -192,6 +193,7 @@
 		4457657CA2785DA38F6F0305 /* ContentSourceConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSourceConnectionTester.swift; sourceTree = "<group>"; };
 		50BBF6C5EA6457BCFAFECBF0 /* MikanContentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MikanContentService.swift; sourceTree = "<group>"; };
 		5133C244E6327B15F7BC40FC /* TorrentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentRepository.swift; sourceTree = "<group>"; };
+		52707B7592C94C681D8F1D8A /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		53745902F40959326F3D21D2 /* TorrentContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TorrentContentView.swift; sourceTree = "<group>"; };
 		53C147BD69870FF56827FDA4 /* HelperEventsFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsFilterTests.swift; sourceTree = "<group>"; };
 		540D5E51CE18425F9866838C /* HelperEventsCursorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperEventsCursorTests.swift; sourceTree = "<group>"; };
@@ -390,6 +392,7 @@
 			isa = PBXGroup;
 			children = (
 				5435DA47620575B7C20BC368 /* Assets.xcassets */,
+				52707B7592C94C681D8F1D8A /* Localizable.xcstrings */,
 				DD3D627BA0C3C26CD1C0073A /* MikanParser.js */,
 			);
 			path = Resources;
@@ -726,6 +729,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6C8260E92FD7D6676EBD5F8F /* Assets.xcassets in Resources */,
+				9AAEE7B9693CE8EE9A975924 /* Localizable.xcstrings in Resources */,
 				5B471E0ACA64178456B87AC1 /* MikanParser.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -978,6 +982,7 @@
 				PRODUCT_NAME = "Torrent Vibe";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -1253,6 +1258,7 @@
 				PRODUCT_NAME = "Torrent Vibe";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;

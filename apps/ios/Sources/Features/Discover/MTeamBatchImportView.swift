@@ -73,9 +73,9 @@ final class MTeamBatchImportCoordinator {
 
   var progressText: String {
     if succeededIDs.isEmpty, failures.isEmpty {
-      return "确认后才会为所选资源生成临时下载链接。"
+      return String(localized: "确认后才会为所选资源生成临时下载链接。")
     }
-    return "已添加 \(succeededIDs.count) 项 · 待处理 \(pendingTorrents.count) 项"
+    return String(localized: "已添加 \(succeededIDs.count) 项 · 待处理 \(pendingTorrents.count) 项")
   }
 
   func importPending() async throws -> Int {
@@ -110,7 +110,7 @@ final class MTeamBatchImportCoordinator {
     }
 
     if !failures.isEmpty {
-      errorMessage = "\(failures.count) 项未能添加；重试只会处理失败项目。"
+      errorMessage = String(localized: "\(failures.count) 项未能添加；重试只会处理失败项目。")
     }
     return succeededIDs.count
   }
@@ -160,7 +160,7 @@ final class MTeamBatchImportViewController: SwiftUIHostingViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "批量导入（\(coordinator.torrents.count)）"
+    title = String(localized: "批量导入（\(coordinator.torrents.count)）")
     navigationItem.largeTitleDisplayMode = .never
     view.backgroundColor = .systemGroupedBackground
     navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -197,11 +197,11 @@ final class MTeamBatchImportViewController: SwiftUIHostingViewController {
     controller.onCompletion = { [weak presenter] count in
       onCompletion()
       let alert = UIAlertController(
-        title: "批量导入已提交",
-        message: "已向目标服务器添加 \(count) 个任务。",
+        title: String(localized: "批量导入已提交"),
+        message: String(localized: "已向目标服务器添加 \(count) 个任务。"),
         preferredStyle: .alert
       )
-      alert.addAction(UIAlertAction(title: "完成", style: .default))
+      alert.addAction(UIAlertAction(title: String(localized: "完成"), style: .default))
       presenter?.present(alert, animated: true)
     }
     let navigationController = UINavigationController(rootViewController: controller)
@@ -317,14 +317,14 @@ private struct MTeamBatchImportContentView: View {
         .disabled(coordinator.isSubmitting || coordinator.selectedServerID == nil)
         .accessibilityIdentifier("mteam-batch-confirm")
       } footer: {
-        Text("临时链接仅在确认后逐项生成；已成功的项目不会在重试时重复提交。")
+        Text("重试只会处理失败的项目。")
       }
     }
   }
 
   private var confirmTitle: String {
     let count = coordinator.pendingTorrents.count
-    return coordinator.failures.isEmpty ? "确认导入 \(count) 项" : "重试失败的 \(count) 项"
+    return coordinator.failures.isEmpty ? String(localized: "确认导入 \(count) 项") : String(localized: "重试失败的 \(count) 项")
   }
 
   private func statusImage(for torrentID: String) -> String {

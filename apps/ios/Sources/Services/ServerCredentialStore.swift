@@ -74,12 +74,12 @@ enum KeychainCredentialError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .invalidPasswordData:
-      "Keychain 中的密码数据无法读取。"
+      String(localized: "Keychain 中的密码数据无法读取。")
     case .unexpectedStatus(let status):
       if let message = SecCopyErrorMessageString(status, nil) as String? {
-        "Keychain 操作失败：\(message)"
+        String(localized: "Keychain 操作失败：\(message)")
       } else {
-        "Keychain 操作失败（\(status)）。"
+        String(localized: "Keychain 操作失败（\(status)）。")
       }
     }
   }

@@ -45,7 +45,7 @@ private struct TorrentFilterTabsRepresentable: UIViewRepresentable {
         badge: count > 0
           ? .init(title: "\(count)")
           : nil,
-        accessibilityLabel: "任务状态筛选：\(filter.title)，\(count) 个",
+        accessibilityLabel: String(localized: "任务状态筛选：\(filter.title)，\(count) 个"),
         accessibilityIdentifier: "torrent-filter-chip-\(filter.rawValue)",
         action: { onSelect(filter) }
       )

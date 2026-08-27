@@ -110,14 +110,14 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
         image: UIImage(systemName: "ellipsis"),
         menu: UIMenu(children: [
           UIAction(
-            title: "编辑目标",
+            title: String(localized: "编辑目标"),
             image: UIImage(systemName: "slider.horizontal.3"),
             attributes: state.isUnsubscribing ? [.disabled] : []
           ) { [weak self] _ in
             self?.showTargetEditor(for: subscription)
           },
           UIAction(
-            title: "取消订阅",
+            title: String(localized: "取消订阅"),
             image: UIImage(systemName: "bookmark.slash"),
             attributes: state.isUnsubscribing ? [.disabled] : [.destructive]
           ) { [weak self] _ in
@@ -125,7 +125,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
           },
         ])
       )
-      more.accessibilityLabel = "更多操作"
+      more.accessibilityLabel = String(localized: "更多操作")
       more.accessibilityIdentifier = "mikan-detail-more"
       navigationItem.rightBarButtonItems = [more]
     } else {
@@ -136,7 +136,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
         action: #selector(subscribeFromNavigation)
       )
       subscribe.isEnabled = hasHelper && !state.isUnsubscribing
-      subscribe.accessibilityLabel = "订阅"
+      subscribe.accessibilityLabel = String(localized: "订阅")
       subscribe.accessibilityIdentifier = "mikan-detail-subscribe"
       navigationItem.rightBarButtonItems = [subscribe]
     }
@@ -199,14 +199,14 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
           subgroupID: subgroupID,
           episode: episode
         )
-        IslandToast.show("已重新提交", from: self)
+        IslandToast.show(String(localized: "已重新提交"), from: self)
       } catch {
         let alert = UIAlertController(
-          title: "无法重试",
+          title: String(localized: "无法重试"),
           message: error.localizedDescription,
           preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "好", style: .default))
+        alert.addAction(UIAlertAction(title: String(localized: "好"), style: .default))
         present(alert, animated: true)
       }
     }
@@ -232,13 +232,13 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
   private func confirmUnsubscribe(_ group: HelperSubscriptionGroup) {
     let targets = group.targets.map(\.serverName).joined(separator: "、")
     let alert = UIAlertController(
-      title: "取消《\(group.replica.title)》订阅？",
-      message: "将从 \(targets) 的 Helper 移除此订阅；已经添加的 Torrent 与文件会保留。",
+      title: String(localized: "取消《\(group.replica.title)》订阅？"),
+      message: String(localized: "将从 \(targets) 的 Helper 移除此订阅；已经添加的 Torrent 与文件会保留。"),
       preferredStyle: .actionSheet
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "取消订阅", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "取消订阅"), style: .destructive) { [weak self] _ in
         self?.unsubscribe(group)
       }
     )
@@ -251,14 +251,14 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       defer { state.isUnsubscribing = false }
       do {
         try await model.unsubscribeMikanSubscription(group)
-        IslandToast.show("已取消订阅", from: self)
+        IslandToast.show(String(localized: "已取消订阅"), from: self)
       } catch {
         let alert = UIAlertController(
-          title: "无法取消订阅",
+          title: String(localized: "无法取消订阅"),
           message: error.localizedDescription,
           preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "好", style: .default))
+        alert.addAction(UIAlertAction(title: String(localized: "好"), style: .default))
         present(alert, animated: true)
       }
     }
@@ -271,7 +271,7 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
       group: group
     ) { [weak self] outcome in
       guard let self else { return }
-      IslandToast.show("已更新订阅目标 · \(outcome.serverNames.joined(separator: "、"))", from: self)
+      IslandToast.show(String(localized: "已更新订阅目标 · \(outcome.serverNames.joined(separator: "、"))"), from: self)
     }
   }
 
@@ -279,11 +279,11 @@ final class MikanDetailViewController: SwiftUIHostingViewController {
     let names = outcome.serverNames.joined(separator: "、")
     let message =
       if outcome.backfillFailed {
-        "已订阅，但导入已出剧集失败 · \(names)"
+        String(localized: "已订阅，但导入已出剧集失败 · \(names)")
       } else if outcome.mergedConflict {
-        "已合并订阅 · \(names)"
+        String(localized: "已合并订阅 · \(names)")
       } else {
-        "已订阅 · \(names)"
+        String(localized: "已订阅 · \(names)")
       }
     IslandToast.show(message, from: self)
   }

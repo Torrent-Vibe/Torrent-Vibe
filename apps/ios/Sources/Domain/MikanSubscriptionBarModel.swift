@@ -129,32 +129,34 @@ enum MikanSubscriptionBarModel {
   static func segments(for variant: MikanSubscriptionBarVariant, now: Date) -> [String] {
     switch variant {
     case .healthy(let serverLabel, let ready, let total, let failed, let checkedAt):
-      var segments = [serverLabel, "\(ready)/\(total) 就绪"]
+      var segments = [serverLabel, String(localized: "\(ready)/\(total) 就绪")]
       if failed > 0 {
-        segments.append("\(failed) 失败")
+        segments.append(String(localized: "\(failed) 失败"))
       }
       switch checkedAt {
       case .checked(let date):
-        segments.append("\(relativeTimeFragment(from: date, now: now))检查")
+        segments.append(String(localized: "\(relativeTimeFragment(from: date, now: now))检查"))
       case .never:
-        segments.append("从未检查")
+        segments.append(String(localized: "从未检查"))
       }
       return segments
     case .checkFailing(let serverLabel, _, let consecutiveFailures):
-      return [serverLabel, "RSS 抓取失败 · 连续 \(consecutiveFailures) 次"]
+      return [serverLabel, String(localized: "RSS 抓取失败 · 连续 \(consecutiveFailures) 次")]
     case .offline(let serverLabel, let checkedAt):
-      guard let checkedAt else { return [serverLabel, "离线"] }
-      return [serverLabel, "上次同步 \(relativeTimeFragment(from: checkedAt, now: now))"]
+      guard let checkedAt else { return [serverLabel, String(localized: "离线")] }
+      return [
+        serverLabel, String(localized: "上次同步 \(relativeTimeFragment(from: checkedAt, now: now))"),
+      ]
     case .needsRepairing(let serverLabel):
-      return [serverLabel, "需要重新配对"]
+      return [serverLabel, String(localized: "需要重新配对")]
     }
   }
 
   static func relativeTimeFragment(from date: Date, now: Date) -> String {
     let seconds = max(0, now.timeIntervalSince(date))
-    if seconds < 60 { return "刚刚" }
-    if seconds < 3600 { return "\(Int(seconds / 60)) 分钟前" }
-    if seconds < 86400 { return "\(Int(seconds / 3600)) 小时前" }
-    return "\(Int(seconds / 86400)) 天前"
+    if seconds < 60 { return String(localized: "刚刚") }
+    if seconds < 3600 { return String(localized: "\(Int(seconds / 60)) 分钟前") }
+    if seconds < 86400 { return String(localized: "\(Int(seconds / 3600)) 小时前") }
+    return String(localized: "\(Int(seconds / 86400)) 天前")
   }
 }

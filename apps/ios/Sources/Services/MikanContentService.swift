@@ -102,15 +102,15 @@ enum MikanContentServiceError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .httpStatus(let status):
-      "Mikan 返回 HTTP \(status)。"
+      String(localized: "Mikan 返回 HTTP \(status)。")
     case .invalidBaseURL:
-      "Mikan Base URL 必须使用 http:// 或 https://。"
+      String(localized: "Mikan Base URL 必须使用 http:// 或 https://。")
     case .invalidDocumentEncoding:
-      "Mikan 页面不是有效的 UTF-8 文本。"
+      String(localized: "Mikan 页面不是有效的 UTF-8 文本。")
     case .invalidRequestURL:
-      "无法生成 Mikan 请求地址。"
+      String(localized: "无法生成 Mikan 请求地址。")
     case .invalidResponse:
-      "Mikan 返回了无效响应。"
+      String(localized: "Mikan 返回了无效响应。")
     }
   }
 }

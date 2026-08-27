@@ -12,12 +12,12 @@ enum TorrentFilter: String, CaseIterable, Identifiable, Sendable {
 
   var title: String {
     switch self {
-    case .all: "全部"
-    case .downloading: "下载中"
-    case .seeding: "做种"
-    case .completed: "已完成"
-    case .paused: "已暂停"
-    case .error: "错误"
+    case .all: String(localized: "全部")
+    case .downloading: String(localized: "下载中")
+    case .seeding: String(localized: "做种")
+    case .completed: String(localized: "已完成")
+    case .paused: String(localized: "已暂停")
+    case .error: String(localized: "错误")
     }
   }
 

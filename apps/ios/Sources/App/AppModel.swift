@@ -149,7 +149,8 @@ final class AppModel {
     var groups: [String: (replica: HelperReplica, targets: [HelperSubscriptionTarget])] = [:]
 
     for server in pairedHelperServers {
-      guard case .loaded(let snapshot, let status, let source) = helperSubscriptionState(for: server.id)
+      guard
+        case .loaded(let snapshot, let status, let source) = helperSubscriptionState(for: server.id)
       else { continue }
 
       for replica in snapshot.replicas {
@@ -193,7 +194,9 @@ final class AppModel {
     }
   }
 
-  func mikanSubscriptionBarInput(bangumiID: String, subgroupID: String) -> MikanSubscriptionBarInput? {
+  func mikanSubscriptionBarInput(bangumiID: String, subgroupID: String)
+    -> MikanSubscriptionBarInput?
+  {
     let group = helperSubscriptionGroup(bangumiID: bangumiID, subgroupID: subgroupID)
 
     var targets: [MikanSubscriptionBarTarget] =
@@ -226,7 +229,8 @@ final class AppModel {
 
     guard !targets.isEmpty else { return nil }
 
-    let progress = group.map { MikanSubscriptionBarModel.progress(from: $0.targets) }
+    let progress =
+      group.map { MikanSubscriptionBarModel.progress(from: $0.targets) }
       ?? MikanSubscriptionBarProgress(ready: 0, total: 0, failed: 0)
     return MikanSubscriptionBarInput(targets: targets, progress: progress)
   }
@@ -378,11 +382,11 @@ final class AppModel {
   func connectionStatusText(for serverID: UUID) -> String {
     switch serverConnectionStates[serverID] ?? .idle {
     case .idle:
-      "尚未测试"
+      String(localized: "尚未测试")
     case .connecting:
-      "正在连接"
+      String(localized: "正在连接")
     case .connected(let version):
-      version.map { "已连接 · \($0)" } ?? "已连接"
+      version.map { String(localized: "已连接 · \($0)") } ?? String(localized: "已连接")
     case .failed(let message):
       message
     }
@@ -394,20 +398,21 @@ final class AppModel {
 
   func helperStatusText(for serverID: UUID) -> String {
     guard let server = servers.first(where: { $0.id == serverID }) else {
-      return "未配置"
+      return String(localized: "未配置")
     }
     switch helperConnectionState(for: serverID) {
     case .connected(let status):
-      return "已连接 · v\(status.version)"
+      return String(localized: "已连接 · v\(status.version)")
     case .connecting:
-      return "正在连接"
+      return String(localized: "正在连接")
     case .failed(let message):
       return message
     case .idle:
       if hasStoredHelperToken(for: serverID) {
-        return "已配对"
+        return String(localized: "已配对")
       }
-      return server.helperBaseURL == nil ? "未配置" : "未配对"
+      return server.helperBaseURL == nil
+        ? String(localized: "未配置") : String(localized: "未配对")
     }
   }
 
@@ -510,7 +515,8 @@ final class AppModel {
     guard let index = servers.firstIndex(where: { $0.id == serverID }) else { return }
     helperConnectionStates[serverID] = .connecting
     do {
-      let baseURL = try Self.validatedHTTPURL(baseURLText, fieldName: "Helper 地址")
+      let baseURL = try Self.validatedHTTPURL(
+        baseURLText, fieldName: String(localized: "Helper 地址"))
       let code =
         pairingCode
         .uppercased()
@@ -856,7 +862,8 @@ final class AppModel {
         at: authorization.baseURL,
         token: authorization.token
       )
-      applyLoadedHelperSubscriptions(serverID: serverID, snapshot: mutation.snapshot, status: status)
+      applyLoadedHelperSubscriptions(
+        serverID: serverID, snapshot: mutation.snapshot, status: status)
     } catch {
       handleHelperContentError(error, serverID: serverID)
       throw error
@@ -1014,6 +1021,11 @@ final class AppModel {
     return try await torrentRepository.files(for: torrentID, on: server)
   }
 
+  func torrentCategories(serverID: UUID) async throws -> [TorrentCategory] {
+    let server = try torrentServer(for: serverID)
+    return try await torrentRepository.categories(on: server)
+  }
+
   func torrentTrackers(torrentID: String, serverID: UUID) async throws
     -> [TorrentTrackerSummary]
   {
@@ -1095,12 +1107,12 @@ final class AppModel {
     let helperURLText = helperURLText.trimmingCharacters(in: .whitespacesAndNewlines)
     return ServerDraft(
       name: trimmedName,
-      baseURL: try validatedHTTPURL(baseURLText, fieldName: "qBittorrent 地址"),
+      baseURL: try validatedHTTPURL(baseURLText, fieldName: String(localized: "qBittorrent 地址")),
       username: username.trimmingCharacters(in: .whitespacesAndNewlines),
       password: password,
       helperURL: helperURLText.isEmpty
         ? nil
-        : try validatedHTTPURL(helperURLText, fieldName: "Helper 地址")
+        : try validatedHTTPURL(helperURLText, fieldName: String(localized: "Helper 地址"))
     )
   }
 
@@ -1139,7 +1151,7 @@ final class AppModel {
     return trimmed
   }
 
-  private static func validatedTorrentAddRequest(
+  static func validatedTorrentAddRequest(
     _ request: TorrentAddRequest
   ) throws -> TorrentAddRequest {
     let source: TorrentAddSource
@@ -1165,6 +1177,13 @@ final class AppModel {
       savePath: normalizedOptionalText(request.savePath),
       category: normalizedOptionalText(request.category),
       tags: normalizedTags(request.tags),
+      rename: normalizedOptionalText(request.rename),
+      isAutomaticTorrentManagementEnabled: request.isAutomaticTorrentManagementEnabled,
+      startsImmediately: request.startsImmediately,
+      skipsHashChecking: request.skipsHashChecking,
+      isSequentialDownloadEnabled: request.isSequentialDownloadEnabled,
+      isFirstLastPiecePriorityEnabled: request.isFirstLastPiecePriorityEnabled,
+      createsRootFolder: request.createsRootFolder,
       downloadLimit: request.downloadLimit,
       uploadLimit: request.uploadLimit
     )
@@ -1241,7 +1260,8 @@ final class AppModel {
     snapshot: HelperSubscriptionSnapshot,
     status: HelperRuntimeStatus
   ) {
-    helperSubscriptionStates[serverID] = .loaded(snapshot: snapshot, status: status, source: .helper)
+    helperSubscriptionStates[serverID] = .loaded(
+      snapshot: snapshot, status: status, source: .helper)
     persistHelperCache(for: serverID, snapshot: snapshot, status: status)
   }
 
@@ -1290,7 +1310,8 @@ final class AppModel {
     }
   }
 
-  private static func loadMikanDirectory(from defaults: UserDefaults) -> [String: MikanBangumiCard] {
+  private static func loadMikanDirectory(from defaults: UserDefaults) -> [String: MikanBangumiCard]
+  {
     guard let data = defaults.data(forKey: Self.mikanDirectoryStorageKey) else { return [:] }
     return (try? JSONDecoder().decode([String: MikanBangumiCard].self, from: data)) ?? [:]
   }
@@ -1338,9 +1359,11 @@ final class AppModel {
   }
 
   private func scheduleNextMikanPollTick() {
-    let interval = mikanPollIntervalOverride ?? Self.mikanPollingInterval(
-      forEpisodeStates: trackedMikanEpisodeStates
-    )
+    let interval =
+      mikanPollIntervalOverride
+      ?? Self.mikanPollingInterval(
+        forEpisodeStates: trackedMikanEpisodeStates
+      )
     mikanPollTimerTask = Task { [weak self] in
       try? await Task.sleep(for: interval)
       guard !Task.isCancelled else { return }
@@ -1456,13 +1479,13 @@ enum ServerValidationError: Equatable, LocalizedError {
   var errorDescription: String? {
     switch self {
     case .missingName:
-      "服务器名称不能为空。"
+      String(localized: "服务器名称不能为空。")
     case .missingPassword:
-      "qBittorrent 密码不能为空。"
+      String(localized: "qBittorrent 密码不能为空。")
     case .invalidURL(let fieldName):
-      "\(fieldName)必须是完整的 http:// 或 https:// 地址。"
+      String(localized: "\(fieldName)必须是完整的 http:// 或 https:// 地址。")
     case .serverUnavailable:
-      "服务器已不存在。"
+      String(localized: "服务器已不存在。")
     }
   }
 }
@@ -1485,7 +1508,7 @@ enum HelperPairingError: LocalizedError {
   case invalidCode
 
   var errorDescription: String? {
-    "请输入 Helper 主机上显示的六位配对码。"
+    String(localized: "请输入 Helper 主机上显示的六位配对码。")
   }
 }
 
@@ -1511,15 +1534,15 @@ enum HelperContentError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .helperUnavailable:
-      "目标服务器尚未配对 Helper。"
+      String(localized: "目标服务器尚未配对 Helper。")
     case .invalidMikanURL:
-      "无法生成当前字幕组的 Mikan RSS 地址。"
+      String(localized: "无法生成当前字幕组的 Mikan RSS 地址。")
     case .noEpisodes:
-      "当前字幕组没有可导入的剧集。"
+      String(localized: "当前字幕组没有可导入的剧集。")
     case .noTarget:
-      "请至少选择一个目标服务器。"
+      String(localized: "请至少选择一个目标服务器。")
     case .serverUnavailable:
-      "目标服务器已不可用。"
+      String(localized: "目标服务器已不可用。")
     }
   }
 }
@@ -1535,17 +1558,17 @@ enum TorrentImportError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .fileTooLarge:
-      "Torrent 文件不能超过 10 MB。"
+      String(localized: "Torrent 文件不能超过 10 MB。")
     case .invalidFile:
-      "请选择有效且非空的 .torrent 文件。"
+      String(localized: "请选择有效且非空的 .torrent 文件。")
     case .invalidSource:
-      "请输入有效的 Magnet 或 HTTP(S) Torrent URL。"
+      String(localized: "请输入有效的 Magnet 或 HTTP(S) Torrent URL。")
     case .invalidSpeedLimit:
-      "速度限制必须是大于或等于 0 的数值。"
+      String(localized: "速度限制必须是大于或等于 0 的数值。")
     case .missingSource:
-      "Torrent 来源不能为空。"
+      String(localized: "Torrent 来源不能为空。")
     case .serverUnavailable:
-      "目标服务器已不可用，请重新选择。"
+      String(localized: "目标服务器已不可用，请重新选择。")
     }
   }
 }
@@ -1558,11 +1581,11 @@ enum TorrentActionError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .missingSelection:
-      "请至少选择一个 Torrent 任务。"
+      String(localized: "请至少选择一个 Torrent 任务。")
     case .serverUnavailable:
-      "目标服务器已不可用。"
+      String(localized: "目标服务器已不可用。")
     case .torrentUnavailable:
-      "任务状态已变化，请返回列表后重试。"
+      String(localized: "任务状态已变化，请返回列表后重试。")
     }
   }
 }

@@ -182,25 +182,25 @@ enum MikanJavaScriptRuntimeError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .contextCreationFailed:
-      "无法创建 JavaScriptCore 上下文。"
+      String(localized: "无法创建 JavaScriptCore 上下文。")
     case .invalidInput:
-      "无法编码 Mikan 解析输入。"
+      String(localized: "无法编码 Mikan 解析输入。")
     case .invalidOutput:
-      "Mikan 解析器没有返回有效结果。"
+      String(localized: "Mikan 解析器没有返回有效结果。")
     case .invocationFailed(let message):
-      "JavaScriptCore 调用失败：\(message)"
+      String(localized: "JavaScriptCore 调用失败：\(message)")
     case .missingBridge:
-      "Mikan JavaScript Bundle 未暴露桥接对象。"
+      String(localized: "Mikan JavaScript Bundle 未暴露桥接对象。")
     case .missingBundle:
-      "App Bundle 中缺少 MikanParser.js。"
+      String(localized: "App Bundle 中缺少 MikanParser.js。")
     case .missingInvokeFunction:
-      "Mikan JavaScript Bundle 缺少 invoke 函数。"
+      String(localized: "Mikan JavaScript Bundle 缺少 invoke 函数。")
     case .parserFailure(let message):
-      "Mikan 解析失败：\(message)"
+      String(localized: "Mikan 解析失败：\(message)")
     case .scriptEvaluationFailed(let message):
-      "Mikan JavaScript Bundle 加载失败：\(message)"
+      String(localized: "Mikan JavaScript Bundle 加载失败：\(message)")
     case .unsupportedBridgeVersion(let version):
-      "不支持 Mikan JavaScript Bridge v\(version)。"
+      String(localized: "不支持 Mikan JavaScript Bridge v\(version)。")
     }
   }
 }

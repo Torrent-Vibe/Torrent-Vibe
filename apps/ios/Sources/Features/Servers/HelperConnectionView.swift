@@ -53,13 +53,13 @@ final class HelperConnectionViewController: SwiftUIHostingViewController {
 
   private func confirmUnpair() {
     let alert = UIAlertController(
-      title: "解除 Helper 配对？",
-      message: "只会撤销当前 iPhone 的授权；其他客户端和远端订阅不会被删除。",
+      title: String(localized: "解除 Helper 配对？"),
+      message: String(localized: "只会撤销当前 iPhone 的授权；其他客户端和远端订阅不会被删除。"),
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(UIAlertAction(title: String(localized: "取消"), style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "解除配对", style: .destructive) { [weak self] _ in
+      UIAlertAction(title: String(localized: "解除配对"), style: .destructive) { [weak self] _ in
         guard let self else { return }
         Task { await model.unpairHelper(for: serverID) }
       })
@@ -118,7 +118,7 @@ private struct HelperConnectionContentView: View {
   private func connectedForm(_ status: HelperStatus) -> some View {
     Form {
       Section("状态") {
-        LabeledContent("连接", value: "已连接")
+        LabeledContent("连接", value: String(localized: "已连接"))
           .accessibilityIdentifier("helper-connected-status")
         LabeledContent("版本", value: status.version)
           .accessibilityIdentifier("helper-version")
@@ -128,9 +128,9 @@ private struct HelperConnectionContentView: View {
         LabeledContent("待处理项目", value: "\(status.pendingItems)")
       }
 
-      Section("端点") {
+      Section("连接信息") {
         LabeledContent("地址", value: server?.helperBaseURL?.absoluteString ?? "—")
-        LabeledContent("凭据", value: "本机 Keychain")
+        LabeledContent("凭据", value: String(localized: "本机 Keychain"))
       }
 
       Section {
@@ -145,7 +145,7 @@ private struct HelperConnectionContentView: View {
         }
         .accessibilityIdentifier("helper-profile-sync")
       } footer: {
-        Text("选择上传本机凭证，或从该下载机拉取凭证；不会自动覆盖。")
+        Text("上传本机凭证，或从下载机拉取；不会自动覆盖。")
       }
 
       Section {
@@ -160,7 +160,7 @@ private struct HelperConnectionContentView: View {
         }
         .accessibilityIdentifier("helper-logs")
       } footer: {
-        Text("查看 Helper 的事件与原始日志，用于排查订阅未按预期下载的原因。")
+        Text("订阅没有按预期下载时，来这里查原因。")
       }
 
       Section {
@@ -172,7 +172,7 @@ private struct HelperConnectionContentView: View {
         Button("解除当前设备配对", role: .destructive, action: onConfirmUnpair)
           .accessibilityIdentifier("helper-unpair")
       } footer: {
-        Text("解除配对只撤销当前 iPhone，不会删除其他客户端、订阅或下载任务。")
+        Text("只解除这台 iPhone，订阅和下载不受影响。")
       }
     }
   }
@@ -203,7 +203,7 @@ private struct HelperConnectionContentView: View {
         Button("解除当前设备配对", role: .destructive, action: onConfirmUnpair)
           .accessibilityIdentifier("helper-unpair")
       } footer: {
-        Text("本机仍保留独立凭据。重新连接不会修改远端订阅。")
+        Text("随时可以重新配对。")
       }
     }
   }
@@ -216,7 +216,11 @@ private struct HelperConnectionContentView: View {
             if discovery.isSearching {
               ProgressView()
             }
-            Text(discovery.isSearching ? "正在搜索局域网 Helper" : "尚未开始搜索")
+            Text(
+              discovery.isSearching
+                ? String(localized: "正在搜索局域网 Helper")
+                : String(localized: "尚未开始搜索")
+            )
               .foregroundStyle(.secondary)
           }
         } else {
@@ -249,7 +253,7 @@ private struct HelperConnectionContentView: View {
       } header: {
         Text("附近 Helper")
       } footer: {
-        Text("发现只公开主机地址与版本；配对码仅显示在 Helper 主机终端。")
+        Text("配对码显示在 Helper 主机的终端里。")
       }
 
       Section("手动连接") {
@@ -269,7 +273,7 @@ private struct HelperConnectionContentView: View {
           }
           .accessibilityIdentifier("helper-code-field")
 
-        Button(isBusy ? "正在连接" : "连接 Helper") {
+        Button(isBusy ? String(localized: "正在连接") : String(localized: "连接 Helper")) {
           Task {
             await model.pairHelper(
               serverID: serverID,

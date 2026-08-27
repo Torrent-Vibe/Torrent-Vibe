@@ -7,10 +7,10 @@ extension TorrentLiveActivityAttributes.ContentState {
     let isComplete = torrent.status == .completed || torrent.progress >= 1
     self.init(
       downloadSpeed: torrent.downloadSpeed,
-      eta: isComplete ? "已完成" : torrent.eta,
+      eta: isComplete ? String(localized: "已完成") : torrent.eta,
       isComplete: isComplete,
       progress: min(max(torrent.progress, 0), 1),
-      status: isComplete ? "已完成" : torrent.statusTitle,
+      status: isComplete ? String(localized: "已完成") : torrent.statusTitle,
       updatedAt: updatedAt
     )
   }
@@ -25,7 +25,7 @@ final class TorrentLiveActivityCoordinator {
   private(set) var activeTorrentName: String?
   private(set) var errorMessage: String?
   private(set) var isPerformingAction = false
-  private(set) var statusMessage = "可在锁屏与灵动岛显示此任务"
+  private(set) var statusMessage = String(localized: "可在锁屏与灵动岛显示此任务")
 
   private let authorizationInfo: ActivityAuthorizationInfo
 
@@ -43,13 +43,13 @@ final class TorrentLiveActivityCoordinator {
     errorMessage = nil
 
     guard areActivitiesEnabled else {
-      statusMessage = "系统已关闭实时活动"
-      errorMessage = "请在系统设置中允许 Torrent Vibe 使用实时活动。"
+      statusMessage = String(localized: "系统已关闭实时活动")
+      errorMessage = String(localized: "请在系统设置中允许 Torrent Vibe 使用实时活动。")
       return
     }
 
     guard torrent.status != .completed, torrent.progress < 1 else {
-      statusMessage = "已完成的任务无需持续跟踪"
+      statusMessage = String(localized: "已完成的任务无需持续跟踪")
       return
     }
 
@@ -83,7 +83,7 @@ final class TorrentLiveActivityCoordinator {
     } catch {
       activeTorrentID = nil
       activeTorrentName = nil
-      statusMessage = "实时活动启动失败"
+      statusMessage = String(localized: "实时活动启动失败")
       errorMessage = error.localizedDescription
     }
   }
@@ -95,7 +95,7 @@ final class TorrentLiveActivityCoordinator {
     await endAllActivities(dismissalPolicy: .immediate)
     activeTorrentID = nil
     activeTorrentName = nil
-    statusMessage = "实时活动已停止"
+    statusMessage = String(localized: "实时活动已停止")
     isPerformingAction = false
   }
 
@@ -128,7 +128,7 @@ final class TorrentLiveActivityCoordinator {
       )
       activeTorrentID = nil
       activeTorrentName = nil
-      statusMessage = "任务已完成，实时活动即将结束"
+      statusMessage = String(localized: "任务已完成，实时活动即将结束")
     } else {
       await activity.update(activityContent(state: state))
       setActiveStatus(from: activity.attributes)
@@ -141,10 +141,10 @@ final class TorrentLiveActivityCoordinator {
 
   func statusText(for torrent: TorrentSummary) -> String {
     if activeTorrentID == torrent.id {
-      return "正在锁屏与灵动岛跟踪"
+      return String(localized: "正在锁屏与灵动岛跟踪")
     }
     if let activeTorrentName {
-      return "当前正在跟踪“\(activeTorrentName)”"
+      return String(localized: "当前正在跟踪“\(activeTorrentName)”")
     }
     return statusMessage
   }
@@ -185,8 +185,8 @@ final class TorrentLiveActivityCoordinator {
       activeTorrentName = nil
       statusMessage =
         areActivitiesEnabled
-        ? "可在锁屏与灵动岛显示此任务"
-        : "系统已关闭实时活动"
+        ? String(localized: "可在锁屏与灵动岛显示此任务")
+        : String(localized: "系统已关闭实时活动")
       return
     }
     setActiveStatus(from: activity.attributes)
@@ -195,6 +195,6 @@ final class TorrentLiveActivityCoordinator {
   private func setActiveStatus(from attributes: TorrentLiveActivityAttributes) {
     activeTorrentID = attributes.torrentID
     activeTorrentName = attributes.torrentName
-    statusMessage = "正在锁屏与灵动岛跟踪"
+    statusMessage = String(localized: "正在锁屏与灵动岛跟踪")
   }
 }

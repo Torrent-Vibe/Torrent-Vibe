@@ -84,7 +84,7 @@ struct TorrentContentView: View {
         ContentUnavailableView {
           Label("任务将在连接后显示", systemImage: "arrow.down.circle")
         } description: {
-          Text(model.integrationNotice ?? "当前服务器没有符合条件的任务。")
+          Text(model.integrationNotice ?? String(localized: "当前服务器没有符合条件的任务。"))
         }
       } else {
         TorrentFilterPagerView(
