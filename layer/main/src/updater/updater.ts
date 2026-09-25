@@ -4,7 +4,11 @@ import { join } from 'node:path'
 import { app, dialog, Notification, shell } from 'electron'
 import electronLog from 'electron-log'
 
-import type { SparkleBridge, SparkleInitOptions } from './sparkle'
+import type {
+  SparkleBridge,
+  SparkleBridgeEvent,
+  SparkleInitOptions,
+} from './sparkle'
 import { loadSparkleBridgeForApp } from './sparkle'
 import type { UpdaterStatusStore, UpdaterUiStatus } from './status'
 import { createUpdaterStatusStore } from './status'
@@ -503,6 +507,18 @@ export function initSparkleUpdater(
     log,
   })
 
+  if (mode === 'sparkle' && sparkleBridge) {
+    sparkleBridge.setEventHandler((event) => {
+      if (event.type === 'update-downloaded') {
+        sparkleBridge.installUpdateOnQuit()
+      }
+      const next = toSparkleStatus(event, statusStore.get())
+      if (next) {
+        statusStore.set(next)
+      }
+    })
+  }
+
   // Badge detection always uses GitHub, including sparkle mode.
   if (mode === 'sparkle') {
     setTimeout(() => {
@@ -524,6 +540,50 @@ export function initSparkleUpdater(
     },
     log,
   })
+}
+
+function toSparkleStatus(
+  event: SparkleBridgeEvent,
+  prev: UpdaterUiStatus,
+): UpdaterUiStatus | null {
+  const knownVersion =
+    prev.kind === 'available' ||
+    prev.kind === 'downloading' ||
+    prev.kind === 'ready'
+      ? prev.version
+      : ''
+  const version = event.version || knownVersion
+  switch (event.type) {
+    case 'update-available': {
+      return prev.kind === 'ready'
+        ? null
+        : { kind: 'downloading', version, percent: 0 }
+    }
+    case 'download-progress': {
+      const prevPercent = prev.kind === 'downloading' ? prev.percent : 0
+      return {
+        kind: 'downloading',
+        version,
+        percent:
+          event.phase === 'apply'
+            ? 100
+            : Math.floor(event.percent ?? prevPercent),
+      }
+    }
+    case 'update-downloaded': {
+      return { kind: 'ready', version }
+    }
+    case 'update-not-available': {
+      const current = app.getVersion()
+      return { kind: 'up-to-date', current, latest: current }
+    }
+    case 'error': {
+      return { kind: 'error', message: event.message || 'Update failed' }
+    }
+    default: {
+      return null
+    }
+  }
 }
 
 async function runElectronCheck(

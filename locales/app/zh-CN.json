@@ -862,5 +862,18 @@
   "tracker.error": "错误",
   "tracker.notContacted": "未联系",
   "tracker.unknown": "未知",
-  "tracker.working": "工作中"
+  "tracker.working": "工作中",
+  "updateCard.available.action": "立即更新",
+  "updateCard.available.description": "下载并重启以完成更新。",
+  "updateCard.available.title": "Torrent Vibe {{version}} 已发布",
+  "updateCard.dismiss": "关闭",
+  "updateCard.downloading.title": "正在下载 {{version}}",
+  "updateCard.error.retry": "重试",
+  "updateCard.error.title": "更新失败",
+  "updateCard.preparing.description": "更新准备好后会自动重启。",
+  "updateCard.preparing.title": "正在准备更新…",
+  "updateCard.ready.action": "立即重启",
+  "updateCard.ready.description": "退出时自动安装，也可以立即重启。",
+  "updateCard.ready.title": "{{version}} 已下载",
+  "updateCard.whatsNew": "更新内容"
 }

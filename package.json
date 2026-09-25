@@ -12,7 +12,7 @@
   "scripts": {
     "build": "vite build",
     "build:electron": "pnpm build:native && pnpm electron:build && electron-builder --mac dmg zip --arm64 --publish never",
-    "build:native": "bash native/build-all.sh",
+    "build:native": "bash scripts/build-native.sh",
     "build:production": "vite build --mode production",
     "build:render-release": "cross-env NODE_ENV=production ELECTRON_RENDER_BUILD=1 vite build --mode production",
     "build:turbo": "turbo run build --filter=@torrent-vibe/*",
@@ -69,6 +69,7 @@
     "cross-env": "10.1.0",
     "electron": "42.4.0",
     "electron-builder": "^26.15.3",
+    "electron-sparkle-updater": "0.5.2",
     "electron-devtools-installer": "4.0.0",
     "eslint": "10.8.1",
     "jsonc-eslint-parser": "^3.3.0",

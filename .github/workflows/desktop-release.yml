@@ -391,8 +391,8 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
-      # native/build-all.sh only builds the sparkle-bridge addon, whose build.sh
-      # exits 0 on non-Darwin; the npm-dependency natives (sqlite3, bufferutil,
+      # build:native only builds the electron-sparkle-updater addon and exits 0
+      # on non-Darwin; the npm-dependency natives (sqlite3, bufferutil,
       # utf-8-validate) are rebuilt for Electron's ABI by electron-builder's
       # @electron/rebuild during packaging, so no build:native step is needed here.
       - name: compile + package desktop (NSIS x64)
@@ -437,7 +437,7 @@ jobs:
       - name: install dependencies
         run: pnpm install --frozen-lockfile
 
-      # native/build-all.sh only builds the sparkle-bridge addon (Darwin-only,
+      # build:native only builds the electron-sparkle-updater addon (Darwin-only,
       # no-ops here); the npm-dependency natives are rebuilt for Electron's ABI
       # by electron-builder's @electron/rebuild during packaging.
       - name: compile + package desktop (AppImage x64)

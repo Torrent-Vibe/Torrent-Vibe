@@ -13,13 +13,11 @@ files:
   - dist/preload/**
   - dist/renderer/**
   - resources/icon.png
-  - native/sparkle-bridge/build/**
   - package.json
   - "!**/*.ts"
   - "!**/*.map"
 asarUnpack:
   - "**/*.{node,dylib,so}"
-  - "**/native/sparkle-bridge/build/**"
 protocols:
   - name: Magnet Link
     schemes:
@@ -44,8 +42,11 @@ mac:
   notarize: false
   artifactName: Torrent.Vibe-${version}-macos-${arch}.${ext}
   extraFiles:
-    - from: native/sparkle-bridge/vendor/Sparkle.framework
+    - from: node_modules/electron-sparkle-updater/native/vendor/Sparkle.framework
       to: Frameworks/Sparkle.framework
+  extraResources:
+    - from: node_modules/electron-sparkle-updater/native/build/Release/sparkle_bridge.node
+      to: sparkle/sparkle_bridge.node
   extendInfo:
     ITSAppUsesNonExemptEncryption: false
     SUFeedURL: https://github.com/Torrent-Vibe/Torrent-Vibe/releases/latest/download/appcast.xml

@@ -1,5 +1,5 @@
 import { APP_LATEST_RELEASE_URL } from '@torrent-vibe/shared'
-import { app, dialog } from 'electron'
+import { app } from 'electron'
 import log from 'electron-log'
 import type { ProgressInfo, UpdateDownloadedEvent } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
@@ -11,14 +11,16 @@ import type { UpdaterHandle } from '~/updater/updater'
 /**
  * AppAutoUpdater integrates electron-updater to provide full application updates
  * from GitHub Releases (electron-builder generates app-update.yml from its publish
- * config at package time). It auto-downloads updates and prompts the user to restart
- * when ready. Used on Windows/Linux only; macOS updates run through Sparkle.
+ * config at package time). It auto-downloads updates and reports progress through the
+ * status store; the renderer prompts for restart. Used on Windows/Linux only; macOS
+ * updates run through Sparkle.
  */
 export class AppAutoUpdater implements UpdaterHandle {
   private static _instance: AppAutoUpdater | null = null
   private logger = log.scope('AppAutoUpdater')
   private status: UpdaterStatusStore = createUpdaterStatusStore()
   private initialized = false
+  private installRequested = false
 
   static get instance(): AppAutoUpdater {
     if (!this._instance) {
@@ -47,8 +49,7 @@ export class AppAutoUpdater implements UpdaterHandle {
       this.registerEvents()
       this.initialized = true
       this.logger.info('AppAutoUpdater initialized')
-    }
-    catch (e) {
+    } catch (e) {
       this.logger.error('Failed to initialize AppAutoUpdater:', e)
     }
   }
@@ -57,8 +58,7 @@ export class AppAutoUpdater implements UpdaterHandle {
     try {
       this.logger.info('Checking for application updates via electron-updater')
       void autoUpdater.checkForUpdates()
-    }
-    catch (e) {
+    } catch (e) {
       this.logger.error('checkForUpdates failed:', e)
     }
   }
@@ -72,10 +72,21 @@ export class AppAutoUpdater implements UpdaterHandle {
   }
 
   installNow(): void {
+    const current = this.status.get()
+    if (current.kind === 'ready') {
+      this.quitAndInstall()
+      return
+    }
+    this.installRequested = true
+    if (current.kind !== 'downloading') {
+      this.checkForUpdates()
+    }
+  }
+
+  private quitAndInstall(): void {
     try {
       autoUpdater.quitAndInstall(false, true)
-    }
-    catch (e) {
+    } catch (e) {
       this.logger.error('quitAndInstall failed:', e)
     }
   }
@@ -115,43 +126,28 @@ export class AppAutoUpdater implements UpdaterHandle {
       this.logger.debug(
         `electron-updater: download ${Math.round(progress.percent)}% (${progress.transferred}/${progress.total})`,
       )
+      const current = this.status.get()
+      this.status.set({
+        kind: 'downloading',
+        version:
+          current.kind === 'available' || current.kind === 'downloading'
+            ? current.version
+            : '',
+        percent: Math.floor(progress.percent),
+      })
     })
 
-    autoUpdater.on(
-      'update-downloaded',
-      async (event: UpdateDownloadedEvent) => {
-        try {
-          this.logger.info(
-            'electron-updater: update downloaded',
-            event?.version,
-          )
-          const result = await dialog.showMessageBox({
-            type: 'question',
-            buttons: ['Restart Now', 'Later'],
-            defaultId: 0,
-            cancelId: 1,
-            title: 'Update Ready',
-            message:
-              'A new version has been downloaded. Restart the app to install now?',
-            detail: `Version: ${event?.version || ''}`,
-          })
-
-          if (result.response === 0) {
-            this.logger.info('Quitting and installing update...')
-            autoUpdater.quitAndInstall(false, true)
-          }
-          else {
-            this.logger.info('User chose to install later')
-          }
-        }
-        catch (e) {
-          this.logger.error('Failed to prompt for update installation:', e)
-        }
-      },
-    )
+    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      this.logger.info('electron-updater: update downloaded', event?.version)
+      this.status.set({ kind: 'ready', version: event?.version || '' })
+      if (this.installRequested) {
+        this.quitAndInstall()
+      }
+    })
 
     autoUpdater.on('error', (err: Error) => {
       this.logger.error('electron-updater error:', err)
+      this.installRequested = false
       this.status.set({ kind: 'error', message: err?.message || String(err) })
     })
   }

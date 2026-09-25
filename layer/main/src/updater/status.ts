@@ -2,6 +2,8 @@ export type UpdaterUiStatus =
   | { kind: 'unknown' }
   | { kind: 'up-to-date'; current: string; latest: string }
   | { kind: 'available'; version: string; htmlUrl: string }
+  | { kind: 'downloading'; version: string; percent: number }
+  | { kind: 'ready'; version: string }
   | { kind: 'error'; message: string }
 
 export type CheckResultForStatus =
@@ -17,9 +19,12 @@ export function applyCheckResult(
 ): UpdaterUiStatus {
   switch (result.kind) {
     case 'available': {
+      if (prev.kind === 'downloading' || prev.kind === 'ready') {
+        return prev
+      }
       return {
         kind: 'available',
-        version: result.release.version,
+        version: result.release.version.replace(/^desktop-v|^v/i, ''),
         htmlUrl: result.release.htmlUrl,
       }
     }
@@ -104,6 +109,16 @@ function sameStatus(a: UpdaterUiStatus, b: UpdaterUiStatus): boolean {
         a.version === b.version &&
         a.htmlUrl === b.htmlUrl
       )
+    }
+    case 'downloading': {
+      return (
+        b.kind === 'downloading' &&
+        a.version === b.version &&
+        a.percent === b.percent
+      )
+    }
+    case 'ready': {
+      return b.kind === 'ready' && a.version === b.version
     }
     case 'error': {
       return b.kind === 'error' && a.message === b.message

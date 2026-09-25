@@ -1,68 +1,32 @@
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
 import { app } from 'electron'
+import type { SparkleBridge } from 'electron-sparkle-updater'
+import { loadSparkleBridge } from 'electron-sparkle-updater'
 
-export interface SparkleInitOptions {
-  appcastUrl: string
-  publicEdKey: string
-}
+export type {
+  SparkleBridge,
+  SparkleBridgeEvent,
+  SparkleInitOptions,
+} from 'electron-sparkle-updater'
 
-export interface SparkleBridge {
-  checkForUpdates: () => void
-  init: (options: SparkleInitOptions) => boolean
-  installUpdateNow: () => void
-}
+const ADDON_FILE = 'sparkle_bridge.node'
 
-interface SparkleBridgeLoadDeps {
-  isPackaged: boolean
-  log?: (message: string) => void
-  moduleUrl: string
-  resourcesPath: string
-}
-
-const ADDON_RELATIVE_PATH = join(
-  'native',
-  'sparkle-bridge',
-  'build',
-  'Release',
-  'sparkle_bridge.node',
-)
-
-export function resolveSparkleAddonPath(deps: SparkleBridgeLoadDeps): string {
-  if (deps.isPackaged) {
-    // electron-builder's asarUnpack places native binaries under app.asar.unpacked with the
-    // project-relative layout preserved, so the addon keeps its native/ prefix.
-    return join(deps.resourcesPath, 'app.asar.unpacked', ADDON_RELATIVE_PATH)
+// tsdown bundles the library into dist/main, so it cannot find its own package root;
+// packaged builds ship the addon through electron-builder's mac extraResources instead.
+function resolveAddonPath(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, 'sparkle', ADDON_FILE)
   }
-  // Dev bundle lives at <root>/dist/main; the native addon sits at <root>/native.
-  const here = dirname(fileURLToPath(deps.moduleUrl))
-  return join(here, '..', '..', ADDON_RELATIVE_PATH)
-}
-
-export function loadSparkleBridge(
-  deps: SparkleBridgeLoadDeps,
-): SparkleBridge | null {
-  const addonPath = resolveSparkleAddonPath(deps)
-  try {
-    const require = createRequire(deps.moduleUrl)
-    const addon = require(addonPath) as SparkleBridge
-    if (
-      typeof addon.init !== 'function' ||
-      typeof addon.checkForUpdates !== 'function' ||
-      typeof addon.installUpdateNow !== 'function'
-    ) {
-      deps.log?.(
-        'addon loaded but missing expected exports, treating as unavailable',
-      )
-      return null
-    }
-    return addon
-  } catch (err) {
-    deps.log?.(`addon load failed: ${(err as Error).message}`)
-    return null
-  }
+  return join(
+    app.getAppPath(),
+    'node_modules',
+    'electron-sparkle-updater',
+    'native',
+    'build',
+    'Release',
+    ADDON_FILE,
+  )
 }
 
 export function loadSparkleBridgeForApp(
@@ -71,7 +35,7 @@ export function loadSparkleBridgeForApp(
   return loadSparkleBridge({
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
-    moduleUrl: import.meta.url,
+    addonPath: resolveAddonPath(),
     log,
   })
 }

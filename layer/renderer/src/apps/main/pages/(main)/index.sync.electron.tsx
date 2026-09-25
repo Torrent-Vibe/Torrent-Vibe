@@ -7,12 +7,7 @@ import { checkHasPersistMultiServerConfig } from '~/shared/config'
 
 export const Component = () => {
   const isMobile = useMobile()
-  return (
-    <>
-      {isMobile ? <MobileLayout /> : <DesktopLayout />}
-      {/* {__DEV__ && <UpdateNotificationDemo />} */}
-    </>
-  )
+  return <>{isMobile ? <MobileLayout /> : <DesktopLayout />}</>
 }
 
 export const loader = () => {

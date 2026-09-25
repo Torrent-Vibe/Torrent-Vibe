@@ -863,5 +863,18 @@
   "tracker.error": "Error",
   "tracker.notContacted": "Not contacted",
   "tracker.unknown": "Unknown",
-  "tracker.working": "Working"
+  "tracker.working": "Working",
+  "updateCard.available.action": "Update now",
+  "updateCard.available.description": "Download and restart to update.",
+  "updateCard.available.title": "Torrent Vibe {{version}} is available",
+  "updateCard.dismiss": "Dismiss",
+  "updateCard.downloading.title": "Downloading {{version}}",
+  "updateCard.error.retry": "Try again",
+  "updateCard.error.title": "Update failed",
+  "updateCard.preparing.description": "The app restarts once the update is ready.",
+  "updateCard.preparing.title": "Preparing update…",
+  "updateCard.ready.action": "Restart now",
+  "updateCard.ready.description": "Installs when you quit, or restart now.",
+  "updateCard.ready.title": "{{version}} downloaded",
+  "updateCard.whatsNew": "What's new"
 }

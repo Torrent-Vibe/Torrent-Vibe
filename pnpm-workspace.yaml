@@ -14,6 +14,7 @@ allowBuilds:
   "@tailwindcss/oxide": true
   bufferutil: false
   electron: true
+  electron-sparkle-updater: false
   electron-window-corner-addon: true
   electron-winstaller: true
   esbuild: true

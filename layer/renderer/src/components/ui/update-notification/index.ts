@@ -1,2 +1,5 @@
-export type { FloatingUpdatePillProps, UpdateState } from './FloatingUpdatePill'
+export type {
+  FloatingUpdatePillProps,
+  UpdateCardState,
+} from './FloatingUpdatePill'
 export { FloatingUpdatePill } from './FloatingUpdatePill'
