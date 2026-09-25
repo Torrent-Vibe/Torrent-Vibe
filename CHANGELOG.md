@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+- Updates show in a card at the bottom left: download progress, Restart
+  now once the update is ready, and the error with a retry if it fails.
+  Clicking install while an update is still downloading now installs it
+  when the download finishes instead of doing nothing.
+- macOS updates run through electron-sparkle-updater, so Sparkle's own
+  update windows no longer appear. Windows and Linux use the same card
+  in place of the system restart dialog.
+- Agent chat shows tool results, plans, and markdown inline in one flat
+  transcript instead of nested cards.
+- Fixed the Files tab changing the wrong file when you ticked a
+  checkbox. Ticking one file no longer resets High or Max priority on
+  the others.
+
 ## 1.3.0
 
 - The workspace Agent can organize a qBittorrent library through a
