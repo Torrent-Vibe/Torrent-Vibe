@@ -298,43 +298,34 @@ export const FilesTab = ({
 
   const handleToggleSelection = useCallback(
     async (path: string, selected: boolean) => {
-      let snapshot: FileTreeNode[] = []
+      const next = toggleNodeSelection(fileTreeState, path, selected)
       startTransition(() => {
-        setFileTree((prev) => {
-          snapshot = toggleNodeSelection(prev, path, selected)
-          return snapshot
-        })
+        setFileTree(next)
       })
 
       if (!torrentHash) {
         return
       }
-      const selectedIndices = getSelectedFileIndices(snapshot)
-      const unselectedIndices =
-        files
-          ?.filter((_, index) => !selectedIndices.includes(index))
-          .map((_, index) => index) || []
+      const before = new Set(getSelectedFileIndices(fileTreeState))
+      const after = new Set(getSelectedFileIndices(next))
+      const changed = selected
+        ? [...after].filter((index) => !before.has(index))
+        : [...before].filter((index) => !after.has(index))
+      if (changed.length === 0) {
+        return
+      }
 
       try {
-        if (selectedIndices.length > 0) {
-          await QBittorrentClient.shared.requestSetFilePriority(
-            torrentHash,
-            selectedIndices,
-            1,
-          )
-        }
-        if (unselectedIndices.length > 0) {
-          await QBittorrentClient.shared.requestSetFilePriority(
-            torrentHash,
-            unselectedIndices,
-            0,
-          )
-        }
+        await QBittorrentClient.shared.requestSetFilePriority(
+          torrentHash,
+          changed,
+          selected ? 1 : 0,
+        )
       } catch (error) {
         console.error('Failed to sync selection to server:', error)
       }
     },
-    [torrentHash, files],
+    [torrentHash, fileTreeState],
   )
 
   const handleToggleExpansion = useCallback((path: string) => {
